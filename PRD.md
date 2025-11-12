@@ -857,6 +857,341 @@ The following risks should be added to Section 9:
 
 ---
 
+## 14. Bootstrap Learning Framework
+
+This section defines the ASP system's core learning strategy: **all agent capabilities start in supervised "learning mode" and graduate to autonomy based on demonstrated accuracy.**
+
+### 14.1 Core Principle
+
+**Principle:** _Autonomy is earned through demonstrated reliability, not assumed._
+
+Every agent capability follows a three-phase lifecycle:
+1. **Learning Mode:** Human validates all outputs, system collects accuracy data
+2. **Shadow Mode:** Agent provides recommendations alongside humans, predictions compared to actuals
+3. **Autonomous Mode:** Agent operates independently, with periodic recalibration
+
+### 14.2 Bootstrap Capabilities
+
+#### B1: PROBE-AI Estimation Accuracy
+
+**What to Measure:**
+- Estimation accuracy: Planned vs. Actual Cost Vector variance
+- Model fit: R² coefficient from linear regression
+- Confidence intervals: Standard error of estimates
+
+**Bootstrap Process:**
+```
+Phase 0.5 (Bootstrap Period):
+- Tasks 1-10:  Human estimates + full telemetry collection
+- Task 11:     Run PROBE-AI validation (train on 1-10)
+              Calculate R² and prediction accuracy
+              If R² > 0.7 → Enable Shadow Mode
+              If R² < 0.7 → Continue to task 20
+
+Shadow Mode:
+- Tasks 11-20: PROBE-AI predicts alongside human estimates
+              Compare predictions to actuals
+              Track: Mean Absolute Percentage Error (MAPE)
+
+Autonomous Mode:
+- Task 21+:    If MAPE < 20% over last 10 tasks → Enable autonomous estimation
+              Display confidence interval with each estimate
+              If confidence interval > ±50% → Flag for human review
+```
+
+**Graduation Criteria:**
+- Minimum 10 tasks completed
+- R² > 0.7 (model explains 70%+ of variance)
+- MAPE < 20% over last 10 tasks
+- Dataset includes tasks across complexity range (low/medium/high)
+
+**Ongoing Monitoring:**
+- Monthly recalibration as dataset grows
+- Alert if MAPE increases >10% from baseline
+- Automatic regression to Shadow Mode if accuracy degrades
+
+**New FR-23: Bootstrap Metrics Dashboard**
+The system MUST provide a dashboard showing:
+- Current mode for each capability (Learning/Shadow/Autonomous)
+- Accuracy metrics and trends
+- Graduation criteria progress (e.g., "8/10 tasks completed for PROBE-AI")
+- Alerts for degradation requiring human intervention
+
+---
+
+#### B2: Task Decomposition Quality
+
+**What to Measure:**
+- **Completeness:** Do decomposed tasks cover all requirements? (% coverage)
+- **Accuracy:** Are Semantic Complexity estimates accurate per subtask? (±% variance)
+- **Sequencing:** Does task order make logical sense? (human rating 1-5)
+- **Correction Rate:** % of decompositions requiring human edits before execution
+
+**Bootstrap Process:**
+```
+Learning Mode (Tasks 1-15):
+- Planning Agent generates task decomposition
+- Human reviews EVERY decomposition before execution
+- Human logs corrections in structured format:
+  {
+    "missing_tasks": ["Add error handling", "Update docs"],
+    "incorrect_complexity": {"SU-003": "estimated 5, should be 12"},
+    "sequencing_issues": "SU-004 must come before SU-002"
+  }
+- Track correction rate per task
+
+Shadow Mode (Tasks 16-30):
+- Planning Agent decomposition used if correction rate < 20% for last 5 tasks
+- Human spot-checks 20% of decompositions
+- Track defect escape rate (issues found during execution that should have been in decomposition)
+
+Autonomous Mode (Task 31+):
+- Enable if: Correction rate < 10% AND Defect escape rate < 5%
+- Monthly human audits of 10% of decompositions
+```
+
+**Graduation Criteria:**
+- 15+ tasks completed in Learning Mode
+- Correction rate < 10% over last 5 tasks
+- Defect escape rate < 5% over last 10 tasks
+- Completeness score > 90% (human rating)
+
+**Feedback Loop:**
+- Add missed task patterns to Planning Agent prompt
+- Example: "If requirements mention 'user authentication', always include 'Add security tests' as a subtask"
+
+---
+
+#### B3: Error-Prone Area Detection
+
+**What to Measure:**
+- **Defect Density by Component:** Defects per Semantic Complexity unit for each code module
+- **Defect Density by Task Type:** Defects per task for categories (auth, database, API, UI)
+- **Defect Density by Agent:** Which agents inject most defects?
+- **Temporal Patterns:** Do defects increase over time (agent drift)?
+
+**Bootstrap Process:**
+```
+Learning Mode (Phase 1-2, First 30 tasks):
+- Collect comprehensive defect data with rich metadata:
+  {
+    "defect_id": "D-042",
+    "component": "src/auth/login.py",
+    "task_type": "authentication",
+    "injecting_agent": "Coding_Agent",
+    "defect_type": "5_Security_Vulnerability",
+    "complexity": 18
+  }
+- NO automated actions yet, just data collection
+
+Analysis Mode (After 30 tasks):
+- Run statistical analysis:
+  - Calculate defect density per component (sort descending)
+  - Calculate defect rate per task type
+  - Identify top 10 "high-risk" components (defect density > 2x median)
+  - Identify top 3 "high-risk" task types
+
+Autonomous Mode (Phase 3+):
+- Use risk map to trigger enhanced reviews:
+  - Tasks touching high-risk components → Add extra checklist items
+  - High-risk task types → Require human review even if agent passes
+- Example: If "authentication" has 3x higher defect rate, all auth tasks get mandatory human review
+
+Recalibration:
+- Recalculate risk map monthly
+- Components/task types improve over time → graduate to lower risk tier
+- New high-risk areas emerge → add to enhanced review list
+```
+
+**Graduation Criteria:**
+- Minimum 30 tasks with defect data
+- Risk map updated and validated by engineering lead
+- Enhanced review rules defined and documented
+
+**Impact Metrics:**
+- Target: 30% reduction in defect density for high-risk areas after enhanced reviews deployed
+- Track: Defect escape rate before/after risk-based review implementation
+
+---
+
+#### B4: Review Agent Effectiveness
+
+**What to Measure:**
+- **True Positive Rate:** % of agent-flagged issues that are real defects
+- **False Positive Rate:** % of agent-flagged issues that are incorrect
+- **False Negative Rate (Escape Rate):** % of defects found in Test that should have been caught in Review
+- **By Defect Type:** Effectiveness varies by defect category (security vs. logic errors)
+
+**Bootstrap Process:**
+```
+Learning Mode (Phase 3, First 20 reviews):
+- Review Agents (Design + Code) flag potential defects
+- Human validates EVERY finding:
+  - "True Positive": Real defect, good catch
+  - "False Positive": Not a defect, agent was wrong
+  - "False Negative": (discovered retroactively when Test finds defect)
+- Track per-defect-type accuracy
+
+Analysis Mode (After 20 reviews):
+- Calculate metrics:
+  - Overall: TP rate, FP rate, Escape rate
+  - Per defect type: Agent good at finding "6_Conventional_Code_Bug" but misses "5_Security_Vulnerability"
+- Identify improvement opportunities:
+  - High FP rate for defect type X → Refine checklist to be more specific
+  - High escape rate for defect type Y → Add examples of Y to agent prompt
+
+Shadow Mode (Reviews 21-40):
+- Deploy improved prompts/checklists based on analysis
+- Continue human validation but reduce to 50% sampling
+- Track improvement in metrics
+
+Autonomous Mode (Review 41+):
+- Graduate if: TP rate > 80%, FP rate < 20%, Escape rate < 5%
+- Human spot-checks 10% of reviews
+- Monthly recalibration
+```
+
+**Graduation Criteria:**
+- 20+ reviews completed with full validation
+- True Positive rate > 80% (agent finds real issues)
+- False Positive rate < 20% (agent doesn't waste human time)
+- Escape rate < 5% (few defects slip through to Test)
+
+**Feedback Loop (PIP Integration):**
+- When review agent misses a defect (found in Test), Postmortem Agent automatically:
+  1. Analyzes why it was missed (e.g., "Not on checklist")
+  2. Generates PIP to add that pattern to review checklist
+  3. Tags PIP as "Bootstrap Improvement - High Priority"
+
+---
+
+#### B5: Defect Type Prediction
+
+**What to Measure:**
+- **Defect Type Correlation:** Do certain task characteristics predict defect types?
+  - Example: Database tasks → higher risk of "6_Conventional_Code_Bug" (SQL syntax errors)
+  - Example: Authentication tasks → higher risk of "5_Security_Vulnerability"
+- **Predictive Accuracy:** Can we predict top 3 likely defect types before task starts?
+
+**Bootstrap Process:**
+```
+Learning Mode (Phase 1-3, First 50 tasks):
+- Collect rich task metadata + defect data:
+  {
+    "task_id": "Task-042",
+    "task_type": "authentication",
+    "touches_components": ["auth/", "database/"],
+    "keywords": ["login", "password", "session"],
+    "complexity": 18,
+    "defects_found": ["5_Security_Vulnerability", "6_Conventional_Code_Bug"]
+  }
+- NO predictions yet, just correlation analysis
+
+Analysis Mode (After 50 tasks):
+- Build predictive model:
+  - Use classification algorithm (e.g., decision tree, logistic regression)
+  - Features: task_type, components, keywords, complexity
+  - Target: Top 3 defect types for this task
+- Validate model: Train on first 40 tasks, test on last 10
+- Calculate prediction accuracy (% of actual defects that were predicted)
+
+Shadow Mode (Task 51+):
+- For each new task, model predicts top 3 likely defect types
+- Pre-populate review checklists with predicted defect types
+- Human validates: Were predictions useful?
+- Track: Did enhanced checklists improve detection rate for predicted defects?
+
+Autonomous Mode (After validation):
+- If prediction accuracy > 60% AND it improves detection rate by 15%+:
+  - Automatically customize review checklists per task
+  - Example: Auth task → Add extra items: "Check for hardcoded credentials", "Validate session timeout"
+- Monthly retraining of prediction model as dataset grows
+```
+
+**Graduation Criteria:**
+- 50+ tasks with defect type data
+- Prediction accuracy > 60% (predicts defects that actually occur)
+- Measurable improvement: Defect detection rate increases 15%+ when using predicted checklists
+- Model validated by data scientist or ML engineer
+
+**Advanced Future State:**
+- Integrate with static analysis tools (SAST) to improve predictions
+- Predict defect severity, not just type
+- Predict which agents are most likely to inject which defect types
+
+---
+
+### 14.3 Unified Bootstrap Dashboard
+
+**New FR-24: Bootstrap Status Dashboard**
+
+The system MUST provide a unified dashboard showing the learning status of all capabilities:
+
+| Capability | Current Mode | Tasks Completed | Key Metric | Graduation Criteria | Status |
+|------------|--------------|-----------------|------------|---------------------|--------|
+| PROBE-AI Estimation | Shadow | 15/20 | MAPE: 18% | MAPE < 20% | 🟡 On Track |
+| Task Decomposition | Learning | 8/15 | Correction Rate: 25% | Correction < 10% | 🟡 In Progress |
+| Error-Prone Detection | Learning | 22/30 | Defects Logged: 22 | 30 tasks | 🟢 Near Complete |
+| Review Agent (Design) | Learning | 5/20 | TP: 75%, FP: 30% | TP > 80%, FP < 20% | 🔴 Needs Improvement |
+| Review Agent (Code) | Learning | 5/20 | TP: 85%, FP: 15% | TP > 80%, FP < 20% | 🟢 Performing Well |
+| Defect Type Prediction | Not Started | 0/50 | N/A | 50 tasks | ⚪ Pending |
+
+**Dashboard Features:**
+- **Visual Progress Bars:** Show progress toward graduation criteria
+- **Trend Charts:** Show metric improvement over time
+- **Alert System:** Flag capabilities regressing or stalling
+- **Recommendations:** "Design Review Agent FP rate increasing - suggest prompt refinement"
+
+---
+
+### 14.4 Bootstrap Learning as a Continuous Process
+
+**Key Insight:** Bootstrap learning is not a one-time phase. It's a continuous cycle:
+
+```
+1. Deploy capability in Learning Mode
+2. Collect accuracy data
+3. Analyze patterns and failure modes
+4. Generate PIP to improve prompts/checklists
+5. Human approves PIP
+6. Deploy improved version
+7. Measure improvement
+8. Graduate to Shadow/Autonomous Mode
+9. Continue monitoring (monthly recalibration)
+10. If performance degrades → Regress to Learning Mode
+11. Repeat cycle
+```
+
+**Integration with Postmortem Agent:**
+The Postmortem Agent (Section VII) should be enhanced to:
+- Track bootstrap metrics alongside standard PSP metrics
+- Generate PIPs specifically tagged as "Bootstrap Improvements"
+- Prioritize bootstrap PIPs (Phase 1-3) to accelerate learning
+
+**Documentation Requirement:**
+- Every PIP generated from bootstrap learning MUST document:
+  - What data revealed the issue
+  - What hypothesis was tested
+  - What the expected improvement is
+  - How success will be measured
+
+This creates an audit trail of the system's learning process, essential for trust and regulatory compliance.
+
+---
+
+### 14.5 Risk Register Updates for Bootstrap Learning
+
+Add to Section 9:
+
+| Risk | Impact | Probability | Mitigation Strategy |
+|------|--------|-------------|---------------------|
+| **R15: Premature graduation to autonomous mode** | High | Medium | Enforce strict graduation criteria, require engineering lead approval for mode transitions |
+| **R16: Insufficient data variety for learning** | Medium | High | Ensure bootstrap tasks span complexity/type range, reject graduation if dataset too homogeneous |
+| **R17: Agent performance drift after graduation** | High | Medium | Monthly recalibration, automatic regression to Shadow Mode if metrics degrade >10% |
+| **R18: False confidence from overfitting** | Critical | Low | Use train/test split for validation, require out-of-sample prediction accuracy |
+
+---
+
 ## Approval & Sign-Off
 
 | Role | Name | Signature | Date |
@@ -874,3 +1209,4 @@ The following risks should be added to Section 9:
 |---------|------|--------|---------|
 | 1.0 | 2025-11-11 | Claude Code | Initial PRD based on PSPdoc.md |
 | 1.1 | 2025-11-11 | Claude Code | Added Section 13: Implementation Considerations (10 concerns, 3 new FRs, 6 new risks) |
+| 1.2 | 2025-11-11 | Claude Code | Added Section 14: Bootstrap Learning Framework (5 capabilities, 2 new FRs, 4 new risks). Resolved 5 open questions. |
