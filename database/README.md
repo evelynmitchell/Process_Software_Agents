@@ -12,11 +12,68 @@ The ASP telemetry database captures:
 3. **Task Metadata** - Context for PROBE-AI estimation and analytics
 4. **Bootstrap Metrics** - Learning progress for graduated autonomy
 
+**Database Choice:** See [Data Storage Decision](../docs/data_storage_decision.md) for rationale.
+- **Phase 1-3 (Recommended):** SQLite - Zero setup, portable, perfect for <100K rows
+- **Phase 4+ (Production):** PostgreSQL - When scaling to high concurrency or large datasets
+
 ---
 
-## Quick Start
+## Quick Start (SQLite - Recommended)
 
-### Option 1: PostgreSQL Only (Standard)
+### Option 1: Python Script (Easiest)
+
+```bash
+# Create database with schema only
+uv run python scripts/init_database.py
+
+# Create database with sample data for testing
+uv run python scripts/init_database.py --with-sample-data
+
+# Reset existing database
+uv run python scripts/init_database.py --reset
+
+# Custom database path
+uv run python scripts/init_database.py --db-path /path/to/custom.db
+```
+
+The script will:
+1. Create `asp_telemetry.db` (or custom path)
+2. Create all 4 tables with proper constraints
+3. Create performance indexes
+4. Optionally populate with sample data
+5. Display statistics and verification results
+
+### Option 2: Manual SQL Execution
+
+```bash
+# Create database and run migrations
+sqlite3 asp_telemetry.db < database/sqlite/create_tables.sql
+sqlite3 asp_telemetry.db < database/sqlite/create_indexes.sql
+
+# Optional: Add sample data
+sqlite3 asp_telemetry.db < database/sqlite/sample_data.sql
+```
+
+### Verifying SQLite Database
+
+```bash
+# Check tables
+sqlite3 asp_telemetry.db ".tables"
+
+# Query sample data
+sqlite3 asp_telemetry.db "SELECT task_id, task_type, status FROM task_metadata;"
+
+# Check database size
+ls -lh asp_telemetry.db
+```
+
+---
+
+## Advanced: PostgreSQL Setup
+
+For production deployment or when you need PostgreSQL features (see [migration criteria](../docs/data_storage_decision.md#when-to-migrate-to-postgresql)):
+
+### PostgreSQL Only
 
 ```bash
 # 1. Create database
@@ -28,7 +85,7 @@ psql asp_telemetry < migrations/002_create_indexes.sql
 psql asp_telemetry < migrations/004_sample_data.sql  # Optional: test data
 ```
 
-### Option 2: PostgreSQL + TimescaleDB (Recommended for Production)
+### PostgreSQL + TimescaleDB (Production Optimization)
 
 ```bash
 # 1. Install TimescaleDB extension (Ubuntu/Debian)
@@ -45,16 +102,35 @@ psql asp_telemetry < migrations/003_timescaledb_setup.sql  # TimescaleDB optimiz
 psql asp_telemetry < migrations/004_sample_data.sql        # Optional: test data
 ```
 
+### Migrating from SQLite to PostgreSQL
+
+```bash
+# Use the migration script (coming soon)
+uv run python scripts/migrate_sqlite_to_postgres.py \
+    --sqlite-db asp_telemetry.db \
+    --postgres-url postgresql://user:pass@localhost/asp_telemetry
+```
+
 ---
 
 ## Migration Files
 
+### SQLite Files (Phase 1-3)
+
+| File | Description | Required |
+|------|-------------|----------|
+| `sqlite/create_tables.sql` | Creates 4 core tables | Yes |
+| `sqlite/create_indexes.sql` | Adds performance indexes | Yes |
+| `sqlite/sample_data.sql` | Inserts test data | Optional |
+
+### PostgreSQL Files (Phase 4+)
+
 | File | Description | Required | Dependencies |
 |------|-------------|----------|--------------|
-| `001_create_tables.sql` | Creates 4 core tables | Yes | PostgreSQL 12+ |
-| `002_create_indexes.sql` | Adds performance indexes | Yes | 001 |
-| `003_timescaledb_setup.sql` | TimescaleDB optimization | Optional | 001, 002, TimescaleDB |
-| `004_sample_data.sql` | Inserts test data | Optional | 001, 002 |
+| `migrations/001_create_tables.sql` | Creates 4 core tables | Yes | PostgreSQL 12+ |
+| `migrations/002_create_indexes.sql` | Adds performance indexes | Yes | 001 |
+| `migrations/003_timescaledb_setup.sql` | TimescaleDB optimization | Optional | 001, 002, TimescaleDB |
+| `migrations/004_sample_data.sql` | Inserts test data | Optional | 001, 002 |
 
 ---
 
@@ -124,9 +200,12 @@ psql asp_telemetry < migrations/004_sample_data.sql        # Optional: test data
 
 ## Common Queries
 
+These queries work on both SQLite and PostgreSQL (with minor syntax variations noted).
+
 ### Get PROBE-AI Training Data
 
 ```sql
+-- Works on both SQLite and PostgreSQL
 SELECT
     tm.task_id,
     tm.estimated_complexity AS proxy,
@@ -143,43 +222,76 @@ LIMIT 20;
 ### Review Agent True Positive Rate
 
 ```sql
+-- SQLite version (use SUM with CASE)
 SELECT
     phase_removed AS review_agent,
-    COUNT(*) FILTER (WHERE flagged_by_agent = TRUE AND validated_by_human = TRUE) AS true_positives,
-    COUNT(*) FILTER (WHERE flagged_by_agent = TRUE AND false_positive = TRUE) AS false_positives,
-    ROUND(100.0 * COUNT(*) FILTER (WHERE flagged_by_agent = TRUE AND validated_by_human = TRUE) /
-          NULLIF(COUNT(*) FILTER (WHERE flagged_by_agent = TRUE), 0), 2) AS true_positive_rate_pct
+    SUM(CASE WHEN flagged_by_agent = 1 AND validated_by_human = 1 THEN 1 ELSE 0 END) AS true_positives,
+    SUM(CASE WHEN flagged_by_agent = 1 AND false_positive = 1 THEN 1 ELSE 0 END) AS false_positives,
+    ROUND(100.0 * SUM(CASE WHEN flagged_by_agent = 1 AND validated_by_human = 1 THEN 1 ELSE 0 END) /
+          NULLIF(SUM(CASE WHEN flagged_by_agent = 1 THEN 1 ELSE 0 END), 0), 2) AS true_positive_rate_pct
 FROM defect_log
 WHERE phase_removed IN ('DesignReview', 'CodeReview')
 GROUP BY phase_removed;
+
+-- PostgreSQL version (use FILTER clause for cleaner syntax)
+-- SELECT
+--     phase_removed AS review_agent,
+--     COUNT(*) FILTER (WHERE flagged_by_agent = TRUE AND validated_by_human = TRUE) AS true_positives,
+--     COUNT(*) FILTER (WHERE flagged_by_agent = TRUE AND false_positive = TRUE) AS false_positives,
+--     ROUND(100.0 * COUNT(*) FILTER (WHERE flagged_by_agent = TRUE AND validated_by_human = TRUE) /
+--           NULLIF(COUNT(*) FILTER (WHERE flagged_by_agent = TRUE), 0), 2) AS true_positive_rate_pct
+-- FROM defect_log
+-- WHERE phase_removed IN ('DesignReview', 'CodeReview')
+-- GROUP BY phase_removed;
 ```
 
-### Cost Analysis by Agent
+### Cost Analysis by Agent (Last 30 Days)
 
 ```sql
+-- SQLite version
 SELECT
     agent_role,
     COUNT(DISTINCT task_id) AS tasks,
     SUM(CASE WHEN metric_type = 'API_Cost' THEN metric_value ELSE 0 END) AS total_cost_usd,
     AVG(CASE WHEN metric_type = 'Latency' THEN metric_value ELSE NULL END) AS avg_latency_ms
 FROM agent_cost_vector
-WHERE timestamp >= NOW() - INTERVAL '30 days'
+WHERE timestamp >= datetime('now', '-30 days')
 GROUP BY agent_role
 ORDER BY total_cost_usd DESC;
+
+-- PostgreSQL version
+-- WHERE timestamp >= NOW() - INTERVAL '30 days'
 ```
 
 ### Bootstrap Dashboard Data
 
 ```sql
-SELECT DISTINCT ON (capability_name)
+-- SQLite version (using subquery for latest record per capability)
+SELECT
     capability_name,
     capability_mode,
     tasks_completed || '/' || tasks_required_for_graduation AS progress,
     primary_metric_value,
     primary_metric_target,
     graduation_criteria_met
-FROM bootstrap_metrics
-ORDER BY capability_name, measured_at DESC;
+FROM bootstrap_metrics bm1
+WHERE measured_at = (
+    SELECT MAX(measured_at)
+    FROM bootstrap_metrics bm2
+    WHERE bm2.capability_name = bm1.capability_name
+)
+ORDER BY capability_name;
+
+-- PostgreSQL version (using DISTINCT ON)
+-- SELECT DISTINCT ON (capability_name)
+--     capability_name,
+--     capability_mode,
+--     tasks_completed || '/' || tasks_required_for_graduation AS progress,
+--     primary_metric_value,
+--     primary_metric_target,
+--     graduation_criteria_met
+-- FROM bootstrap_metrics
+-- ORDER BY capability_name, measured_at DESC;
 ```
 
 ---
@@ -307,9 +419,15 @@ SELECT * FROM pg_extension WHERE extname = 'timescaledb';
 ---
 
 **Related Documentation:**
-- [Database Schema Specification](docs/database_schema_specification.md)
-- [Observability Platform Evaluation](docs/observability_platform_evaluation.md)
+- [Data Storage Decision](../docs/data_storage_decision.md) - SQLite vs PostgreSQL
+- [Database Schema Specification](../docs/database_schema_specification.md)
+- [Observability Platform Evaluation](../docs/observability_platform_evaluation.md)
 - PRD Section VI: Automating Process Data
 
-**Version:** 1.0
-**Last Updated:** 2025-11-11
+**Version:** 1.1
+**Last Updated:** 2025-11-12
+**Changes:**
+- Added SQLite as default/recommended database (Phase 1-3)
+- Created SQLite-compatible schema scripts
+- Added Python initialization script (`scripts/init_database.py`)
+- Updated queries to work with both SQLite and PostgreSQL
