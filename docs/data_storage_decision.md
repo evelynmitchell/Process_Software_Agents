@@ -119,7 +119,7 @@ Migrate when **any** of these conditions are met:
    ```
 
 3. **Update Configuration**
-   - Add `DATABASE_URL` to `.env.example`: `sqlite:///asp_telemetry.db`
+   - Add `DATABASE_URL` to `.env.example`: `sqlite:///data/asp_telemetry.db`
    - Use SQLAlchemy for database abstraction (works with both SQLite and PostgreSQL)
    - Default to SQLite, allow PostgreSQL via environment variable
 
@@ -218,11 +218,72 @@ We considered supporting both SQLite and PostgreSQL from the start using SQLAlch
 
 ---
 
+## Addendum: Database File Location
+
+**Date:** November 12, 2025 (Afternoon)
+**Issue:** Where should the SQLite database file be stored in the project structure?
+
+### Options Considered
+
+1. **Project Root: `asp_telemetry.db`**
+   - ✅ Simple, obvious, easy to find
+   - ❌ Clutters project root
+   - ❌ Mixes runtime data with source code
+
+2. **Database Directory: `database/asp_telemetry.db`**
+   - ✅ Co-locates schema and data
+   - ❌ Mixes static schema files with runtime data
+   - ❌ Conceptually confusing (schema vs data)
+
+3. **Hidden Directory: `.data/asp_telemetry.db`**
+   - ✅ Keeps root clean
+   - ❌ Less discoverable for new users
+   - ❌ Hidden files can be problematic in some environments
+
+4. **Data Directory: `data/asp_telemetry.db`** ⭐ **SELECTED**
+   - ✅ Clean separation of runtime data from code
+   - ✅ Follows common conventions (like `logs/`, `output/`)
+   - ✅ Extensible for other runtime files (exports, reports, backups)
+   - ✅ Clear, discoverable, and organized
+   - ✅ Naturally fits with `.gitignore` patterns
+
+### Decision
+
+**Use `data/asp_telemetry.db` as the default database location.**
+
+### Rationale
+
+1. **Separation of Concerns:** Runtime data should be separated from source code and static configuration
+2. **Convention:** The `data/` directory is a common pattern in software projects for storing generated/runtime data
+3. **Scalability:** As the project grows, we may add:
+   - Exported reports: `data/exports/`
+   - Backups: `data/backups/`
+   - Test databases: `data/test_*.db`
+4. **Organization:** Keeps project root clean and professional
+5. **Git-Friendly:** Easy to add entire `data/` directory to `.gitignore`
+
+### Implementation
+
+1. Update `scripts/init_database.py` default path: `data/asp_telemetry.db`
+2. Create `data/` directory with `.gitkeep` file
+3. Update `.gitignore` to exclude `data/*` (except `.gitkeep`)
+4. Update all documentation references
+5. Move existing database file if present
+
+### Impact
+
+- **Low Risk:** No breaking changes to schema or API
+- **User Benefit:** Clearer project structure
+- **Documentation:** Requires updates to README and database docs
+
+---
+
 ## Decision Log
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
 | 2025-11-12 | Use SQLite for Phase 1-3 | Zero setup, good enough for data volume, easy portability |
+| 2025-11-12 | Database file location: `data/asp_telemetry.db` | Separates runtime data from code, follows common conventions |
 | TBD | Migrate to PostgreSQL (if needed) | When concurrency, volume, or production deployment requires it |
 
 ---

@@ -223,8 +223,8 @@ def main():
     parser.add_argument(
         "--db-path",
         type=Path,
-        default=Path("asp_telemetry.db"),
-        help="Path to the SQLite database file (default: asp_telemetry.db)",
+        default=Path("data/asp_telemetry.db"),
+        help="Path to the SQLite database file (default: data/asp_telemetry.db)",
     )
 
     parser.add_argument(

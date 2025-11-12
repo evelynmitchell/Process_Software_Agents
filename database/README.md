@@ -46,26 +46,31 @@ The script will:
 ### Option 2: Manual SQL Execution
 
 ```bash
+# Create data directory
+mkdir -p data
+
 # Create database and run migrations
-sqlite3 asp_telemetry.db < database/sqlite/create_tables.sql
-sqlite3 asp_telemetry.db < database/sqlite/create_indexes.sql
+sqlite3 data/asp_telemetry.db < database/sqlite/create_tables.sql
+sqlite3 data/asp_telemetry.db < database/sqlite/create_indexes.sql
 
 # Optional: Add sample data
-sqlite3 asp_telemetry.db < database/sqlite/sample_data.sql
+sqlite3 data/asp_telemetry.db < database/sqlite/sample_data.sql
 ```
 
 ### Verifying SQLite Database
 
 ```bash
 # Check tables
-sqlite3 asp_telemetry.db ".tables"
+sqlite3 data/asp_telemetry.db ".tables"
 
 # Query sample data
-sqlite3 asp_telemetry.db "SELECT task_id, task_type, status FROM task_metadata;"
+sqlite3 data/asp_telemetry.db "SELECT task_id, task_type, status FROM task_metadata;"
 
 # Check database size
-ls -lh asp_telemetry.db
+ls -lh data/asp_telemetry.db
 ```
+
+**Note:** The database is stored in the `data/` directory to separate runtime data from source code.
 
 ---
 

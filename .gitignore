@@ -80,6 +80,10 @@ site/
 *.sqlite
 *.sqlite3
 
+# Data Directory (runtime data, but keep .gitkeep)
+data/*
+!data/.gitkeep
+
 # Logs
 *.log
 logs/
