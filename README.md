@@ -18,13 +18,58 @@ The ASP Platform transforms autonomous AI agents from unpredictable "copilots" i
 
 ## Quick Start
 
-### Prerequisites
+### Option 1: GitHub Codespaces (Recommended)
+
+**Perfect for zero-setup development in the cloud.**
+
+#### 1. Create Codespace
+
+Click the "Code" button on GitHub → "Codespaces" → "Create codespace on main"
+
+#### 2. Configure Secrets (One-Time Setup)
+
+Add the following secrets to [Repository Settings → Codespaces Secrets](https://github.com/evelynmitchell/Process_Software_Agents/settings/secrets/codespaces):
+
+| Secret Name | Where to Get It | Required |
+|-------------|----------------|----------|
+| `LANGFUSE_PUBLIC_KEY` | [Langfuse Dashboard](https://cloud.langfuse.com) → Settings → API Keys | Yes |
+| `LANGFUSE_SECRET_KEY` | [Langfuse Dashboard](https://cloud.langfuse.com) → Settings → API Keys | Yes |
+| `LANGFUSE_HOST` | Set to: `https://cloud.langfuse.com` | Yes |
+| `ANTHROPIC_API_KEY` | [Anthropic Console](https://console.anthropic.com) → API Keys | Yes |
+
+After adding secrets, **restart your Codespace** for them to take effect.
+
+#### 3. Verify Setup
+
+```bash
+# Check secrets are loaded
+echo $LANGFUSE_PUBLIC_KEY  # Should show pk-lf-...
+echo $ANTHROPIC_API_KEY    # Should show sk-ant-...
+
+# Install dependencies (if not already done)
+uv sync --all-extras
+
+# Initialize database
+uv run python scripts/init_database.py --with-sample-data
+
+# Run tests
+uv run pytest
+```
+
+✅ **You're ready to develop!** All dependencies, database, and secrets are configured.
+
+---
+
+### Option 2: Local Development
+
+**For development on your local machine.**
+
+#### Prerequisites
 
 - Python 3.12+
 - [uv](https://github.com/astral-sh/uv) package manager
-- PostgreSQL 14+ (optional: TimescaleDB for production)
 
-### Installation
+#### Installation
 
 ```bash
 # 1. Clone the repository
@@ -34,22 +79,24 @@ cd Process_Software_Agents
 # 2. Install dependencies
 uv sync --all-extras
 
-# 3. Activate virtual environment
-source .venv/bin/activate  # On macOS/Linux
-# or
-.venv\Scripts\activate  # On Windows
-
-# 4. Set up database (optional)
-psql -c "CREATE DATABASE asp_telemetry;"
-psql asp_telemetry < database/migrations/001_create_tables.sql
-psql asp_telemetry < database/migrations/002_create_indexes.sql
-
-# 5. Configure environment
+# 3. Configure environment (copy and uncomment variables)
 cp .env.example .env
-# Edit .env with your API keys and database connection
+# Edit .env with your API keys:
+#   LANGFUSE_PUBLIC_KEY=pk-lf-your-key
+#   LANGFUSE_SECRET_KEY=sk-lf-your-key
+#   LANGFUSE_HOST=https://cloud.langfuse.com
+#   ANTHROPIC_API_KEY=sk-ant-your-key
+
+# 4. Initialize database
+uv run python scripts/init_database.py --with-sample-data
+
+# 5. Run tests
+uv run pytest
 ```
 
-### Run Tests
+---
+
+### Quick Verification
 
 ```bash
 # Run all tests
@@ -59,6 +106,9 @@ uv run pytest
 uv run pytest -m unit          # Fast unit tests only
 uv run pytest -m integration   # Integration tests
 uv run pytest --cov            # With coverage report
+
+# Check database
+sqlite3 data/asp_telemetry.db ".tables"
 ```
 
 ---
@@ -129,14 +179,22 @@ If a review fails, the orchestrator halts and loops back to the originating agen
 
 **Goal:** Establish baseline telemetry and bootstrap learning data collection.
 
-**Status:** ✅ Complete (infrastructure setup)
+**Status:** 🟡 In Progress (infrastructure complete, telemetry setup in progress)
+
+**Completed:**
+- ✅ SQLite database schema and initialization (4 tables, 25+ indexes)
+- ✅ Database file organization (`data/` directory)
+- ✅ Secrets management strategy (GitHub Codespaces Secrets)
+- ✅ Langfuse account created
+- ✅ Project structure and dependencies (119 packages via uv)
+- ✅ Comprehensive decision documentation (data storage, secrets management)
 
 **Next Steps:**
-- [ ] Deploy database (PostgreSQL/TimescaleDB)
-- [ ] Set up Langfuse Cloud account
-- [ ] Implement Planning Agent stub
-- [ ] Build telemetry instrumentation decorators
-- [ ] Run first 10 tasks to collect bootstrap data
+- [ ] Add API keys to GitHub Codespaces Secrets
+- [ ] Implement telemetry decorators (`@track_agent_cost`, `@log_defect`)
+- [ ] Create Python data models (SQLAlchemy/Pydantic)
+- [ ] Implement Planning Agent stub with telemetry
+- [ ] Run first 30 tasks to collect bootstrap data
 
 ---
 
@@ -147,13 +205,18 @@ If a review fails, the orchestrator halts and loops back to the originating agen
 - [PSPdoc.md](PSPdoc.md) - ASP Framework Source Document
 - [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Directory Organization
 
+### Architecture Decisions
+- [docs/data_storage_decision.md](docs/data_storage_decision.md) - SQLite vs PostgreSQL (with database file location)
+- [docs/secrets_management_decision.md](docs/secrets_management_decision.md) - GitHub Codespaces Secrets strategy
+
 ### Technical Specifications
 - [docs/database_schema_specification.md](docs/database_schema_specification.md) - Database Design
 - [docs/observability_platform_evaluation.md](docs/observability_platform_evaluation.md) - Platform Selection
-- [database/README.md](database/README.md) - Database Setup Guide
+- [database/README.md](database/README.md) - Database Setup Guide (SQLite & PostgreSQL)
 
 ### Development Guidelines
 - [Claude.md](Claude.md) - Guidelines for Claude Code
+- [.env.example](.env.example) - Environment Variables Reference
 - [Summary/](Summary/) - Daily Work Logs
 
 ---
@@ -164,9 +227,12 @@ If a review fails, the orchestrator halts and loops back to the originating agen
 |-----------|-----------|---------|
 | **Language** | Python 3.12+ | Core implementation |
 | **Package Manager** | uv | Fast, Rust-based dependency management |
+| **Development Env** | GitHub Codespaces | Cloud-based development |
+| **Secrets Management** | GitHub Codespaces Secrets | Secure API key storage |
 | **LLM Providers** | Anthropic (Claude), OpenAI | Multi-provider support |
-| **Observability** | Langfuse (self-hosted) | Agent tracing and telemetry |
-| **Database** | PostgreSQL + TimescaleDB | Time-series telemetry storage |
+| **Observability** | Langfuse (Cloud/Self-hosted) | Agent tracing and telemetry |
+| **Database (Phase 1-3)** | SQLite | Local file-based storage |
+| **Database (Phase 4+)** | PostgreSQL + TimescaleDB | Production time-series storage |
 | **Orchestration** | Custom (TSP-based) | Multi-agent workflow control |
 | **Testing** | pytest | Unit, integration, e2e tests |
 | **Linting/Formatting** | ruff | Fast Python linter and formatter |
@@ -246,11 +312,14 @@ See [Claude.md](Claude.md) for detailed guidelines.
 
 ## Roadmap
 
-### Phase 1: ASP0 - Measurement (Months 1-2) ✅
-- [x] Database schema design
+### Phase 1: ASP0 - Measurement (Months 1-2) 🟡 In Progress
+- [x] Database schema design (SQLite with PostgreSQL migration path)
 - [x] Observability platform selection (Langfuse)
-- [x] Project structure setup
-- [ ] Deploy telemetry infrastructure
+- [x] Project structure setup (uv, 119 dependencies)
+- [x] Secrets management strategy (GitHub Codespaces Secrets)
+- [x] SQLite database implementation (4 tables, 25+ indexes)
+- [ ] Deploy telemetry infrastructure (decorators, instrumentation)
+- [ ] Implement Planning Agent with telemetry
 - [ ] Collect baseline data (30+ tasks)
 
 ### Phase 2: ASP1 - Estimation (Months 3-4)
@@ -277,22 +346,26 @@ See [Claude.md](Claude.md) for detailed guidelines.
 
 ## Key Features
 
-### ✅ Delivered
-- Comprehensive database schema (4 tables, 25+ indexes)
-- SQL migration scripts with TimescaleDB optimization
-- Project structure with uv package management
-- PRD with 24 functional requirements and 5-phase roadmap
-- Bootstrap Learning Framework (Section 14)
+### ✅ Delivered (Phase 1 Infrastructure)
+- **Database:** SQLite schema (4 tables, 25+ indexes) with PostgreSQL migration path
+- **Secrets Management:** GitHub Codespaces Secrets integration
+- **Database Tooling:** Python CLI for one-command database initialization
+- **Data Organization:** Structured `data/` directory for runtime files
+- **Project Structure:** uv package management with 119 dependencies
+- **Documentation:** PRD v1.2 with 24 FRs, Bootstrap Learning Framework, 2 architecture decisions
+- **Development Environment:** GitHub Codespaces with zero-setup workflow
 
 ### 🚧 In Progress (Phase 1)
-- Telemetry infrastructure deployment
-- Planning Agent implementation
-- Langfuse integration
+- Telemetry decorators (`@track_agent_cost`, `@log_defect`)
+- Python data models (SQLAlchemy/Pydantic)
+- Planning Agent implementation with telemetry
+- Langfuse API integration
 
-### 📋 Planned
-- Full multi-agent orchestration
-- PROBE-AI estimation engine
+### 📋 Planned (Phase 2-5)
+- Full 7-agent orchestration (Planning, Design, Code, Review, Test, Postmortem)
+- PROBE-AI estimation engine (linear regression)
 - Bootstrap dashboard (FR-23, FR-24)
+- Quality gates (Design Review, Code Review)
 - Self-improvement PIP workflow
 
 ---
