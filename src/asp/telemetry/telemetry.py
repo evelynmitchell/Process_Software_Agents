@@ -259,16 +259,47 @@ def track_agent_cost(
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             # Extract task_id from function arguments
-            task_id = kwargs.get(task_id_param)
-            if task_id is None:
-                # Try to find it in positional args based on function signature
-                import inspect
-                sig = inspect.signature(func)
-                param_names = list(sig.parameters.keys())
-                if task_id_param in param_names:
-                    idx = param_names.index(task_id_param)
-                    if idx < len(args):
-                        task_id = args[idx]
+            # Support dot notation like "input_data.task_id" or simple param like "task_id"
+            task_id = None
+
+            if "." in task_id_param:
+                # Handle dot notation (e.g., "input_data.task_id")
+                parts = task_id_param.split(".", 1)
+                param_name = parts[0]
+                attr_name = parts[1]
+
+                # Try to get the parameter
+                param_value = kwargs.get(param_name)
+                if param_value is None:
+                    # Try positional args
+                    import inspect
+                    sig = inspect.signature(func)
+                    param_names = list(sig.parameters.keys())
+                    if param_name in param_names:
+                        idx = param_names.index(param_name)
+                        if idx < len(args):
+                            param_value = args[idx]
+
+                # Extract attribute from the parameter object
+                if param_value is not None and hasattr(param_value, attr_name):
+                    task_id = getattr(param_value, attr_name)
+            else:
+                # Simple parameter name (backwards compatible)
+                task_id = kwargs.get(task_id_param)
+                if task_id is None:
+                    # Try to find it in positional args based on function signature
+                    import inspect
+                    sig = inspect.signature(func)
+                    param_names = list(sig.parameters.keys())
+                    if task_id_param in param_names:
+                        idx = param_names.index(task_id_param)
+                        if idx < len(args):
+                            param_value = args[idx]
+                            # If it's an object with task_id attribute, extract it
+                            if hasattr(param_value, "task_id"):
+                                task_id = param_value.task_id
+                            else:
+                                task_id = param_value
 
             if task_id is None:
                 raise ValueError(f"task_id not found in function arguments (looking for '{task_id_param}')")
@@ -304,8 +335,21 @@ def track_agent_cost(
                 end_time = time.time()
                 latency_ms = (end_time - start_time) * 1000
 
-                # Insert latency metric to database
+                # Extract LLM usage data if available (from BaseAgent instance)
+                llm_usage = {}
+                if args and hasattr(args[0], "_last_llm_usage"):
+                    llm_usage = args[0]._last_llm_usage
+
+                # Prepare metadata
+                metadata = {
+                    "function": func.__name__,
+                    "success": error is None,
+                    "error_type": type(error).__name__ if error else None,
+                }
+
+                # Log metrics to database
                 try:
+                    # Always log latency
                     insert_agent_cost(
                         task_id=task_id,
                         agent_role=agent_role,
@@ -315,18 +359,63 @@ def track_agent_cost(
                         llm_model=llm_model,
                         llm_provider=llm_provider,
                         agent_version=agent_version,
-                        metadata={
-                            "function": func.__name__,
-                            "success": error is None,
-                            "error_type": type(error).__name__ if error else None,
-                        },
+                        metadata=metadata,
                     )
+
+                    # Log token usage if available
+                    if llm_usage.get("input_tokens"):
+                        insert_agent_cost(
+                            task_id=task_id,
+                            agent_role=agent_role,
+                            metric_type="Tokens_In",
+                            metric_value=llm_usage["input_tokens"],
+                            metric_unit="tokens",
+                            llm_model=llm_usage.get("model", llm_model),
+                            llm_provider=llm_provider,
+                            agent_version=agent_version,
+                            metadata=metadata,
+                        )
+
+                    if llm_usage.get("output_tokens"):
+                        insert_agent_cost(
+                            task_id=task_id,
+                            agent_role=agent_role,
+                            metric_type="Tokens_Out",
+                            metric_value=llm_usage["output_tokens"],
+                            metric_unit="tokens",
+                            llm_model=llm_usage.get("model", llm_model),
+                            llm_provider=llm_provider,
+                            agent_version=agent_version,
+                            metadata=metadata,
+                        )
+
+                    if llm_usage.get("cost"):
+                        insert_agent_cost(
+                            task_id=task_id,
+                            agent_role=agent_role,
+                            metric_type="API_Cost",
+                            metric_value=llm_usage["cost"],
+                            metric_unit="USD",
+                            llm_model=llm_usage.get("model", llm_model),
+                            llm_provider=llm_provider,
+                            agent_version=agent_version,
+                            metadata=metadata,
+                        )
+
                 except Exception as db_error:
                     # Don't fail the function if telemetry fails
                     print(f"Warning: Failed to log telemetry to database: {db_error}")
 
-                # Update Langfuse span
+                # Update Langfuse span with usage data
                 try:
+                    if llm_usage:
+                        span.update(
+                            usage={
+                                "input": llm_usage.get("input_tokens", 0),
+                                "output": llm_usage.get("output_tokens", 0),
+                                "total": llm_usage.get("total_tokens", 0),
+                            }
+                        )
                     span.end()
                     langfuse.flush()
                 except Exception as lf_error:

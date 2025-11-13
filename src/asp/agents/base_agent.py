@@ -56,6 +56,7 @@ class BaseAgent(ABC):
         self._llm_client = llm_client
         self.agent_name = self.__class__.__name__
         self.agent_version = "1.0.0"  # Override in subclasses
+        self._last_llm_usage = {}  # Track last LLM call usage for telemetry
 
     @property
     def llm_client(self):
@@ -174,6 +175,16 @@ class BaseAgent(ABC):
                 temperature=temperature,
                 **kwargs,
             )
+
+            # Store usage data for telemetry
+            self._last_llm_usage = {
+                "input_tokens": response.get("usage", {}).get("input_tokens", 0),
+                "output_tokens": response.get("usage", {}).get("output_tokens", 0),
+                "total_tokens": response.get("usage", {}).get("input_tokens", 0)
+                + response.get("usage", {}).get("output_tokens", 0),
+                "cost": response.get("cost", 0.0),
+                "model": response.get("model", model or "unknown"),
+            }
 
             logger.info(f"{self.agent_name}: LLM call successful")
             return response

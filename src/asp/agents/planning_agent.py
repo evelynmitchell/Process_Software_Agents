@@ -64,6 +64,7 @@ class PlanningAgent(BaseAgent):
 
     @track_agent_cost(
         agent_role="Planning",
+        task_id_param="input_data.task_id",
         llm_model="claude-sonnet-4-20250514",
         llm_provider="anthropic",
         agent_version="1.0.0",

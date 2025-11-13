@@ -133,15 +133,21 @@ class LLMClient:
             # Build messages
             messages = [{"role": "user", "content": prompt}]
 
-            # Make API call
-            response = self.client.messages.create(
-                model=model,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                messages=messages,
-                system=system if system else None,
+            # Build API call parameters
+            api_params = {
+                "model": model,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "messages": messages,
                 **kwargs,
-            )
+            }
+
+            # Only include system parameter if it's provided
+            if system:
+                api_params["system"] = system
+
+            # Make API call
+            response = self.client.messages.create(**api_params)
 
             # Extract content
             content_text = response.content[0].text

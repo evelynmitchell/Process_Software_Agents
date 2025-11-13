@@ -135,6 +135,12 @@ class SemanticUnit(BaseModel):
         description="Semantic Complexity Score (calculated using C1 formula)",
     )
 
+    # Optional dependencies
+    dependencies: list[str] = Field(
+        default_factory=list,
+        description="List of unit_ids that this unit depends on (e.g., ['SU-001', 'SU-002'])",
+    )
+
     model_config = {
         "json_schema_extra": {
             "examples": [

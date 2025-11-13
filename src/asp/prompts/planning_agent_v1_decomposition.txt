@@ -166,7 +166,8 @@ Return ONLY a JSON object (no markdown, no explanations) with this exact structu
       "logical_branches": <int 0-10>,
       "code_entities_modified": <int 0-10>,
       "novelty_multiplier": <float 1.0, 1.5, or 2.0>,
-      "est_complexity": <int calculated using formula above>
+      "est_complexity": <int calculated using formula above>,
+      "dependencies": ["SU-XXX", ...]  // Optional: list of unit_ids this depends on, or empty array
     }}
   ]
 }}
@@ -175,6 +176,7 @@ Requirements:
 - Return 3-8 semantic units
 - Each unit_id must be unique and follow format "SU-XXX"
 - Calculate est_complexity using the formula exactly
+- Include dependencies array (can be empty if no dependencies)
 - Use temperature=0 for deterministic outputs
 - Be consistent with your scoring
 
