@@ -23,10 +23,31 @@ from tenacity import (
     stop_after_attempt,
     wait_exponential,
     retry_if_exception_type,
+    retry_if_exception,
 )
 
 
 logger = logging.getLogger(__name__)
+
+
+def should_retry_api_error(exception):
+    """
+    Custom retry condition for API errors.
+
+    Retries on:
+    - APIConnectionError (network issues)
+    - RateLimitError (rate limits)
+    - APIStatusError with 5xx status codes (server errors)
+
+    Does NOT retry on:
+    - APIStatusError with 4xx status codes (client errors)
+    """
+    if isinstance(exception, (APIConnectionError, RateLimitError)):
+        return True
+    if isinstance(exception, APIStatusError):
+        # Only retry server errors (5xx), not client errors (4xx)
+        return exception.status_code >= 500
+    return False
 
 
 class LLMClient:
@@ -74,7 +95,7 @@ class LLMClient:
         logger.info("LLMClient initialized with Anthropic SDK")
 
     @retry(
-        retry=retry_if_exception_type((APIConnectionError, RateLimitError)),
+        retry=retry_if_exception(should_retry_api_error),
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
         reraise=True,

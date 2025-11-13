@@ -13,8 +13,30 @@ import pytest
 import os
 from unittest.mock import Mock, MagicMock, patch
 from anthropic import APIConnectionError, RateLimitError, APIStatusError
+import httpx
 
 from asp.utils.llm_client import LLMClient
+
+
+# Helper functions to create properly formatted Anthropic exceptions
+def create_api_connection_error(message="Network error"):
+    """Create a properly formatted APIConnectionError for testing."""
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    return APIConnectionError(message=message, request=request)
+
+
+def create_rate_limit_error(message="Rate limit exceeded"):
+    """Create a properly formatted RateLimitError for testing."""
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    response = httpx.Response(429, request=request)
+    return RateLimitError(message, response=response, body=None)
+
+
+def create_api_status_error(status_code, message="API error"):
+    """Create a properly formatted APIStatusError for testing."""
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    response = httpx.Response(status_code, request=request)
+    return APIStatusError(message, response=response, body=None)
 
 
 class TestLLMClientInitialization:
@@ -269,7 +291,7 @@ class TestRetryLogic:
         def side_effect(*args, **kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
-                raise APIConnectionError("Network error")
+                raise create_api_connection_error("Network error")
             return mock_response
 
         with patch.object(client.client.messages, 'create', side_effect=side_effect):
@@ -292,7 +314,7 @@ class TestRetryLogic:
         def side_effect(*args, **kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
-                raise RateLimitError("Rate limit exceeded")
+                raise create_rate_limit_error("Rate limit exceeded")
             return mock_response
 
         with patch.object(client.client.messages, 'create', side_effect=side_effect):
@@ -308,7 +330,7 @@ class TestRetryLogic:
         with patch.object(
             client.client.messages,
             'create',
-            side_effect=APIConnectionError("Persistent network error")
+            side_effect=create_api_connection_error("Persistent network error")
         ):
             with pytest.raises(APIConnectionError):
                 client.call_with_retry(prompt="Test")
@@ -317,12 +339,8 @@ class TestRetryLogic:
         """Test that 4xx errors are not retried."""
         client = LLMClient(api_key="test-key")
 
-        # Create mock APIStatusError for 400
-        error = APIStatusError(
-            message="Bad request",
-            response=Mock(status_code=400),
-            body={}
-        )
+        # Create properly formatted APIStatusError for 400
+        error = create_api_status_error(400, "Bad request")
 
         with patch.object(client.client.messages, 'create', side_effect=error):
             with pytest.raises(APIStatusError) as exc_info:
@@ -347,12 +365,7 @@ class TestRetryLogic:
         def side_effect(*args, **kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
-                server_error = APIStatusError(
-                    message="Internal server error",
-                    response=Mock(status_code=500),
-                    body={}
-                )
-                raise server_error
+                raise create_api_status_error(500, "Internal server error")
             return mock_response
 
         with patch.object(client.client.messages, 'create', side_effect=side_effect):

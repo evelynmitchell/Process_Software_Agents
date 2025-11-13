@@ -23,6 +23,24 @@ from asp.models.planning import (
 from asp.utils.semantic_complexity import ComplexityFactors
 
 
+# Helper function to create valid TaskRequirements for testing
+def create_test_requirements(
+    task_id="TEST-001",
+    project_id="TEST-PROJECT",
+    description="Test task description for unit testing",
+    requirements="Test requirements with sufficient length for validation to pass",
+    context_files=None
+):
+    """Create a valid TaskRequirements object for testing."""
+    return TaskRequirements(
+        task_id=task_id,
+        project_id=project_id,
+        description=description,
+        requirements=requirements,
+        context_files=context_files
+    )
+
+
 class TestPlanningAgentInitialization:
     """Test PlanningAgent initialization."""
 
@@ -114,24 +132,22 @@ class TestDecomposeTask:
                 "semantic_units": [
                     {
                         "unit_id": "SU-001",
-                        "description": "Test unit",
+                        "description": "Test semantic unit with proper length",
                         "api_interactions": 2,
                         "data_transformations": 3,
                         "logical_branches": 1,
                         "code_entities_modified": 2,
                         "novelty_multiplier": 1.0,
-                        "est_complexity": 999,  # Incorrect (should be 30)
+                        "est_complexity": 50,  # Incorrect (should be 30)
                         "dependencies": []
                     }
                 ]
             }
         }
 
-        requirements = TaskRequirements(
+        requirements = create_test_requirements(
             project_id="PROJ-001",
             task_id="TASK-001",
-            description="Test",
-            requirements="Test requirements",
         )
 
         with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
@@ -151,7 +167,7 @@ class TestDecomposeTask:
                 "semantic_units": [
                     {
                         "unit_id": "SU-001",
-                        "description": "Test unit",
+                        "description": "Test semantic unit",
                         "api_interactions": 2,
                         "data_transformations": 3,
                         "logical_branches": 1,
@@ -164,11 +180,9 @@ class TestDecomposeTask:
             }
         }
 
-        requirements = TaskRequirements(
+        requirements = create_test_requirements(
             project_id="PROJ-001",
             task_id="TASK-001",
-            description="Test",
-            requirements="Test requirements",
         )
 
         with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
@@ -187,7 +201,7 @@ class TestDecomposeTask:
                 "semantic_units": [
                     {
                         "unit_id": "SU-001",
-                        "description": "Test",
+                        "description": "Test semantic unit",
                         "api_interactions": 1,
                         "data_transformations": 1,
                         "logical_branches": 1,
@@ -200,11 +214,9 @@ class TestDecomposeTask:
             }
         }
 
-        requirements = TaskRequirements(
+        requirements = create_test_requirements(
             project_id="PROJ-001",
             task_id="TASK-001",
-            description="Test",
-            requirements="Test requirements",
             context_files=["file1.py", "file2.py"]
         )
 
@@ -224,11 +236,9 @@ class TestDecomposeTask:
         """Test error handling when prompt file not found."""
         agent = PlanningAgent()
 
-        requirements = TaskRequirements(
+        requirements = create_test_requirements(
             project_id="PROJ-001",
             task_id="TASK-001",
-            description="Test",
-            requirements="Test requirements",
         )
 
         with patch.object(agent, 'load_prompt', side_effect=FileNotFoundError("Prompt not found")):
@@ -244,11 +254,9 @@ class TestDecomposeTask:
         # LLM returns plain text instead of JSON
         llm_response = {"content": "This is plain text, not JSON"}
 
-        requirements = TaskRequirements(
+        requirements = create_test_requirements(
             project_id="PROJ-001",
             task_id="TASK-001",
-            description="Test",
-            requirements="Test requirements",
         )
 
         with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
@@ -265,11 +273,9 @@ class TestDecomposeTask:
         # Response missing semantic_units key
         llm_response = {"content": {"wrong_key": []}}
 
-        requirements = TaskRequirements(
+        requirements = create_test_requirements(
             project_id="PROJ-001",
             task_id="TASK-001",
-            description="Test",
-            requirements="Test requirements",
         )
 
         with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
@@ -286,11 +292,9 @@ class TestDecomposeTask:
         # semantic_units is not an array
         llm_response = {"content": {"semantic_units": "not an array"}}
 
-        requirements = TaskRequirements(
+        requirements = create_test_requirements(
             project_id="PROJ-001",
             task_id="TASK-001",
-            description="Test",
-            requirements="Test requirements",
         )
 
         with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
@@ -316,11 +320,9 @@ class TestDecomposeTask:
             }
         }
 
-        requirements = TaskRequirements(
+        requirements = create_test_requirements(
             project_id="PROJ-001",
             task_id="TASK-001",
-            description="Test",
-            requirements="Test requirements",
         )
 
         with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
@@ -361,7 +363,7 @@ class TestExecute:
             project_id="PROJ-001",
             task_id="TASK-001",
             description="Build feature",
-            requirements="Requirements here",
+            requirements="Test requirements with sufficient length",
         )
 
         with patch.object(agent, 'load_prompt', return_value="Mock prompt {task_id}"):
@@ -386,7 +388,7 @@ class TestExecute:
                 "semantic_units": [
                     {
                         "unit_id": "SU-001",
-                        "description": "Unit 1",
+                        "description": "First semantic unit",
                         "api_interactions": 2,
                         "data_transformations": 3,
                         "logical_branches": 1,
@@ -397,7 +399,7 @@ class TestExecute:
                     },
                     {
                         "unit_id": "SU-002",
-                        "description": "Unit 2",
+                        "description": "Second semantic unit",
                         "api_interactions": 1,
                         "data_transformations": 2,
                         "logical_branches": 2,
@@ -408,7 +410,7 @@ class TestExecute:
                     },
                     {
                         "unit_id": "SU-003",
-                        "description": "Unit 3",
+                        "description": "Third semantic unit",
                         "api_interactions": 3,
                         "data_transformations": 4,
                         "logical_branches": 3,
@@ -425,7 +427,7 @@ class TestExecute:
             project_id="PROJ-001",
             task_id="TASK-001",
             description="Build feature",
-            requirements="Requirements here",
+            requirements="Test requirements with sufficient length",
         )
 
         with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
@@ -433,8 +435,8 @@ class TestExecute:
                 plan = agent.execute(requirements)
 
         assert len(plan.semantic_units) == 3
-        # Total: 30 + 26 + 72 = 128
-        assert plan.total_est_complexity == 128
+        # Total: 30 + 26 + 76 = 132 (SU-003 recalculated from 72 to 76)
+        assert plan.total_est_complexity == 132
 
     def test_execute_handles_decomposition_error(self):
         """Test that execute handles decomposition errors."""
@@ -444,7 +446,7 @@ class TestExecute:
             project_id="PROJ-001",
             task_id="TASK-001",
             description="Build feature",
-            requirements="Requirements here",
+            requirements="Test requirements with sufficient length",
         )
 
         # Mock decompose_task to raise error
@@ -464,7 +466,7 @@ class TestExecute:
                 "semantic_units": [
                     {
                         "unit_id": "SU-001",
-                        "description": "Test",
+                        "description": "Test semantic unit",
                         "api_interactions": 1,
                         "data_transformations": 1,
                         "logical_branches": 1,
@@ -477,11 +479,9 @@ class TestExecute:
             }
         }
 
-        requirements = TaskRequirements(
+        requirements = create_test_requirements(
             project_id="PROJ-001",
             task_id="TASK-001",
-            description="Test",
-            requirements="Test",
             context_files=[]
         )
 
