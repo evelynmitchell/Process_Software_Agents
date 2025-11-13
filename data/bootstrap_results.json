@@ -1,0 +1,1395 @@
+{
+  "timestamp": "2025-11-13T21:57:48.184267",
+  "total_tasks": 12,
+  "successful": 12,
+  "failed": 0,
+  "results": [
+    {
+      "task_id": "BOOTSTRAP-001",
+      "project_id": "ECOMMERCE",
+      "description": "Add new configuration field to settings page",
+      "expected_complexity": "trivial",
+      "actual_total_complexity": 100,
+      "num_units": 5,
+      "execution_time_seconds": 8.51945424079895,
+      "units": [
+        {
+          "unit_id": "SU-001",
+          "description": "Add database schema migration for email notifications preference field",
+          "complexity": 18,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 1,
+            "logical_branches": 1,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-002",
+          "description": "Create API endpoint to update user email notification preference",
+          "complexity": 26,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 2,
+            "logical_branches": 2,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-001"
+          ]
+        },
+        {
+          "unit_id": "SU-003",
+          "description": "Create API endpoint to fetch user email notification preference",
+          "complexity": 14,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 1,
+            "logical_branches": 1,
+            "code_entities_modified": 1,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-001"
+          ]
+        },
+        {
+          "unit_id": "SU-004",
+          "description": "Add boolean toggle component to React settings page UI",
+          "complexity": 15,
+          "factors": {
+            "api_interactions": 0,
+            "data_transformations": 1,
+            "logical_branches": 2,
+            "code_entities_modified": 1,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-005",
+          "description": "Integrate toggle with API calls for loading and saving preference state",
+          "complexity": 27,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 2,
+            "logical_branches": 3,
+            "code_entities_modified": 1,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-002",
+            "SU-003",
+            "SU-004"
+          ]
+        }
+      ],
+      "success": true
+    },
+    {
+      "task_id": "BOOTSTRAP-002",
+      "project_id": "ANALYTICS",
+      "description": "Update copyright year in footer",
+      "expected_complexity": "trivial",
+      "actual_total_complexity": 8,
+      "num_units": 2,
+      "execution_time_seconds": 4.2288594245910645,
+      "units": [
+        {
+          "unit_id": "SU-001",
+          "description": "Update copyright year from 2024 to 2025 in web application footer component",
+          "complexity": 4,
+          "factors": {
+            "api_interactions": 0,
+            "data_transformations": 0,
+            "logical_branches": 0,
+            "code_entities_modified": 1,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-002",
+          "description": "Update copyright year from 2024 to 2025 in mobile application footer component",
+          "complexity": 4,
+          "factors": {
+            "api_interactions": 0,
+            "data_transformations": 0,
+            "logical_branches": 0,
+            "code_entities_modified": 1,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": []
+        }
+      ],
+      "success": true
+    },
+    {
+      "task_id": "BOOTSTRAP-003",
+      "project_id": "BLOG",
+      "description": "Implement basic comment system for blog posts",
+      "expected_complexity": "simple",
+      "actual_total_complexity": 191,
+      "num_units": 7,
+      "execution_time_seconds": 10.22715449333191,
+      "units": [
+        {
+          "unit_id": "SU-001",
+          "description": "Create comments database table with schema and migrations",
+          "complexity": 18,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 1,
+            "logical_branches": 1,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-002",
+          "description": "Create Comment model/entity with validation rules",
+          "complexity": 27,
+          "factors": {
+            "api_interactions": 0,
+            "data_transformations": 2,
+            "logical_branches": 3,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-001"
+          ]
+        },
+        {
+          "unit_id": "SU-003",
+          "description": "Implement POST /posts/:id/comments endpoint with validation",
+          "complexity": 38,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 2,
+            "logical_branches": 4,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-002"
+          ]
+        },
+        {
+          "unit_id": "SU-004",
+          "description": "Implement GET /posts/:id/comments endpoint with pagination logic",
+          "complexity": 34,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 3,
+            "logical_branches": 3,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-002"
+          ]
+        },
+        {
+          "unit_id": "SU-005",
+          "description": "Build frontend comment display component with list rendering",
+          "complexity": 26,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 2,
+            "logical_branches": 2,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-004"
+          ]
+        },
+        {
+          "unit_id": "SU-006",
+          "description": "Create comment form component with client-side validation",
+          "complexity": 29,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 2,
+            "logical_branches": 3,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-003"
+          ]
+        },
+        {
+          "unit_id": "SU-007",
+          "description": "Integrate comment components into blog post view with pagination controls",
+          "complexity": 19,
+          "factors": {
+            "api_interactions": 0,
+            "data_transformations": 1,
+            "logical_branches": 2,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-005",
+            "SU-006"
+          ]
+        }
+      ],
+      "success": true
+    },
+    {
+      "task_id": "BOOTSTRAP-004",
+      "project_id": "TASKMANAGER",
+      "description": "Add task filtering by status and due date",
+      "expected_complexity": "simple",
+      "actual_total_complexity": 183,
+      "num_units": 7,
+      "execution_time_seconds": 10.599150896072388,
+      "units": [
+        {
+          "unit_id": "SU-001",
+          "description": "Update API endpoint to accept status and date range query parameters with validation",
+          "complexity": 32,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 2,
+            "logical_branches": 4,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-002",
+          "description": "Implement database query logic with WHERE clauses for status and date filtering",
+          "complexity": 24,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 1,
+            "logical_branches": 3,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-001"
+          ]
+        },
+        {
+          "unit_id": "SU-003",
+          "description": "Create status filter dropdown component with state management",
+          "complexity": 19,
+          "factors": {
+            "api_interactions": 0,
+            "data_transformations": 1,
+            "logical_branches": 2,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-004",
+          "description": "Build date range picker component with validation and formatting",
+          "complexity": 32,
+          "factors": {
+            "api_interactions": 0,
+            "data_transformations": 3,
+            "logical_branches": 3,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-005",
+          "description": "Implement URL query string synchronization for filter persistence",
+          "complexity": 27,
+          "factors": {
+            "api_interactions": 0,
+            "data_transformations": 2,
+            "logical_branches": 3,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-003",
+            "SU-004"
+          ]
+        },
+        {
+          "unit_id": "SU-006",
+          "description": "Create active filters display component with clear functionality",
+          "complexity": 19,
+          "factors": {
+            "api_interactions": 0,
+            "data_transformations": 1,
+            "logical_branches": 2,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-005"
+          ]
+        },
+        {
+          "unit_id": "SU-007",
+          "description": "Integrate filter components with task list and wire up API calls",
+          "complexity": 30,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 2,
+            "logical_branches": 2,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-002",
+            "SU-006"
+          ]
+        }
+      ],
+      "success": true
+    },
+    {
+      "task_id": "BOOTSTRAP-005",
+      "project_id": "AUTH-SYSTEM",
+      "description": "Implement OAuth2 social login with Google",
+      "expected_complexity": "moderate",
+      "actual_total_complexity": 277,
+      "num_units": 8,
+      "execution_time_seconds": 12.022029876708984,
+      "units": [
+        {
+          "unit_id": "SU-001",
+          "description": "Set up Google OAuth2 configuration and environment variables for client ID/secret",
+          "complexity": 16,
+          "factors": {
+            "api_interactions": 0,
+            "data_transformations": 1,
+            "logical_branches": 1,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-002",
+          "description": "Create database schema for OAuth tokens with encryption fields and user linking",
+          "complexity": 27,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 2,
+            "logical_branches": 1,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-003",
+          "description": "Implement Google OAuth2 authorization redirect endpoint with state parameter",
+          "complexity": 26,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 2,
+            "logical_branches": 2,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-001"
+          ]
+        },
+        {
+          "unit_id": "SU-004",
+          "description": "Build OAuth callback endpoint with authorization code exchange and token handling",
+          "complexity": 43,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 3,
+            "logical_branches": 4,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-001",
+            "SU-002",
+            "SU-003"
+          ]
+        },
+        {
+          "unit_id": "SU-005",
+          "description": "Implement user account creation and linking logic based on Google email",
+          "complexity": 46,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 3,
+            "logical_branches": 5,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-002",
+            "SU-004"
+          ]
+        },
+        {
+          "unit_id": "SU-006",
+          "description": "Add secure OAuth token storage with encryption and token refresh mechanism",
+          "complexity": 64,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 4,
+            "logical_branches": 3,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-002",
+            "SU-004"
+          ]
+        },
+        {
+          "unit_id": "SU-007",
+          "description": "Create Sign in with Google button UI component and integrate with OAuth flow",
+          "complexity": 19,
+          "factors": {
+            "api_interactions": 0,
+            "data_transformations": 1,
+            "logical_branches": 2,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-003"
+          ]
+        },
+        {
+          "unit_id": "SU-008",
+          "description": "Implement OAuth error handling, logout functionality, and session management",
+          "complexity": 36,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 2,
+            "logical_branches": 4,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-005",
+            "SU-006"
+          ]
+        }
+      ],
+      "success": true
+    },
+    {
+      "task_id": "BOOTSTRAP-006",
+      "project_id": "PAYMENT",
+      "description": "Build Stripe payment integration for subscriptions",
+      "expected_complexity": "moderate",
+      "actual_total_complexity": 501,
+      "num_units": 8,
+      "execution_time_seconds": 11.506381750106812,
+      "units": [
+        {
+          "unit_id": "SU-001",
+          "description": "Set up Stripe API integration and create subscription plans configuration",
+          "complexity": 34,
+          "factors": {
+            "api_interactions": 3,
+            "data_transformations": 2,
+            "logical_branches": 2,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-002",
+          "description": "Design and create database schema for subscriptions, plans, and payment tracking",
+          "complexity": 38,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 3,
+            "logical_branches": 1,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-003",
+          "description": "Implement checkout flow with Stripe Elements frontend integration",
+          "complexity": 88,
+          "factors": {
+            "api_interactions": 4,
+            "data_transformations": 4,
+            "logical_branches": 5,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-001",
+            "SU-002"
+          ]
+        },
+        {
+          "unit_id": "SU-004",
+          "description": "Build Stripe webhook handler for successful payments and subscription updates",
+          "complexity": 50,
+          "factors": {
+            "api_interactions": 3,
+            "data_transformations": 4,
+            "logical_branches": 4,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-002"
+          ]
+        },
+        {
+          "unit_id": "SU-005",
+          "description": "Implement failed payment webhook handling with retry logic and user notifications",
+          "complexity": 74,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 3,
+            "logical_branches": 6,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-004"
+          ]
+        },
+        {
+          "unit_id": "SU-006",
+          "description": "Create subscription management page with upgrade, cancel, and plan change functionality",
+          "complexity": 67,
+          "factors": {
+            "api_interactions": 5,
+            "data_transformations": 4,
+            "logical_branches": 7,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-003",
+            "SU-004"
+          ]
+        },
+        {
+          "unit_id": "SU-007",
+          "description": "Implement proration logic for plan changes and subscription modifications",
+          "complexity": 87,
+          "factors": {
+            "api_interactions": 3,
+            "data_transformations": 5,
+            "logical_branches": 5,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-006"
+          ]
+        },
+        {
+          "unit_id": "SU-008",
+          "description": "Build invoice generation system and email confirmation service",
+          "complexity": 63,
+          "factors": {
+            "api_interactions": 4,
+            "data_transformations": 6,
+            "logical_branches": 3,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-004"
+          ]
+        }
+      ],
+      "success": true
+    },
+    {
+      "task_id": "BOOTSTRAP-007",
+      "project_id": "FILEUPLOAD",
+      "description": "Implement file upload with S3 and virus scanning",
+      "expected_complexity": "moderate",
+      "actual_total_complexity": 284,
+      "num_units": 7,
+      "execution_time_seconds": 11.007288694381714,
+      "units": [
+        {
+          "unit_id": "SU-001",
+          "description": "Create file upload endpoint with multipart form handling and file validation (type, size limits)",
+          "complexity": 44,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 3,
+            "logical_branches": 5,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-002",
+          "description": "Design and implement file metadata database schema with CRUD operations",
+          "complexity": 32,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 2,
+            "logical_branches": 2,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-003",
+          "description": "Integrate ClamAV virus scanning service with file processing pipeline",
+          "complexity": 51,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 2,
+            "logical_branches": 4,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-001"
+          ]
+        },
+        {
+          "unit_id": "SU-004",
+          "description": "Implement AWS S3 integration with presigned URLs for secure file upload and storage",
+          "complexity": 42,
+          "factors": {
+            "api_interactions": 3,
+            "data_transformations": 3,
+            "logical_branches": 3,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-003"
+          ]
+        },
+        {
+          "unit_id": "SU-005",
+          "description": "Build image thumbnail generation service with multiple size variants",
+          "complexity": 39,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 4,
+            "logical_branches": 3,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-004"
+          ]
+        },
+        {
+          "unit_id": "SU-006",
+          "description": "Create file download endpoint with access control and authorization checks",
+          "complexity": 34,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 2,
+            "logical_branches": 4,
+            "code_entities_modified": 2,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-002",
+            "SU-004"
+          ]
+        },
+        {
+          "unit_id": "SU-007",
+          "description": "Implement upload progress tracking and error handling with retry logic",
+          "complexity": 42,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 2,
+            "logical_branches": 6,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-001",
+            "SU-004"
+          ]
+        }
+      ],
+      "success": true
+    },
+    {
+      "task_id": "BOOTSTRAP-008",
+      "project_id": "CHAT",
+      "description": "Build real-time chat with WebSocket and message history",
+      "expected_complexity": "complex",
+      "actual_total_complexity": 386,
+      "num_units": 8,
+      "execution_time_seconds": 11.187129735946655,
+      "units": [
+        {
+          "unit_id": "SU-001",
+          "description": "Set up WebSocket server with Socket.io and basic connection handling",
+          "complexity": 30,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 1,
+            "logical_branches": 3,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-002",
+          "description": "Design and implement database schema for chat rooms, messages, and user presence",
+          "complexity": 38,
+          "factors": {
+            "api_interactions": 3,
+            "data_transformations": 2,
+            "logical_branches": 2,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-003",
+          "description": "Implement chat room join/leave functionality with real-time broadcasting",
+          "complexity": 43,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 3,
+            "logical_branches": 4,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-001",
+            "SU-002"
+          ]
+        },
+        {
+          "unit_id": "SU-004",
+          "description": "Build message broadcasting system with persistence and pagination",
+          "complexity": 51,
+          "factors": {
+            "api_interactions": 3,
+            "data_transformations": 4,
+            "logical_branches": 3,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-002",
+            "SU-003"
+          ]
+        },
+        {
+          "unit_id": "SU-005",
+          "description": "Implement user presence indicators and typing indicators with real-time updates",
+          "complexity": 36,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 2,
+            "logical_branches": 4,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-003"
+          ]
+        },
+        {
+          "unit_id": "SU-006",
+          "description": "Add message read receipts tracking and file attachment support",
+          "complexity": 64,
+          "factors": {
+            "api_interactions": 4,
+            "data_transformations": 5,
+            "logical_branches": 5,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-004"
+          ]
+        },
+        {
+          "unit_id": "SU-007",
+          "description": "Implement message search functionality with database indexing",
+          "complexity": 40,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 3,
+            "logical_branches": 3,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-004"
+          ]
+        },
+        {
+          "unit_id": "SU-008",
+          "description": "Build WebSocket reconnection logic, rate limiting, and message encryption",
+          "complexity": 84,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 4,
+            "logical_branches": 6,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-001"
+          ]
+        }
+      ],
+      "success": true
+    },
+    {
+      "task_id": "BOOTSTRAP-009",
+      "project_id": "ANALYTICS",
+      "description": "Build real-time analytics dashboard with streaming data",
+      "expected_complexity": "complex",
+      "actual_total_complexity": 589,
+      "num_units": 8,
+      "execution_time_seconds": 13.017412424087524,
+      "units": [
+        {
+          "unit_id": "SU-001",
+          "description": "Set up Kafka streaming pipeline with producer/consumer configuration and multiple consumer groups for different metrics",
+          "complexity": 78,
+          "factors": {
+            "api_interactions": 4,
+            "data_transformations": 3,
+            "logical_branches": 3,
+            "code_entities_modified": 5,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-002",
+          "description": "Implement time-series database schema and queries for 1h, 24h, 7d, 30d views with high-throughput ingestion handling",
+          "complexity": 81,
+          "factors": {
+            "api_interactions": 3,
+            "data_transformations": 4,
+            "logical_branches": 4,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-001"
+          ]
+        },
+        {
+          "unit_id": "SU-003",
+          "description": "Build aggregation workers for hourly/daily rollups with data retention policies and background job processing",
+          "complexity": 90,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 5,
+            "logical_branches": 5,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-002"
+          ]
+        },
+        {
+          "unit_id": "SU-004",
+          "description": "Implement Redis caching layer for hot data with cache invalidation strategies and performance optimization",
+          "complexity": 45,
+          "factors": {
+            "api_interactions": 3,
+            "data_transformations": 3,
+            "logical_branches": 4,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-002"
+          ]
+        },
+        {
+          "unit_id": "SU-005",
+          "description": "Create WebSocket endpoint for real-time data updates with connection management and message broadcasting",
+          "complexity": 70,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 3,
+            "logical_branches": 4,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-001",
+            "SU-004"
+          ]
+        },
+        {
+          "unit_id": "SU-006",
+          "description": "Build interactive dashboard frontend with charts, drill-down capability, and custom date range filtering",
+          "complexity": 96,
+          "factors": {
+            "api_interactions": 3,
+            "data_transformations": 4,
+            "logical_branches": 6,
+            "code_entities_modified": 5,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-005"
+          ]
+        },
+        {
+          "unit_id": "SU-007",
+          "description": "Implement data export functionality (CSV, JSON) with API rate limiting per user tier and authentication",
+          "complexity": 51,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 4,
+            "logical_branches": 5,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-004"
+          ]
+        },
+        {
+          "unit_id": "SU-008",
+          "description": "Create alerting system for threshold violations with audit logging for data access and notification delivery",
+          "complexity": 78,
+          "factors": {
+            "api_interactions": 3,
+            "data_transformations": 3,
+            "logical_branches": 5,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-003",
+            "SU-005"
+          ]
+        }
+      ],
+      "success": true
+    },
+    {
+      "task_id": "BOOTSTRAP-010",
+      "project_id": "RECOMMENDATION",
+      "description": "Build ML-powered product recommendation engine",
+      "expected_complexity": "complex",
+      "actual_total_complexity": 521,
+      "num_units": 8,
+      "execution_time_seconds": 11.94240665435791,
+      "units": [
+        {
+          "unit_id": "SU-001",
+          "description": "Design and implement user interaction data collection system with database schema",
+          "complexity": 44,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 3,
+            "logical_branches": 3,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-002",
+          "description": "Build collaborative filtering model using surprise library with user-item matrix processing",
+          "complexity": 76,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 5,
+            "logical_branches": 4,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-001"
+          ]
+        },
+        {
+          "unit_id": "SU-003",
+          "description": "Implement content-based filtering engine using product attributes and similarity calculations",
+          "complexity": 80,
+          "factors": {
+            "api_interactions": 1,
+            "data_transformations": 6,
+            "logical_branches": 3,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-001"
+          ]
+        },
+        {
+          "unit_id": "SU-004",
+          "description": "Create hybrid recommendation system combining collaborative and content-based approaches with weighting logic",
+          "complexity": 70,
+          "factors": {
+            "api_interactions": 0,
+            "data_transformations": 4,
+            "logical_branches": 5,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-002",
+            "SU-003"
+          ]
+        },
+        {
+          "unit_id": "SU-005",
+          "description": "Build batch training pipeline with daily model updates and data preprocessing workflows",
+          "complexity": 54,
+          "factors": {
+            "api_interactions": 3,
+            "data_transformations": 4,
+            "logical_branches": 4,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-004"
+          ]
+        },
+        {
+          "unit_id": "SU-006",
+          "description": "Implement real-time inference API with Redis caching and cold start fallback mechanisms",
+          "complexity": 57,
+          "factors": {
+            "api_interactions": 4,
+            "data_transformations": 3,
+            "logical_branches": 6,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-004"
+          ]
+        },
+        {
+          "unit_id": "SU-007",
+          "description": "Build A/B testing framework with experiment management and statistical significance testing",
+          "complexity": 82,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 4,
+            "logical_branches": 5,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-006"
+          ]
+        },
+        {
+          "unit_id": "SU-008",
+          "description": "Create admin dashboard with model performance monitoring, diversity metrics, and manual override capabilities",
+          "complexity": 58,
+          "factors": {
+            "api_interactions": 3,
+            "data_transformations": 4,
+            "logical_branches": 4,
+            "code_entities_modified": 5,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-005",
+            "SU-007"
+          ]
+        }
+      ],
+      "success": true
+    },
+    {
+      "task_id": "BOOTSTRAP-011",
+      "project_id": "MICROSERVICES",
+      "description": "Implement distributed tracing across microservices",
+      "expected_complexity": "moderate",
+      "actual_total_complexity": 457,
+      "num_units": 8,
+      "execution_time_seconds": 12.135193109512329,
+      "units": [
+        {
+          "unit_id": "SU-001",
+          "description": "Integrate OpenTelemetry SDK into all microservices with basic configuration",
+          "complexity": 63,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 1,
+            "logical_branches": 3,
+            "code_entities_modified": 6,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-002",
+          "description": "Implement trace context propagation via HTTP headers across service boundaries",
+          "complexity": 82,
+          "factors": {
+            "api_interactions": 4,
+            "data_transformations": 3,
+            "logical_branches": 4,
+            "code_entities_modified": 5,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-001"
+          ]
+        },
+        {
+          "unit_id": "SU-003",
+          "description": "Configure environment-based trace sampling with 1% production and 100% staging rates",
+          "complexity": 38,
+          "factors": {
+            "api_interactions": 0,
+            "data_transformations": 2,
+            "logical_branches": 4,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-001"
+          ]
+        },
+        {
+          "unit_id": "SU-004",
+          "description": "Set up Jaeger backend infrastructure and configure trace export from all services",
+          "complexity": 62,
+          "factors": {
+            "api_interactions": 3,
+            "data_transformations": 2,
+            "logical_branches": 3,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-001"
+          ]
+        },
+        {
+          "unit_id": "SU-005",
+          "description": "Add custom spans for critical business operations and database queries",
+          "complexity": 56,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 1,
+            "logical_branches": 5,
+            "code_entities_modified": 8,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-002"
+          ]
+        },
+        {
+          "unit_id": "SU-006",
+          "description": "Implement trace correlation with structured logs using trace and span IDs",
+          "complexity": 48,
+          "factors": {
+            "api_interactions": 0,
+            "data_transformations": 3,
+            "logical_branches": 3,
+            "code_entities_modified": 6,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-002"
+          ]
+        },
+        {
+          "unit_id": "SU-007",
+          "description": "Build service dependency mapping visualization and performance dashboards in Grafana",
+          "complexity": 66,
+          "factors": {
+            "api_interactions": 3,
+            "data_transformations": 4,
+            "logical_branches": 2,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-004"
+          ]
+        },
+        {
+          "unit_id": "SU-008",
+          "description": "Create alerting rules for high latency traces and trace-based debugging tools",
+          "complexity": 42,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 2,
+            "logical_branches": 4,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-007"
+          ]
+        }
+      ],
+      "success": true
+    },
+    {
+      "task_id": "BOOTSTRAP-012",
+      "project_id": "DATABASE",
+      "description": "Implement database sharding for horizontal scaling",
+      "expected_complexity": "complex",
+      "actual_total_complexity": 790,
+      "num_units": 8,
+      "execution_time_seconds": 13.24785828590393,
+      "units": [
+        {
+          "unit_id": "SU-001",
+          "description": "Design shard key strategy and database schema modifications for user_id based sharding",
+          "complexity": 56,
+          "factors": {
+            "api_interactions": 0,
+            "data_transformations": 3,
+            "logical_branches": 2,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": []
+        },
+        {
+          "unit_id": "SU-002",
+          "description": "Set up multiple PostgreSQL database instances and configure 8 shard infrastructure",
+          "complexity": 47,
+          "factors": {
+            "api_interactions": 8,
+            "data_transformations": 2,
+            "logical_branches": 3,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.0
+          },
+          "dependencies": [
+            "SU-001"
+          ]
+        },
+        {
+          "unit_id": "SU-003",
+          "description": "Implement shard routing logic and hash-based shard selection algorithm",
+          "complexity": 87,
+          "factors": {
+            "api_interactions": 0,
+            "data_transformations": 4,
+            "logical_branches": 6,
+            "code_entities_modified": 5,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-001"
+          ]
+        },
+        {
+          "unit_id": "SU-004",
+          "description": "Build shard-aware connection pooling with dynamic connection management",
+          "complexity": 93,
+          "factors": {
+            "api_interactions": 8,
+            "data_transformations": 3,
+            "logical_branches": 5,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-002",
+            "SU-003"
+          ]
+        },
+        {
+          "unit_id": "SU-005",
+          "description": "Update ORM layer to be shard-aware with query routing and transaction handling",
+          "complexity": 111,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 5,
+            "logical_branches": 7,
+            "code_entities_modified": 6,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-003",
+            "SU-004"
+          ]
+        },
+        {
+          "unit_id": "SU-006",
+          "description": "Implement cross-shard query engine for analytics with result aggregation",
+          "complexity": 154,
+          "factors": {
+            "api_interactions": 8,
+            "data_transformations": 6,
+            "logical_branches": 5,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 2.0
+          },
+          "dependencies": [
+            "SU-005"
+          ]
+        },
+        {
+          "unit_id": "SU-007",
+          "description": "Create data migration scripts for resharding with consistency validation",
+          "complexity": 122,
+          "factors": {
+            "api_interactions": 8,
+            "data_transformations": 7,
+            "logical_branches": 6,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-005"
+          ]
+        },
+        {
+          "unit_id": "SU-008",
+          "description": "Build monitoring system for shard balance and health checks with failover logic",
+          "complexity": 120,
+          "factors": {
+            "api_interactions": 8,
+            "data_transformations": 4,
+            "logical_branches": 8,
+            "code_entities_modified": 5,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-004",
+            "SU-005"
+          ]
+        }
+      ],
+      "success": true
+    }
+  ]
+}
