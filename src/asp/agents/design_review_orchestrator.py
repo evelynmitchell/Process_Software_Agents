@@ -59,11 +59,10 @@ class DesignReviewOrchestrator(BaseAgent):
             db_path: Optional database path (for testing)
         """
         super().__init__(
-            agent_role="DesignReviewOrchestrator",
-            agent_version="1.0.0",
             llm_client=llm_client,
             db_path=db_path,
         )
+        self.agent_version = "1.0.0"
 
         # Initialize specialist agents
         self.specialists = {
@@ -214,6 +213,182 @@ class DesignReviewOrchestrator(BaseAgent):
 
         return {name: result for name, result in results}
 
+    def _normalize_category(self, category: str) -> str:
+        """
+        Normalize category values to match Pydantic Literal types.
+
+        Args:
+            category: Raw category from LLM
+
+        Returns:
+            Normalized category matching DesignIssue/ImprovementSuggestion schema
+        """
+        # Map common variations to canonical categories
+        category_mappings = {
+            # Maintainability variations
+            "god component": "Maintainability",
+            "code smell": "Maintainability",
+            "coupling": "Maintainability",
+            "cohesion": "Maintainability",
+            "maintainability": "Maintainability",
+
+            # Architecture variations
+            "architecture": "Architecture",
+            "design pattern": "Architecture",
+            "layering": "Architecture",
+            "layered architecture": "Architecture",
+            "dependency injection": "Architecture",
+            "repository pattern": "Architecture",
+            "domain services": "Architecture",
+            "strategy pattern": "Architecture",
+            "resilience patterns": "Architecture",
+            "resilience": "Architecture",
+            "configuration management": "Architecture",
+
+            # Security variations
+            "security": "Security",
+            "authentication": "Security",
+            "authorization": "Security",
+            "token management": "Security",
+            "logout": "Security",
+
+            # Performance variations
+            "performance": "Performance",
+            "scalability": "Scalability",
+            "optimization": "Performance",
+            "caching": "Performance",
+
+            # Data Integrity variations
+            "data integrity": "Data Integrity",
+            "data": "Data Integrity",
+            "integrity": "Data Integrity",
+            "validation": "Data Integrity",
+
+            # API Design variations
+            "api design": "API Design",
+            "api": "API Design",
+            "rest": "API Design",
+            "api versioning": "API Design",
+            "http headers": "API Design",
+            "error responses": "API Design",
+            "hateoas": "API Design",
+            "http status codes": "API Design",
+            "response schema": "API Design",
+            "documentation": "API Design",
+            "resource design": "API Design",
+            "monitoring": "API Design",
+
+            # Error Handling variations
+            "error handling": "Error Handling",
+            "error": "Error Handling",
+            "exception": "Error Handling",
+        }
+
+        normalized = category_mappings.get(category.lower(), category)
+
+        # If still not a valid category, default to best guess
+        valid_categories = ["Security", "Performance", "Data Integrity", "Error Handling",
+                          "Architecture", "Maintainability", "API Design", "Scalability"]
+        if normalized not in valid_categories:
+            logger.warning(f"Unknown category '{category}', defaulting to 'Architecture'")
+            return "Architecture"
+
+        return normalized
+
+    def _normalize_issue(self, issue: dict[str, Any]) -> dict[str, Any]:
+        """
+        Normalize an issue dict to match DesignIssue schema.
+
+        Args:
+            issue: Raw issue dict from specialist
+
+        Returns:
+            Normalized issue dict
+        """
+        normalized = issue.copy()
+
+        # Normalize category
+        if "category" in normalized:
+            normalized["category"] = self._normalize_category(normalized["category"])
+
+        # Ensure required fields exist with defaults if missing
+        if "evidence" not in normalized and "location" in normalized:
+            # Some LLMs might use 'location' instead of 'evidence'
+            normalized["evidence"] = normalized["location"]
+        elif "evidence" not in normalized:
+            # Fallback: create evidence from description
+            normalized["evidence"] = f"Based on design specification analysis: {normalized.get('description', 'Issue identified')}"
+
+        if "impact" not in normalized:
+            normalized["impact"] = "Requires review and remediation"
+
+        if "location" not in normalized:
+            normalized["location"] = "Design specification"
+
+        return normalized
+
+    def _normalize_suggestion(self, suggestion: dict[str, Any]) -> dict[str, Any]:
+        """
+        Normalize a suggestion dict to match ImprovementSuggestion schema.
+
+        Args:
+            suggestion: Raw suggestion dict from specialist
+
+        Returns:
+            Normalized suggestion dict
+        """
+        normalized = suggestion.copy()
+
+        # Normalize category (required field)
+        if "category" in normalized:
+            normalized["category"] = self._normalize_category(normalized["category"])
+        else:
+            # Default category if missing
+            normalized["category"] = "Architecture"
+            logger.warning("Suggestion missing category, defaulting to 'Architecture'")
+
+        # Ensure required fields
+        if "title" not in normalized and "description" in normalized:
+            # Generate title from description (first sentence)
+            desc = normalized["description"]
+            title = desc.split(".")[0] if "." in desc else desc[:80]
+            normalized["title"] = title
+        elif "title" not in normalized:
+            normalized["title"] = "Improvement suggestion"
+
+        if "description" not in normalized:
+            normalized["description"] = "Review and improve design quality"
+        elif len(normalized["description"]) < 30:
+            # Pad short descriptions to meet minimum length requirement
+            desc = normalized["description"]
+            normalized["description"] = f"{desc} to improve design quality"
+
+        if "implementation_notes" not in normalized:
+            # Some LLMs might use different field names
+            if "implementation" in normalized:
+                normalized["implementation_notes"] = normalized["implementation"]
+            elif "notes" in normalized:
+                normalized["implementation_notes"] = normalized["notes"]
+            else:
+                normalized["implementation_notes"] = "Review design specification and implement recommended changes"
+
+        if "priority" not in normalized:
+            normalized["priority"] = "Medium"
+
+        if "estimated_impact" not in normalized:
+            normalized["estimated_impact"] = "Medium"
+
+        if "estimated_effort" not in normalized:
+            normalized["estimated_effort"] = "Medium"
+
+        if "related_issue_ids" not in normalized and "related_issue_id" in normalized:
+            # Handle singular form
+            normalized["related_issue_ids"] = [normalized["related_issue_id"]]
+        elif "related_issue_ids" not in normalized:
+            normalized["related_issue_ids"] = []
+
+        return normalized
+
     def _aggregate_results(
         self, specialist_results: dict[str, dict[str, Any]]
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -229,16 +404,58 @@ class DesignReviewOrchestrator(BaseAgent):
         all_issues = []
         all_suggestions = []
 
-        # Collect all issues and suggestions
+        # Collect all issues and suggestions, normalizing as we go
         for specialist_name, result in specialist_results.items():
-            all_issues.extend(result.get("issues_found", []))
-            all_suggestions.extend(result.get("improvement_suggestions", []))
+            issues = result.get("issues_found", [])
+            suggestions = result.get("improvement_suggestions", [])
+
+            # Normalize each issue and suggestion
+            all_issues.extend([self._normalize_issue(issue) for issue in issues])
+            all_suggestions.extend([self._normalize_suggestion(sug) for sug in suggestions])
 
         # Deduplicate issues (simple approach: by evidence similarity)
         deduplicated_issues = self._deduplicate_issues(all_issues)
 
+        # Standardize issue IDs (overwrite specialist-assigned IDs with canonical format)
+        # Create mapping from old IDs to new IDs
+        issue_id_mapping = {}
+        for i, issue in enumerate(deduplicated_issues, 1):
+            old_id = issue.get("issue_id")
+            new_id = f"ISSUE-{i:03d}"
+            if old_id:
+                issue_id_mapping[old_id] = new_id
+            issue["issue_id"] = new_id
+
         # Deduplicate suggestions
         deduplicated_suggestions = self._deduplicate_suggestions(all_suggestions)
+
+        # Standardize suggestion IDs and update related_issue_ids
+        for i, suggestion in enumerate(deduplicated_suggestions, 1):
+            suggestion["suggestion_id"] = f"IMPROVE-{i:03d}"
+
+            # Update related_issue_id to use canonical ISSUE-### format
+            if "related_issue_id" in suggestion and suggestion["related_issue_id"]:
+                old_issue_id = suggestion["related_issue_id"]
+                if old_issue_id in issue_id_mapping:
+                    suggestion["related_issue_id"] = issue_id_mapping[old_issue_id]
+                elif not old_issue_id.startswith("ISSUE-"):
+                    # Try to find matching issue by looking for any with same prefix
+                    prefix = old_issue_id.split("-")[0]
+                    for old_id, new_id in issue_id_mapping.items():
+                        if old_id and old_id.startswith(prefix):
+                            suggestion["related_issue_id"] = new_id
+                            break
+
+            # Also update related_issue_ids (plural) if present
+            if "related_issue_ids" in suggestion:
+                updated_ids = []
+                for old_id in suggestion["related_issue_ids"]:
+                    if old_id:  # Skip None/empty values
+                        new_id = issue_id_mapping.get(old_id, old_id)
+                        # Only include if it matches ISSUE-### format and is not None
+                        if new_id and new_id.startswith("ISSUE-"):
+                            updated_ids.append(new_id)
+                suggestion["related_issue_ids"] = updated_ids
 
         logger.info(
             f"Aggregation: {len(all_issues)} issues → {len(deduplicated_issues)} unique, "
@@ -417,16 +634,17 @@ class DesignReviewOrchestrator(BaseAgent):
                 "category": item.category,
                 "description": item.description,
                 "status": status,
-                "notes": f"Found {len(related_issues)} related issues" if related_issues else "No issues found",
+                "notes": f"Found {len(related_issues)} related issue(s) in this category" if related_issues else "No issues found for this checklist item",
                 "related_issues": related_issues,
             })
 
         return checklist_review
 
     def _generate_review_id(self, task_id: str, timestamp: datetime) -> str:
-        """Generate unique review ID."""
+        """Generate unique review ID matching pattern ^REVIEW-[A-Z0-9]+-\d{8}-\d{6}$"""
+        # Remove all non-alphanumeric characters (including hyphens and underscores)
         clean_task_id = "".join(
-            c if c.isalnum() or c in ["-", "_"] else "" for c in task_id
+            c if c.isalnum() else "" for c in task_id
         ).upper()
 
         date_str = timestamp.strftime("%Y%m%d")

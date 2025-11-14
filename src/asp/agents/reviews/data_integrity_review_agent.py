@@ -40,11 +40,10 @@ class DataIntegrityReviewAgent(BaseAgent):
             db_path: Optional database path (for testing)
         """
         super().__init__(
-            agent_role="DataIntegrityReview",
-            agent_version="1.0.0",
             llm_client=llm_client,
             db_path=db_path,
         )
+        self.agent_version = "1.0.0"
 
     @track_agent_cost(
         agent_role="DataIntegrityReview",
@@ -73,12 +72,10 @@ class DataIntegrityReviewAgent(BaseAgent):
 
         try:
             # Load and format prompt
-            prompt_variables = {
-                "design_specification": design_spec.model_dump_json(indent=2),
-            }
-
-            prompt = self._load_and_format_prompt(
-                "data_integrity_review_agent_v1.txt", prompt_variables
+            prompt_template = self.load_prompt("data_integrity_review_agent_v1")
+            prompt = self.format_prompt(
+                prompt_template,
+                design_specification=design_spec.model_dump_json(indent=2),
             )
 
             # Call LLM

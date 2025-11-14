@@ -24,11 +24,10 @@ class APIDesignReviewAgent(BaseAgent):
         db_path: Optional[str] = None,
     ):
         super().__init__(
-            agent_role="APIDesignReview",
-            agent_version="1.0.0",
             llm_client=llm_client,
             db_path=db_path,
         )
+        self.agent_version = "1.0.0"
 
     @track_agent_cost(
         agent_role="APIDesignReview",
@@ -44,12 +43,10 @@ class APIDesignReviewAgent(BaseAgent):
         )
 
         try:
-            prompt_variables = {
-                "design_specification": design_spec.model_dump_json(indent=2),
-            }
-
-            prompt = self._load_and_format_prompt(
-                "api_design_review_agent_v1.txt", prompt_variables
+            prompt_template = self.load_prompt("api_design_review_agent_v1")
+            prompt = self.format_prompt(
+                prompt_template,
+                design_specification=design_spec.model_dump_json(indent=2),
             )
 
             response = self.call_llm(prompt)
