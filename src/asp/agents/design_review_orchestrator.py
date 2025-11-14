@@ -307,9 +307,13 @@ class DesignReviewOrchestrator(BaseAgent):
         """
         normalized = issue.copy()
 
-        # Normalize category
+        # Normalize category (required field)
         if "category" in normalized:
             normalized["category"] = self._normalize_category(normalized["category"])
+        else:
+            # Default category if missing
+            normalized["category"] = "Architecture"
+            logger.warning("Issue missing category, defaulting to 'Architecture'")
 
         # Ensure required fields exist with defaults if missing
         if "evidence" not in normalized and "location" in normalized:
@@ -318,6 +322,11 @@ class DesignReviewOrchestrator(BaseAgent):
         elif "evidence" not in normalized:
             # Fallback: create evidence from description
             normalized["evidence"] = f"Based on design specification analysis: {normalized.get('description', 'Issue identified')}"
+
+        # Ensure evidence meets minimum length requirement (10 chars)
+        if len(normalized["evidence"]) < 10:
+            # Pad short evidence strings with context
+            normalized["evidence"] = f"Component {normalized['evidence']}: {normalized.get('description', 'Issue identified in design')}"
 
         if "impact" not in normalized:
             normalized["impact"] = "Requires review and remediation"
@@ -607,20 +616,20 @@ class DesignReviewOrchestrator(BaseAgent):
         checklist_review = []
 
         for i, item in enumerate(design_spec.design_review_checklist):
-            # Find related issues by matching category
+            # Find related issues by matching category (use .get() for safe access)
             related_issues = [
                 issue["issue_id"]
                 for issue in issues
-                if issue["category"] == item.category
+                if issue.get("category") == item.category
             ]
 
             # Determine status
             if related_issues:
                 # Check severity of related issues
                 related_severities = [
-                    issue["severity"]
+                    issue.get("severity", "Medium")
                     for issue in issues
-                    if issue["issue_id"] in related_issues
+                    if issue.get("issue_id") in related_issues
                 ]
                 has_critical_or_high = any(
                     s in ["Critical", "High"] for s in related_severities

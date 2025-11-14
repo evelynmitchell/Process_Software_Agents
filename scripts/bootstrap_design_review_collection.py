@@ -85,6 +85,21 @@ def reconstruct_project_plan(planning_result):
     return plan
 
 
+def save_results(all_results, output_file):
+    """Save results incrementally after each task."""
+    output_file.parent.mkdir(exist_ok=True)
+    successful_pipeline = sum(1 for r in all_results if r.get("pipeline_success", False))
+
+    with open(output_file, "w") as f:
+        json.dump({
+            "timestamp": datetime.now().isoformat(),
+            "total_tasks": len(all_results),
+            "successful_pipeline": successful_pipeline,
+            "failed_pipeline": len(all_results) - successful_pipeline,
+            "results": all_results,
+        }, f, indent=2)
+
+
 def run_bootstrap_design_review_collection():
     """Run Design Agent and Design Review Agent on all bootstrap tasks."""
 
@@ -101,18 +116,47 @@ def run_bootstrap_design_review_collection():
     planning_results = load_planning_results()
     successful_planning = [r for r in planning_results if r["success"]]
 
-    print(f"Processing {len(successful_planning)} successful planning tasks")
+    # Load existing results to resume from where we left off
+    output_file = Path("data/bootstrap_design_review_results.json")
+    existing_results = {}
+    if output_file.exists():
+        with open(output_file) as f:
+            existing_data = json.load(f)
+            # Create map of task_id -> result for successful pipelines
+            existing_results = {
+                r["task_id"]: r
+                for r in existing_data.get("results", [])
+                if r.get("pipeline_success", False)
+            }
+        print(f"Found {len(existing_results)} already-successful tasks, will skip them")
+        print(f"Tasks to skip: {sorted(existing_results.keys())}")
+        print()
+
+    print(f"Processing {len(successful_planning)} total planning tasks")
+    print(f"  Already completed: {len(existing_results)}")
+    print(f"  Remaining: {len(successful_planning) - len(existing_results)}")
     print()
 
     # Initialize agents
     design_agent = DesignAgent()
     review_orchestrator = DesignReviewOrchestrator()
 
-    all_results = []
+    # Start with existing successful results
+    all_results = list(existing_results.values())
+
+    # Output file for incremental saves
+    output_file = Path("data/bootstrap_design_review_results.json")
 
     for i, planning_result in enumerate(successful_planning, 1):
+        task_id = planning_result["task_id"]
+
+        # Skip if already successfully completed
+        if task_id in existing_results:
+            print(f"\n⏭️  TASK {i}/{len(successful_planning)}: {task_id} - SKIPPING (already successful)")
+            continue
+
         print(f"\n{'='*80}")
-        print(f"TASK {i}/{len(successful_planning)}: {planning_result['task_id']}")
+        print(f"TASK {i}/{len(successful_planning)}: {task_id}")
         print(f"{'='*80}")
         print(f"Description: {planning_result['description']}")
         print(f"Planning Complexity: {planning_result['actual_total_complexity']}")
@@ -120,7 +164,7 @@ def run_bootstrap_design_review_collection():
         print()
 
         task_result = {
-            "task_id": planning_result["task_id"],
+            "task_id": task_id,
             "project_id": planning_result["project_id"],
             "description": planning_result["description"],
             "planning_complexity": planning_result["actual_total_complexity"],
@@ -186,28 +230,43 @@ def run_bootstrap_design_review_collection():
             review_report = review_orchestrator.execute(design_spec)
             review_elapsed = time.time() - review_start
 
+            # Calculate total issues
+            total_issues = (
+                review_report.critical_issue_count +
+                review_report.high_issue_count +
+                review_report.medium_issue_count +
+                review_report.low_issue_count
+            )
+
+            # Calculate checklist counts
+            checklist_passed = sum(1 for item in review_report.checklist_review if item.status == "PASS")
+            checklist_total = len(review_report.checklist_review)
+
             print(f"✅ Design Review Agent SUCCESS ({review_elapsed:.2f}s)")
             print(f"   Overall Assessment: {review_report.overall_assessment}")
-            print(f"   Total Issues: {review_report.total_issue_count}")
+            print(f"   Total Issues: {total_issues}")
             print(f"     Critical: {review_report.critical_issue_count}")
             print(f"     High: {review_report.high_issue_count}")
             print(f"     Medium: {review_report.medium_issue_count}")
             print(f"     Low: {review_report.low_issue_count}")
-            print(f"   Suggestions: {review_report.total_suggestion_count}")
-            print(f"   Checklist: {review_report.checklist_pass_count}/{review_report.checklist_total_count} passed")
+            # Calculate total suggestions
+            total_suggestions = len(review_report.improvement_suggestions)
+
+            print(f"   Suggestions: {total_suggestions}")
+            print(f"   Checklist: {checklist_passed}/{checklist_total} passed")
             print()
 
             task_result["review_success"] = True
             task_result["review_execution_time"] = review_elapsed
             task_result["review_overall_assessment"] = review_report.overall_assessment
-            task_result["review_total_issues"] = review_report.total_issue_count
+            task_result["review_total_issues"] = total_issues
             task_result["review_critical_issues"] = review_report.critical_issue_count
             task_result["review_high_issues"] = review_report.high_issue_count
             task_result["review_medium_issues"] = review_report.medium_issue_count
             task_result["review_low_issues"] = review_report.low_issue_count
-            task_result["review_total_suggestions"] = review_report.total_suggestion_count
-            task_result["review_checklist_passed"] = review_report.checklist_pass_count
-            task_result["review_checklist_total"] = review_report.checklist_total_count
+            task_result["review_total_suggestions"] = total_suggestions
+            task_result["review_checklist_passed"] = checklist_passed
+            task_result["review_checklist_total"] = checklist_total
 
             # Success: Both agents completed
             task_result["pipeline_success"] = True
@@ -228,20 +287,12 @@ def run_bootstrap_design_review_collection():
 
         all_results.append(task_result)
 
-    # Save results
-    output_file = Path("data/bootstrap_design_review_results.json")
-    output_file.parent.mkdir(exist_ok=True)
+        # Save results incrementally after each task
+        save_results(all_results, output_file)
+        print(f"💾 Results saved ({len(all_results)} tasks completed)")
 
-    successful_pipeline = sum(1 for r in all_results if r.get("pipeline_success", False))
-
-    with open(output_file, "w") as f:
-        json.dump({
-            "timestamp": datetime.now().isoformat(),
-            "total_tasks": len(successful_planning),
-            "successful_pipeline": successful_pipeline,
-            "failed_pipeline": len(all_results) - successful_pipeline,
-            "results": all_results,
-        }, f, indent=2)
+    # Final save with summary
+    save_results(all_results, output_file)
 
     print(f"\n{'='*80}")
     print("BOOTSTRAP COLLECTION COMPLETE")
