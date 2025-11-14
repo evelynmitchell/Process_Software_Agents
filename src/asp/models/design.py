@@ -298,17 +298,13 @@ class DataSchema(BaseModel):
         ],
     )
 
-    relationships: list[dict[str, str]] = Field(
+    relationships: list[str] = Field(
         default_factory=list,
-        description="Foreign key relationships",
+        description="Foreign key relationships (SQL foreign key definitions)",
         examples=[
             [
-                {
-                    "foreign_key": "user_id",
-                    "references_table": "users",
-                    "references_column": "user_id",
-                    "on_delete": "CASCADE",
-                }
+                "ALTER TABLE posts ADD FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE",
+                "ALTER TABLE comments ADD FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE"
             ]
         ],
     )
@@ -607,10 +603,10 @@ class DesignSpecification(BaseModel):
         if not v or len(v) < 1:
             raise ValueError("At least one component is required")
 
-        # Validate semantic_unit_id uniqueness
-        semantic_unit_ids = [component.semantic_unit_id for component in v]
-        if len(semantic_unit_ids) != len(set(semantic_unit_ids)):
-            raise ValueError("Duplicate semantic_unit_id found in component_logic")
+        # Note: Multiple components can map to the same semantic_unit_id
+        # (e.g., a complex semantic unit broken into multiple components)
+        # The important invariant is that every semantic unit has AT LEAST one component,
+        # which is validated in DesignAgent._validate_semantic_unit_coverage()
 
         return v
 
