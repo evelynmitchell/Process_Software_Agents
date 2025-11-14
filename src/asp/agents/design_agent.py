@@ -16,7 +16,7 @@ Date: November 13, 2025
 import json
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from asp.agents.base_agent import BaseAgent, AgentExecutionError
 from asp.models.design import DesignInput, DesignSpecification
@@ -147,7 +147,7 @@ class DesignAgent(BaseAgent):
             raise AgentExecutionError(f"Prompt template not found: {e}") from e
 
         # Format prompt with requirements and project plan
-        prompt = self.format_prompt(
+        formatted_prompt = self.format_prompt(
             prompt_template,
             requirements=input_data.requirements,
             project_plan=input_data.project_plan.model_dump_json(indent=2),
@@ -155,31 +155,33 @@ class DesignAgent(BaseAgent):
             design_constraints=input_data.design_constraints or "None",
         )
 
-        logger.debug(f"Generated design prompt ({len(prompt)} chars)")
+        logger.debug(f"Generated design prompt ({len(formatted_prompt)} chars)")
 
         # Call LLM to generate design
-        llm_client = self.get_llm_client()
-        response_text = llm_client.call(
-            prompt=prompt,
+        response = self.call_llm(
+            prompt=formatted_prompt,
             max_tokens=8000,  # Designs can be large
             temperature=0.1,  # Low temperature for consistency
         )
 
-        logger.debug(f"Received LLM response ({len(response_text)} chars)")
+        # Parse response
+        content = response.get("content")
+        if not isinstance(content, dict):
+            raise AgentExecutionError(
+                f"LLM returned non-JSON response: {content}\n"
+                f"Expected JSON matching DesignSpecification schema"
+            )
 
-        # Parse and validate the response
+        logger.debug(f"Received LLM response with {len(content)} top-level keys")
+
+        # Validate and create DesignSpecification
         try:
-            design_dict = llm_client.parse_json_response(response_text)
-            design_spec = DesignSpecification(**design_dict)
+            design_spec = DesignSpecification(**content)
             return design_spec
-
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse design JSON: {e}")
-            logger.debug(f"Response text: {response_text[:500]}...")
-            raise AgentExecutionError(f"Invalid JSON in design response: {e}") from e
 
         except Exception as e:
             logger.error(f"Failed to validate design specification: {e}")
+            logger.debug(f"Response content keys: {content.keys() if isinstance(content, dict) else 'not a dict'}")
             raise AgentExecutionError(f"Design validation failed: {e}") from e
 
     def _validate_semantic_unit_coverage(
@@ -198,7 +200,7 @@ class DesignAgent(BaseAgent):
             AgentExecutionError: If semantic units are missing components
         """
         # Get all semantic unit IDs from project plan
-        planning_unit_ids = {unit.semantic_unit_id for unit in project_plan.semantic_units}
+        planning_unit_ids = {unit.unit_id for unit in project_plan.semantic_units}
 
         # Get all semantic unit IDs referenced in design components
         design_unit_ids = {component.semantic_unit_id for component in design_spec.component_logic}
