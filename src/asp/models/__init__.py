@@ -8,6 +8,12 @@ from asp.models.design import (
     DesignReviewChecklistItem,
     DesignSpecification,
 )
+from asp.models.design_review import (
+    ChecklistItemReview,
+    DesignIssue,
+    DesignReviewReport,
+    ImprovementSuggestion,
+)
 from asp.models.planning import (
     ProjectPlan,
     PROBEAIPrediction,
@@ -28,4 +34,9 @@ __all__ = [
     "ComponentLogic",
     "DesignReviewChecklistItem",
     "DesignSpecification",
+    # Design Review models
+    "DesignIssue",
+    "ImprovementSuggestion",
+    "ChecklistItemReview",
+    "DesignReviewReport",
 ]
