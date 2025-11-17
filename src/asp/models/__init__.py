@@ -1,5 +1,6 @@
 """Pydantic models for ASP agents."""
 
+from asp.models.code import CodeInput, GeneratedCode, GeneratedFile
 from asp.models.design import (
     APIContract,
     ComponentLogic,
@@ -39,4 +40,8 @@ __all__ = [
     "ImprovementSuggestion",
     "ChecklistItemReview",
     "DesignReviewReport",
+    # Code generation models
+    "CodeInput",
+    "GeneratedFile",
+    "GeneratedCode",
 ]

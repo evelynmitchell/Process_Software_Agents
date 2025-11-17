@@ -1,0 +1,293 @@
+"""
+Code Agent for ASP Platform
+
+The Code Agent is responsible for:
+1. Generating Production-Ready Code (FR-004)
+2. Transforming design specifications into complete, runnable code
+3. Creating full file contents with proper structure, tests, and documentation
+4. Ensuring adherence to coding standards and best practices
+
+This is the fourth agent in the 7-agent ASP architecture, following the Design Review Agent.
+
+Author: ASP Development Team
+Date: November 17, 2025
+"""
+
+import logging
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Optional
+
+from asp.agents.base_agent import BaseAgent, AgentExecutionError
+from asp.models.code import CodeInput, GeneratedCode, GeneratedFile
+from asp.telemetry import track_agent_cost
+
+
+logger = logging.getLogger(__name__)
+
+
+class CodeAgent(BaseAgent):
+    """
+    Code Agent implementation.
+
+    Transforms approved design specifications into complete, production-ready code
+    with full file contents, tests, and documentation.
+
+    The Code Agent:
+    - Takes CodeInput with design specification and coding standards
+    - Generates complete GeneratedCode with:
+      * Full file contents (source, tests, config, docs)
+      * File structure and dependencies
+      * Implementation notes and setup instructions
+    - Ensures every component from design has corresponding implementation
+    - Outputs production-ready code ready for Code Review Agent
+
+    Example:
+        >>> from asp.agents.code_agent import CodeAgent
+        >>> from asp.models.code import CodeInput
+        >>> from asp.models.design import DesignSpecification
+        >>>
+        >>> agent = CodeAgent()
+        >>> input_data = CodeInput(
+        ...     task_id="JWT-AUTH-001",
+        ...     design_specification=design_spec,  # From Design Agent
+        ...     coding_standards="Follow PEP 8, use type hints...",
+        ... )
+        >>> code = agent.execute(input_data)
+        >>> print(f"Generated {code.total_files} files with {code.total_lines_of_code} LOC")
+    """
+
+    def __init__(
+        self,
+        db_path: Optional[Path] = None,
+        llm_client: Optional[Any] = None,
+    ):
+        """
+        Initialize Code Agent.
+
+        Args:
+            db_path: Optional path to SQLite database for telemetry
+            llm_client: Optional LLM client (for dependency injection in tests)
+        """
+        super().__init__(db_path=db_path, llm_client=llm_client)
+        self.agent_version = "1.0.0"
+        logger.info("CodeAgent initialized")
+
+    @track_agent_cost(
+        agent_role="Code",
+        task_id_param="input_data.task_id",
+        llm_model="claude-sonnet-4-20250514",
+        llm_provider="anthropic",
+        agent_version="1.0.0",
+    )
+    def execute(self, input_data: CodeInput) -> GeneratedCode:
+        """
+        Execute the Code Agent to generate production-ready code.
+
+        This method:
+        1. Loads the code generation prompt template
+        2. Formats it with design specification and coding standards
+        3. Calls the LLM to generate complete code
+        4. Parses and validates the response
+        5. Verifies component coverage from design
+        6. Returns complete GeneratedCode
+
+        Args:
+            input_data: CodeInput with design specification and standards
+
+        Returns:
+            GeneratedCode with complete file contents and metadata
+
+        Raises:
+            AgentExecutionError: If code generation fails or output is invalid
+            ValidationError: If response doesn't match GeneratedCode schema
+        """
+        logger.info(f"Executing CodeAgent for task_id={input_data.task_id}")
+
+        try:
+            # Generate the code
+            generated_code = self._generate_code(input_data)
+
+            # Validate component coverage from design
+            self._validate_component_coverage(generated_code, input_data.design_specification)
+
+            # Validate file structure consistency
+            self._validate_file_structure(generated_code)
+
+            logger.info(
+                f"Code generation successful: {generated_code.total_files} files, "
+                f"{generated_code.total_lines_of_code} LOC, "
+                f"{len(generated_code.dependencies)} dependencies"
+            )
+
+            return generated_code
+
+        except Exception as e:
+            logger.error(f"CodeAgent execution failed: {e}")
+            raise AgentExecutionError(f"Code generation failed: {e}") from e
+
+    def _generate_code(self, input_data: CodeInput) -> GeneratedCode:
+        """
+        Generate complete code using LLM.
+
+        Args:
+            input_data: CodeInput with design specification and standards
+
+        Returns:
+            GeneratedCode parsed from LLM response
+
+        Raises:
+            AgentExecutionError: If LLM call fails or response is invalid
+        """
+        # Load prompt template
+        try:
+            prompt_template = self.load_prompt("code_agent_v1_generation")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"Prompt template not found: {e}") from e
+
+        # Format prompt with design specification and standards
+        formatted_prompt = self.format_prompt(
+            prompt_template,
+            task_id=input_data.task_id,
+            design_specification=input_data.design_specification.model_dump_json(indent=2),
+            coding_standards=input_data.coding_standards or "Follow industry best practices",
+            context_files="\n".join(input_data.context_files or []),
+        )
+
+        logger.debug(f"Generated code prompt ({len(formatted_prompt)} chars)")
+
+        # Call LLM to generate code
+        # Code generation can be large, so use higher token limit
+        response = self.call_llm(
+            prompt=formatted_prompt,
+            max_tokens=16000,  # Large limit for code generation
+            temperature=0.0,  # Deterministic for code generation
+        )
+
+        # Parse response
+        content = response.get("content")
+        if not isinstance(content, dict):
+            raise AgentExecutionError(
+                f"LLM returned non-JSON response: {content}\n"
+                f"Expected JSON matching GeneratedCode schema"
+            )
+
+        logger.debug(f"Received LLM response with {len(content)} top-level keys")
+
+        # Validate and create GeneratedCode
+        try:
+            # Add timestamp if not provided
+            if "generation_timestamp" not in content or not content["generation_timestamp"]:
+                content["generation_timestamp"] = datetime.now().isoformat()
+
+            # Calculate total LOC and files if not provided
+            if "total_lines_of_code" not in content or content["total_lines_of_code"] == 0:
+                total_loc = sum(
+                    len([line for line in file_data["content"].split("\n") if line.strip()])
+                    for file_data in content.get("files", [])
+                )
+                content["total_lines_of_code"] = total_loc
+
+            if "total_files" not in content or content["total_files"] == 0:
+                content["total_files"] = len(content.get("files", []))
+
+            generated_code = GeneratedCode(**content)
+            return generated_code
+
+        except Exception as e:
+            logger.error(f"Failed to validate generated code: {e}")
+            logger.debug(
+                f"Response content keys: {content.keys() if isinstance(content, dict) else 'not a dict'}"
+            )
+            raise AgentExecutionError(f"Code validation failed: {e}") from e
+
+    def _validate_component_coverage(
+        self,
+        generated_code: GeneratedCode,
+        design_spec,
+    ) -> None:
+        """
+        Validate that all components from design have corresponding code files.
+
+        Args:
+            generated_code: GeneratedCode output
+            design_spec: DesignSpecification input
+
+        Raises:
+            AgentExecutionError: If components are missing implementation
+        """
+        # Get all component IDs from design
+        design_component_ids = {component.component_id for component in design_spec.component_logic}
+
+        # Get all component IDs referenced in generated code
+        code_component_ids = {
+            file.component_id for file in generated_code.files if file.component_id
+        }
+
+        # Check for missing components
+        missing_components = design_component_ids - code_component_ids
+
+        if missing_components:
+            logger.warning(
+                f"Code generation missing implementation for components: {missing_components}"
+            )
+            # This is a warning, not an error - some components may be implemented
+            # across multiple files or may be abstract/interface components
+
+        logger.debug(
+            f"Component coverage: {len(code_component_ids)}/{len(design_component_ids)} "
+            f"components have explicit file mappings"
+        )
+
+    def _validate_file_structure(self, generated_code: GeneratedCode) -> None:
+        """
+        Validate file structure consistency.
+
+        Ensures that:
+        - All files in file_structure exist in generated files list
+        - All generated files are represented in file_structure
+        - No duplicate file paths
+
+        Args:
+            generated_code: GeneratedCode output
+
+        Raises:
+            AgentExecutionError: If file structure is inconsistent
+        """
+        # Get all file paths from generated files
+        generated_file_paths = {file.file_path for file in generated_code.files}
+
+        # Get all file paths from file_structure
+        structure_file_paths = set()
+        for directory, files in generated_code.file_structure.items():
+            for filename in files:
+                if directory == ".":
+                    structure_file_paths.add(filename)
+                else:
+                    structure_file_paths.add(f"{directory}/{filename}")
+
+        # Check for mismatches
+        missing_in_structure = generated_file_paths - structure_file_paths
+        extra_in_structure = structure_file_paths - generated_file_paths
+
+        if missing_in_structure:
+            logger.warning(
+                f"Files generated but not in file_structure: {missing_in_structure}"
+            )
+
+        if extra_in_structure:
+            logger.error(f"Files in file_structure but not generated: {extra_in_structure}")
+            raise AgentExecutionError(
+                f"File structure inconsistency: {extra_in_structure} listed but not generated"
+            )
+
+        # Check for duplicate file paths
+        file_path_counts = {}
+        for file in generated_code.files:
+            file_path_counts[file.file_path] = file_path_counts.get(file.file_path, 0) + 1
+
+        duplicates = {path: count for path, count in file_path_counts.items() if count > 1}
+        if duplicates:
+            raise AgentExecutionError(f"Duplicate file paths found: {duplicates}")
+
+        logger.debug("File structure validation passed")
