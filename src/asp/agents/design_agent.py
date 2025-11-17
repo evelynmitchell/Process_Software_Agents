@@ -81,12 +81,12 @@ class DesignAgent(BaseAgent):
         llm_provider="anthropic",
         agent_version="1.0.0",
     )
-    def execute(self, input_data: DesignInput) -> DesignSpecification:
+    def execute(self, input_data: DesignInput, feedback: Optional[list] = None) -> DesignSpecification:
         """
-        Execute the Design Agent to generate a technical design.
+        Execute the Design Agent to generate a technical design with optional feedback.
 
         This method:
-        1. Loads the design prompt template
+        1. Loads the design prompt template (with feedback if provided)
         2. Formats it with requirements and project plan
         3. Calls the LLM to generate the design
         4. Parses and validates the response
@@ -95,6 +95,8 @@ class DesignAgent(BaseAgent):
 
         Args:
             input_data: DesignInput containing requirements, project_plan, etc.
+            feedback: Optional list of DesignIssue objects from Design Review
+                     requiring redesign (issues with affected_phase="Design" or "Both")
 
         Returns:
             DesignSpecification with complete technical design
@@ -103,11 +105,17 @@ class DesignAgent(BaseAgent):
             AgentExecutionError: If design generation fails or output is invalid
             ValidationError: If response doesn't match DesignSpecification schema
         """
-        logger.info(f"Executing DesignAgent for task_id={input_data.task_id}")
+        logger.info(
+            f"Executing DesignAgent for task_id={input_data.task_id}, "
+            f"feedback_items={len(feedback) if feedback else 0}"
+        )
 
         try:
-            # Generate the design
-            design_spec = self._generate_design(input_data)
+            # Generate the design (with or without feedback)
+            if feedback:
+                design_spec = self._generate_design_with_feedback(input_data, feedback)
+            else:
+                design_spec = self._generate_design(input_data)
 
             # Validate semantic unit coverage
             self._validate_semantic_unit_coverage(design_spec, input_data.project_plan)
@@ -277,3 +285,108 @@ class DesignAgent(BaseAgent):
                     )
 
         logger.debug("Component dependencies validated: no circular dependencies detected")
+
+    def _generate_design_with_feedback(
+        self, input_data: DesignInput, feedback: list
+    ) -> DesignSpecification:
+        """
+        Generate revised design specification with Design Review feedback.
+
+        This method is called when Design Review has identified Design-phase issues
+        that require the design to be revised with corrections.
+
+        Steps:
+        1. Format feedback issues into readable text
+        2. Load the feedback-aware design prompt template
+        3. Format prompt with requirements + project plan + feedback
+        4. Call LLM to generate revised design
+        5. Parse and validate the response
+
+        Args:
+            input_data: Original DesignInput with requirements and project plan
+            feedback: List of DesignIssue objects with affected_phase="Design" or "Both"
+
+        Returns:
+            Revised DesignSpecification
+
+        Raises:
+            AgentExecutionError: If design generation fails or output is invalid
+        """
+        logger.debug(
+            f"Re-generating design for {input_data.task_id} with {len(feedback)} feedback issues"
+        )
+
+        # Step 1: Format feedback issues into readable string
+        feedback_text = self._format_feedback_issues(feedback)
+
+        # Step 2: Load feedback-aware prompt template
+        try:
+            prompt_template = self.load_prompt("design_agent_v1_with_feedback")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"Feedback prompt template not found: {e}") from e
+
+        # Step 3: Format prompt with requirements + project plan + feedback
+        formatted_prompt = self.format_prompt(
+            prompt_template,
+            description=input_data.requirements,
+            project_plan=input_data.project_plan.model_dump_json(indent=2),
+            feedback=feedback_text,
+        )
+
+        logger.debug(f"Generated feedback-aware design prompt ({len(formatted_prompt)} chars)")
+
+        # Step 4: Call LLM to generate revised design
+        response = self.call_llm(
+            prompt=formatted_prompt,
+            max_tokens=8000,  # Designs can be large
+            temperature=0.1,  # Low temperature for consistency
+        )
+
+        # Step 5: Parse response
+        content = response.get("content")
+        if not isinstance(content, dict):
+            raise AgentExecutionError(
+                f"LLM returned non-JSON response: {content}\n"
+                f"Expected JSON matching DesignSpecification schema"
+            )
+
+        logger.debug(f"Received LLM response with {len(content)} top-level keys")
+
+        # Validate and create DesignSpecification
+        try:
+            design_spec = DesignSpecification(**content)
+            logger.info(
+                f"Successfully revised design addressing {len(feedback)} feedback issues"
+            )
+            return design_spec
+
+        except Exception as e:
+            logger.error(f"Failed to validate revised design specification: {e}")
+            logger.debug(
+                f"Response content keys: {content.keys() if isinstance(content, dict) else 'not a dict'}"
+            )
+            raise AgentExecutionError(f"Revised design validation failed: {e}") from e
+
+    def _format_feedback_issues(self, feedback: list) -> str:
+        """
+        Format DesignIssue objects into readable text for the feedback prompt.
+
+        Args:
+            feedback: List of DesignIssue objects
+
+        Returns:
+            Formatted string with all feedback issues
+        """
+        lines = []
+        for issue in feedback:
+            lines.append(
+                f"{issue.issue_id} ({issue.affected_phase} Phase, {issue.severity}): "
+                f"{issue.description}"
+            )
+            if issue.evidence:
+                lines.append(f"  Evidence: {issue.evidence}")
+            if issue.impact:
+                lines.append(f"  Impact: {issue.impact}")
+            lines.append("")  # Blank line between issues
+
+        return "\n".join(lines)

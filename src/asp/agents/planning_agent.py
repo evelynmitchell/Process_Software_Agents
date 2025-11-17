@@ -69,12 +69,12 @@ class PlanningAgent(BaseAgent):
         llm_provider="anthropic",
         agent_version="1.0.0",
     )
-    def execute(self, input_data: TaskRequirements) -> ProjectPlan:
+    def execute(self, input_data: TaskRequirements, feedback: Optional[list] = None) -> ProjectPlan:
         """
-        Execute Planning Agent logic.
+        Execute Planning Agent logic with optional feedback.
 
         Steps:
-        1. Load and format decomposition prompt
+        1. Load and format decomposition prompt (with feedback if provided)
         2. Call LLM to decompose task into semantic units
         3. Validate and calculate complexity for each unit
         4. (Phase 2) Run PROBE-AI estimation if available
@@ -82,6 +82,8 @@ class PlanningAgent(BaseAgent):
 
         Args:
             input_data: TaskRequirements with task details
+            feedback: Optional list of DesignIssue objects from Design Review
+                     requiring replanning (issues with affected_phase="Planning")
 
         Returns:
             ProjectPlan with decomposed semantic units and complexity scores
@@ -91,12 +93,16 @@ class PlanningAgent(BaseAgent):
         """
         logger.info(
             f"Planning Agent executing for task_id={input_data.task_id}, "
-            f"description='{input_data.description[:50]}...'"
+            f"description='{input_data.description[:50]}...', "
+            f"feedback_items={len(feedback) if feedback else 0}"
         )
 
         try:
-            # Step 1: Decompose task into semantic units
-            semantic_units = self.decompose_task(input_data)
+            # Step 1: Decompose task into semantic units (with or without feedback)
+            if feedback:
+                semantic_units = self.decompose_task_with_feedback(input_data, feedback)
+            else:
+                semantic_units = self.decompose_task(input_data)
 
             # Step 2: Calculate total complexity
             total_complexity = sum(unit.est_complexity for unit in semantic_units)
@@ -230,3 +236,143 @@ class PlanningAgent(BaseAgent):
 
         logger.info(f"Successfully decomposed into {len(semantic_units)} semantic units")
         return semantic_units
+
+    def decompose_task_with_feedback(
+        self, requirements: TaskRequirements, feedback: list
+    ) -> list[SemanticUnit]:
+        """
+        Decompose task into semantic units with Design Review feedback.
+
+        This method is called when Design Review has identified Planning-phase issues
+        that require the task to be re-decomposed with corrections.
+
+        Steps:
+        1. Format feedback issues into readable text
+        2. Load the feedback-aware decomposition prompt template
+        3. Format prompt with requirements + feedback
+        4. Call LLM to generate revised semantic units
+        5. Parse and validate the response
+        6. Calculate complexity for each unit
+
+        Args:
+            requirements: Original TaskRequirements
+            feedback: List of DesignIssue objects with affected_phase="Planning" or "Both"
+
+        Returns:
+            List of revised SemanticUnit objects
+
+        Raises:
+            AgentExecutionError: If decomposition fails or output is invalid
+        """
+        logger.debug(
+            f"Re-decomposing task {requirements.task_id} with {len(feedback)} feedback issues"
+        )
+
+        # Step 1: Format feedback issues into readable string
+        feedback_text = self._format_feedback_issues(feedback)
+
+        # Step 2: Load feedback-aware prompt template
+        try:
+            prompt_template = self.load_prompt("planning_agent_v1_with_feedback")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"Feedback prompt template not found: {e}") from e
+
+        # Step 3: Format prompt with requirements + feedback
+        formatted_prompt = self.format_prompt(
+            prompt_template,
+            description=requirements.description,
+            requirements=requirements.requirements,
+            feedback=feedback_text,
+        )
+
+        # Step 4: Call LLM
+        response = self.call_llm(
+            prompt=formatted_prompt,
+            max_tokens=4096,
+            temperature=0.0,  # Deterministic for consistency
+        )
+
+        # Step 5: Parse response
+        content = response.get("content")
+        if not isinstance(content, dict):
+            raise AgentExecutionError(
+                f"LLM returned non-JSON response: {content}\n"
+                f"Expected JSON with 'semantic_units' array"
+            )
+
+        # Extract semantic units
+        if "semantic_units" not in content:
+            raise AgentExecutionError(
+                f"LLM response missing 'semantic_units' key: {content.keys()}"
+            )
+
+        units_data = content["semantic_units"]
+        if not isinstance(units_data, list):
+            raise AgentExecutionError(
+                f"'semantic_units' must be an array, got {type(units_data)}"
+            )
+
+        # Step 6: Validate and create SemanticUnit objects
+        semantic_units = []
+        for i, unit_data in enumerate(units_data):
+            try:
+                # Validate with Pydantic
+                unit = SemanticUnit.model_validate(unit_data)
+
+                # Verify complexity calculation
+                factors = ComplexityFactors(
+                    api_interactions=unit.api_interactions,
+                    data_transformations=unit.data_transformations,
+                    logical_branches=unit.logical_branches,
+                    code_entities_modified=unit.code_entities_modified,
+                    novelty_multiplier=unit.novelty_multiplier,
+                )
+                calculated_complexity = calculate_semantic_complexity(factors)
+
+                # Allow small rounding differences
+                if abs(unit.est_complexity - calculated_complexity) > 1:
+                    logger.warning(
+                        f"Unit {unit.unit_id}: Complexity mismatch. "
+                        f"LLM reported {unit.est_complexity}, "
+                        f"calculated {calculated_complexity}. "
+                        f"Using calculated value."
+                    )
+                    # Override with calculated value
+                    unit.est_complexity = calculated_complexity
+
+                semantic_units.append(unit)
+
+            except Exception as e:
+                raise AgentExecutionError(
+                    f"Failed to validate semantic unit {i}: {e}\n" f"Data: {unit_data}"
+                ) from e
+
+        logger.info(
+            f"Successfully re-decomposed into {len(semantic_units)} semantic units "
+            f"addressing {len(feedback)} feedback issues"
+        )
+        return semantic_units
+
+    def _format_feedback_issues(self, feedback: list) -> str:
+        """
+        Format DesignIssue objects into readable text for the feedback prompt.
+
+        Args:
+            feedback: List of DesignIssue objects
+
+        Returns:
+            Formatted string with all feedback issues
+        """
+        lines = []
+        for issue in feedback:
+            lines.append(
+                f"{issue.issue_id} ({issue.affected_phase} Phase, {issue.severity}): "
+                f"{issue.description}"
+            )
+            if issue.evidence:
+                lines.append(f"  Evidence: {issue.evidence}")
+            if issue.impact:
+                lines.append(f"  Impact: {issue.impact}")
+            lines.append("")  # Blank line between issues
+
+        return "\n".join(lines)

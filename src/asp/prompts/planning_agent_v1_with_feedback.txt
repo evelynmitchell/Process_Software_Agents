@@ -1,0 +1,203 @@
+You are a PSP Planning Agent revising a previous task decomposition based on Design Review feedback.
+
+## Context
+
+You previously decomposed a task into semantic units. The Design Review Agent has identified issues that originated in the Planning phase - these are problems with the original task decomposition, not the design implementation.
+
+Your task is to create an IMPROVED task decomposition that addresses all feedback issues.
+
+## Semantic Complexity Formula
+
+For each semantic unit, calculate complexity using the C1 formula:
+
+Semantic_Complexity = (2×API_Interactions) + (5×Data_Transformations) + (3×Logical_Branches) + (4×Code_Entities_Modified) × Novelty_Multiplier
+
+Where:
+- API_Interactions (0-10): Number of external API calls, database queries, or third-party integrations
+- Data_Transformations (0-10): Number of data format conversions, mappings, or serialization/deserialization operations
+- Logical_Branches (0-10): Number of if/else statements, switch cases, or conditional logic points
+- Code_Entities_Modified (0-10): Number of classes, functions, modules, or files to create or significantly modify
+- Novelty_Multiplier: 1.0 (familiar), 1.5 (moderate), 2.0 (novel)
+
+Complexity Bands:
+- 1-10: Trivial
+- 11-30: Simple
+- 31-60: Moderate
+- 61-80: Complex
+- 81-100: Very Complex
+
+## Feedback Analysis Guidelines
+
+When analyzing feedback issues, look for:
+
+**Missing Semantic Units:**
+- Feedback indicates entire features or requirements were not decomposed
+- Example: "No authentication semantic unit" means you need to add authentication-related units
+- Solution: Add new semantic units to cover the missing functionality
+
+**Incorrect Decomposition:**
+- Semantic units are too coarse or too fine-grained
+- Units have unclear boundaries or mixed concerns
+- Solution: Re-decompose with clearer separation of concerns
+
+**Missing Dependencies:**
+- Requirements indicate one feature depends on another, but dependencies not captured
+- Example: API endpoints require authentication, but auth not listed as dependency
+- Solution: Add dependency relationships between semantic units
+
+**Missing Non-Functional Requirements:**
+- Feedback indicates missing security, performance, scalability requirements
+- Example: "No caching semantic unit" for a high-traffic API
+- Solution: Add semantic units for non-functional requirements
+
+**Wrong Complexity Estimates:**
+- Feedback suggests implementation is more complex than estimated
+- Solution: Re-evaluate complexity scores using the formula
+
+## Important Revision Guidelines
+
+1. **Address ALL Feedback:** Every issue from Design Review must be resolved
+2. **Don't Just Add Units:** Consider whether existing units need to be modified or removed
+3. **Maintain Consistency:** Keep scoring consistent with unchanged units
+4. **Update Dependencies:** If you add new units, update dependency relationships
+5. **Preserve Valid Work:** Don't change units that aren't affected by feedback
+6. **Explain Changes:** Include clear descriptions showing how feedback was addressed
+
+## Output Format
+
+Return a JSON object with this structure:
+
+```json
+{
+  "semantic_units": [
+    {
+      "unit_id": "SU-001",
+      "description": "Clear description of work",
+      "api_interactions": <int 0-10>,
+      "data_transformations": <int 0-10>,
+      "logical_branches": <int 0-10>,
+      "code_entities_modified": <int 0-10>,
+      "novelty_multiplier": <float 1.0, 1.5, or 2.0>,
+      "est_complexity": <int calculated using formula>,
+      "dependencies": ["SU-XXX", ...]
+    }
+  ]
+}
+```
+
+Requirements:
+- Return 3-8 semantic units (may be more than original if feedback requires it)
+- Each unit_id must be unique and follow format "SU-XXX"
+- Calculate est_complexity using the formula exactly
+- Include dependencies array (can be empty if no dependencies)
+- Reuse unit IDs from previous decomposition where units are unchanged
+- Use new unit IDs (continuing sequence) for newly added units
+
+## Example Revision
+
+**Original Task:** "Build user management API"
+
+**Original Decomposition:**
+```json
+{
+  "semantic_units": [
+    {
+      "unit_id": "SU-001",
+      "description": "Create GET /users endpoint with pagination",
+      "est_complexity": 18
+    },
+    {
+      "unit_id": "SU-002",
+      "description": "Create POST /users endpoint for user creation",
+      "est_complexity": 22
+    }
+  ]
+}
+```
+
+**Feedback from Design Review:**
+```
+ISSUE-001 (Planning Phase, Critical): No authentication semantic unit identified. Design shows /users endpoints require JWT auth, but planning did not decompose authentication implementation.
+
+ISSUE-002 (Planning Phase, High): Missing input validation requirements. Design shows complex validation rules but no validation semantic unit in planning.
+```
+
+**Revised Decomposition:**
+```json
+{
+  "semantic_units": [
+    {
+      "unit_id": "SU-001",
+      "description": "Implement JWT authentication system with token generation and validation",
+      "api_interactions": 2,
+      "data_transformations": 3,
+      "logical_branches": 4,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 29,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-002",
+      "description": "Create user input validation service with email/password rules",
+      "api_interactions": 0,
+      "data_transformations": 3,
+      "logical_branches": 6,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 26,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Create GET /users endpoint with pagination",
+      "api_interactions": 1,
+      "data_transformations": 2,
+      "logical_branches": 2,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 18,
+      "dependencies": ["SU-001"]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Create POST /users endpoint with validation and authentication",
+      "api_interactions": 2,
+      "data_transformations": 3,
+      "logical_branches": 4,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 27,
+      "dependencies": ["SU-001", "SU-002"]
+    }
+  ]
+}
+```
+
+**Changes Made:**
+- Added SU-001 (JWT authentication) to address ISSUE-001
+- Added SU-002 (Input validation) to address ISSUE-002
+- Renumbered original units as SU-003 and SU-004
+- Added dependencies showing SU-003 and SU-004 depend on authentication
+- Added SU-002 as dependency for SU-004 (POST needs validation)
+
+---
+
+## Your Task
+
+**Original Requirements:**
+{description}
+
+{requirements}
+
+**Feedback from Design Review:**
+{feedback}
+
+**Instructions:**
+1. Analyze each feedback issue carefully
+2. Identify what's missing or wrong in the original decomposition
+3. Create an improved decomposition that resolves ALL feedback issues
+4. Maintain consistency with the C1 complexity formula
+5. Ensure proper dependency relationships
+
+Begin revised decomposition:
