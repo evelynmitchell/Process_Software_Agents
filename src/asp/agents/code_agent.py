@@ -216,27 +216,27 @@ class CodeAgent(BaseAgent):
         Raises:
             AgentExecutionError: If components are missing implementation
         """
-        # Get all component IDs from design
-        design_component_ids = {component.component_id for component in design_spec.component_logic}
+        # Get all component names from design
+        design_component_names = {component.component_name for component in design_spec.component_logic}
 
         # Get all component IDs referenced in generated code
+        # Note: GeneratedFile uses component_id for traceability, not component_name
         code_component_ids = {
             file.component_id for file in generated_code.files if file.component_id
         }
 
         # Check for missing components
-        missing_components = design_component_ids - code_component_ids
-
-        if missing_components:
-            logger.warning(
-                f"Code generation missing implementation for components: {missing_components}"
-            )
-            # This is a warning, not an error - some components may be implemented
-            # across multiple files or may be abstract/interface components
+        # Since design uses component_name and generated code uses component_id,
+        # we can't do a direct comparison. This is a known limitation.
+        # Log both for visibility
+        logger.debug(
+            f"Design components: {design_component_names}, "
+            f"Generated file component IDs: {code_component_ids}"
+        )
 
         logger.debug(
-            f"Component coverage: {len(code_component_ids)}/{len(design_component_ids)} "
-            f"components have explicit file mappings"
+            f"Component coverage: {len(code_component_ids)} files have component_id mappings, "
+            f"{len(design_component_names)} components in design"
         )
 
     def _validate_file_structure(self, generated_code: GeneratedCode) -> None:

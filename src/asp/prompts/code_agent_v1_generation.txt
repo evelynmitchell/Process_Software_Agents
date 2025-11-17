@@ -106,34 +106,34 @@ Generate a complete codebase with ALL of the following:
 Return a JSON object with this exact structure:
 
 ```json
-{
-  "task_id": "{task_id}",
+{{
+  "task_id": "{{task_id}}",
   "project_id": "PROJECT-XXX",
   "files": [
-    {
+    {{
       "file_path": "src/api/auth.py",
       "content": "\"\"\"\\nAuthentication API endpoints.\\n\\nProvides JWT-based authentication...\\n\"\"\"\\nfrom fastapi import APIRouter, Depends, HTTPException, status\\nfrom fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm\\nimport bcrypt\\nfrom jose import JWTError, jwt\\nfrom datetime import datetime, timedelta\\n\\n...(COMPLETE FILE CONTENT)...",
       "file_type": "source",
       "semantic_unit_id": "SU-001",
       "component_id": "COMP-001",
       "description": "JWT authentication API endpoints with login, token generation, and validation"
-    },
-    {
+    }},
+    {{
       "file_path": "tests/test_auth.py",
       "content": "\"\"\"\\nUnit tests for authentication API.\\n\\nTests all authentication endpoints...\\n\"\"\"\\nimport pytest\\nfrom fastapi.testclient import TestClient\\n\\n...(COMPLETE TEST FILE)...",
       "file_type": "test",
       "semantic_unit_id": "SU-001",
       "component_id": "COMP-001",
       "description": "Comprehensive tests for authentication endpoints including edge cases"
-    }
+    }}
   ],
-  "file_structure": {
+  "file_structure": {{
     "src/api": ["auth.py", "users.py"],
     "src/models": ["user.py", "token.py"],
     "src/utils": ["password.py", "jwt_utils.py"],
     "tests": ["test_auth.py", "test_users.py"],
     ".": ["main.py", "requirements.txt", "README.md", ".env.example"]
-  },
+  }},
   "implementation_notes": "Implemented JWT authentication using python-jose with HS256 algorithm. Passwords hashed with bcrypt cost factor 12 for security. Token expiration set to 30 minutes with refresh token support (7 days). All endpoints validate tokens using FastAPI dependency injection. Database uses SQLAlchemy ORM with async support.",
   "dependencies": [
     "fastapi==0.104.1",
@@ -152,7 +152,7 @@ Return a JSON object with this exact structure:
   "semantic_units_implemented": ["SU-001", "SU-002", "SU-003"],
   "components_implemented": ["COMP-001", "COMP-002", "COMP-003", "COMP-004"],
   "agent_version": "1.0.0"
-}
+}}
 ```
 
 # IMPORTANT REQUIREMENTS
@@ -186,23 +186,23 @@ Database:
 
 ## Expected Code Output (Abbreviated):
 ```json
-{
+{{
   "task_id": "JWT-AUTH-001",
   "files": [
-    {
+    {{
       "file_path": "src/api/auth.py",
-      "content": "\"\"\"\\nAuthentication API endpoints.\\n\\nProvides JWT-based authentication with user registration,\\nlogin, and current user retrieval.\\n\\nAuthor: ASP Code Agent\\nDate: 2025-11-17\\n\"\"\"\\nfrom fastapi import APIRouter, Depends, HTTPException, status\\nfrom fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm\\nfrom pydantic import BaseModel, EmailStr\\nfrom typing import Optional\\nimport bcrypt\\nfrom jose import JWTError, jwt\\nfrom datetime import datetime, timedelta\\nimport os\\n\\n# Configuration\\nSECRET_KEY = os.getenv('JWT_SECRET_KEY', 'dev-secret-key')\\nALGORITHM = 'HS256'\\nACCESS_TOKEN_EXPIRE_MINUTES = 30\\n\\nrouter = APIRouter(prefix='/api/auth', tags=['authentication'])\\noauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/auth/login')\\n\\n# Models\\nclass UserRegister(BaseModel):\\n    email: EmailStr\\n    password: str\\n\\nclass UserResponse(BaseModel):\\n    user_id: str\\n    email: str\\n    created_at: str\\n\\nclass Token(BaseModel):\\n    access_token: str\\n    token_type: str\\n\\n# Helper functions\\ndef hash_password(password: str) -> str:\\n    \\\"\\\"\\\"Hash password using bcrypt with cost factor 12.\\\"\\\"\\\"\\n    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(rounds=12)).decode('utf-8')\\n\\ndef verify_password(password: str, hashed: str) -> bool:\\n    \\\"\\\"\\\"Verify password against bcrypt hash.\\\"\\\"\\\"\\n    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))\\n\\ndef create_access_token(data: dict) -> str:\\n    \\\"\\\"\\\"Create JWT access token with expiration.\\\"\\\"\\\"\\n    to_encode = data.copy()\\n    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)\\n    to_encode.update({'exp': expire})\\n    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)\\n\\n# Endpoints\\n@router.post('/register', response_model=UserResponse, status_code=status.HTTP_201_CREATED)\\nasync def register(user: UserRegister):\\n    \\\"\\\"\\\"\\n    Register a new user.\\n    \\n    Args:\\n        user: User registration data (email, password)\\n    \\n    Returns:\\n        UserResponse with user_id, email, created_at\\n    \\n    Raises:\\n        HTTPException 409: If email already exists\\n    \\\"\\\"\\\"\\n    # Check if user exists (pseudo-code - needs database)\\n    # if user_exists(user.email):\\n    #     raise HTTPException(status_code=409, detail='Email already registered')\\n    \\n    # Hash password\\n    password_hash = hash_password(user.password)\\n    \\n    # Create user (pseudo-code - needs database)\\n    # user_id = create_user_in_db(user.email, password_hash)\\n    \\n    return UserResponse(\\n        user_id='generated-uuid',\\n        email=user.email,\\n        created_at=datetime.utcnow().isoformat()\\n    )\\n\\n@router.post('/login', response_model=Token)\\nasync def login(form_data: OAuth2PasswordRequestForm = Depends()):\\n    \\\"\\\"\\\"\\n    Authenticate user and return JWT token.\\n    \\n    Args:\\n        form_data: OAuth2 form with username (email) and password\\n    \\n    Returns:\\n        Token with access_token and token_type\\n    \\n    Raises:\\n        HTTPException 401: If credentials are invalid\\n    \\\"\\\"\\\"\\n    # Get user from database (pseudo-code)\\n    # user = get_user_by_email(form_data.username)\\n    # if not user or not verify_password(form_data.password, user.password_hash):\\n    #     raise HTTPException(status_code=401, detail='Invalid credentials')\\n    \\n    # Create access token\\n    access_token = create_access_token(data={'sub': form_data.username})\\n    \\n    return Token(access_token=access_token, token_type='bearer')\\n\\n@router.get('/me', response_model=UserResponse)\\nasync def get_current_user(token: str = Depends(oauth2_scheme)):\\n    \\\"\\\"\\\"\\n    Get current authenticated user.\\n    \\n    Args:\\n        token: JWT token from Authorization header\\n    \\n    Returns:\\n        UserResponse with current user data\\n    \\n    Raises:\\n        HTTPException 401: If token is invalid or expired\\n    \\\"\\\"\\\"\\n    try:\\n        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])\\n        email = payload.get('sub')\\n        if email is None:\\n            raise HTTPException(status_code=401, detail='Invalid token')\\n    except JWTError:\\n        raise HTTPException(status_code=401, detail='Invalid token')\\n    \\n    # Get user from database (pseudo-code)\\n    # user = get_user_by_email(email)\\n    # if not user:\\n    #     raise HTTPException(status_code=401, detail='User not found')\\n    \\n    return UserResponse(\\n        user_id='user-uuid',\\n        email=email,\\n        created_at='2025-01-01T00:00:00'\\n    )\\n",
+      "content": "\"\"\"\\nAuthentication API endpoints.\\n\\nProvides JWT-based authentication with user registration,\\nlogin, and current user retrieval.\\n\\nAuthor: ASP Code Agent\\nDate: 2025-11-17\\n\"\"\"\\nfrom fastapi import APIRouter, Depends, HTTPException, status\\nfrom fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm\\nfrom pydantic import BaseModel, EmailStr\\nfrom typing import Optional\\nimport bcrypt\\nfrom jose import JWTError, jwt\\nfrom datetime import datetime, timedelta\\nimport os\\n\\n# Configuration\\nSECRET_KEY = os.getenv('JWT_SECRET_KEY', 'dev-secret-key')\\nALGORITHM = 'HS256'\\nACCESS_TOKEN_EXPIRE_MINUTES = 30\\n\\nrouter = APIRouter(prefix='/api/auth', tags=['authentication'])\\noauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/auth/login')\\n\\n# Models\\nclass UserRegister(BaseModel):\\n    email: EmailStr\\n    password: str\\n\\nclass UserResponse(BaseModel):\\n    user_id: str\\n    email: str\\n    created_at: str\\n\\nclass Token(BaseModel):\\n    access_token: str\\n    token_type: str\\n\\n# Helper functions\\ndef hash_password(password: str) -> str:\\n    \\\"\\\"\\\"Hash password using bcrypt with cost factor 12.\\\"\\\"\\\"\\n    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(rounds=12)).decode('utf-8')\\n\\ndef verify_password(password: str, hashed: str) -> bool:\\n    \\\"\\\"\\\"Verify password against bcrypt hash.\\\"\\\"\\\"\\n    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))\\n\\ndef create_access_token(data: dict) -> str:\\n    \\\"\\\"\\\"Create JWT access token with expiration.\\\"\\\"\\\"\\n    to_encode = data.copy()\\n    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)\\n    to_encode.update({{'exp': expire}})\\n    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)\\n\\n# Endpoints\\n@router.post('/register', response_model=UserResponse, status_code=status.HTTP_201_CREATED)\\nasync def register(user: UserRegister):\\n    \\\"\\\"\\\"\\n    Register a new user.\\n    \\n    Args:\\n        user: User registration data (email, password)\\n    \\n    Returns:\\n        UserResponse with user_id, email, created_at\\n    \\n    Raises:\\n        HTTPException 409: If email already exists\\n    \\\"\\\"\\\"\\n    # Check if user exists (pseudo-code - needs database)\\n    # if user_exists(user.email):\\n    #     raise HTTPException(status_code=409, detail='Email already registered')\\n    \\n    # Hash password\\n    password_hash = hash_password(user.password)\\n    \\n    # Create user (pseudo-code - needs database)\\n    # user_id = create_user_in_db(user.email, password_hash)\\n    \\n    return UserResponse(\\n        user_id='generated-uuid',\\n        email=user.email,\\n        created_at=datetime.utcnow().isoformat()\\n    )\\n\\n@router.post('/login', response_model=Token)\\nasync def login(form_data: OAuth2PasswordRequestForm = Depends()):\\n    \\\"\\\"\\\"\\n    Authenticate user and return JWT token.\\n    \\n    Args:\\n        form_data: OAuth2 form with username (email) and password\\n    \\n    Returns:\\n        Token with access_token and token_type\\n    \\n    Raises:\\n        HTTPException 401: If credentials are invalid\\n    \\\"\\\"\\\"\\n    # Get user from database (pseudo-code)\\n    # user = get_user_by_email(form_data.username)\\n    # if not user or not verify_password(form_data.password, user.password_hash):\\n    #     raise HTTPException(status_code=401, detail='Invalid credentials')\\n    \\n    # Create access token\\n    access_token = create_access_token(data={{'sub': form_data.username}})\\n    \\n    return Token(access_token=access_token, token_type='bearer')\\n\\n@router.get('/me', response_model=UserResponse)\\nasync def get_current_user(token: str = Depends(oauth2_scheme)):\\n    \\\"\\\"\\\"\\n    Get current authenticated user.\\n    \\n    Args:\\n        token: JWT token from Authorization header\\n    \\n    Returns:\\n        UserResponse with current user data\\n    \\n    Raises:\\n        HTTPException 401: If token is invalid or expired\\n    \\\"\\\"\\\"\\n    try:\\n        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])\\n        email = payload.get('sub')\\n        if email is None:\\n            raise HTTPException(status_code=401, detail='Invalid token')\\n    except JWTError:\\n        raise HTTPException(status_code=401, detail='Invalid token')\\n    \\n    # Get user from database (pseudo-code)\\n    # user = get_user_by_email(email)\\n    # if not user:\\n    #     raise HTTPException(status_code=401, detail='User not found')\\n    \\n    return UserResponse(\\n        user_id='user-uuid',\\n        email=email,\\n        created_at='2025-01-01T00:00:00'\\n    )\\n",
       "file_type": "source",
       "semantic_unit_id": "SU-001",
       "component_id": "COMP-001",
       "description": "JWT authentication API endpoints with registration, login, and user retrieval"
-    }
+    }}
   ],
-  "file_structure": {
+  "file_structure": {{
     "src/api": ["auth.py"],
     "tests": ["test_auth.py"],
     ".": ["main.py", "requirements.txt", "README.md"]
-  },
+  }},
   "implementation_notes": "Implemented JWT authentication using python-jose with HS256 algorithm. Password hashing uses bcrypt with cost factor 12 for security. Token expiration set to 30 minutes. Database integration points marked with pseudo-code comments.",
   "dependencies": [
     "fastapi==0.104.1",
@@ -215,7 +215,7 @@ Database:
   "total_files": 4,
   "semantic_units_implemented": ["SU-001"],
   "components_implemented": ["COMP-001", "COMP-002", "COMP-003"]
-}
+}}
 ```
 
 ---
