@@ -61,6 +61,15 @@ class DesignIssue(BaseModel):
         min_length=20,
         description="Explanation of why this matters and potential consequences",
     )
+    affected_phase: Literal["Planning", "Design", "Both"] = Field(
+        default="Design",
+        description=(
+            "Phase where this issue was introduced:\n"
+            "- Planning: Missing requirements, wrong decomposition, missing dependencies\n"
+            "- Design: API design errors, data model issues, architectural problems\n"
+            "- Both: Issues affecting both planning and design"
+        ),
+    )
 
     @field_validator("issue_id")
     @classmethod
@@ -85,6 +94,7 @@ class DesignIssue(BaseModel):
                 "description": "Password stored in plaintext without hashing or encryption",
                 "evidence": "users table, password column (VARCHAR) with no hashing component",
                 "impact": "User credentials vulnerable to breach; violates security best practices and compliance requirements",
+                "affected_phase": "Design",
             }
         }
 
@@ -287,6 +297,20 @@ class DesignReviewReport(BaseModel):
         description="Review status for each design checklist item",
     )
 
+    # Phase-specific issue groupings (NEW: Phase-aware feedback)
+    planning_phase_issues: list[DesignIssue] = Field(
+        default_factory=list,
+        description="Issues that originated in the Planning phase",
+    )
+    design_phase_issues: list[DesignIssue] = Field(
+        default_factory=list,
+        description="Issues that originated in the Design phase",
+    )
+    multi_phase_issues: list[DesignIssue] = Field(
+        default_factory=list,
+        description="Issues affecting both Planning and Design phases",
+    )
+
     # Summary counts
     critical_issue_count: int = Field(
         default=0,
@@ -415,6 +439,24 @@ class DesignReviewReport(BaseModel):
                     f"issue {suggestion.related_issue_id}"
                 )
 
+        return self
+
+    @model_validator(mode="after")
+    def populate_phase_groups(self) -> "DesignReviewReport":
+        """Automatically group issues by affected_phase."""
+        self.planning_phase_issues = [
+            issue
+            for issue in self.issues_found
+            if issue.affected_phase in ["Planning", "Both"]
+        ]
+        self.design_phase_issues = [
+            issue
+            for issue in self.issues_found
+            if issue.affected_phase in ["Design", "Both"]
+        ]
+        self.multi_phase_issues = [
+            issue for issue in self.issues_found if issue.affected_phase == "Both"
+        ]
         return self
 
     class Config:
