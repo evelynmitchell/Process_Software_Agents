@@ -114,6 +114,30 @@ These should be flagged with **Low** severity:
    - No mention of dependency vulnerability scanning
    - Evidence: Technology stack doesn't mention security tooling
 
+## Phase Identification
+
+For each security issue you identify, determine which phase introduced the problem:
+
+**Planning Phase Issues:**
+- Missing security requirements entirely (e.g., no authentication mentioned in requirements)
+- Missing non-functional security requirements (e.g., no encryption requirements)
+- Incorrect security assumptions in task decomposition
+- Missing security-critical semantic units (authentication, authorization, encryption)
+- Evidence: Issue exists because requirement was never specified
+
+**Design Phase Issues:**
+- Incorrect security implementation choices (weak algorithms, plaintext storage)
+- Missing security mechanisms in API design (no auth endpoints, no rate limiting)
+- Poor data model security (password not hashed, missing encryption fields)
+- Architectural security flaws (no authentication middleware, exposed admin endpoints)
+- Evidence: Requirement exists but design implements it incorrectly
+
+**Both Phases:**
+- Issues that require changes to both requirements AND design
+- Example: Missing authentication affects both semantic units (planning) and API design (design)
+
+**When Uncertain:** Default to "Design"
+
 ## Output Format
 
 Return a JSON object with this structure:
@@ -127,7 +151,8 @@ Return a JSON object with this structure:
       "severity": "Critical",
       "description": "Passwords stored in plaintext without hashing",
       "evidence": "users table 'password' column is VARCHAR(255), no PasswordHashingService component",
-      "impact": "User credentials vulnerable to breach if database compromised; violates OWASP Top 10 (A02:2021 Cryptographic Failures)"
+      "impact": "User credentials vulnerable to breach if database compromised; violates OWASP Top 10 (A02:2021 Cryptographic Failures)",
+      "affected_phase": "Design"
     }}
   ],
   "improvement_suggestions": [
@@ -226,7 +251,8 @@ Return a JSON object with this structure:
       "severity": "Medium",
       "description": "No CORS policy specified for API endpoints",
       "evidence": "API contracts do not specify CORS configuration or allowed origins",
-      "impact": "Without proper CORS configuration, API may be vulnerable to unauthorized cross-origin requests from malicious websites"
+      "impact": "Without proper CORS configuration, API may be vulnerable to unauthorized cross-origin requests from malicious websites",
+      "affected_phase": "Design"
     }},
     {{
       "issue_id": "SEC-002",
@@ -234,7 +260,8 @@ Return a JSON object with this structure:
       "severity": "Low",
       "description": "No mention of security headers (HSTS, CSP, X-Frame-Options)",
       "evidence": "Architecture overview mentions HTTPS/TLS but doesn't specify security headers",
-      "impact": "Missing security headers leave application vulnerable to clickjacking and other client-side attacks"
+      "impact": "Missing security headers leave application vulnerable to clickjacking and other client-side attacks",
+      "affected_phase": "Design"
     }}
   ],
   "improvement_suggestions": [
@@ -326,7 +353,8 @@ Return a JSON object with this structure:
       "severity": "Critical",
       "description": "Passwords stored in plaintext without hashing",
       "evidence": "users table 'password' column is VARCHAR(255), no password hashing component mentioned",
-      "impact": "User credentials including admin passwords vulnerable to breach if database compromised. Violates OWASP A02:2021 Cryptographic Failures and likely compliance requirements (GDPR, PCI-DSS)"
+      "impact": "User credentials including admin passwords vulnerable to breach if database compromised. Violates OWASP A02:2021 Cryptographic Failures and likely compliance requirements (GDPR, PCI-DSS)",
+      "affected_phase": "Design"
     }},
     {{
       "issue_id": "SEC-002",
@@ -334,7 +362,8 @@ Return a JSON object with this structure:
       "severity": "Critical",
       "description": "SQL injection vulnerability in login query",
       "evidence": "AdminController implementation notes: \"SELECT * FROM users WHERE username='$username' AND password='$password'\" uses string concatenation",
-      "impact": "Attacker can bypass authentication with input like \\\"admin' OR '1'='1\\\" or extract entire database. Violates OWASP A03:2021 Injection"
+      "impact": "Attacker can bypass authentication with input like \\\"admin' OR '1'='1\\\" or extract entire database. Violates OWASP A03:2021 Injection",
+      "affected_phase": "Design"
     }},
     {{
       "issue_id": "SEC-003",
@@ -342,7 +371,8 @@ Return a JSON object with this structure:
       "severity": "Critical",
       "description": "Admin endpoint accessible without authentication",
       "evidence": "/api/admin/users endpoint has authentication_required=false",
-      "impact": "Anyone can access sensitive user data including usernames, passwords, roles without authentication. Complete security bypass. Violates OWASP A01:2021 Broken Access Control"
+      "impact": "Anyone can access sensitive user data including usernames, passwords, roles without authentication. Complete security bypass. Violates OWASP A01:2021 Broken Access Control",
+      "affected_phase": "Planning"
     }},
     {{
       "issue_id": "SEC-004",
