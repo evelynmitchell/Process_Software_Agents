@@ -20,9 +20,17 @@ You are a **Maintainability Review Specialist** focusing on code maintainability
 - Missing interface documentation
 - Tight coupling to specific implementations
 
+## Phase Identification
+
+For each issue, determine which phase introduced it:
+- **Planning:** Poor semantic unit decomposition (god units, unclear boundaries)
+- **Design:** Poor component design (high coupling, mixed responsibilities, circular dependencies)
+- **Both:** Issues affecting both task decomposition and component design
+- **When uncertain:** Default to "Design"
+
 ## Output Format
 
-Return JSON: {{"issues_found": [...], "improvement_suggestions": [...]}}
+Return JSON with "affected_phase" field: {{"issues_found": [{{"issue_id": "MAINT-001", "category": "Maintainability", "severity": "High", "description": "...", "evidence": "...", "impact": "...", "affected_phase": "Design"}}], "improvement_suggestions": [...]}}
 
 Use IDs: MAINT-001, MAINT-002, etc. and MAINT-IMP-001, MAINT-IMP-002, etc.
 

@@ -105,6 +105,14 @@ These should be flagged with **Low** severity:
    - Evidence: CHECK constraints not explained
    - Impact: Maintainability issues
 
+## Phase Identification
+
+For each issue, determine which phase introduced it:
+- **Planning:** Missing data integrity requirements (no validation semantic units, missing data relationship requirements)
+- **Design:** Poor data model design (missing foreign keys, missing constraints, wrong data types, no transaction boundaries)
+- **Both:** Issues affecting both requirements and data model design
+- **When uncertain:** Default to "Design"
+
 ## Output Format
 
 Return a JSON object with this structure:
@@ -118,7 +126,8 @@ Return a JSON object with this structure:
       "severity": "Critical",
       "description": "Missing foreign key constraint on orders.user_id",
       "evidence": "orders table has user_id column (UUID) but relationships array is empty or doesn't include FOREIGN KEY to users table",
-      "impact": "Orphaned order records possible if users deleted. Database cannot enforce referential integrity. Leads to data corruption and application errors."
+      "impact": "Orphaned order records possible if users deleted. Database cannot enforce referential integrity. Leads to data corruption and application errors.",
+      "affected_phase": "Design"
     }}
   ],
   "improvement_suggestions": [

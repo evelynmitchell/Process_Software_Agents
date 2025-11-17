@@ -107,6 +107,14 @@ These should be flagged with **Low** severity:
    - Evidence: Schema uses inefficient data types
    - Impact: Slight storage and query performance overhead
 
+## Phase Identification
+
+For each issue, determine which phase introduced it:
+- **Planning:** Missing performance requirements (no caching semantic unit, no pagination requirements, missing scalability needs)
+- **Design:** Poor performance choices (missing indexes, inefficient queries, no caching strategy, N+1 queries)
+- **Both:** Issues affecting both requirements and design
+- **When uncertain:** Default to "Design"
+
 ## Output Format
 
 Return a JSON object with this structure:
@@ -120,7 +128,8 @@ Return a JSON object with this structure:
       "severity": "Critical",
       "description": "Missing index on foreign key column user_id",
       "evidence": "orders table has user_id foreign key but no index defined in indexes array",
-      "impact": "Join queries between orders and users perform full table scan (O(n*m)). With 100K orders and 10K users, query takes minutes instead of milliseconds"
+      "impact": "Join queries between orders and users perform full table scan (O(n*m)). With 100K orders and 10K users, query takes minutes instead of milliseconds",
+      "affected_phase": "Design"
     }}
   ],
   "improvement_suggestions": [
