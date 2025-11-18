@@ -175,9 +175,8 @@ def main():
     code_agent = CodeAgent()
     code_input = CodeInput(
         task_id=task_id,
-        requirements=requirements_text,
-        project_plan=plan,
-        design_spec=design,
+        design_specification=design,
+        design_review_report=review,
     )
 
     try:
