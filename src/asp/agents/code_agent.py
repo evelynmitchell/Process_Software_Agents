@@ -216,9 +216,37 @@ class CodeAgent(BaseAgent):
 
         # Parse response
         content = response.get("content")
+
+        # If content is a string, try to extract JSON from markdown fences
+        if isinstance(content, str):
+            import re
+            import json
+
+            # Try to extract JSON from markdown code blocks
+            json_match = re.search(r'```json\s*\n(.*?)\n```', content, re.DOTALL)
+            if json_match:
+                try:
+                    content = json.loads(json_match.group(1))
+                    logger.debug("Successfully extracted JSON from markdown code fence")
+                except json.JSONDecodeError as e:
+                    raise AgentExecutionError(
+                        f"Failed to parse JSON from markdown fence: {e}\n"
+                        f"Content preview: {content[:500]}..."
+                    )
+            else:
+                # Try to parse the whole string as JSON
+                try:
+                    content = json.loads(content)
+                    logger.debug("Successfully parsed string content as JSON")
+                except json.JSONDecodeError:
+                    raise AgentExecutionError(
+                        f"LLM returned non-JSON response: {content[:500]}...\n"
+                        f"Expected JSON matching GeneratedCode schema"
+                    )
+
         if not isinstance(content, dict):
             raise AgentExecutionError(
-                f"LLM returned non-JSON response: {content}\n"
+                f"LLM returned non-dict response after parsing: {type(content)}\n"
                 f"Expected JSON matching GeneratedCode schema"
             )
 

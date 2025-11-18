@@ -188,7 +188,7 @@ def render_design_review_markdown(review: DesignReviewReport) -> str:
 **Review ID:** {review.review_id}
 **Review Status:** {review.overall_assessment}
 **Reviewed by:** Design Review Agent v{review.agent_version}
-**Date:** {review.review_timestamp}
+**Date:** {review.timestamp.strftime('%Y-%m-%d %H:%M:%S')}
 
 ## Summary
 
@@ -389,7 +389,7 @@ def render_code_review_markdown(review: CodeReviewReport) -> str:
 **Review ID:** {review.review_id}
 **Review Status:** {review.overall_assessment}
 **Reviewed by:** Code Review Agent v{review.agent_version}
-**Date:** {review.review_timestamp}
+**Date:** {review.timestamp.strftime('%Y-%m-%d %H:%M:%S')}
 
 ## Summary
 
