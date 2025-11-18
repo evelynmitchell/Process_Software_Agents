@@ -373,9 +373,9 @@ class DesignReviewAgent(BaseAgent):
         Returns:
             Review ID in format REVIEW-{task_id}-YYYYMMDD-HHMMSS
         """
-        # Clean task_id (remove special chars except hyphen/underscore)
+        # Clean task_id (remove all special chars including hyphens/underscores)
         clean_task_id = "".join(
-            c if c.isalnum() or c in ["-", "_"] else "" for c in task_id
+            c if c.isalnum() else "" for c in task_id
         ).upper()
 
         date_str = timestamp.strftime("%Y%m%d")
