@@ -42,14 +42,14 @@ def temp_db():
     conn = sqlite3.connect(str(db_path))
     cursor = conn.cursor()
 
-    # Create agent_cost table
+    # Create agent_cost_vector table (actual table name used)
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS agent_cost (
+        CREATE TABLE IF NOT EXISTS agent_cost_vector (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            created_at TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
             task_id TEXT NOT NULL,
-            project_id TEXT,
             subtask_id TEXT,
+            project_id TEXT,
             agent_role TEXT NOT NULL,
             agent_version TEXT,
             agent_iteration INTEGER DEFAULT 1,
@@ -135,13 +135,13 @@ class TestDatabaseConnection:
         """Test that changes are automatically committed."""
         with get_db_connection(temp_db) as conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO agent_cost (created_at, task_id, agent_role, metric_type, metric_value, metric_unit) VALUES (?, ?, ?, ?, ?, ?)",
+            cursor.execute("INSERT INTO agent_cost_vector (timestamp, task_id, agent_role, metric_type, metric_value, metric_unit) VALUES (?, ?, ?, ?, ?, ?)",
                          (datetime.utcnow().isoformat(), 'TEST-001', 'TestAgent', 'Latency', 100.0, 'ms'))
 
         # Verify commit happened by opening new connection
         with get_db_connection(temp_db) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) as count FROM agent_cost")
+            cursor.execute("SELECT COUNT(*) as count FROM agent_cost_vector")
             count = cursor.fetchone()['count']
             assert count == 1
 
@@ -150,7 +150,7 @@ class TestDatabaseConnection:
         try:
             with get_db_connection(temp_db) as conn:
                 cursor = conn.cursor()
-                cursor.execute("INSERT INTO agent_cost (created_at, task_id, agent_role, metric_type, metric_value, metric_unit) VALUES (?, ?, ?, ?, ?, ?)",
+                cursor.execute("INSERT INTO agent_cost_vector (timestamp, task_id, agent_role, metric_type, metric_value, metric_unit) VALUES (?, ?, ?, ?, ?, ?)",
                              (datetime.utcnow().isoformat(), 'TEST-002', 'TestAgent', 'Latency', 200.0, 'ms'))
                 # Force an error
                 raise ValueError("Test error")
@@ -160,7 +160,7 @@ class TestDatabaseConnection:
         # Verify rollback happened
         with get_db_connection(temp_db) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) as count FROM agent_cost")
+            cursor.execute("SELECT COUNT(*) as count FROM agent_cost_vector")
             count = cursor.fetchone()['count']
             assert count == 0
 
@@ -200,7 +200,7 @@ class TestInsertAgentCost:
         # Verify insertion
         with get_db_connection(temp_db) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM agent_cost WHERE id = ?", (record_id,))
+            cursor.execute("SELECT * FROM agent_cost_vector WHERE id = ?", (record_id,))
             row = cursor.fetchone()
             assert row['task_id'] == "TEST-001"
             assert row['agent_role'] == "PlanningAgent"
@@ -231,7 +231,7 @@ class TestInsertAgentCost:
         # Verify all fields
         with get_db_connection(temp_db) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM agent_cost WHERE id = ?", (record_id,))
+            cursor.execute("SELECT * FROM agent_cost_vector WHERE id = ?", (record_id,))
             row = cursor.fetchone()
             assert row['task_id'] == "TEST-002"
             assert row['subtask_id'] == "SU-001"
@@ -259,7 +259,7 @@ class TestInsertAgentCost:
         # Verify all records
         with get_db_connection(temp_db) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) as count FROM agent_cost")
+            cursor.execute("SELECT COUNT(*) as count FROM agent_cost_vector")
             count = cursor.fetchone()['count']
             assert count == 5
 
@@ -450,32 +450,23 @@ class TestTrackAgentCostDecorator:
 class TestLangfuseIntegration:
     """Test Langfuse integration."""
 
-    def test_get_langfuse_client_initialization(self):
-        """Test Langfuse client is initialized."""
-        with patch('asp.telemetry.telemetry.Langfuse') as mock_langfuse:
-            mock_client = MagicMock()
-            mock_langfuse.return_value = mock_client
-
-            client = get_langfuse_client()
-
-            assert client == mock_client
-            mock_langfuse.assert_called_once()
-
     def test_get_langfuse_client_singleton(self):
-        """Test Langfuse client is a singleton."""
+        """Test Langfuse client is a singleton and properly initialized."""
         with patch('asp.telemetry.telemetry.Langfuse') as mock_langfuse:
             mock_client = MagicMock()
             mock_langfuse.return_value = mock_client
 
-            # Reset module-level variable
+            # Reset module-level variable to ensure clean state
             import asp.telemetry.telemetry as telemetry_module
             telemetry_module._langfuse_client = None
 
+            # Get client twice
             client1 = get_langfuse_client()
             client2 = get_langfuse_client()
 
-            # Should return same instance
+            # Should return same instance (singleton pattern)
             assert client1 == client2
+            assert client1 == mock_client
             # Langfuse constructor should only be called once
             mock_langfuse.assert_called_once()
 
