@@ -9,7 +9,7 @@
       "request_params": null,
       "response_schema": {
         "overall_status": "string (enum: 'healthy', 'degraded', 'unhealthy')",
-        "timestamp": "string (ISO 8601 format)",
+        "timestamp": "string (ISO 8601 timestamp)",
         "database": {
           "connected": "boolean",
           "message": "string"
@@ -45,7 +45,7 @@
   "data_schemas": [],
   "component_logic": [
     {
-      "component_name": "HealthCheckRouter",
+      "component_name": "HealthRouter",
       "semantic_unit_id": "SU-001",
       "responsibility": "FastAPI router that handles health check endpoint routing and response formatting",
       "interfaces": [
@@ -53,13 +53,13 @@
           "method": "get_health",
           "parameters": {},
           "returns": "dict[str, Any]",
-          "description": "Main health check endpoint handler that orchestrates all health checks"
+          "description": "Health check endpoint handler that orchestrates all health checks"
         }
       ],
       "dependencies": [
-        "HealthCheckService"
+        "HealthService"
       ],
-      "implementation_notes": "Create FastAPI APIRouter instance. Define GET /api/v1/health route. Set response_model to HealthResponse Pydantic model. Handle exceptions and return appropriate HTTP status codes (200 for healthy, 503 for unhealthy/degraded). Add request logging with timestamp and response time. Ensure response time stays under 100ms by using asyncio.wait_for with timeout.",
+      "implementation_notes": "Create FastAPI APIRouter instance. Define GET /api/v1/health endpoint. Use @router.get decorator with response_model. Handle exceptions and return appropriate HTTP status codes (200 for healthy, 503 for unhealthy/degraded). Add request logging with timestamp and response time. Ensure response time stays under 100ms by using asyncio.wait_for with timeout.",
       "complexity": 20
     },
     {
@@ -71,7 +71,7 @@
           "method": "check_database_health",
           "parameters": {},
           "returns": "dict[str, Any]",
-          "description": "Test database connection and return status with message"
+          "description": "Test database connection and return status dict with connected bool and message"
         },
         {
           "method": "test_connection",
@@ -81,7 +81,7 @@
         }
       ],
       "dependencies": [],
-      "implementation_notes": "Import from asp.database module. Execute simple SELECT 1 query to test connection. Use connection timeout of 5 seconds. Catch sqlite3.Error, sqlite3.OperationalError, and generic exceptions. Return dict with 'connected' boolean and 'message' string. Messages: 'Database connection successful' for success, specific error message for failures. Use try-finally to ensure connection cleanup.",
+      "implementation_notes": "Import from asp.database module. Use try-except block to catch database connection errors. Test connection with simple SELECT 1 query with 2 second timeout. Return dict with 'connected': bool and 'message': str. Messages: 'Database connection successful' for success, specific error message for failures. Handle sqlite3.Error, sqlite3.OperationalError, and generic exceptions.",
       "complexity": 24
     },
     {
@@ -93,17 +93,17 @@
           "method": "check_langfuse_health",
           "parameters": {},
           "returns": "dict[str, Any]",
-          "description": "Test Langfuse API connection and return status with message"
+          "description": "Test Langfuse API connection and return status dict with connected bool and message"
         },
         {
           "method": "test_api_connection",
           "parameters": {},
           "returns": "bool",
-          "description": "Perform actual Langfuse API connectivity test"
+          "description": "Perform actual Langfuse API connection test"
         }
       ],
       "dependencies": [],
-      "implementation_notes": "Import from asp.telemetry module. Use Langfuse client to make lightweight API call (e.g., get projects or health endpoint if available). Set timeout to 3 seconds. Catch requests.RequestException, ConnectionError, TimeoutError, and generic exceptions. Return dict with 'connected' boolean and 'message' string. Messages: 'Langfuse connection successful' for success, specific error message for failures. Handle authentication errors gracefully.",
+      "implementation_notes": "Import from asp.telemetry module. Use try-except block with 3 second timeout for API calls. Test with lightweight API call (get client info or ping endpoint). Return dict with 'connected': bool and 'message': str. Messages: 'Langfuse connection successful' for success, specific error message for failures. Handle requests.RequestException, timeout errors, and generic exceptions. Use asyncio.wait_for for timeout control.",
       "complexity": 24
     },
     {
@@ -112,13 +112,19 @@
       "responsibility": "Discovers available agents and checks their status and version information",
       "interfaces": [
         {
-          "method": "check_agents_status",
+          "method": "check_agents_health",
           "parameters": {},
           "returns": "list[dict[str, Any]]",
-          "description": "Return list of all agents with their status and version"
+          "description": "Return list of agent status dicts with name, status, and version"
         },
         {
-          "method": "get_agent_info",
+          "method": "discover_agents",
+          "parameters": {},
+          "returns": "list[str]",
+          "description": "Discover available agent classes in the system"
+        },
+        {
+          "method": "get_agent_status",
           "parameters": {
             "agent_name": "str"
           },
@@ -127,29 +133,40 @@
         }
       ],
       "dependencies": [],
-      "implementation_notes": "Define list of 7 agents: ['PlanningAgent', 'DesignAgent', 'DesignReviewAgent', 'CodeAgent', 'TestAgent', 'DeployAgent', 'MonitorAgent']. For each agent, attempt to import and instantiate to check availability. Use try-except to catch ImportError and other exceptions. Check for version attribute or method. Return list of dicts with 'name', 'status' ('available'/'unavailable'/'error'), and 'version' fields. Use '1.0.0' as default version if not available. Log agent discovery results.",
+      "implementation_notes": "Define list of expected agents: ['PlanningAgent', 'DesignAgent', 'DesignReviewAgent', 'CodeAgent', 'TestAgent', 'DeployAgent', 'MonitorAgent']. Use importlib to dynamically check if agent modules exist. For each agent, try to import and instantiate to check availability. Get version from agent.__version__ or default to '1.0.0'. Status values: 'available' (can import and instantiate), 'unavailable' (import fails), 'error' (instantiation fails). Use try-except for each agent check to prevent one failure from affecting others.",
       "complexity": 30
     },
     {
-      "component_name": "HealthCheckService",
+      "component_name": "HealthService",
       "semantic_unit_id": "SU-005",
-      "responsibility": "Orchestrates all health checks and aggregates results into final health status",
+      "responsibility": "Orchestrates all health checks and aggregates results into final health status response",
       "interfaces": [
         {
-          "method": "perform_health_check",
+          "method": "get_system_health",
           "parameters": {},
           "returns": "dict[str, Any]",
-          "description": "Execute all health checks and return aggregated results"
+          "description": "Perform all health checks and return complete health status response"
         },
         {
           "method": "determine_overall_status",
           "parameters": {
-            "database_status": "dict",
-            "langfuse_status": "dict",
-            "agents_status": "list"
+            "database_status": "dict[str, Any]",
+            "langfuse_status": "dict[str, Any]",
+            "agents_status": "list[dict[str, Any]]"
           },
           "returns": "str",
-          "description": "Calculate overall system status based on component statuses"
+          "description": "Determine overall system status based on component health"
+        },
+        {
+          "method": "format_response",
+          "parameters": {
+            "overall_status": "str",
+            "database_status": "dict[str, Any]",
+            "langfuse_status": "dict[str, Any]",
+            "agents_status": "list[dict[str, Any]]"
+          },
+          "returns": "dict[str, Any]",
+          "description": "Format final JSON response with timestamp"
         }
       ],
       "dependencies": [
@@ -157,44 +174,46 @@
         "LangfuseHealthChecker",
         "AgentStatusChecker"
       ],
-      "implementation_notes": "Run all health checks concurrently using asyncio.gather for performance. Calculate overall_status: 'healthy' if all systems connected, 'degraded' if non-critical systems down (Langfuse or some agents), 'unhealthy' if database down or majority of agents unavailable. Generate ISO 8601 timestamp using datetime.utcnow().isoformat() + 'Z'. Aggregate all results into final response dict. Handle partial failures gracefully - don't let one checker failure break entire health check.",
+      "implementation_notes": "Run all health checks concurrently using asyncio.gather for performance. Overall status logic: 'healthy' if database and langfuse connected and >=5 agents available; 'degraded' if database OR langfuse connected and >=3 agents available; 'unhealthy' otherwise. Add ISO 8601 timestamp using datetime.utcnow().isoformat() + 'Z'. Use asyncio.wait_for with 5 second total timeout to ensure <100ms response time goal.",
       "complexity": 38
     },
     {
-      "component_name": "HealthCheckLogger",
+      "component_name": "HealthLogger",
       "semantic_unit_id": "SU-006",
-      "responsibility": "Handles logging and error management for health check operations",
+      "responsibility": "Handles logging for health check requests and errors with structured logging format",
       "interfaces": [
         {
           "method": "log_health_check_request",
           "parameters": {
-            "start_time": "float",
-            "end_time": "float",
-            "status": "str"
+            "request_id": "str",
+            "timestamp": "str"
           },
           "returns": "None",
-          "description": "Log health check request with timing and status information"
+          "description": "Log incoming health check request with request ID and timestamp"
+        },
+        {
+          "method": "log_health_check_response",
+          "parameters": {
+            "request_id": "str",
+            "overall_status": "str",
+            "response_time_ms": "float"
+          },
+          "returns": "None",
+          "description": "Log health check response with status and timing"
         },
         {
           "method": "log_component_error",
           "parameters": {
             "component": "str",
-            "error": "Exception"
+            "error": "str",
+            "request_id": "str"
           },
           "returns": "None",
           "description": "Log specific component health check errors"
-        },
-        {
-          "method": "handle_health_check_exception",
-          "parameters": {
-            "error": "Exception"
-          },
-          "returns": "dict[str, Any]",
-          "description": "Handle unexpected exceptions during health check and return safe response"
         }
       ],
       "dependencies": [],
-      "implementation_notes": "Use Python logging module with INFO level for successful checks, WARNING for degraded status, ERROR for unhealthy status. Log format: timestamp, component, status, response_time_ms, error_details. For handle_health_check_exception, return safe response with overall_status='unhealthy', current timestamp, and generic error messages for all components. Never expose internal error details in API response. Ensure all sensitive information is excluded from logs.",
+      "implementation_notes": "Use Python logging module with structured JSON format. Log levels: INFO for requests/responses, ERROR for component failures, WARNING for degraded status. Include request_id (UUID4), timestamp, component name, status, response_time_ms in log entries. Configure logger name as 'asp.api.health'. Use logging.getLogger(__name__) pattern. Format: {'timestamp': '...', 'level': '...', 'component': '...', 'message': '...', 'request_id': '...'}",
       "complexity": 31
     }
   ],
@@ -202,41 +221,47 @@
     {
       "category": "Performance",
       "description": "Verify health check response time stays under 100ms requirement",
-      "validation_criteria": "HealthCheckService must use asyncio.gather for concurrent checks. Database timeout <= 5s, Langfuse timeout <= 3s. Overall endpoint timeout must be enforced with asyncio.wait_for.",
+      "validation_criteria": "HealthService must use asyncio.wait_for with 5 second timeout. All health checks must run concurrently using asyncio.gather. Database and Langfuse checks must have individual timeouts (2s and 3s respectively).",
       "severity": "Critical"
     },
     {
       "category": "Error Handling",
-      "description": "Verify all connectivity checks have proper exception handling",
-      "validation_criteria": "DatabaseHealthChecker must catch sqlite3.Error. LangfuseHealthChecker must catch requests.RequestException. AgentStatusChecker must catch ImportError. No unhandled exceptions should propagate to API response.",
-      "severity": "High"
-    },
-    {
-      "category": "Security",
-      "description": "Verify no sensitive information is exposed in health check responses or logs",
-      "validation_criteria": "Error messages must be generic (no database paths, API keys, stack traces). HealthCheckLogger must exclude sensitive data. API responses must not contain internal system details.",
+      "description": "Verify all health checks handle failures gracefully without crashing endpoint",
+      "validation_criteria": "Each health checker component must use try-except blocks. DatabaseHealthChecker must catch sqlite3.Error. LangfuseHealthChecker must catch requests.RequestException. AgentStatusChecker must handle import errors per agent.",
       "severity": "High"
     },
     {
       "category": "Architecture",
-      "description": "Verify proper separation of concerns between health check components",
-      "validation_criteria": "Each checker component has single responsibility. HealthCheckService orchestrates but doesn't implement specific checks. Router only handles HTTP concerns, not business logic.",
-      "severity": "Medium"
+      "description": "Verify proper separation of concerns between health checkers and orchestration",
+      "validation_criteria": "Each health checker (Database, Langfuse, Agent) must be separate component with single responsibility. HealthService must orchestrate but not implement specific checks. HealthRouter must only handle HTTP concerns.",
+      "severity": "High"
     },
     {
       "category": "Data Integrity",
-      "description": "Verify overall status calculation logic is correct",
-      "validation_criteria": "determine_overall_status must return 'unhealthy' if database disconnected, 'degraded' if Langfuse down or >50% agents unavailable, 'healthy' if all systems operational.",
+      "description": "Verify overall status determination logic is correct and consistent",
+      "validation_criteria": "HealthService.determine_overall_status must implement specified logic: healthy (db+langfuse+5agents), degraded (db OR langfuse + 3agents), unhealthy (otherwise). Status must be enum-constrained to 'healthy'|'degraded'|'unhealthy'.",
       "severity": "High"
     },
     {
       "category": "Performance",
-      "description": "Verify resource cleanup in all health check operations",
-      "validation_criteria": "DatabaseHealthChecker must use try-finally for connection cleanup. LangfuseHealthChecker must properly close HTTP connections. No resource leaks during health checks.",
+      "description": "Verify concurrent execution of health checks for optimal performance",
+      "validation_criteria": "HealthService.get_system_health must use asyncio.gather to run DatabaseHealthChecker, LangfuseHealthChecker, and AgentStatusChecker concurrently, not sequentially.",
       "severity": "Medium"
+    },
+    {
+      "category": "Error Handling",
+      "description": "Verify appropriate HTTP status codes are returned based on health status",
+      "validation_criteria": "HealthRouter must return 200 OK for 'healthy' status, 503 Service Unavailable for 'unhealthy' or 'degraded' status. Must handle internal errors with 500 status code.",
+      "severity": "Medium"
+    },
+    {
+      "category": "Architecture",
+      "description": "Verify logging is structured and includes all required fields for observability",
+      "validation_criteria": "HealthLogger must log in JSON format with request_id, timestamp, component, status, response_time_ms fields. Must log at appropriate levels (INFO for requests, ERROR for failures).",
+      "severity": "Low"
     }
   ],
-  "architecture_overview": "Layered architecture with FastAPI router handling HTTP concerns, service layer orchestrating health checks, and specialized checker components for each system (database, Langfuse, agents). Concurrent execution of health checks for performance, with centralized error handling and logging. No data persistence required - stateless health monitoring with real-time system verification.",
+  "architecture_overview": "Layered architecture with FastAPI router handling HTTP concerns, HealthService orchestrating health checks, and specialized checker components for each system (Database, Langfuse, Agents). Health checks run concurrently for performance, with individual timeouts and error handling. Status aggregation logic determines overall system health based on critical component availability. Structured logging provides observability for monitoring and debugging.",
   "technology_stack": {
     "language": "Python 3.12",
     "web_framework": "FastAPI 0.104+",
@@ -246,19 +271,18 @@
     "http_client": "requests 2.31+",
     "logging": "Python logging module (stdlib)",
     "datetime": "Python datetime module (stdlib)",
-    "json_validation": "Pydantic (FastAPI dependency)"
+    "uuid": "Python uuid module (stdlib)",
+    "importlib": "Python importlib (stdlib)"
   },
   "assumptions": [
+    "FastAPI application instance is available for router registration",
     "asp.database module provides SQLite connection functionality",
     "asp.telemetry module provides Langfuse client functionality",
-    "All 7 agents (Planning, Design, DesignReview, Code, Test, Deploy, Monitor) will be importable from their respective modules",
-    "Health check endpoint will be called frequently so performance is critical",
-    "Database connection failures are considered critical (unhealthy status)",
-    "Langfuse connectivity issues are non-critical (degraded status)",
-    "Agent availability issues are non-critical unless majority unavailable",
-    "No authentication required as this is operational monitoring endpoint",
-    "HTTPS termination handled at infrastructure level",
-    "Logging configuration handled at application startup level"
+    "Agent classes will be importable from their respective modules when implemented",
+    "Health check endpoint does not require authentication (public monitoring endpoint)",
+    "System can handle concurrent health checks without resource contention",
+    "Response time under 100ms is measured from request receipt to response send",
+    "All 7 agents (Planning, Design, DesignReview, Code, Test, Deploy, Monitor) will eventually be implemented"
   ],
-  "timestamp": "2025-11-18T19:12:20.269784"
+  "timestamp": "2025-11-18T19:22:47.113438"
 }
