@@ -4,15 +4,15 @@
 
 ## Architecture Overview
 
-Layered health check architecture with FastAPI router layer handling HTTP concerns, service layer orchestrating health checks with timeout management, and specialized checker components for each system (database, Langfuse, agents). Status aggregator applies business logic to determine overall health. All components use dependency injection pattern for testability and clear separation of concerns.
+Layered health check architecture with FastAPI router layer handling HTTP concerns, service layer orchestrating checks with timeout management, and specialized checker components for each system (database, Langfuse, agents). Status aggregator applies business logic to determine overall health. All components use dependency injection pattern for testability and separation of concerns.
 
 ## Technology Stack
 
-{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'database': 'SQLite (via asp.database module)', 'telemetry': 'Langfuse (via asp.telemetry module)', 'http_client': 'requests 2.31+', 'async_support': 'asyncio (stdlib)', 'logging': 'Python logging module (stdlib)', 'datetime': 'Python datetime module (stdlib)', 'json': 'Python json module (stdlib)'}
+{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'database': 'SQLite (via asp.database module)', 'telemetry': 'Langfuse (via asp.telemetry module)', 'http_client': 'requests library for Langfuse API calls', 'logging': 'Python logging module (stdlib)', 'datetime': 'Python datetime module (stdlib)', 'async': 'asyncio for timeout management'}
 
 ## Assumptions
 
-['asp.database module provides SQLite connection functionality', 'asp.telemetry module provides Langfuse client functionality', 'Agent classes are importable from their respective modules', 'Health check endpoint will be mounted at /api/v1/ prefix by main FastAPI app', 'All 7 agents (Planning, Design, DesignReview, Code, Test, Deploy, Monitor) will eventually exist', 'SQLite database file exists and is accessible', 'Langfuse API credentials are configured in asp.telemetry module', 'No database schema changes needed (health check is read-only)', 'Logging configuration is handled at application level']
+['asp.database module provides SQLite connection functionality', 'asp.telemetry module provides Langfuse client functionality', 'Agent classes are importable from their respective modules', 'Health check endpoint does not require authentication (public access)', 'Database and Langfuse are considered critical systems (affect overall status)', 'Agent unavailability causes degraded status but not unhealthy', 'Response time under 100ms is measured for entire request processing', 'Logging is configured at application level (not health check responsibility)']
 
 ## API Contracts
 
@@ -62,7 +62,7 @@ Layered health check architecture with FastAPI router layer handling HTTP concer
 - **Responsibility:** Discovers available agents and checks their status and version information
 - **Semantic Unit:** SU-004
 - **Dependencies:** None
-- **Implementation Notes:** Define list of 7 agents: ['PlanningAgent', 'DesignAgent', 'DesignReviewAgent', 'CodeAgent', 'TestAgent', 'DeployAgent', 'MonitorAgent']. For each agent, attempt to import and instantiate to check availability. Catch ImportError and other exceptions. Use reflection to get version from __version__ attribute or default to '1.0.0'. Return status 'available', 'unavailable', or 'error' with appropriate messages.
+- **Implementation Notes:** Define list of 7 agents: ['PlanningAgent', 'DesignAgent', 'DesignReviewAgent', 'CodeAgent', 'TestAgent', 'DeployAgent', 'MonitorAgent']. For each agent, attempt to import and instantiate to check availability. Catch ImportError and other exceptions. Use reflection to get version from agent class if available, default to '1.0.0'. Return status 'available' if importable, 'unavailable' if ImportError, 'error' for other exceptions.
 - **Interfaces:**
   - `check_agents_status`
   - `get_agent_info`
@@ -72,7 +72,7 @@ Layered health check architecture with FastAPI router layer handling HTTP concer
 - **Responsibility:** Aggregates individual health check results and determines overall system status
 - **Semantic Unit:** SU-005
 - **Dependencies:** None
-- **Implementation Notes:** Overall status logic: 'healthy' if database connected AND langfuse connected AND >= 5 agents available. 'degraded' if database connected AND (langfuse disconnected OR 3-4 agents available). 'unhealthy' if database disconnected OR < 3 agents available. Include ISO 8601 timestamp using datetime.utcnow().isoformat() + 'Z'. Format final JSON response matching API contract schema.
+- **Implementation Notes:** Overall status logic: 'healthy' if database connected AND langfuse connected AND all agents available. 'degraded' if database connected AND (langfuse disconnected OR some agents unavailable). 'unhealthy' if database disconnected. Include ISO 8601 timestamp using datetime.utcnow().isoformat() + 'Z'. Format final JSON response with all required fields.
 - **Interfaces:**
   - `aggregate_health_status`
   - `determine_overall_status`
@@ -82,11 +82,11 @@ Layered health check architecture with FastAPI router layer handling HTTP concer
 - **Responsibility:** Orchestrates all health checks with error handling, logging, and timeout management
 - **Semantic Unit:** SU-006
 - **Dependencies:** DatabaseHealthChecker, LangfuseHealthChecker, AgentStatusChecker, HealthStatusAggregator
-- **Implementation Notes:** Use Python logging module with INFO level for successful checks, WARNING for degraded, ERROR for unhealthy. Wrap all health checks in try-catch blocks. Use asyncio.wait_for() with 10 second total timeout. Measure response time and log if > 100ms. Return HTTP 200 for healthy, 503 for degraded/unhealthy, 500 for internal errors. Include correlation ID in logs for traceability.
+- **Implementation Notes:** Use Python logging module with INFO level for successful checks, WARNING for degraded, ERROR for unhealthy. Measure execution time and ensure under 100ms total. Use asyncio.wait_for() with timeout for each checker (database: 5s, langfuse: 5s, agents: 2s). Catch all exceptions and return 500 status with generic error message. Log request start/end with correlation ID. Return (response_dict, 200) for healthy, (response_dict, 503) for degraded/unhealthy.
 - **Interfaces:**
   - `perform_health_check`
   - `log_health_check`
 
 ---
 
-*Generated by Design Agent on 2025-11-18 19:50:10*
+*Generated by Design Agent on 2025-11-18 19:54:27*
