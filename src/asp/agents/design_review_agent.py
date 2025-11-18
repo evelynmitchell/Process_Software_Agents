@@ -19,6 +19,9 @@ from asp.models.design_review import (
     ImprovementSuggestion,
 )
 from asp.telemetry.telemetry import track_agent_cost
+from asp.utils.artifact_io import write_artifact_json, write_artifact_markdown
+from asp.utils.git_utils import git_commit_artifact, is_git_repository
+from asp.utils.markdown_renderer import render_design_review_markdown
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +149,41 @@ class DesignReviewAgent(BaseAgent):
                 f"Design review completed: {overall_assessment} "
                 f"({critical_count}C/{high_count}H/{medium_count}M/{low_count}L issues)"
             )
+
+            # Write artifacts to filesystem (if enabled)
+            try:
+                # Write JSON artifact
+                json_path = write_artifact_json(
+                    task_id=report.task_id,
+                    artifact_type="design_review",
+                    data=report,
+                )
+                logger.debug(f"Wrote design review JSON: {json_path}")
+
+                # Write Markdown artifact
+                markdown_content = render_design_review_markdown(report)
+                md_path = write_artifact_markdown(
+                    task_id=report.task_id,
+                    artifact_type="design_review",
+                    markdown_content=markdown_content,
+                )
+                logger.debug(f"Wrote design review Markdown: {md_path}")
+
+                # Commit to git (if in repository)
+                if is_git_repository():
+                    commit_hash = git_commit_artifact(
+                        task_id=report.task_id,
+                        agent_name="Design Review Agent",
+                        artifact_files=[str(json_path), str(md_path)],
+                    )
+                    logger.info(f"Committed artifacts: {commit_hash}")
+                else:
+                    logger.warning("Not in git repository, skipping commit")
+
+            except Exception as e:
+                # Log but don't fail - artifact persistence is not critical
+                logger.warning(f"Failed to write artifacts: {e}", exc_info=True)
+
             return report
 
         except Exception as e:

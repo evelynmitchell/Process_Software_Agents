@@ -21,6 +21,9 @@ from typing import Any, Optional
 from asp.agents.base_agent import BaseAgent, AgentExecutionError
 from asp.models.code import CodeInput, GeneratedCode, GeneratedFile
 from asp.telemetry import track_agent_cost
+from asp.utils.artifact_io import write_artifact_json, write_artifact_markdown, write_generated_file
+from asp.utils.git_utils import git_commit_artifact, is_git_repository
+from asp.utils.markdown_renderer import render_code_manifest_markdown
 
 
 logger = logging.getLogger(__name__)
@@ -119,6 +122,53 @@ class CodeAgent(BaseAgent):
                 f"{generated_code.total_lines_of_code} LOC, "
                 f"{len(generated_code.dependencies)} dependencies"
             )
+
+            # Write artifacts to filesystem (if enabled)
+            try:
+                artifact_files = []
+
+                # Write code manifest as JSON (GeneratedCode metadata only)
+                manifest_path = write_artifact_json(
+                    task_id=generated_code.task_id,
+                    artifact_type="code_manifest",
+                    data=generated_code,
+                )
+                logger.debug(f"Wrote code manifest JSON: {manifest_path}")
+                artifact_files.append(str(manifest_path))
+
+                # Write code manifest as Markdown (human-readable overview)
+                markdown_content = render_code_manifest_markdown(generated_code)
+                md_path = write_artifact_markdown(
+                    task_id=generated_code.task_id,
+                    artifact_type="code_manifest",
+                    markdown_content=markdown_content,
+                )
+                logger.debug(f"Wrote code manifest Markdown: {md_path}")
+                artifact_files.append(str(md_path))
+
+                # Write each generated file to src/, tests/, etc.
+                for file in generated_code.files:
+                    file_path = write_generated_file(
+                        task_id=generated_code.task_id,
+                        file=file,
+                    )
+                    logger.debug(f"Wrote generated file: {file_path}")
+                    artifact_files.append(str(file_path))
+
+                # Commit to git (if in repository)
+                if is_git_repository():
+                    commit_hash = git_commit_artifact(
+                        task_id=generated_code.task_id,
+                        agent_name="Code Agent",
+                        artifact_files=artifact_files,
+                    )
+                    logger.info(f"Committed {len(artifact_files)} artifacts: {commit_hash}")
+                else:
+                    logger.warning("Not in git repository, skipping commit")
+
+            except Exception as e:
+                # Log but don't fail - artifact persistence is not critical
+                logger.warning(f"Failed to write artifacts: {e}", exc_info=True)
 
             return generated_code
 

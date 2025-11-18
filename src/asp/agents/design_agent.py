@@ -21,6 +21,9 @@ from typing import Any, Optional
 from asp.agents.base_agent import BaseAgent, AgentExecutionError
 from asp.models.design import DesignInput, DesignSpecification
 from asp.telemetry import track_agent_cost
+from asp.utils.artifact_io import write_artifact_json, write_artifact_markdown
+from asp.utils.git_utils import git_commit_artifact, is_git_repository
+from asp.utils.markdown_renderer import render_design_markdown
 
 
 logger = logging.getLogger(__name__)
@@ -128,6 +131,40 @@ class DesignAgent(BaseAgent):
                 f"{len(design_spec.data_schemas)} tables, "
                 f"{len(design_spec.component_logic)} components"
             )
+
+            # Write artifacts to filesystem (if enabled)
+            try:
+                # Write JSON artifact
+                json_path = write_artifact_json(
+                    task_id=design_spec.task_id,
+                    artifact_type="design",
+                    data=design_spec,
+                )
+                logger.debug(f"Wrote design JSON: {json_path}")
+
+                # Write Markdown artifact
+                markdown_content = render_design_markdown(design_spec)
+                md_path = write_artifact_markdown(
+                    task_id=design_spec.task_id,
+                    artifact_type="design",
+                    markdown_content=markdown_content,
+                )
+                logger.debug(f"Wrote design Markdown: {md_path}")
+
+                # Commit to git (if in repository)
+                if is_git_repository():
+                    commit_hash = git_commit_artifact(
+                        task_id=design_spec.task_id,
+                        agent_name="Design Agent",
+                        artifact_files=[str(json_path), str(md_path)],
+                    )
+                    logger.info(f"Committed artifacts: {commit_hash}")
+                else:
+                    logger.warning("Not in git repository, skipping commit")
+
+            except Exception as e:
+                # Log but don't fail - artifact persistence is not critical
+                logger.warning(f"Failed to write artifacts: {e}", exc_info=True)
 
             return design_spec
 
