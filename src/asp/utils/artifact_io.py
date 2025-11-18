@@ -14,7 +14,10 @@ Date: November 17, 2025
 import json
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from asp.models.code import GeneratedFile
 
 logger = logging.getLogger(__name__)
 
@@ -255,19 +258,19 @@ def read_artifact_markdown(
 
 
 def write_generated_file(
-    file_path: str,
-    content: str,
+    task_id: str,
+    file: "GeneratedFile",
     base_path: Optional[str] = None,
 ) -> Path:
     """
     Write a generated code file to disk.
 
-    Creates the file at: {base_path}/{file_path}
+    Creates the file at: {base_path}/{file.file_path}
     Automatically creates parent directories if needed.
 
     Args:
-        file_path: Relative file path (e.g., "src/api/auth.py")
-        content: File content to write
+        task_id: Task identifier (for logging purposes, not used in path)
+        file: GeneratedFile object with file_path and content attributes
         base_path: Optional base path (defaults to current directory)
 
     Returns:
@@ -277,7 +280,9 @@ def write_generated_file(
         ArtifactIOError: If writing fails
 
     Example:
-        >>> write_generated_file("src/api/auth.py", "from fastapi import...")
+        >>> from asp.models.code import GeneratedFile
+        >>> file = GeneratedFile(file_path="src/api/auth.py", content="...", ...)
+        >>> write_generated_file("TASK-001", file)
         Path("src/api/auth.py")
     """
     try:
@@ -286,20 +291,20 @@ def write_generated_file(
         else:
             base = Path.cwd()
 
-        full_path = base / file_path
+        full_path = base / file.file_path
 
         # Create parent directories
         full_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Write file content
         with open(full_path, "w", encoding="utf-8") as f:
-            f.write(content)
+            f.write(file.content)
 
-        logger.info(f"Wrote generated file: {full_path}")
+        logger.debug(f"Wrote generated file for {task_id}: {full_path}")
         return full_path
 
     except Exception as e:
-        raise ArtifactIOError(f"Failed to write generated file {file_path}: {e}") from e
+        raise ArtifactIOError(f"Failed to write generated file {file.file_path}: {e}") from e
 
 
 def artifact_exists(
