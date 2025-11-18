@@ -186,7 +186,7 @@ def render_design_review_markdown(review: DesignReviewReport) -> str:
     md = f"""# Design Review Report: {review.task_id}
 
 **Review ID:** {review.review_id}
-**Review Status:** {review.review_status}
+**Review Status:** {review.overall_assessment}
 **Reviewed by:** Design Review Agent v{review.agent_version}
 **Date:** {review.review_timestamp}
 
@@ -387,7 +387,7 @@ def render_code_review_markdown(review: CodeReviewReport) -> str:
     md = f"""# Code Review Report: {review.task_id}
 
 **Review ID:** {review.review_id}
-**Review Status:** {review.review_status}
+**Review Status:** {review.overall_assessment}
 **Reviewed by:** Code Review Agent v{review.agent_version}
 **Date:** {review.review_timestamp}
 
