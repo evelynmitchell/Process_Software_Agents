@@ -1,0 +1,88 @@
+{
+  "project_id": "ASP-CORE",
+  "task_id": "BOOTSTRAP-001",
+  "semantic_units": [
+    {
+      "unit_id": "SU-001",
+      "description": "Create FastAPI health endpoint structure and basic routing in src/asp/api/",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 1,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 20,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-002",
+      "description": "Implement SQLite database connectivity check with connection testing",
+      "api_interactions": 1,
+      "data_transformations": 1,
+      "logical_branches": 3,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 24,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Implement Langfuse API connectivity check with timeout and error handling",
+      "api_interactions": 1,
+      "data_transformations": 1,
+      "logical_branches": 3,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 24,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Build agent discovery and status checking for all 7 agents",
+      "api_interactions": 0,
+      "data_transformations": 2,
+      "logical_branches": 4,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 30,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-005",
+      "description": "Implement health status aggregation logic and JSON response formatting",
+      "api_interactions": 0,
+      "data_transformations": 3,
+      "logical_branches": 5,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 38,
+      "dependencies": [
+        "SU-002",
+        "SU-003",
+        "SU-004"
+      ]
+    },
+    {
+      "unit_id": "SU-006",
+      "description": "Add comprehensive error handling, logging, and HTTP status code logic",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 6,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 31,
+      "dependencies": [
+        "SU-005"
+      ]
+    }
+  ],
+  "total_est_complexity": 167,
+  "probe_ai_prediction": null,
+  "probe_ai_enabled": false,
+  "agent_version": "1.0.0"
+}
