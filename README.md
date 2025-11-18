@@ -245,6 +245,10 @@ The Design Review Agent is a **production-ready multi-agent system** that perfor
 - [docs/observability_platform_evaluation.md](docs/observability_platform_evaluation.md) - Platform Selection
 - [database/README.md](database/README.md) - Database Setup Guide (SQLite & PostgreSQL)
 
+### Testing Documentation
+- [docs/test_coverage_analysis.md](docs/test_coverage_analysis.md) - Comprehensive test coverage analysis and gap identification
+- [docs/test_implementation_plan.md](docs/test_implementation_plan.md) - Detailed 3-4 week implementation roadmap for test coverage
+
 ### Development Guidelines
 - [Claude.md](Claude.md) - Guidelines for Claude Code
 - [.env.example](.env.example) - Environment Variables Reference
