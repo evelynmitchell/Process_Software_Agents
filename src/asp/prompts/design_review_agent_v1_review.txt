@@ -159,24 +159,23 @@ Return a **valid JSON object** with this exact structure:
 {{
   "issues_found": [
     {{
-      "issue_id": "SEC-001",
-      "severity": "Critical",
-      "category": "Security",
-      "title": "Brief issue title",
-      "description": "Detailed description with specific evidence from design spec",
-      "affected_components": ["ComponentName"],
-      "recommendation": "Specific actionable fix"
+      "issue_id": "ISSUE-001",
+      "category": "Security|Performance|Data Integrity|Error Handling|Architecture|Maintainability|API Design|Scalability",
+      "severity": "Critical|High|Medium|Low",
+      "description": "Clear description of what is wrong (min 20 chars)",
+      "evidence": "Specific location in design: component name, API endpoint, schema table, etc. (min 10 chars)",
+      "impact": "Why this matters and potential consequences (min 20 chars)",
+      "affected_phase": "Planning|Design|Both"
     }}
   ],
   "improvement_suggestions": [
     {{
-      "suggestion_id": "PERF-001",
-      "category": "Performance",
-      "title": "Brief suggestion title",
-      "description": "Detailed suggestion with rationale",
-      "affected_components": ["ComponentName"],
-      "implementation_effort": "Low|Medium|High",
-      "expected_benefit": "Specific measurable benefit"
+      "suggestion_id": "IMPROVE-001",
+      "related_issue_id": "ISSUE-001",
+      "category": "Security|Performance|Data Integrity|Error Handling|Architecture|Maintainability|API Design|Scalability",
+      "priority": "High|Medium|Low",
+      "description": "Specific, actionable recommendation (min 30 chars)",
+      "implementation_notes": "How to implement: specific steps, code patterns, tools (min 20 chars)"
     }}
   ],
   "checklist_review": [
@@ -186,7 +185,7 @@ Return a **valid JSON object** with this exact structure:
       "description": "Description from checklist",
       "status": "Passed|Failed",
       "justification": "Specific evidence from design spec or reason for failure",
-      "related_issues": ["SEC-001"]
+      "related_issues": ["ISSUE-001"]
     }}
   ]
 }}
@@ -199,15 +198,13 @@ Return a **valid JSON object** with this exact structure:
 - **Medium:** Quality issue that should be addressed but doesn't block implementation
 - **Low:** Minor improvement that enhances quality but is not essential
 
-## Issue ID Conventions
+## ID Conventions
 
-Use these prefixes for issue_id and suggestion_id:
-- `SEC-###`: Security issues
-- `PERF-###`: Performance issues
-- `DATA-###`: Data integrity issues
-- `MAINT-###`: Maintainability issues
-- `ARCH-###`: Architecture issues
-- `API-###`: API design issues
+**IMPORTANT:** Use these exact formats:
+- **Issue IDs:** `ISSUE-001`, `ISSUE-002`, etc. (NOT category prefixes!)
+- **Suggestion IDs:** `IMPROVE-001`, `IMPROVE-002`, etc.
+- Number issues and suggestions sequentially starting from 001
+- Use the `category` field to specify the type (Security, Performance, etc.)
 
 ## Important Guidelines
 
