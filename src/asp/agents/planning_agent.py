@@ -20,6 +20,9 @@ from asp.agents.base_agent import BaseAgent, AgentExecutionError
 from asp.models.planning import TaskRequirements, ProjectPlan, SemanticUnit
 from asp.utils.semantic_complexity import calculate_semantic_complexity, ComplexityFactors
 from asp.telemetry import track_agent_cost
+from asp.utils.artifact_io import write_artifact_json, write_artifact_markdown
+from asp.utils.git_utils import git_commit_artifact, is_git_repository
+from asp.utils.markdown_renderer import render_plan_markdown
 
 
 logger = logging.getLogger(__name__)
@@ -125,6 +128,40 @@ class PlanningAgent(BaseAgent):
                 f"Planning complete: {len(semantic_units)} units, "
                 f"total_complexity={total_complexity}"
             )
+
+            # Step 5: Write artifacts to filesystem (if enabled)
+            try:
+                # Write JSON artifact
+                json_path = write_artifact_json(
+                    task_id=plan.task_id,
+                    artifact_type="plan",
+                    data=plan,
+                )
+                logger.debug(f"Wrote plan JSON: {json_path}")
+
+                # Write Markdown artifact
+                markdown_content = render_plan_markdown(plan)
+                md_path = write_artifact_markdown(
+                    task_id=plan.task_id,
+                    artifact_type="plan",
+                    markdown_content=markdown_content,
+                )
+                logger.debug(f"Wrote plan Markdown: {md_path}")
+
+                # Commit to git (if in repository)
+                if is_git_repository():
+                    commit_hash = git_commit_artifact(
+                        task_id=plan.task_id,
+                        agent_name="Planning Agent",
+                        artifact_files=[str(json_path), str(md_path)],
+                    )
+                    logger.info(f"Committed artifacts: {commit_hash}")
+                else:
+                    logger.warning("Not in git repository, skipping commit")
+
+            except Exception as e:
+                # Log but don't fail - artifact persistence is not critical
+                logger.warning(f"Failed to write artifacts: {e}", exc_info=True)
 
             return plan
 
