@@ -1,0 +1,29 @@
+{
+  "task_id": "BOOTSTRAP-001",
+  "project_id": "ASP-CORE",
+  "files": [
+    {
+      "file_path": "src/api/health.py",
+      "content": "# Health check endpoint\nfrom fastapi import APIRouter\n\nrouter = APIRouter()\n\n@router.get('/health')\ndef health():\n    return {'status': 'ok'}",
+      "file_type": "source",
+      "semantic_unit_id": "SU-001",
+      "component_id": "COMP-001",
+      "description": "Health check API endpoint"
+    }
+  ],
+  "file_structure": {
+    "src/api": [
+      "health.py"
+    ]
+  },
+  "implementation_notes": "Simple health check endpoint using FastAPI router. Returns status OK for basic health monitoring.",
+  "dependencies": [],
+  "setup_instructions": null,
+  "total_lines_of_code": 8,
+  "total_files": 1,
+  "test_coverage_target": null,
+  "semantic_units_implemented": [],
+  "components_implemented": [],
+  "agent_version": "1.0.0",
+  "generation_timestamp": "2025-11-18T12:00:00"
+}
