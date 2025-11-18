@@ -4,15 +4,15 @@
 
 ## Architecture Overview
 
-Layered architecture with FastAPI router handling HTTP concerns, HealthService orchestrating health checks, and specialized checker components for each system (Database, Langfuse, Agents). Health checks run concurrently for performance, with individual timeouts and error handling. Status aggregation logic determines overall system health based on critical component availability. Structured logging provides observability for monitoring and debugging.
+Layered architecture with FastAPI router handling HTTP concerns, HealthService orchestrating checks, and specialized checker components for each system (database, Langfuse, agents). All health checks run concurrently for performance. Centralized logging and error handling ensure reliability. No database schema required as this is a read-only monitoring endpoint.
 
 ## Technology Stack
 
-{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'database': 'SQLite (via asp.database module)', 'telemetry': 'Langfuse (via asp.telemetry module)', 'async_runtime': 'asyncio (Python stdlib)', 'http_client': 'requests 2.31+', 'logging': 'Python logging module (stdlib)', 'datetime': 'Python datetime module (stdlib)', 'uuid': 'Python uuid module (stdlib)', 'importlib': 'Python importlib (stdlib)'}
+{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'async_runtime': 'asyncio (stdlib)', 'http_client': 'httpx 0.25+ (for Langfuse API calls)', 'logging': 'Python logging module (stdlib)', 'datetime': 'Python datetime module (stdlib)', 'uuid': 'Python uuid module (stdlib)', 'importlib': 'Python importlib module (stdlib)', 'database': 'SQLite via asp.database module', 'telemetry': 'Langfuse via asp.telemetry module'}
 
 ## Assumptions
 
-['FastAPI application instance is available for router registration', 'asp.database module provides SQLite connection functionality', 'asp.telemetry module provides Langfuse client functionality', 'Agent classes will be importable from their respective modules when implemented', 'Health check endpoint does not require authentication (public monitoring endpoint)', 'System can handle concurrent health checks without resource contention', 'Response time under 100ms is measured from request receipt to response send', 'All 7 agents (Planning, Design, DesignReview, Code, Test, Deploy, Monitor) will eventually be implemented']
+['asp.database module exists and provides SQLite connection functionality', 'asp.telemetry module exists and provides Langfuse client functionality', 'Agent classes will be importable from their respective modules when implemented', 'Health endpoint is called frequently so performance is critical', 'Database and Langfuse are considered critical services (their failure makes system unhealthy)', 'At least 4 out of 7 agents must be available for system to be considered healthy', 'No authentication required as this is a monitoring endpoint', 'HTTPS termination handled at infrastructure level (load balancer/reverse proxy)']
 
 ## API Contracts
 
@@ -42,7 +42,7 @@ Layered architecture with FastAPI router handling HTTP concerns, HealthService o
 - **Responsibility:** Checks SQLite database connectivity and returns connection status
 - **Semantic Unit:** SU-002
 - **Dependencies:** None
-- **Implementation Notes:** Import from asp.database module. Use try-except block to catch database connection errors. Test connection with simple SELECT 1 query with 2 second timeout. Return dict with 'connected': bool and 'message': str. Messages: 'Database connection successful' for success, specific error message for failures. Handle sqlite3.Error, sqlite3.OperationalError, and generic exceptions.
+- **Implementation Notes:** Import from asp.database module. Use try-except block to catch database connection errors. Test connection with simple SELECT 1 query with 5 second timeout. Return {'connected': True, 'message': 'Database connection successful'} on success. Return {'connected': False, 'message': 'Database connection failed: {error}'} on failure. Log connection attempts and results.
 - **Interfaces:**
   - `check_database_health`
   - `test_connection`
@@ -52,7 +52,7 @@ Layered architecture with FastAPI router handling HTTP concerns, HealthService o
 - **Responsibility:** Checks Langfuse API connectivity and returns connection status
 - **Semantic Unit:** SU-003
 - **Dependencies:** None
-- **Implementation Notes:** Import from asp.telemetry module. Use try-except block with 3 second timeout for API calls. Test with lightweight API call (get client info or ping endpoint). Return dict with 'connected': bool and 'message': str. Messages: 'Langfuse connection successful' for success, specific error message for failures. Handle requests.RequestException, timeout errors, and generic exceptions. Use asyncio.wait_for for timeout control.
+- **Implementation Notes:** Import from asp.telemetry module. Use try-except block to catch API connection errors. Test connection with lightweight API call (health endpoint or auth check) with 5 second timeout. Use httpx.AsyncClient for async HTTP requests. Return {'connected': True, 'message': 'Langfuse connection successful'} on success. Return {'connected': False, 'message': 'Langfuse connection failed: {error}'} on failure. Handle timeout, connection, and authentication errors separately.
 - **Interfaces:**
   - `check_langfuse_health`
   - `test_api_connection`
@@ -62,29 +62,29 @@ Layered architecture with FastAPI router handling HTTP concerns, HealthService o
 - **Responsibility:** Discovers available agents and checks their status and version information
 - **Semantic Unit:** SU-004
 - **Dependencies:** None
-- **Implementation Notes:** Define list of expected agents: ['PlanningAgent', 'DesignAgent', 'DesignReviewAgent', 'CodeAgent', 'TestAgent', 'DeployAgent', 'MonitorAgent']. Use importlib to dynamically check if agent modules exist. For each agent, try to import and instantiate to check availability. Get version from agent.__version__ or default to '1.0.0'. Status values: 'available' (can import and instantiate), 'unavailable' (import fails), 'error' (instantiation fails). Use try-except for each agent check to prevent one failure from affecting others.
+- **Implementation Notes:** Define list of expected agents: ['PlanningAgent', 'DesignAgent', 'DesignReviewAgent', 'CodeAgent', 'TestAgent', 'DeployAgent', 'MonitorAgent']. Use importlib to dynamically check if agent modules exist and can be imported. For each agent, try to instantiate or call a status method. Return status 'available' if import/instantiation succeeds, 'unavailable' if module missing, 'error' if exception occurs. Get version from agent.__version__ or default to '1.0.0'. Use try-except for each agent check to prevent one failure from affecting others.
 - **Interfaces:**
-  - `check_agents_health`
+  - `check_agents_status`
   - `discover_agents`
-  - `get_agent_status`
+  - `get_agent_info`
 
 ### HealthService
 
 - **Responsibility:** Orchestrates all health checks and aggregates results into final health status response
 - **Semantic Unit:** SU-005
 - **Dependencies:** DatabaseHealthChecker, LangfuseHealthChecker, AgentStatusChecker
-- **Implementation Notes:** Run all health checks concurrently using asyncio.gather for performance. Overall status logic: 'healthy' if database and langfuse connected and >=5 agents available; 'degraded' if database OR langfuse connected and >=3 agents available; 'unhealthy' otherwise. Add ISO 8601 timestamp using datetime.utcnow().isoformat() + 'Z'. Use asyncio.wait_for with 5 second total timeout to ensure <100ms response time goal.
+- **Implementation Notes:** Run all health checks concurrently using asyncio.gather for performance. Determine overall_status logic: 'healthy' if database and langfuse connected and at least 4 agents available, 'degraded' if database or langfuse connected but some agents unavailable, 'unhealthy' if database or langfuse disconnected. Include ISO 8601 timestamp using datetime.utcnow().isoformat() + 'Z'. Ensure total execution time under 100ms by using asyncio.wait_for with 90ms timeout.
 - **Interfaces:**
   - `get_system_health`
   - `determine_overall_status`
-  - `format_response`
+  - `format_health_response`
 
 ### HealthLogger
 
-- **Responsibility:** Handles logging for health check requests and errors with structured logging format
+- **Responsibility:** Handles logging for health check requests and responses with appropriate error handling
 - **Semantic Unit:** SU-006
 - **Dependencies:** None
-- **Implementation Notes:** Use Python logging module with structured JSON format. Log levels: INFO for requests/responses, ERROR for component failures, WARNING for degraded status. Include request_id (UUID4), timestamp, component name, status, response_time_ms in log entries. Configure logger name as 'asp.api.health'. Use logging.getLogger(__name__) pattern. Format: {'timestamp': '...', 'level': '...', 'component': '...', 'message': '...', 'request_id': '...'}
+- **Implementation Notes:** Use Python logging module with INFO level for successful checks, WARNING for degraded status, ERROR for unhealthy status. Include structured logging with fields: timestamp, request_id, component, status, response_time_ms, error_message. Generate request_id using uuid.uuid4(). Log at start and end of health check. Use try-except blocks around all health check operations and log exceptions with full stack trace using logger.exception().
 - **Interfaces:**
   - `log_health_check_request`
   - `log_health_check_response`
@@ -92,4 +92,4 @@ Layered architecture with FastAPI router handling HTTP concerns, HealthService o
 
 ---
 
-*Generated by Design Agent on 2025-11-18 19:22:47*
+*Generated by Design Agent on 2025-11-18 19:28:09*
