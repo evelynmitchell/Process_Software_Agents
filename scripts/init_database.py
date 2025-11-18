@@ -139,10 +139,10 @@ def initialize_database(
     # Check if database exists
     if db_path.exists():
         if reset:
-            print(f"⚠️  Resetting existing database: {db_path}")
+            print(f"  Resetting existing database: {db_path}")
             db_path.unlink()
         else:
-            print(f"⚠️  Database already exists: {db_path}")
+            print(f"  Database already exists: {db_path}")
             response = input("Do you want to continue? (y/N): ").strip().lower()
             if response != "y":
                 print("Aborted.")

@@ -292,7 +292,7 @@ class TestComplexityCalibration:
         print(f"{'='*60}")
         print(f"Expected: Complexity < 10")
         print(f"Actual: {plan.total_est_complexity}")
-        print(f"Result: {'✅ PASS' if plan.total_est_complexity <= 10 else '❌ FAIL'}")
+        print(f"Result: {' PASS' if plan.total_est_complexity <= 10 else ' FAIL'}")
 
     def test_simple_task_complexity(self):
         """Test that simple tasks score 11-30 complexity."""
@@ -317,7 +317,7 @@ class TestComplexityCalibration:
         print(f"{'='*60}")
         print(f"Expected: Complexity 11-30")
         print(f"Actual: {plan.total_est_complexity}")
-        print(f"Result: {'✅ PASS' if 11 <= plan.total_est_complexity <= 30 else '❌ FAIL'}")
+        print(f"Result: {' PASS' if 11 <= plan.total_est_complexity <= 30 else ' FAIL'}")
 
     def test_moderate_task_complexity(self):
         """Test that moderate tasks score 31-60 complexity."""
@@ -345,7 +345,7 @@ class TestComplexityCalibration:
         print(f"{'='*60}")
         print(f"Expected: Complexity 31-60")
         print(f"Actual: {plan.total_est_complexity}")
-        print(f"Result: {'✅ PASS' if 31 <= plan.total_est_complexity <= 60 else '❌ FAIL'}")
+        print(f"Result: {' PASS' if 31 <= plan.total_est_complexity <= 60 else ' FAIL'}")
 
 
 if __name__ == "__main__":

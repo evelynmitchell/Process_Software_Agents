@@ -1129,12 +1129,12 @@ The system MUST provide a unified dashboard showing the learning status of all c
 
 | Capability | Current Mode | Tasks Completed | Key Metric | Graduation Criteria | Status |
 |------------|--------------|-----------------|------------|---------------------|--------|
-| PROBE-AI Estimation | Shadow | 15/20 | MAPE: 18% | MAPE < 20% | 🟡 On Track |
-| Task Decomposition | Learning | 8/15 | Correction Rate: 25% | Correction < 10% | 🟡 In Progress |
-| Error-Prone Detection | Learning | 22/30 | Defects Logged: 22 | 30 tasks | 🟢 Near Complete |
-| Review Agent (Design) | Learning | 5/20 | TP: 75%, FP: 30% | TP > 80%, FP < 20% | 🔴 Needs Improvement |
-| Review Agent (Code) | Learning | 5/20 | TP: 85%, FP: 15% | TP > 80%, FP < 20% | 🟢 Performing Well |
-| Defect Type Prediction | Not Started | 0/50 | N/A | 50 tasks | ⚪ Pending |
+| PROBE-AI Estimation | Shadow | 15/20 | MAPE: 18% | MAPE < 20% | On Track |
+| Task Decomposition | Learning | 8/15 | Correction Rate: 25% | Correction < 10% | In Progress |
+| Error-Prone Detection | Learning | 22/30 | Defects Logged: 22 | 30 tasks | Near Complete |
+| Review Agent (Design) | Learning | 5/20 | TP: 75%, FP: 30% | TP > 80%, FP < 20% | Needs Improvement |
+| Review Agent (Code) | Learning | 5/20 | TP: 85%, FP: 15% | TP > 80%, FP < 20% | Performing Well |
+| Defect Type Prediction | Not Started | 0/50 | N/A | 50 tasks | Pending |
 
 **Dashboard Features:**
 - **Visual Progress Bars:** Show progress toward graduation criteria

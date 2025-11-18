@@ -175,7 +175,7 @@ class TestCodeAgentE2E:
         assert len(generated_code.dependencies) > 0
         assert len(generated_code.implementation_notes) >= 50
 
-        print(f"✅ Code generation successful!")
+        print(f" Code generation successful!")
         print(f"   Generated {generated_code.total_files} files with {generated_code.total_lines_of_code} LOC")
         print(f"   Dependencies: {len(generated_code.dependencies)}")
 
@@ -221,7 +221,7 @@ class TestCodeAgentE2E:
         assert "bcrypt" in generated_code.implementation_notes.lower() or "password" in generated_code.implementation_notes.lower(), \
             "Implementation notes should mention password hashing approach"
 
-        print(f"\n✅ All validations passed!")
+        print(f"\n All validations passed!")
 
     def test_code_generation_includes_tests(self):
         """Test that code generation includes test files."""
@@ -245,7 +245,7 @@ class TestCodeAgentE2E:
         test_files = [f for f in generated_code.files if f.file_type == "test"]
         assert len(test_files) > 0, "Should generate at least one test file"
 
-        print(f"✅ Test files generated: {len(test_files)}")
+        print(f" Test files generated: {len(test_files)}")
 
         for test_file in test_files:
             assert "test" in test_file.file_path.lower(), f"Test file path should contain 'test': {test_file.file_path}"
@@ -261,7 +261,7 @@ class TestCodeAgentE2E:
             ])
             assert has_test_framework, f"Test file should use a test framework: {test_file.file_path}"
 
-        print(f"✅ All test files valid!")
+        print(f" All test files valid!")
 
     def test_code_generation_with_context(self):
         """Test code generation with additional context files."""
@@ -298,5 +298,5 @@ class TestCodeAgentE2E:
         ])
         assert has_structured_paths, "Should organize files in a structured directory layout"
 
-        print(f"✅ Code generation with context successful!")
+        print(f" Code generation with context successful!")
         print(f"   File paths: {', '.join(file_paths[:5])}...")

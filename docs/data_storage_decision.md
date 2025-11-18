@@ -84,12 +84,12 @@ Total (6 months):          ~10,000 rows across 4 tables
 #### When to Migrate to PostgreSQL
 
 Migrate when **any** of these conditions are met:
-- ✅ Data volume exceeds 100K rows (~200+ tasks completed)
-- ✅ High concurrency: 5+ agents running simultaneously
-- ✅ Production deployment with multiple users/teams
-- ✅ Need for real-time dashboard queries during agent execution
-- ✅ Integration with enterprise BI tools required
-- ✅ Time-series analytics become critical (continuous aggregates, compression)
+-  Data volume exceeds 100K rows (~200+ tasks completed)
+-  High concurrency: 5+ agents running simultaneously
+-  Production deployment with multiple users/teams
+-  Need for real-time dashboard queries during agent execution
+-  Integration with enterprise BI tools required
+-  Time-series analytics become critical (continuous aggregates, compression)
 
 ---
 
@@ -155,18 +155,18 @@ Migrate when **any** of these conditions are met:
 
 ### Positive Consequences
 
-✅ **Immediate Start:** No database setup delays, start Phase 1 implementation today
-✅ **Lower Barrier to Entry:** Contributors can clone and run without database configuration
-✅ **Better Debugging:** Can inspect `.db` file in VS Code, share exact state in issues
-✅ **Cost Savings:** $0 infrastructure cost during Phase 1-3 (~6 months)
-✅ **Portability:** Easy to share project state, run demos, create test fixtures
+ **Immediate Start:** No database setup delays, start Phase 1 implementation today
+ **Lower Barrier to Entry:** Contributors can clone and run without database configuration
+ **Better Debugging:** Can inspect `.db` file in VS Code, share exact state in issues
+ **Cost Savings:** $0 infrastructure cost during Phase 1-3 (~6 months)
+ **Portability:** Easy to share project state, run demos, create test fixtures
 
 ### Negative Consequences
 
-⚠️ **Concurrency Limitations:** Cannot run multiple agents writing simultaneously (not needed in Phase 1-3)
-⚠️ **Migration Work Later:** Will need to migrate if project scales beyond initial phases
-⚠️ **BI Tool Integration:** Limited support for direct BI tool connections (can export CSV)
-⚠️ **No TimescaleDB:** Cannot leverage time-series optimizations (compression, continuous aggregates)
+ **Concurrency Limitations:** Cannot run multiple agents writing simultaneously (not needed in Phase 1-3)
+ **Migration Work Later:** Will need to migrate if project scales beyond initial phases
+ **BI Tool Integration:** Limited support for direct BI tool connections (can export CSV)
+ **No TimescaleDB:** Cannot leverage time-series optimizations (compression, continuous aggregates)
 
 ### Mitigation Strategies
 
@@ -226,26 +226,26 @@ We considered supporting both SQLite and PostgreSQL from the start using SQLAlch
 ### Options Considered
 
 1. **Project Root: `asp_telemetry.db`**
-   - ✅ Simple, obvious, easy to find
-   - ❌ Clutters project root
-   - ❌ Mixes runtime data with source code
+   -  Simple, obvious, easy to find
+   -  Clutters project root
+   -  Mixes runtime data with source code
 
 2. **Database Directory: `database/asp_telemetry.db`**
-   - ✅ Co-locates schema and data
-   - ❌ Mixes static schema files with runtime data
-   - ❌ Conceptually confusing (schema vs data)
+   -  Co-locates schema and data
+   -  Mixes static schema files with runtime data
+   -  Conceptually confusing (schema vs data)
 
 3. **Hidden Directory: `.data/asp_telemetry.db`**
-   - ✅ Keeps root clean
-   - ❌ Less discoverable for new users
-   - ❌ Hidden files can be problematic in some environments
+   -  Keeps root clean
+   -  Less discoverable for new users
+   -  Hidden files can be problematic in some environments
 
 4. **Data Directory: `data/asp_telemetry.db`** ⭐ **SELECTED**
-   - ✅ Clean separation of runtime data from code
-   - ✅ Follows common conventions (like `logs/`, `output/`)
-   - ✅ Extensible for other runtime files (exports, reports, backups)
-   - ✅ Clear, discoverable, and organized
-   - ✅ Naturally fits with `.gitignore` patterns
+   -  Clean separation of runtime data from code
+   -  Follows common conventions (like `logs/`, `output/`)
+   -  Extensible for other runtime files (exports, reports, backups)
+   -  Clear, discoverable, and organized
+   -  Naturally fits with `.gitignore` patterns
 
 ### Decision
 
@@ -292,12 +292,12 @@ We considered supporting both SQLite and PostgreSQL from the start using SQLAlch
 
 | Role | Name | Approval | Date |
 |------|------|----------|------|
-| Technical Lead | Claude Code | ✅ Approved | 2025-11-12 |
+| Technical Lead | Claude Code |  Approved | 2025-11-12 |
 | Project Owner | TBD | Pending | |
 
 ---
 
-**Status:** ✅ **Accepted and Implemented**
+**Status:**  **Accepted and Implemented**
 
 **Next Steps:**
 1. Create SQLite-compatible schema scripts

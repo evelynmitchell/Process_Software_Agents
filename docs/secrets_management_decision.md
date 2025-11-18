@@ -37,62 +37,62 @@ The ASP Platform requires API keys for external services:
 Store secrets in a `.env` file excluded by `.gitignore`.
 
 **Pros:**
-- ✅ Simple, widely understood pattern
-- ✅ Works with popular libraries (python-dotenv)
-- ✅ Easy local development
+-  Simple, widely understood pattern
+-  Works with popular libraries (python-dotenv)
+-  Easy local development
 
 **Cons:**
-- ❌ Lost on Codespace rebuild (ephemeral)
-- ❌ Manual setup required for each new Codespace
-- ❌ No team sharing mechanism
-- ❌ Risk of accidental commit if .gitignore fails
-- ❌ Each developer manages their own copy
+-  Lost on Codespace rebuild (ephemeral)
+-  Manual setup required for each new Codespace
+-  No team sharing mechanism
+-  Risk of accidental commit if .gitignore fails
+-  Each developer manages their own copy
 
 ### Option 2: Encrypted Secrets in Git (git-crypt/SOPS)
 Encrypt secrets and commit encrypted files to git.
 
 **Pros:**
-- ✅ Secrets persist in git
-- ✅ Version controlled
-- ✅ Team sharing via git
+-  Secrets persist in git
+-  Version controlled
+-  Team sharing via git
 
 **Cons:**
-- ❌ Complex setup (encryption keys, GPG)
-- ❌ Additional tooling required
-- ❌ Key distribution problem (how to share encryption keys?)
-- ❌ Secrets visible in git history (even if encrypted)
-- ❌ Difficult key rotation
+-  Complex setup (encryption keys, GPG)
+-  Additional tooling required
+-  Key distribution problem (how to share encryption keys?)
+-  Secrets visible in git history (even if encrypted)
+-  Difficult key rotation
 
 ### Option 3: GitHub Codespaces Secrets ⭐ **SELECTED**
 Use GitHub's built-in Codespaces secrets management.
 
 **Pros:**
-- ✅ **Native Codespaces integration** - automatically injected as environment variables
-- ✅ **Persistent** - survives Codespace rebuilds
-- ✅ **Encrypted** - stored securely by GitHub
-- ✅ **Auditable** - GitHub tracks access and changes
-- ✅ **Easy rotation** - update in GitHub UI, no code changes
-- ✅ **Team sharing** - repository-level or organization-level secrets
-- ✅ **Zero risk of git commit** - never touches local filesystem
-- ✅ **No additional tooling** - works out of the box
+-  **Native Codespaces integration** - automatically injected as environment variables
+-  **Persistent** - survives Codespace rebuilds
+-  **Encrypted** - stored securely by GitHub
+-  **Auditable** - GitHub tracks access and changes
+-  **Easy rotation** - update in GitHub UI, no code changes
+-  **Team sharing** - repository-level or organization-level secrets
+-  **Zero risk of git commit** - never touches local filesystem
+-  **No additional tooling** - works out of the box
 
 **Cons:**
-- ⚠️ GitHub-specific (not portable to other platforms)
-- ⚠️ Requires GitHub repo admin access to set up
+-  GitHub-specific (not portable to other platforms)
+-  Requires GitHub repo admin access to set up
 
 ### Option 4: Cloud Secret Manager (AWS Secrets Manager, HashiCorp Vault)
 Use enterprise secret management service.
 
 **Pros:**
-- ✅ Enterprise-grade security
-- ✅ Advanced features (rotation, audit logs)
-- ✅ Platform-agnostic
+-  Enterprise-grade security
+-  Advanced features (rotation, audit logs)
+-  Platform-agnostic
 
 **Cons:**
-- ❌ Overkill for project size
-- ❌ Additional cost
-- ❌ Complex setup
-- ❌ Requires network access to secret service
+-  Overkill for project size
+-  Additional cost
+-  Complex setup
+-  Requires network access to secret service
 
 ---
 
@@ -265,16 +265,16 @@ OPENAI_API_KEY=sk-your-key-here  # Optional
 
 ### What This Protects Against
 
-✅ **Accidental git commits** - Secrets never in repository
-✅ **Lost secrets on rebuild** - Persistent across Codespace lifecycles
-✅ **Key sharing via insecure channels** - Team shares via GitHub, not Slack/email
-✅ **Unauthorized access** - GitHub access controls determine who can view/edit
+ **Accidental git commits** - Secrets never in repository
+ **Lost secrets on rebuild** - Persistent across Codespace lifecycles
+ **Key sharing via insecure channels** - Team shares via GitHub, not Slack/email
+ **Unauthorized access** - GitHub access controls determine who can view/edit
 
 ### What This Does NOT Protect Against
 
-⚠️ **Malicious code in dependencies** - Can still access environment variables
-⚠️ **Compromised GitHub account** - Attacker with repo access can view secrets
-⚠️ **Print/logging of secrets** - Developers must avoid `print(os.environ)`
+ **Malicious code in dependencies** - Can still access environment variables
+ **Compromised GitHub account** - Attacker with repo access can view secrets
+ **Print/logging of secrets** - Developers must avoid `print(os.environ)`
 
 ### Best Practices
 
@@ -370,12 +370,12 @@ If team members use **local development** (not Codespaces):
 
 | Role | Name | Approval | Date |
 |------|------|----------|------|
-| Technical Lead | Claude Code | ✅ Approved | 2025-11-12 |
+| Technical Lead | Claude Code |  Approved | 2025-11-12 |
 | Project Owner | TBD | Pending | |
 
 ---
 
-**Status:** ✅ **Accepted and Ready to Implement**
+**Status:**  **Accepted and Ready to Implement**
 
 **Next Steps:**
 1. Add secrets to GitHub Codespaces Secrets

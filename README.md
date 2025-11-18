@@ -56,7 +56,7 @@ uv run python scripts/init_database.py --with-sample-data
 uv run pytest
 ```
 
-✅ **You're ready to develop!** All dependencies, database, and secrets are configured.
+**You're ready to develop!** All dependencies, database, and secrets are configured.
 
 ---
 
@@ -177,33 +177,33 @@ If a review fails, the orchestrator halts and loops back to the originating agen
 
 ## Implementation Status
 
-### Phase 1: Measurement Foundation ✅ **COMPLETE**
+### Phase 1: Measurement Foundation **COMPLETE**
 
 **Goal:** Establish baseline telemetry and bootstrap learning data collection.
 
 **Completed:**
-- ✅ SQLite database schema (4 tables, 25+ indexes)
-- ✅ Langfuse Cloud integration
-- ✅ Telemetry decorators (`@track_agent_cost`, `@log_defect`)
-- ✅ Pydantic data models for all agents
-- ✅ Planning Agent with full telemetry
-- ✅ Design Agent with full telemetry
-- ✅ Design Review Agent (multi-agent system)
-- ✅ Bootstrap data collection (12 planning tasks)
+- SQLite database schema (4 tables, 25+ indexes)
+- Langfuse Cloud integration
+- Telemetry decorators (`@track_agent_cost`, `@log_defect`)
+- Pydantic data models for all agents
+- Planning Agent with full telemetry
+- Design Agent with full telemetry
+- Design Review Agent (multi-agent system)
+- Bootstrap data collection (12 planning tasks)
 
 ### Implemented Agents (3/7 Complete)
 
 | Agent | Status | Tests | Docs | Bootstrap Data |
 |-------|--------|-------|------|----------------|
-| **Planning Agent** | ✅ Complete | 102/102 unit, 8/8 E2E | ADR, Examples | 12 tasks |
-| **Design Agent** | ✅ Complete | 23/23 unit, 5/5 E2E | ADR, Examples | Partial |
-| **Design Review Agent** | ✅ Complete | 21/21 unit, 3/3 E2E | ADR, User Guide | Partial |
-| Code Agent | 🔜 Next | - | - | - |
-| Code Review Agent | ⏳ Pending | - | - | - |
-| Test Agent | ⏳ Pending | - | - | - |
-| Integration Agent | ⏳ Pending | - | - | - |
+| **Planning Agent** | Complete | 102/102 unit, 8/8 E2E | ADR, Examples | 12 tasks |
+| **Design Agent** | Complete | 23/23 unit, 5/5 E2E | ADR, Examples | Partial |
+| **Design Review Agent** | Complete | 21/21 unit, 3/3 E2E | ADR, User Guide | Partial |
+| Code Agent | Next | - | - | - |
+| Code Review Agent | Pending | - | - | - |
+| Test Agent | Pending | - | - | - |
+| Integration Agent | Pending | - | - | - |
 
-### Design Review Agent (NEW! ✨)
+### Design Review Agent (NEW!)
 
 The Design Review Agent is a **production-ready multi-agent system** that performs comprehensive design quality reviews across 6 specialized dimensions:
 
@@ -219,7 +219,7 @@ The Design Review Agent is a **production-ready multi-agent system** that perfor
 **Cost:** ~$0.15-0.25 per review
 **Test Coverage:** 24/24 tests passing (100%)
 
-📖 **[Read the Full User Guide](docs/design_review_agent_user_guide.md)** for usage examples, API reference, and troubleshooting.
+**[Read the Full User Guide](docs/design_review_agent_user_guide.md)** for usage examples, API reference, and troubleshooting.
 
 ---
 
@@ -343,7 +343,7 @@ See [Claude.md](Claude.md) for detailed guidelines.
 
 ## Roadmap
 
-### Phase 1: ASP0 - Measurement (Months 1-2) 🟡 In Progress
+### Phase 1: ASP0 - Measurement (Months 1-2) [In Progress]
 - [x] Database schema design (SQLite with PostgreSQL migration path)
 - [x] Observability platform selection (Langfuse)
 - [x] Project structure setup (uv, 119 dependencies)
@@ -377,7 +377,7 @@ See [Claude.md](Claude.md) for detailed guidelines.
 
 ## Key Features
 
-### ✅ Delivered (Phase 1 Infrastructure)
+### Delivered (Phase 1 Infrastructure)
 - **Database:** SQLite schema (4 tables, 25+ indexes) with PostgreSQL migration path
 - **Secrets Management:** GitHub Codespaces Secrets integration
 - **Database Tooling:** Python CLI for one-command database initialization
@@ -386,13 +386,13 @@ See [Claude.md](Claude.md) for detailed guidelines.
 - **Documentation:** PRD v1.2 with 24 FRs, Bootstrap Learning Framework, 2 architecture decisions
 - **Development Environment:** GitHub Codespaces with zero-setup workflow
 
-### 🚧 In Progress (Phase 1)
+### In Progress (Phase 1)
 - Telemetry decorators (`@track_agent_cost`, `@log_defect`)
 - Python data models (SQLAlchemy/Pydantic)
 - Planning Agent implementation with telemetry
 - Langfuse API integration
 
-### 📋 Planned (Phase 2-5)
+### Planned (Phase 2-5)
 - Full 7-agent orchestration (Planning, Design, Code, Review, Test, Postmortem)
 - PROBE-AI estimation engine (linear regression)
 - Bootstrap dashboard (FR-23, FR-24)
@@ -421,6 +421,6 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
-**Built with Claude Code** 🤖
+**Built with Claude Code**
 
 *Autonomy is earned through demonstrated reliability, not assumed.*

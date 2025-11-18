@@ -94,7 +94,7 @@ def main():
     try:
         plan: ProjectPlan = planning_agent.execute(task_requirements)
 
-        print(f"✅ Planning complete!")
+        print(f" Planning complete!")
         print(f"   Project ID: {plan.project_id}")
         print(f"   Task ID: {plan.task_id}")
         print(f"   Semantic units: {len(plan.semantic_units)}")
@@ -107,7 +107,7 @@ def main():
             print(f"      Complexity: {unit.est_complexity}")
 
     except Exception as e:
-        print(f"❌ Planning failed: {e}")
+        print(f" Planning failed: {e}")
         sys.exit(1)
 
     # Step 2: Design Agent
@@ -124,7 +124,7 @@ def main():
     try:
         design: DesignSpecification = design_agent.execute(design_input)
 
-        print(f"✅ Design complete!")
+        print(f" Design complete!")
         print(f"   Task ID: {design.task_id}")
         print(f"   API Contracts: {len(design.api_contracts)}")
         print(f"   Data Schemas: {len(design.data_schemas)}")
@@ -142,7 +142,7 @@ def main():
             print(f"      Semantic Unit: {component.semantic_unit_id}")
 
     except Exception as e:
-        print(f"❌ Design failed: {e}")
+        print(f" Design failed: {e}")
         sys.exit(1)
 
     # Step 3: Design Review Agent
@@ -153,7 +153,7 @@ def main():
         design_review_agent = DesignReviewAgent()
         review: DesignReviewReport = design_review_agent.execute(design)
 
-        print(f"✅ Design Review complete!")
+        print(f" Design Review complete!")
         print(f"   Review ID: {review.review_id}")
         print(f"   Overall Assessment: {review.overall_assessment}")
         print(f"   Critical Issues: {review.critical_issue_count}")
@@ -163,7 +163,7 @@ def main():
         print(f"   Improvement Suggestions: {len(review.improvement_suggestions)}")
         print()
     except Exception as e:
-        print(f"❌ Design Review failed: {e}")
+        print(f" Design Review failed: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
@@ -182,7 +182,7 @@ def main():
     try:
         code_result: GeneratedCode = code_agent.execute(code_input)
 
-        print(f"✅ Code generation complete!")
+        print(f" Code generation complete!")
         print(f"   Task ID: {code_result.task_id}")
         print(f"   Files generated: {len(code_result.files)}")
 
@@ -193,12 +193,12 @@ def main():
             print(f"      Lines: {len(file.content.splitlines())}")
 
     except Exception as e:
-        print(f"❌ Code generation failed: {e}")
+        print(f" Code generation failed: {e}")
         sys.exit(1)
 
     # Step 5: Summary
     print_section("PIPELINE EXECUTION SUMMARY")
-    print(f"✅ All 4 agents executed successfully!")
+    print(f" All 4 agents executed successfully!")
     print(f"\n   Task: {task_id} - {task_requirements.description}")
     print(f"   Planning: {len(plan.semantic_units)} semantic units, complexity {plan.total_est_complexity}")
     print(f"   Design: {len(design.api_contracts)} API contracts, {len(design.component_logic)} components")

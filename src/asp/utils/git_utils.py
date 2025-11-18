@@ -233,7 +233,7 @@ def git_commit_artifact(
 
         # Add co-author footer
         message += (
-            "\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n"
+            "\n\n Generated with [Claude Code](https://claude.com/claude-code)\n\n"
             "Co-Authored-By: Claude <noreply@anthropic.com>"
         )
 

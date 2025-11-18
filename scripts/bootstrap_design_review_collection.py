@@ -196,7 +196,7 @@ def run_bootstrap_design_review_collection():
             design_spec = design_agent.execute(design_input)
             design_elapsed = time.time() - design_start
 
-            print(f"✅ Design Agent SUCCESS ({design_elapsed:.2f}s)")
+            print(f" Design Agent SUCCESS ({design_elapsed:.2f}s)")
             print(f"   API Contracts: {len(design_spec.api_contracts)}")
             print(f"   Data Schemas: {len(design_spec.data_schemas)}")
             print(f"   Components: {len(design_spec.component_logic)}")
@@ -212,7 +212,7 @@ def run_bootstrap_design_review_collection():
 
         except Exception as e:
             design_elapsed = time.time() - design_start
-            print(f"❌ Design Agent FAILED ({design_elapsed:.2f}s): {e}")
+            print(f" Design Agent FAILED ({design_elapsed:.2f}s): {e}")
             print()
 
             task_result["design_success"] = False
@@ -242,7 +242,7 @@ def run_bootstrap_design_review_collection():
             checklist_passed = sum(1 for item in review_report.checklist_review if item.status == "PASS")
             checklist_total = len(review_report.checklist_review)
 
-            print(f"✅ Design Review Agent SUCCESS ({review_elapsed:.2f}s)")
+            print(f" Design Review Agent SUCCESS ({review_elapsed:.2f}s)")
             print(f"   Overall Assessment: {review_report.overall_assessment}")
             print(f"   Total Issues: {total_issues}")
             print(f"     Critical: {review_report.critical_issue_count}")
@@ -274,7 +274,7 @@ def run_bootstrap_design_review_collection():
 
         except Exception as e:
             review_elapsed = time.time() - review_start
-            print(f"❌ Design Review Agent FAILED ({review_elapsed:.2f}s): {e}")
+            print(f" Design Review Agent FAILED ({review_elapsed:.2f}s): {e}")
             import traceback
             traceback.print_exc()
             print()

@@ -106,20 +106,20 @@ DesignReviewReport
 - Throughput limited by API rate limits, not serial execution
 
 **Pros:**
-- ✅ **Deeper Expertise:** Each specialist agent has focused, detailed prompts
-- ✅ **Parallel Execution:** Run all 6 reviews concurrently → similar latency to single-agent
-- ✅ **Better Modularity:** Easy to add/remove/update specific review types independently
-- ✅ **Aligned with Project Philosophy:** Matches 7-agent architecture (specialization > monoliths)
-- ✅ **Richer Telemetry:** Track which specialist agents find most issues → valuable for PROBE-AI learning
-- ✅ **Flexible Optimization:** Skip low-priority reviews in fast mode, or run only critical ones
-- ✅ **Better Prompt Maintenance:** 6 focused prompts easier to tune than 1 massive 1000-line prompt
-- ✅ **Mimics Real Inspections:** Multiple review perspectives mirrors PSP/software inspection best practices
+-  **Deeper Expertise:** Each specialist agent has focused, detailed prompts
+-  **Parallel Execution:** Run all 6 reviews concurrently → similar latency to single-agent
+-  **Better Modularity:** Easy to add/remove/update specific review types independently
+-  **Aligned with Project Philosophy:** Matches 7-agent architecture (specialization > monoliths)
+-  **Richer Telemetry:** Track which specialist agents find most issues → valuable for PROBE-AI learning
+-  **Flexible Optimization:** Skip low-priority reviews in fast mode, or run only critical ones
+-  **Better Prompt Maintenance:** 6 focused prompts easier to tune than 1 massive 1000-line prompt
+-  **Mimics Real Inspections:** Multiple review perspectives mirrors PSP/software inspection best practices
 
 **Cons:**
-- ⚠️ 6x cost: ~$0.15-0.20 per review (6 LLM calls) vs ~$0.03 (1 call)
-- ⚠️ Orchestration complexity: Aggregation logic, conflict resolution, deduplication
-- ⚠️ Consistency challenges: Severity classification might vary between agents
-- ⚠️ More components: 7 agents (orchestrator + 6 specialists) vs 1 → more testing/maintenance
+-  6x cost: ~$0.15-0.20 per review (6 LLM calls) vs ~$0.03 (1 call)
+-  Orchestration complexity: Aggregation logic, conflict resolution, deduplication
+-  Consistency challenges: Severity classification might vary between agents
+-  More components: 7 agents (orchestrator + 6 specialists) vs 1 → more testing/maintenance
 
 **Cost Estimate:**
 - Input tokens per specialist: ~1,000-1,500 (design spec + focused prompt)
@@ -243,17 +243,17 @@ class DesignReviewReport(BaseModel):
 ```
 
 **Pros:**
-- ✅ Fast automated checks catch obvious issues (no LLM cost)
-- ✅ LLM review provides nuanced, context-aware feedback
-- ✅ Leverages proven BaseAgent pattern
-- ✅ Cost-effective: Only call LLM once per review
-- ✅ Clear separation: structural validation vs quality assessment
-- ✅ Actionable feedback with specific suggestions
+-  Fast automated checks catch obvious issues (no LLM cost)
+-  LLM review provides nuanced, context-aware feedback
+-  Leverages proven BaseAgent pattern
+-  Cost-effective: Only call LLM once per review
+-  Clear separation: structural validation vs quality assessment
+-  Actionable feedback with specific suggestions
 
 **Cons:**
-- ⚠️ Requires careful prompt engineering for consistent LLM reviews
-- ⚠️ Single LLM call must handle all review aspects (long prompt)
-- ⚠️ Automated checks may duplicate some Design Agent validations
+-  Requires careful prompt engineering for consistent LLM reviews
+-  Single LLM call must handle all review aspects (long prompt)
+-  Automated checks may duplicate some Design Agent validations
 
 **Cost Estimate:**
 - Input tokens: ~2,000-3,000 (design spec + prompt + examples)
@@ -293,15 +293,15 @@ DesignReviewReport
 - Simpler implementation (no hybrid logic)
 
 **Pros:**
-- ✅ Simplest implementation
-- ✅ LLM can provide holistic, context-aware review
-- ✅ Consistent with Planning/Design Agent patterns (single-pass)
+-  Simplest implementation
+-  LLM can provide holistic, context-aware review
+-  Consistent with Planning/Design Agent patterns (single-pass)
 
 **Cons:**
-- ❌ Wastes tokens on trivial checks (semantic coverage, circular deps)
-- ❌ Slower than hybrid approach (LLM for everything)
-- ❌ Slightly more expensive (~10-15% higher cost)
-- ❌ May miss deterministic checks that code can validate perfectly
+-  Wastes tokens on trivial checks (semantic coverage, circular deps)
+-  Slower than hybrid approach (LLM for everything)
+-  Slightly more expensive (~10-15% higher cost)
+-  May miss deterministic checks that code can validate perfectly
 
 **Cost Estimate:**
 - Cost per review: ~$0.030-0.050 (10-15% higher than hybrid)
@@ -331,16 +331,16 @@ DesignReviewReport
 - Final synthesis call combines all reviews
 
 **Pros:**
-- ✅ Deep, focused analysis in each stage
-- ✅ May catch more nuanced issues
-- ✅ Can adjust later stages based on earlier findings
+-  Deep, focused analysis in each stage
+-  May catch more nuanced issues
+-  Can adjust later stages based on earlier findings
 
 **Cons:**
-- ❌ 4x cost (~$0.10-0.15 per review) - too expensive
-- ❌ 4x latency (~20-40 seconds) - too slow for iteration
-- ❌ Complex state management between stages
-- ❌ Risk of inconsistencies between stages
-- ❌ Not justified by quality improvement over single-pass
+-  4x cost (~$0.10-0.15 per review) - too expensive
+-  4x latency (~20-40 seconds) - too slow for iteration
+-  Complex state management between stages
+-  Risk of inconsistencies between stages
+-  Not justified by quality improvement over single-pass
 
 **Cost Estimate:**
 - Cost per review: ~$0.10-0.15 (4x single-pass)
@@ -368,17 +368,17 @@ DesignReviewReport
 - Predefined rules for common issues
 
 **Pros:**
-- ✅ Zero LLM cost ($0 per review)
-- ✅ Very fast (<1 second)
-- ✅ Deterministic and consistent
+-  Zero LLM cost ($0 per review)
+-  Very fast (<1 second)
+-  Deterministic and consistent
 
 **Cons:**
-- ❌ Cannot provide context-aware, nuanced feedback
-- ❌ Misses domain-specific issues (e.g., business logic flaws)
-- ❌ Requires extensive rule library (high maintenance)
-- ❌ Brittle - rules break with design pattern variations
-- ❌ Cannot suggest creative improvements
-- ❌ Doesn't align with PSP principles (human-like review)
+-  Cannot provide context-aware, nuanced feedback
+-  Misses domain-specific issues (e.g., business logic flaws)
+-  Requires extensive rule library (high maintenance)
+-  Brittle - rules break with design pattern variations
+-  Cannot suggest creative improvements
+-  Doesn't align with PSP principles (human-like review)
 
 ---
 
@@ -517,45 +517,45 @@ DesignReviewReport
 ### Validation Criteria
 
 **Functional Requirements:**
-- ✅ Reviews complete in 10-15 seconds (parallel execution of 6 specialists)
-- ✅ All checklist items validated
-- ✅ Critical/High issues result in FAIL assessment
-- ✅ Improvement suggestions are specific and actionable
-- ✅ Telemetry captured per specialist + orchestrator (latency, tokens, cost)
+-  Reviews complete in 10-15 seconds (parallel execution of 6 specialists)
+-  All checklist items validated
+-  Critical/High issues result in FAIL assessment
+-  Improvement suggestions are specific and actionable
+-  Telemetry captured per specialist + orchestrator (latency, tokens, cost)
 
 **Quality Requirements:**
-- ✅ Unit tests: 100% pass rate, 95%+ coverage (all specialists + orchestrator)
-- ✅ E2E tests: 100% pass rate
-- ✅ Cost: $0.16-0.23 per review (6 specialists + orchestrator)
-- ✅ Integration with Planning/Design agents validated
-- ✅ Parallel execution validated (all specialists run concurrently)
+-  Unit tests: 100% pass rate, 95%+ coverage (all specialists + orchestrator)
+-  E2E tests: 100% pass rate
+-  Cost: $0.16-0.23 per review (6 specialists + orchestrator)
+-  Integration with Planning/Design agents validated
+-  Parallel execution validated (all specialists run concurrently)
 
 **Review Quality Benchmarks:**
-- ✅ Catches all intentionally injected security flaws in test cases
-- ✅ Identifies performance bottlenecks in test designs
-- ✅ Provides 3-5 actionable suggestions per design
-- ✅ Consistent severity classification (±1 level)
+-  Catches all intentionally injected security flaws in test cases
+-  Identifies performance bottlenecks in test designs
+-  Provides 3-5 actionable suggestions per design
+-  Consistent severity classification (±1 level)
 
 ### Automated Validation Checks
 
 The automated layer will perform these deterministic checks:
 
 1. **Structural Validation:**
-   - ✅ All required fields present in DesignSpecification
-   - ✅ Semantic unit coverage (every planning unit has design component)
-   - ✅ No circular dependencies in component graph
-   - ✅ Design review checklist has min 5 items, at least 1 Critical/High
+   -  All required fields present in DesignSpecification
+   -  Semantic unit coverage (every planning unit has design component)
+   -  No circular dependencies in component graph
+   -  Design review checklist has min 5 items, at least 1 Critical/High
 
 2. **Schema-API Consistency:**
-   - ✅ Foreign keys referenced in schemas exist as endpoints
-   - ✅ API request/response schemas reference defined data schemas
-   - ✅ Authentication requirements consistent across related endpoints
+   -  Foreign keys referenced in schemas exist as endpoints
+   -  API request/response schemas reference defined data schemas
+   -  Authentication requirements consistent across related endpoints
 
 3. **Completeness Checks:**
-   - ✅ Components have non-empty interfaces, responsibilities
-   - ✅ API contracts have error_responses defined
-   - ✅ Data schemas have appropriate indexes on foreign keys
-   - ✅ Implementation notes address complexity factors
+   -  Components have non-empty interfaces, responsibilities
+   -  API contracts have error_responses defined
+   -  Data schemas have appropriate indexes on foreign keys
+   -  Implementation notes address complexity factors
 
 These checks will be fast (<100ms), cost-free, and deterministic.
 

@@ -74,19 +74,19 @@ This creates several critical problems:
 **Description:** Continue storing artifacts only in telemetry database.
 
 **Pros:**
-- ✅ No implementation work required
-- ✅ Centralized storage (single SQLite file)
-- ✅ Easy to query (SQL)
+-  No implementation work required
+-  Centralized storage (single SQLite file)
+-  Easy to query (SQL)
 
 **Cons:**
-- ❌ No human visibility (must query DB)
-- ❌ No version control
-- ❌ No IDE integration
-- ❌ Code Review Agent reviews in-memory strings
-- ❌ Cannot leverage git workflows
-- ❌ No CI/CD integration
+-  No human visibility (must query DB)
+-  No version control
+-  No IDE integration
+-  Code Review Agent reviews in-memory strings
+-  Cannot leverage git workflows
+-  No CI/CD integration
 
-**Verdict:** ❌ Rejected - Fails critical requirements
+**Verdict:**  Rejected - Fails critical requirements
 
 ---
 
@@ -148,24 +148,24 @@ git commit -m "Add code review for JWT-AUTH-001 - FAIL (2 Critical issues)"
 ```
 
 **Pros:**
-- ✅ Human visibility (files in IDE)
-- ✅ Version control (full git history)
-- ✅ Code review workflow (can create PRs)
-- ✅ IDE integration (click file:line to jump)
-- ✅ CI/CD integration (git hooks, GitHub Actions)
-- ✅ Traceability (git log shows pipeline)
-- ✅ Rollback capability (git revert)
-- ✅ Dual storage (filesystem + database)
-- ✅ Backward compatible (Pydantic models unchanged)
+-  Human visibility (files in IDE)
+-  Version control (full git history)
+-  Code review workflow (can create PRs)
+-  IDE integration (click file:line to jump)
+-  CI/CD integration (git hooks, GitHub Actions)
+-  Traceability (git log shows pipeline)
+-  Rollback capability (git revert)
+-  Dual storage (filesystem + database)
+-  Backward compatible (Pydantic models unchanged)
 
 **Cons:**
-- ❌ Implementation complexity (+2-3 hours work)
-- ❌ Disk space usage (artifacts + code on disk)
-- ❌ Git repo growth (many commits)
-- ❌ Need file I/O utilities
-- ❌ Need markdown rendering
+-  Implementation complexity (+2-3 hours work)
+-  Disk space usage (artifacts + code on disk)
+-  Git repo growth (many commits)
+-  Need file I/O utilities
+-  Need markdown rendering
 
-**Verdict:** ✅ **RECOMMENDED**
+**Verdict:**  **RECOMMENDED**
 
 ---
 
@@ -174,17 +174,17 @@ git commit -m "Add code review for JWT-AUTH-001 - FAIL (2 Critical issues)"
 **Description:** Write artifacts only to filesystem, remove database storage.
 
 **Pros:**
-- ✅ Human visibility
-- ✅ Version control
-- ✅ Simpler architecture (single storage)
+-  Human visibility
+-  Version control
+-  Simpler architecture (single storage)
 
 **Cons:**
-- ❌ Lose telemetry queryability (SQL analysis)
-- ❌ Lose PROBE-AI historical data
-- ❌ Lose cost tracking per task
-- ❌ Breaks existing telemetry infrastructure
+-  Lose telemetry queryability (SQL analysis)
+-  Lose PROBE-AI historical data
+-  Lose cost tracking per task
+-  Breaks existing telemetry infrastructure
 
-**Verdict:** ❌ Rejected - Breaks telemetry requirements
+**Verdict:**  Rejected - Breaks telemetry requirements
 
 ---
 
@@ -193,19 +193,19 @@ git commit -m "Add code review for JWT-AUTH-001 - FAIL (2 Critical issues)"
 **Description:** Write artifacts to cloud storage (AWS S3, GCS, Azure Blob).
 
 **Pros:**
-- ✅ Scalable storage
-- ✅ Multi-environment support
-- ✅ Versioning built-in (S3 versioning)
+-  Scalable storage
+-  Multi-environment support
+-  Versioning built-in (S3 versioning)
 
 **Cons:**
-- ❌ No git integration
-- ❌ No local IDE integration
-- ❌ Requires cloud credentials
-- ❌ Network latency
-- ❌ Cost (storage fees)
-- ❌ Complexity (cloud SDK integration)
+-  No git integration
+-  No local IDE integration
+-  Requires cloud credentials
+-  Network latency
+-  Cost (storage fees)
+-  Complexity (cloud SDK integration)
 
-**Verdict:** ❌ Rejected - Over-engineered for current needs
+**Verdict:**  Rejected - Over-engineered for current needs
 
 ---
 
@@ -304,25 +304,25 @@ CREATE TABLE asp_projects (
 ```
 
 **Pros:**
-- ✅ **Clean separation** - Each project is completely independent
-- ✅ **Standard project structure** - Matches how developers normally organize code
-- ✅ **Independent deployment** - Each repo can have its own CI/CD pipeline
-- ✅ **Clear ownership** - Each repo can have its own team/permissions on GitHub/GitLab
-- ✅ **No namespace pollution** - No need for `project_id` in artifact paths
-- ✅ **Easy to distribute** - Push to GitHub, share complete working projects
-- ✅ **Realistic output** - Agent produces real, deployable applications
-- ✅ **Scalable isolation** - Projects don't interfere with each other
-- ✅ **Natural archiving** - Archive/delete entire project repo when done
-- ✅ **Supports both workflows** - Greenfield projects AND feature development in existing repos
+-  **Clean separation** - Each project is completely independent
+-  **Standard project structure** - Matches how developers normally organize code
+-  **Independent deployment** - Each repo can have its own CI/CD pipeline
+-  **Clear ownership** - Each repo can have its own team/permissions on GitHub/GitLab
+-  **No namespace pollution** - No need for `project_id` in artifact paths
+-  **Easy to distribute** - Push to GitHub, share complete working projects
+-  **Realistic output** - Agent produces real, deployable applications
+-  **Scalable isolation** - Projects don't interfere with each other
+-  **Natural archiving** - Archive/delete entire project repo when done
+-  **Supports both workflows** - Greenfield projects AND feature development in existing repos
 
 **Cons:**
-- ❌ **Management complexity** - Need to track multiple repos, multiple working directories
-- ❌ **Cross-project dependencies** - Hard to reference code across different repos
-- ❌ **Testing complexity** - Each E2E test might create a new repo (need cleanup)
-- ❌ **Discovery challenge** - How do you find all projects created by ASP? (solved by registry)
-- ❌ **Telemetry fragmentation** - ASP telemetry database in one location, projects scattered
-- ❌ **Initial setup overhead** - More work to initialize project (git init, directory structure)
-- ❌ **Path management** - Need to track current working directory, switch between repos
+-  **Management complexity** - Need to track multiple repos, multiple working directories
+-  **Cross-project dependencies** - Hard to reference code across different repos
+-  **Testing complexity** - Each E2E test might create a new repo (need cleanup)
+-  **Discovery challenge** - How do you find all projects created by ASP? (solved by registry)
+-  **Telemetry fragmentation** - ASP telemetry database in one location, projects scattered
+-  **Initial setup overhead** - More work to initialize project (git init, directory structure)
+-  **Path management** - Need to track current working directory, switch between repos
 
 **When This Makes Sense:**
 - ASP is generating **complete, standalone applications** (microservices, CLIs, libraries)
@@ -468,7 +468,7 @@ asp plan "Build a FastAPI microservice"  # Detects "build" → project mode
 asp plan "Add logging to the API"        # Detects "add" → task mode
 ```
 
-**Verdict:** ✅ **RECOMMENDED as Enhancement** - Support both modes
+**Verdict:**  **RECOMMENDED as Enhancement** - Support both modes
 
 This option should be implemented as an **enhancement to Option B** (not a replacement). The hybrid approach provides:
 
@@ -704,7 +704,7 @@ artifacts/
 ```markdown
 # Design Review Report: JWT-AUTH-001
 
-**Review Status:** ❌ FAIL
+**Review Status:**  FAIL
 **Reviewed by:** Design Review Agent v1.0.0
 **Date:** 2025-11-17 14:45:00
 
@@ -739,7 +739,7 @@ User credentials vulnerable to breach; violates security best practices.
 ```markdown
 # Code Review Report: JWT-AUTH-001
 
-**Review Status:** ❌ FAIL
+**Review Status:**  FAIL
 **Reviewed by:** Code Review Agent v1.0.0
 **Date:** 2025-11-17 15:00:00
 
@@ -773,12 +773,12 @@ cursor.execute(query, (username,))
 ---
 
 ## Specialist Results
-- ✅ Testing Review: PASS (90% coverage, comprehensive tests)
-- ✅ Standards Compliance: PASS (type hints, docstrings present)
-- ❌ Security Review: FAIL (2 Critical issues)
-- ⚠️  Performance Review: CONDITIONAL PASS (1 High issue)
-- ⚠️  Code Quality: CONDITIONAL PASS (2 High issues)
-- ✅ Maintainability: PASS (good logging, config)
+-  Testing Review: PASS (90% coverage, comprehensive tests)
+-  Standards Compliance: PASS (type hints, docstrings present)
+-  Security Review: FAIL (2 Critical issues)
+-   Performance Review: CONDITIONAL PASS (1 High issue)
+-   Code Quality: CONDITIONAL PASS (2 High issues)
+-  Maintainability: PASS (good logging, config)
 
 ---
 *Generated by Code Review Agent v1.0.0 on 2025-11-17 15:00:00*
@@ -901,7 +901,7 @@ artifacts/**/code_manifest.json
 
 **Consideration:** If ASP manages multiple projects in one repo, need namespacing.
 
-**Answer:** ✅ **ADDRESSED by Option E**
+**Answer:**  **ADDRESSED by Option E**
 
 Two approaches depending on use case:
 
@@ -978,21 +978,21 @@ But this is not recommended. Use separate repos instead (Option E).
 
 ### Implementation Success Criteria
 
-- ✅ All agents write artifacts to filesystem
-- ✅ All artifacts committed to git automatically
-- ✅ Markdown renderers produce readable reports
-- ✅ Code Review Agent reads from filesystem
-- ✅ Git history shows complete pipeline execution
-- ✅ Existing tests pass (backward compatibility)
-- ✅ New tests cover file I/O and git integration
+-  All agents write artifacts to filesystem
+-  All artifacts committed to git automatically
+-  Markdown renderers produce readable reports
+-  Code Review Agent reads from filesystem
+-  Git history shows complete pipeline execution
+-  Existing tests pass (backward compatibility)
+-  New tests cover file I/O and git integration
 
 ### User Success Criteria
 
-- ✅ Developers can open artifacts in IDE
-- ✅ Developers can review designs before code gen
-- ✅ Code review issues link to actual files
-- ✅ Git log shows clear pipeline traceability
-- ✅ Can rollback to previous versions with `git revert`
+-  Developers can open artifacts in IDE
+-  Developers can review designs before code gen
+-  Code review issues link to actual files
+-  Git log shows clear pipeline traceability
+-  Can rollback to previous versions with `git revert`
 
 ### Quality Metrics
 
@@ -1042,7 +1042,7 @@ But this is not recommended. Use separate repos instead (Option E).
 
 ## Decision Status
 
-**Status:** ✅ **APPROVED** (Pending User Confirmation)
+**Status:**  **APPROVED** (Pending User Confirmation)
 
 **Next Steps:**
 1. Get user approval for Option B (Filesystem + Git)
