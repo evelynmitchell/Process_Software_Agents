@@ -23,6 +23,7 @@ from asp.models.design import (
     APIContract,
     DataSchema,
     ComponentLogic,
+    DesignReviewChecklistItem,
 )
 from asp.models.design_review import (
     DesignReviewReport,
@@ -43,7 +44,7 @@ def create_test_design_spec(task_id="TEST-001"):
             APIContract(
                 endpoint="/api/test",
                 method="GET",
-                description="Test endpoint",
+                description="Test endpoint for validation",
                 request_schema={"type": "object"},
                 response_schema={"type": "object"},
                 authentication_required=True,
@@ -66,14 +67,44 @@ def create_test_design_spec(task_id="TEST-001"):
         component_logic=[
             ComponentLogic(
                 component_name="TestComponent",
-                component_purpose="Test component",
-                inputs=["input1"],
-                outputs=["output1"],
-                logic_description="Test logic",
-                edge_cases_handled=["case1"]
+                semantic_unit_id="SU-001",
+                responsibility="Handles test operations for validation purposes",
+                interfaces=[{"method": "execute", "parameters": {}, "returns": "dict"}],
+                implementation_notes="Implement test logic with proper error handling",
+                dependencies=[]
             )
         ],
-        design_checklist=["Check security", "Check performance"]
+        design_review_checklist=[
+            DesignReviewChecklistItem(
+                category="Security",
+                description="Check security requirements are met",
+                validation_criteria="Validate authentication and authorization",
+                severity="Critical"
+            ),
+            DesignReviewChecklistItem(
+                category="Performance",
+                description="Check performance requirements are met",
+                validation_criteria="Validate response time under 100ms",
+                severity="High"
+            ),
+            DesignReviewChecklistItem(
+                category="Architecture",
+                description="Check architecture compliance",
+                validation_criteria="Validate separation of concerns",
+            ),
+            DesignReviewChecklistItem(
+                category="Data Integrity",
+                description="Check data integrity requirements",
+                validation_criteria="Validate all foreign keys",
+            ),
+            DesignReviewChecklistItem(
+                category="Maintainability",
+                description="Check code maintainability",
+                validation_criteria="Validate code documentation",
+            )
+        ],
+        architecture_overview="Simple test architecture with API layer and data layer",
+        technology_stack={"language": "Python", "framework": "FastAPI"}
     )
 
 
