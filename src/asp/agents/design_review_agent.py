@@ -333,14 +333,17 @@ class DesignReviewAgent(BaseAgent):
         Returns:
             Dictionary with issues, suggestions, and checklist review
         """
-        # Load and format prompt
-        prompt_variables = {
-            "design_specification": design_spec.model_dump_json(indent=2),
-            "quality_standards": quality_standards or "Use standard best practices",
-        }
+        # Load prompt template
+        try:
+            prompt_template = self.load_prompt("design_review_agent_v1_review")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"Prompt template not found: {e}") from e
 
-        prompt = self._load_and_format_prompt(
-            "design_review_agent_v1_review.txt", prompt_variables
+        # Format prompt with design specification and quality standards
+        prompt = self.format_prompt(
+            prompt_template,
+            design_specification=design_spec.model_dump_json(indent=2),
+            quality_standards=quality_standards or "Use standard best practices",
         )
 
         # Call LLM

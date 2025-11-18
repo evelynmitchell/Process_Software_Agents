@@ -149,24 +149,24 @@ def main():
     print_section("STEP 3: DESIGN REVIEW AGENT")
     print("Reviewing design with specialist agents...\n")
 
-    print("⚠️  SKIPPING Design Review Agent (implementation issues)")
-    print("   This agent requires BaseAgent fixes")
-    print("   Proceeding to Code Agent...\n")
+    try:
+        design_review_agent = DesignReviewAgent()
+        review: DesignReviewReport = design_review_agent.execute(design)
 
-    # Create a dummy review for the pipeline to continue
-    from asp.models.design_review import DesignIssue, ImprovementSuggestion
-    review = DesignReviewReport(
-        task_id=task_id,
-        overall_decision="APPROVED",
-        issues=[],
-        improvement_suggestions=[],
-        checklist_results=[]
-    )
-
-    # Disabled for now due to implementation issues
-    # if False:
-    #     design_review_agent = DesignReviewAgent()
-    #     review: DesignReviewReport = design_review_agent.execute(design)
+        print(f"✅ Design Review complete!")
+        print(f"   Review ID: {review.review_id}")
+        print(f"   Overall Assessment: {review.overall_assessment}")
+        print(f"   Critical Issues: {review.critical_issue_count}")
+        print(f"   High Issues: {review.high_issue_count}")
+        print(f"   Medium Issues: {review.medium_issue_count}")
+        print(f"   Low Issues: {review.low_issue_count}")
+        print(f"   Improvement Suggestions: {len(review.improvement_suggestions)}")
+        print()
+    except Exception as e:
+        print(f"❌ Design Review failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
     # Step 4: Code Agent
     print_section("STEP 4: CODE AGENT")
