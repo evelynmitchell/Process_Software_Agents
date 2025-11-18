@@ -50,11 +50,10 @@ class DesignReviewAgent(BaseAgent):
             db_path: Optional database path (for testing)
         """
         super().__init__(
-            agent_role="DesignReview",
-            agent_version="1.0.0",
             llm_client=llm_client,
             db_path=db_path,
         )
+        self.agent_version = "1.0.0"
 
     @track_agent_cost(
         agent_role="DesignReview",
