@@ -1,6 +1,12 @@
 """Pydantic models for ASP agents."""
 
 from asp.models.code import CodeInput, GeneratedCode, GeneratedFile
+from asp.models.code_review import (
+    ChecklistItemReview as CodeChecklistItemReview,
+    CodeImprovementSuggestion,
+    CodeIssue,
+    CodeReviewReport,
+)
 from asp.models.design import (
     APIContract,
     ComponentLogic,
@@ -44,4 +50,9 @@ __all__ = [
     "CodeInput",
     "GeneratedFile",
     "GeneratedCode",
+    # Code Review models
+    "CodeIssue",
+    "CodeImprovementSuggestion",
+    "CodeChecklistItemReview",
+    "CodeReviewReport",
 ]
