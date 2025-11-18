@@ -209,9 +209,284 @@ git commit -m "Add code review for JWT-AUTH-001 - FAIL (2 Critical issues)"
 
 ---
 
+### Option E: Separate Git Repository Per Project
+
+**Description:** Initialize a new git repository for each project that ASP creates, rather than working within a single monorepo.
+
+**Architecture:**
+```
+~/asp_projects/
+├── jwt-auth-system/              ← Separate git repo
+│   ├── .git/
+│   ├── artifacts/
+│   │   ├── JWT-AUTH-001/
+│   │   │   ├── plan.json
+│   │   │   ├── plan.md
+│   │   │   └── ...
+│   │   └── JWT-AUTH-002/
+│   ├── src/
+│   │   └── api/
+│   │       └── auth.py
+│   ├── tests/
+│   │   └── test_auth.py
+│   ├── README.md
+│   └── requirements.txt
+│
+├── user-management-api/          ← Separate git repo
+│   ├── .git/
+│   ├── artifacts/
+│   ├── src/
+│   └── ...
+│
+└── payment-service/              ← Separate git repo
+    ├── .git/
+    └── ...
+```
+
+**Use Cases:**
+
+**Use Case 1: Project-Level Agent (Greenfield Development)**
+```
+User: "Build me a microservice for user authentication"
+ASP:
+  1. Planning Agent: Detects this is a complete project
+  2. Creates ~/asp_projects/user-auth-service/
+  3. Runs: git init
+  4. Creates: README.md, .gitignore, src/, tests/, artifacts/
+  5. All agents work within this new repo
+```
+
+**Use Case 2: Task-Level Agent (Feature Development)**
+```
+User: "Add JWT authentication to my existing FastAPI app"
+ASP:
+  1. Planning Agent: Detects this is a task in current repo
+  2. Works in current working directory
+  3. Creates: artifacts/JWT-AUTH-001/ in current repo
+  4. Commits to current repo
+```
+
+**Implementation Approach: Hybrid Mode Support**
+
+```python
+# Project Mode - Creates new standalone repo
+planning_agent.execute(
+    requirements="Build user authentication microservice",
+    mode="project",
+    project_name="user-auth-service",
+    base_directory="~/asp_projects"
+)
+# Creates: ~/asp_projects/user-auth-service/ (new git repo)
+# Initializes: git init, directory structure, .gitignore
+# Registers: Project in ASP registry database
+
+# Task Mode - Works in current repo (default)
+planning_agent.execute(
+    requirements="Add JWT authentication",
+    mode="task",  # Default
+)
+# Works in: Current working directory
+# Creates: artifacts/{task_id}/ in current repo
+```
+
+**Project Registry Database:**
+```sql
+CREATE TABLE asp_projects (
+    project_id TEXT PRIMARY KEY,
+    project_name TEXT NOT NULL,
+    project_path TEXT NOT NULL,       -- /home/user/asp_projects/user-auth-service
+    git_remote TEXT,                  -- https://github.com/user/user-auth-service (optional)
+    created_at TIMESTAMP,
+    mode TEXT,                        -- 'project' or 'task'
+    parent_task_id TEXT,              -- First planning task that created this project
+    status TEXT                       -- 'active', 'archived', 'deployed'
+);
+```
+
+**Pros:**
+- ✅ **Clean separation** - Each project is completely independent
+- ✅ **Standard project structure** - Matches how developers normally organize code
+- ✅ **Independent deployment** - Each repo can have its own CI/CD pipeline
+- ✅ **Clear ownership** - Each repo can have its own team/permissions on GitHub/GitLab
+- ✅ **No namespace pollution** - No need for `project_id` in artifact paths
+- ✅ **Easy to distribute** - Push to GitHub, share complete working projects
+- ✅ **Realistic output** - Agent produces real, deployable applications
+- ✅ **Scalable isolation** - Projects don't interfere with each other
+- ✅ **Natural archiving** - Archive/delete entire project repo when done
+- ✅ **Supports both workflows** - Greenfield projects AND feature development in existing repos
+
+**Cons:**
+- ❌ **Management complexity** - Need to track multiple repos, multiple working directories
+- ❌ **Cross-project dependencies** - Hard to reference code across different repos
+- ❌ **Testing complexity** - Each E2E test might create a new repo (need cleanup)
+- ❌ **Discovery challenge** - How do you find all projects created by ASP? (solved by registry)
+- ❌ **Telemetry fragmentation** - ASP telemetry database in one location, projects scattered
+- ❌ **Initial setup overhead** - More work to initialize project (git init, directory structure)
+- ❌ **Path management** - Need to track current working directory, switch between repos
+
+**When This Makes Sense:**
+- ASP is generating **complete, standalone applications** (microservices, CLIs, libraries)
+- Each project will be **deployed independently**
+- Projects are **long-lived** and maintained separately
+- **Multi-team environment** where different projects have different owners
+- User wants **distributable output** (can push to GitHub and share)
+
+**When This Doesn't Make Sense:**
+- ASP is generating **tasks/features within one existing codebase**
+- All work is for the **same application** (monolith architecture)
+- **Short-lived experiments** or bootstrap data collection
+- **Single developer or small team** working in one codebase
+
+**Decision Criteria for Mode Selection:**
+
+The Planning Agent could auto-detect based on requirements:
+
+```python
+def detect_mode(requirements: str) -> str:
+    """Auto-detect if this is a project or task."""
+    project_indicators = [
+        "build", "create", "develop", "implement a system",
+        "microservice", "application", "service", "API from scratch"
+    ]
+    task_indicators = [
+        "add", "update", "fix", "modify", "refactor",
+        "to my app", "to the codebase", "in the existing"
+    ]
+
+    if any(indicator in requirements.lower() for indicator in project_indicators):
+        return "project"
+    elif any(indicator in requirements.lower() for indicator in task_indicators):
+        return "task"
+    else:
+        # Default: task mode (safer, works in current repo)
+        return "task"
+```
+
+**Implementation Changes:**
+
+**Planning Agent:**
+```python
+def execute(self, requirements: str, mode: Optional[str] = None) -> ProjectPlan:
+    # Auto-detect or use explicit mode
+    execution_mode = mode or self._detect_mode(requirements)
+
+    if execution_mode == "project":
+        # Create new project repo
+        project_name = self._extract_project_name(requirements)
+        project_path = self._initialize_project_repo(project_name)
+
+        # Register in ASP database
+        self._register_project(project_name, project_path)
+
+        # Change working directory to new repo
+        os.chdir(project_path)
+
+    # Continue with normal planning...
+```
+
+**Project Initialization:**
+```python
+def _initialize_project_repo(self, project_name: str) -> str:
+    """Initialize new git repo for project."""
+    base_dir = os.path.expanduser("~/asp_projects")
+    project_path = os.path.join(base_dir, project_name)
+
+    # Create directory structure
+    os.makedirs(project_path, exist_ok=True)
+    os.makedirs(f"{project_path}/src", exist_ok=True)
+    os.makedirs(f"{project_path}/tests", exist_ok=True)
+    os.makedirs(f"{project_path}/artifacts", exist_ok=True)
+    os.makedirs(f"{project_path}/docs", exist_ok=True)
+
+    # Initialize git
+    subprocess.run(["git", "init"], cwd=project_path, check=True)
+
+    # Create .gitignore
+    gitignore_content = """
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+.venv
+venv/
+*.db
+*.sqlite3
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+"""
+    write_file(f"{project_path}/.gitignore", gitignore_content)
+
+    # Create README
+    readme_content = f"""# {project_name}
+
+Generated by ASP (Agentic Software Process) Platform
+
+## Project Structure
+
+- `src/` - Source code
+- `tests/` - Test files
+- `artifacts/` - ASP planning/design artifacts
+- `docs/` - Documentation
+
+## Setup
+
+TBD (will be populated by Code Agent)
+
+## Generated By
+
+- ASP Platform
+- Date: {datetime.now().isoformat()}
+"""
+    write_file(f"{project_path}/README.md", readme_content)
+
+    # Initial commit
+    subprocess.run(["git", "add", "."], cwd=project_path, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", f"Initialize project: {project_name}"],
+        cwd=project_path,
+        check=True
+    )
+
+    return project_path
+```
+
+**CLI Support:**
+```bash
+# Explicit project mode
+asp plan "Build user authentication microservice" --mode=project --name=user-auth-service
+
+# Explicit task mode (default)
+asp plan "Add JWT authentication" --mode=task
+
+# Auto-detect (default)
+asp plan "Build a FastAPI microservice"  # Detects "build" → project mode
+asp plan "Add logging to the API"        # Detects "add" → task mode
+```
+
+**Verdict:** ✅ **RECOMMENDED as Enhancement** - Support both modes
+
+This option should be implemented as an **enhancement to Option B** (not a replacement). The hybrid approach provides:
+
+1. **Flexibility** - Users choose based on their workflow (greenfield vs. feature development)
+2. **Natural separation** - Projects are isolated when appropriate
+3. **Backward compatibility** - Default to task mode (works in current directory)
+4. **Professional output** - Can generate complete, distributable projects
+
+**Recommendation:**
+- **Phase 1 (MVP):** Implement Option B (task mode only) to unblock Code Review Agent
+- **Phase 2 (Enhancement):** Add project mode support with auto-detection
+- Default to task mode for safety (doesn't create repos unexpectedly)
+
+---
+
 ## Decision Outcome
 
-**Chosen Option:** **Option B - Filesystem + Git (Hybrid Approach)**
+**Chosen Option:** **Option B - Filesystem + Git (Task Mode)** with **Option E (Project Mode) as Future Enhancement**
 
 ### Rationale
 
@@ -220,6 +495,32 @@ git commit -m "Add code review for JWT-AUTH-001 - FAIL (2 Critical issues)"
 3. **Tool Integration:** Works with existing developer tools (IDE, git, CI/CD)
 4. **Future-Proof:** Supports multi-agent collaboration, human-in-the-loop, code review
 5. **Meets All Must-Haves:** Human readability, version control, traceability, code review
+6. **Flexible Architecture:** Option B (task mode) can be enhanced with Option E (project mode) later without breaking changes
+
+### Phased Implementation
+
+**Phase 1 (Immediate - Code Review Agent Unblocking):**
+- Implement Option B (task mode only)
+- Work in current working directory
+- Create `artifacts/{task_id}/` for each task
+- Write generated code to `src/`, `tests/`, etc. in current repo
+- Auto-commit to current repo after each agent
+- **Estimated effort:** 10 hours
+- **Goal:** Unblock Code Review Agent implementation
+
+**Phase 2 (Future Enhancement - Project Mode):**
+- Implement Option E (project mode)
+- Add `mode` parameter to Planning Agent (`"task"` or `"project"`)
+- Support auto-detection based on requirements keywords
+- Initialize new git repos for greenfield projects
+- Add project registry database table
+- **Estimated effort:** 8-12 hours
+- **Goal:** Support complete project generation workflow
+
+**Default Behavior:**
+- Task mode (works in current directory)
+- Safe for existing workflows
+- No unexpected repo creation
 
 ### Implementation Strategy
 
@@ -600,10 +901,25 @@ artifacts/**/code_manifest.json
 
 **Consideration:** If ASP manages multiple projects in one repo, need namespacing.
 
-**Recommendation:** Add `project_id` to artifact path:
+**Answer:** ✅ **ADDRESSED by Option E**
+
+Two approaches depending on use case:
+
+**Approach 1: Task Mode (Single Project per Repo)**
+- Default behavior for feature development
+- All tasks in one repo: `artifacts/{task_id}/plan.json`
+- No namespacing needed (one project = one repo)
+
+**Approach 2: Project Mode (Separate Repo per Project)**
+- For greenfield projects
+- Each project gets its own git repo: `~/asp_projects/{project_name}/`
+- Natural isolation, no namespacing needed
+
+**If using monorepo for multiple projects (advanced):**
 ```
 artifacts/{project_id}/{task_id}/plan.json
 ```
+But this is not recommended. Use separate repos instead (Option E).
 
 ### Q3: Should we support non-git version control (SVN, Mercurial)?
 
