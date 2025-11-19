@@ -25,6 +25,30 @@
       "semantic_unit_id": "SU-001",
       "component_id": "COMP-001",
       "description": "Unit tests for authentication service"
+    },
+    {
+      "file_path": "requirements.txt",
+      "content": "fastapi==0.104.1\nbcrypt==4.1.1",
+      "file_type": "requirements",
+      "semantic_unit_id": null,
+      "component_id": null,
+      "description": "Python package dependencies for the project"
+    },
+    {
+      "file_path": "README.md",
+      "content": "# Auth Service\n\nDocumentation here",
+      "file_type": "documentation",
+      "semantic_unit_id": null,
+      "component_id": null,
+      "description": "Project documentation and setup instructions"
+    },
+    {
+      "file_path": ".env.example",
+      "content": "DATABASE_URL=postgresql://...",
+      "file_type": "config",
+      "semantic_unit_id": null,
+      "component_id": null,
+      "description": "Environment configuration template"
     }
   ],
   "file_structure": {
@@ -36,6 +60,11 @@
     ],
     "tests": [
       "test_auth_service.py"
+    ],
+    ".": [
+      "requirements.txt",
+      "README.md",
+      ".env.example"
     ]
   },
   "implementation_notes": "Implemented JWT authentication with bcrypt password hashing",
@@ -46,7 +75,7 @@
   ],
   "setup_instructions": "1. pip install -r requirements.txt\n2. Run tests: pytest",
   "total_lines_of_code": 150,
-  "total_files": 3,
+  "total_files": 6,
   "test_coverage_target": null,
   "semantic_units_implemented": [
     "SU-001",
@@ -57,5 +86,5 @@
     "COMP-002"
   ],
   "agent_version": "1.0.0",
-  "generation_timestamp": "2025-11-19T21:30:35.757660"
+  "generation_timestamp": "2025-11-19T21:30:37.502636"
 }
