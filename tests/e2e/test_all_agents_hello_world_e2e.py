@@ -31,6 +31,7 @@ from asp.agents.design_review_agent import DesignReviewAgent
 from asp.agents.code_agent import CodeAgent
 from asp.agents.test_agent import TestAgent
 from asp.agents.postmortem_agent import PostmortemAgent
+from asp.orchestrators import PlanningDesignOrchestrator
 
 from asp.models.planning import TaskRequirements, ProjectPlan
 from asp.models.design import DesignInput, DesignSpecification
@@ -72,12 +73,12 @@ class TestAllAgentsHelloWorldE2E:
         print("="*80)
 
         # =====================================================================
-        # STEP 1: Planning Agent - Decompose Task
+        # STEPS 1-3: Planning → Design → Review with Orchestrator
         # =====================================================================
-        print("\n[1/6] PLANNING AGENT - Task Decomposition")
-        print("-" * 80)
+        print("\n[1-3/6] PLANNING → DESIGN → REVIEW with Feedback Orchestrator")
+        print("=" * 80)
 
-        planning_agent = PlanningAgent()
+        orchestrator = PlanningDesignOrchestrator()
 
         task_requirements = TaskRequirements(
             project_id="HELLO-WORLD-E2E",
@@ -103,80 +104,38 @@ class TestAllAgentsHelloWorldE2E:
             """,
         )
 
-        # Execute Planning Agent
         print(f"  Task ID: {task_requirements.task_id}")
         print(f"  Description: {task_requirements.description}")
-        print("  Calling Planning Agent...")
+        print("\n  Executing Orchestrated Planning → Design → Review...")
+        print("  (Orchestrator will automatically handle feedback loops)")
 
-        project_plan = planning_agent.execute(task_requirements)
-
-        # Validate planning output
-        assert isinstance(project_plan, ProjectPlan)
-        assert project_plan.task_id == "HW-001"
-        assert len(project_plan.semantic_units) > 0
-        assert project_plan.total_est_complexity > 0
-
-        print(f"  ✓ Planning complete!")
-        print(f"    - Semantic units created: {len(project_plan.semantic_units)}")
-        print(f"    - Total estimated complexity: {project_plan.total_est_complexity}")
-        for i, unit in enumerate(project_plan.semantic_units, 1):
-            print(f"    - {i}. {unit.unit_id}: {unit.description[:60]}...")
-
-        # =====================================================================
-        # STEP 2: Design Agent - Create Technical Design
-        # =====================================================================
-        print("\n[2/6] DESIGN AGENT - Technical Design Specification")
-        print("-" * 80)
-
-        design_agent = DesignAgent()
-
-        design_input = DesignInput(
-            task_id="HW-001",
-            requirements=task_requirements.requirements,
-            project_plan=project_plan,
+        # Execute orchestrator with feedback loops
+        design_spec, design_review = orchestrator.execute(
+            requirements=task_requirements,
             design_constraints="Use FastAPI framework. Keep design minimal and simple.",
         )
 
-        print("  Calling Design Agent...")
-        design_spec = design_agent.execute(design_input)
-
-        # Validate design output
+        # Validate outputs
         assert isinstance(design_spec, DesignSpecification)
         assert design_spec.task_id == "HW-001"
         assert len(design_spec.api_contracts) >= 2  # /hello and /health
         assert len(design_spec.component_logic) > 0
-        assert len(design_spec.design_review_checklist) >= 5
 
-        print(f"  ✓ Design complete!")
+        assert design_review is not None
+        assert design_review.task_id == "HW-001"
+        assert design_review.overall_assessment in ["PASS", "NEEDS_IMPROVEMENT"]
+
+        print(f"\n  ✓ Orchestration complete!")
+        print(f"    - Design status: {design_review.overall_assessment}")
         print(f"    - API contracts: {len(design_spec.api_contracts)}")
         for api in design_spec.api_contracts:
             print(f"      • {api.method} {api.endpoint}")
         print(f"    - Components: {len(design_spec.component_logic)}")
-        print(f"    - Review checklist items: {len(design_spec.design_review_checklist)}")
+        print(f"    - Critical issues: {design_review.critical_issue_count}")
+        print(f"    - High issues: {design_review.high_issue_count}")
 
-        # =====================================================================
-        # STEP 3: Design Review Agent - Review Design Quality
-        # =====================================================================
-        print("\n[3/6] DESIGN REVIEW AGENT - Design Quality Review")
-        print("-" * 80)
-
-        design_review_agent = DesignReviewAgent()
-
-        print("  Calling Design Review Agent...")
-        design_review = design_review_agent.execute(design_spec)
-
-        # Validate design review output
-        assert design_review is not None
-        assert hasattr(design_review, 'task_id')
-        assert design_review.task_id == "HW-001"
-
-        print(f"  ✓ Design review complete!")
-        if hasattr(design_review, 'overall_status'):
-            print(f"    - Overall status: {design_review.overall_status}")
-        if hasattr(design_review, 'critical_issues'):
-            print(f"    - Critical issues: {len(design_review.critical_issues)}")
-        if hasattr(design_review, 'recommendations'):
-            print(f"    - Recommendations: {len(design_review.recommendations)}")
+        # Get project plan from design spec for postmortem
+        project_plan = design_spec.project_plan
 
         # =====================================================================
         # STEP 4: Code Agent - Generate Implementation
