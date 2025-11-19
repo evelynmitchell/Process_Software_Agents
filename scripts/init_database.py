@@ -47,9 +47,9 @@ def execute_sql_script(conn: sqlite3.Connection, sql_script: str, script_name: s
     try:
         cursor.executescript(sql_script)
         conn.commit()
-        print(f"  ✓ {script_name} completed successfully")
+        print(f"  [OK] {script_name} completed successfully")
     except sqlite3.Error as e:
-        print(f"  ✗ Error executing {script_name}: {e}")
+        print(f"  [ERROR] Error executing {script_name}: {e}")
         raise
 
 
@@ -70,10 +70,10 @@ def verify_database_schema(conn: sqlite3.Connection) -> bool:
     missing_tables = [t for t in expected_tables if t not in existing_tables]
 
     if missing_tables:
-        print(f"  ✗ Missing tables: {', '.join(missing_tables)}")
+        print(f"  [ERROR] Missing tables: {', '.join(missing_tables)}")
         return False
 
-    print(f"  ✓ All {len(expected_tables)} tables created successfully")
+    print(f"  [OK] All {len(expected_tables)} tables created successfully")
     return True
 
 
@@ -160,7 +160,7 @@ def initialize_database(
     try:
         # Connect to database (creates file if doesn't exist)
         conn = sqlite3.connect(db_path)
-        print("✓ Connected to database\n")
+        print("[OK] Connected to database\n")
 
         # Enable foreign keys (optional but recommended)
         conn.execute("PRAGMA foreign_keys = ON")
@@ -179,7 +179,7 @@ def initialize_database(
         # 3. Verify schema
         print("\nVerifying database schema...")
         if not verify_database_schema(conn):
-            print("✗ Schema verification failed")
+            print("[ERROR] Schema verification failed")
             return False
 
         # 4. Insert sample data if requested
@@ -195,7 +195,7 @@ def initialize_database(
         conn.close()
 
         print(f"\n{'='*50}")
-        print("✓ Database initialization completed successfully!")
+        print("[OK] Database initialization completed successfully!")
         print(f"{'='*50}\n")
         print(f"Database location: {db_path}")
         print(f"Database size: {db_path.stat().st_size:,} bytes\n")
@@ -208,7 +208,7 @@ def initialize_database(
         return True
 
     except Exception as e:
-        print(f"\n✗ Database initialization failed: {e}")
+        print(f"\n[ERROR] Database initialization failed: {e}")
         return False
 
 

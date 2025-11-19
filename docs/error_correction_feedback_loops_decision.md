@@ -251,7 +251,7 @@ Planning → Design Agent validates plan
 -  Validation logic duplicates some review logic
 -  Doesn't handle discovered errors (only input validation)
 
-**Verdict:** 🔶 **PARTIAL SOLUTION** - Good complement to Option 2, not replacement
+**Verdict:** **PARTIAL SOLUTION** - Good complement to Option 2, not replacement
 
 ---
 

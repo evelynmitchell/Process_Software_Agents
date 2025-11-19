@@ -233,7 +233,7 @@ def save_plan_to_file(plan, filename: str):
     with open(output_path, "w") as f:
         json.dump(plan_dict, f, indent=2)
 
-    print(f"✓ Plan saved to: {output_path}")
+    print(f"[OK] Plan saved to: {output_path}")
 
 
 def main():

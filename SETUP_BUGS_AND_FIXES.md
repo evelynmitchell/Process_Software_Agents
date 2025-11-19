@@ -15,7 +15,7 @@ The script has `#!/bin/bash` as its shebang, but when invoked with `sh setup_cod
 ## Evidence from Your Output
 
 ```bash
--e ✓ Claude Code already installed (setup_codespaces.sh: 36: claude: not found)
+-e  Claude Code already installed (setup_codespaces.sh: 36: claude: not found)
 ```
 
 This shows:
@@ -186,12 +186,12 @@ bash test_setup_codespaces.sh
 ```
 
 The test suite covers:
-- ✓ Shell compatibility checks
-- ✓ Command detection (present/missing)
-- ✓ Python version validation
-- ✓ Error handling and counting
-- ✓ Configuration file handling
-- ✓ PATH management
+-  Shell compatibility checks
+-  Command detection (present/missing)
+-  Python version validation
+-  Error handling and counting
+-  Configuration file handling
+-  PATH management
 
 ## Verification Steps
 
