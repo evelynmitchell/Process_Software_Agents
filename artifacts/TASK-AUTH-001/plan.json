@@ -1,0 +1,48 @@
+{
+  "project_id": "AUTH-2025",
+  "task_id": "TASK-AUTH-001",
+  "semantic_units": [
+    {
+      "unit_id": "SU-001",
+      "description": "Create user registration endpoint with email validation",
+      "api_interactions": 2,
+      "data_transformations": 3,
+      "logical_branches": 4,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 43,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-002",
+      "description": "Implement password hashing with bcrypt",
+      "api_interactions": 1,
+      "data_transformations": 2,
+      "logical_branches": 2,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 26,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Create JWT token generation and validation",
+      "api_interactions": 2,
+      "data_transformations": 3,
+      "logical_branches": 3,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.2,
+      "est_complexity": 43,
+      "dependencies": [
+        "SU-001",
+        "SU-002"
+      ]
+    }
+  ],
+  "total_est_complexity": 112,
+  "probe_ai_prediction": null,
+  "probe_ai_enabled": false,
+  "agent_version": "1.0.0"
+}
