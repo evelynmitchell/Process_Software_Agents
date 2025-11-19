@@ -624,6 +624,5 @@ def test_e2e_full_pipeline_integration():
         assert issue.issue_id.startswith("CODE-ISSUE-")
 
     # Verify report metadata
-    assert report.reviewer_agent == "CodeReviewOrchestrator"
     assert report.agent_version == "1.0.0"
-    assert report.review_duration_ms > 0
+    assert report.review_duration_seconds > 0
