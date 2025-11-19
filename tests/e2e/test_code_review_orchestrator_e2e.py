@@ -233,7 +233,7 @@ def test_e2e_simple_code_passes_review():
         }
 
     mock_llm = Mock()
-    mock_llm.side_effect = create_clean_response
+    mock_llm.call_with_retry.side_effect = create_clean_response
 
     orchestrator = CodeReviewOrchestrator(llm_client=mock_llm)
     generated_code = create_simple_generated_code()
@@ -302,7 +302,7 @@ def test_e2e_problematic_code_fails_review():
             }
 
     mock_llm = Mock()
-    mock_llm.side_effect = create_security_issues_response
+    mock_llm.call_with_retry.side_effect = create_security_issues_response
 
     orchestrator = CodeReviewOrchestrator(llm_client=mock_llm)
     generated_code = create_problematic_generated_code()
@@ -350,7 +350,7 @@ def test_e2e_performance_issues_needs_revision():
             }
 
     mock_llm = Mock()
-    mock_llm.side_effect = create_performance_issues_response
+    mock_llm.call_with_retry.side_effect = create_performance_issues_response
 
     orchestrator = CodeReviewOrchestrator(llm_client=mock_llm)
     generated_code = create_performance_issues_code()
@@ -387,7 +387,7 @@ def test_e2e_automated_checks_detect_missing_tests():
     )
 
     mock_llm = Mock()
-    mock_llm.return_value = {
+    mock_llm.call_with_retry.return_value = {
         "content": json.dumps({
             "issues_found": [],
             "improvement_suggestions": [],
@@ -425,7 +425,7 @@ def test_e2e_automated_checks_detect_oversized_files():
     )
 
     mock_llm = Mock()
-    mock_llm.return_value = {
+    mock_llm.call_with_retry.return_value = {
         "content": json.dumps({
             "issues_found": [],
             "improvement_suggestions": [],
@@ -477,7 +477,7 @@ def test_e2e_checklist_review_reflects_issues():
             }
 
     mock_llm = Mock()
-    mock_llm.side_effect = create_security_issue_response
+    mock_llm.call_with_retry.side_effect = create_security_issue_response
 
     orchestrator = CodeReviewOrchestrator(llm_client=mock_llm)
     generated_code = create_problematic_generated_code()
@@ -502,7 +502,7 @@ def test_e2e_checklist_review_reflects_issues():
 def test_e2e_review_id_format():
     """Test that review IDs follow correct pattern."""
     mock_llm = Mock()
-    mock_llm.return_value = {
+    mock_llm.call_with_retry.return_value = {
         "content": json.dumps({
             "issues_found": [],
             "improvement_suggestions": [],
@@ -601,7 +601,7 @@ def test_e2e_full_pipeline_integration():
             }
 
     mock_llm = Mock()
-    mock_llm.side_effect = create_varied_responses
+    mock_llm.call_with_retry.side_effect = create_varied_responses
 
     orchestrator = CodeReviewOrchestrator(llm_client=mock_llm)
     generated_code = create_problematic_generated_code()
