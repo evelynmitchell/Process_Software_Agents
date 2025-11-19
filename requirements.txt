@@ -1,2 +1,21 @@
+# Hello World API Dependencies
+# Production dependencies
 fastapi==0.104.1
-bcrypt==4.1.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Development and testing dependencies
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+httpx==0.25.2
+requests==2.31.0
+
+# Code quality tools
+black==23.11.0
+flake8==6.1.0
+isort==5.12.0
+mypy==1.7.1
+
+# Additional utilities
+python-dotenv==1.0.0

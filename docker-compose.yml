@@ -1,0 +1,89 @@
+# Docker Compose configuration for Hello World API
+# Provides easy development and production deployment
+
+version: '3.8'
+
+services:
+  # Hello World API service
+  hello-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: hello-world-api
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=info
+      - RELOAD=false
+    volumes:
+      # Mount logs directory for persistence
+      - ./logs:/app/logs:rw
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - hello-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.hello-api.rule=Host(`localhost`)"
+      - "traefik.http.services.hello-api.loadbalancer.server.port=8000"
+
+  # Development service with hot reload
+  hello-api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: hello-world-api-dev
+    ports:
+      - "8001:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=debug
+      - RELOAD=true
+    volumes:
+      # Mount source code for hot reload
+      - .:/app:rw
+      - /app/__pycache__
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    networks:
+      - hello-network
+    profiles:
+      - dev
+
+  # Nginx reverse proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: hello-world-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - hello-api
+    networks:
+      - hello-network
+    profiles:
+      - nginx
+
+# Networks
+networks:
+  hello-network:
+    driver: bridge
+    name: hello-world-network
+
+# Volumes for data persistence
+volumes:
+  logs:
+    driver: local
+    name: hello-world-logs
