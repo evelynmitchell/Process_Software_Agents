@@ -194,21 +194,65 @@ If a review fails, the orchestrator halts and loops back to the originating agen
 - Test Agent with AI Defect Taxonomy
 - Bootstrap data collection (12 planning tasks)
 
-### Implemented Agents (6/7 Complete)
+### Implemented Agents (7/7 Complete) ✅
 
 | Agent | Status | Tests | Docs | Bootstrap Data |
 |-------|--------|-------|------|----------------|
-| **Planning Agent** | Complete | 102/102 unit, 8/8 E2E | ADR, Examples | 12 tasks |
-| **Design Agent** | Complete | 23/23 unit, 5/5 E2E | ADR, Examples | Partial |
-| **Design Review Agent** | Complete | 21/21 unit, 3/3 E2E | ADR, User Guide | Partial |
-| **Code Agent** | Complete | Unit tests | - | - |
-| **Code Review Agent** | Complete | Unit tests | - | - |
-| **Test Agent** | Complete | Unit tests | - | - |
-| Postmortem Agent | Next | - | - | - |
+| **Planning Agent** | ✅ Complete | 102/102 unit, 8/8 E2E | ADR, Examples | 12 tasks |
+| **Design Agent** | ✅ Complete | 23/23 unit, 5/5 E2E | ADR, Examples | Partial |
+| **Design Review Agent** | ✅ Complete | 21/21 unit, 3/3 E2E | ADR, User Guide | Partial |
+| **Code Agent** | ✅ Complete | Unit tests | - | - |
+| **Code Review Agent** | ✅ Complete | Unit tests | - | - |
+| **Test Agent** | ✅ Complete | Unit tests | - | - |
+| **Postmortem Agent** | ✅ Complete | Unit tests | Work Summary | - |
 
-### Recently Completed Agents
+**All 21 agents (7 core + 2 orchestrators + 12 specialists) are now implemented!**
 
-#### Test Agent (NEW!)
+### Recently Completed
+
+#### Comprehensive Test Plan for All 21 Agents (NEW!)
+
+A **production-ready testing framework** covering all agents in the ASP Platform:
+
+**Test Coverage:**
+- **7 Core Agents** - Planning, Design, Design Review, Code, Code Review, Test, Postmortem
+- **2 Orchestrator Agents** - Design Review and Code Review orchestrators
+- **12 Specialist Review Agents** - 6 design + 6 code review specialists
+
+**Test Execution:**
+- **200+ tests** across all agents
+- **Incremental execution** - Phase-by-phase testing for faster feedback
+- **Performance benchmarks** - Latency and cost validation
+- **Integration tests** - End-to-end workflow validation
+
+**Easy Execution:**
+```bash
+python scripts/run_agent_tests.py incremental  # Run all tests
+python scripts/run_agent_tests.py coverage     # With coverage report
+```
+
+**[Read the Quick Start Guide](docs/test_plan_quick_start.md)** for complete testing instructions.
+
+#### Postmortem Agent (COMPLETE!)
+
+The Postmortem Agent is a **meta-agent for performance analysis and self-improvement** that completes the 7-agent PSP/TSP workflow:
+
+**Core Capabilities:**
+- **Performance Analysis** - Planned vs. actual metrics (latency, tokens, cost, complexity)
+- **Quality Metrics** - Defect density, phase distribution, phase yield
+- **Root Cause Analysis** - Top defect types by fix effort
+- **Process Improvement Proposals (PIPs)** - LLM-generated process changes for HITL approval
+
+**Self-Improvement Loop:**
+1. Analyze completed task performance
+2. Identify top defect patterns
+3. Generate defensive process changes
+4. Submit PIPs for human approval
+5. Update agent prompts/checklists after approval
+
+This completes the foundation for **Phase 5: ASP-Loop Self-Improvement**.
+
+#### Test Agent (COMPLETE!)
 
 The Test Agent is a **production-ready testing system** that validates generated code through comprehensive testing and defect logging:
 
@@ -270,8 +314,12 @@ The Design Review Agent is a **production-ready multi-agent system** that perfor
 - [database/README.md](database/README.md) - Database Setup Guide (SQLite & PostgreSQL)
 
 ### Testing Documentation
+- [docs/comprehensive_agent_test_plan.md](docs/comprehensive_agent_test_plan.md) - **NEW!** Complete test plan for all 21 agents with test cases, execution commands, and success criteria
+- [docs/test_plan_quick_start.md](docs/test_plan_quick_start.md) - **NEW!** Quick reference guide for executing the comprehensive test plan
 - [docs/test_coverage_analysis.md](docs/test_coverage_analysis.md) - Comprehensive test coverage analysis and gap identification
 - [docs/test_implementation_plan.md](docs/test_implementation_plan.md) - Detailed 3-4 week implementation roadmap for test coverage
+- [scripts/run_agent_tests.py](scripts/run_agent_tests.py) - **NEW!** Python test runner with incremental execution modes
+- [scripts/run_agent_tests.sh](scripts/run_agent_tests.sh) - **NEW!** Bash test runner for Linux/macOS
 
 ### Development Guidelines
 - [Claude.md](Claude.md) - Guidelines for Claude Code
@@ -330,17 +378,20 @@ uv run mypy src/
 ### 4. Run Tests
 
 ```bash
-# All tests
-uv run pytest
+# Option 1: Use the comprehensive test runner (recommended)
+python scripts/run_agent_tests.py incremental  # Run all tests phase by phase
+python scripts/run_agent_tests.py coverage     # Run with coverage report
+python scripts/run_agent_tests.py core         # Test only core agents
 
-# With coverage
-uv run pytest --cov --cov-report=html
-
-# Specific markers
-uv run pytest -m unit
-uv run pytest -m integration
-uv run pytest -m bootstrap
+# Option 2: Direct pytest commands
+uv run pytest                                   # All tests
+uv run pytest --cov --cov-report=html          # With coverage
+uv run pytest -m unit                          # Unit tests only
+uv run pytest -m integration                   # Integration tests only
+uv run pytest -m bootstrap                     # Bootstrap tests only
 ```
+
+See [docs/test_plan_quick_start.md](docs/test_plan_quick_start.md) for complete testing guide.
 
 ### 5. Create Feature Branch
 
