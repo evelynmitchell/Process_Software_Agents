@@ -20,6 +20,7 @@ from asp.models.code_review import CodeReviewReport
 from asp.models.design import DesignSpecification
 from asp.models.design_review import DesignReviewReport
 from asp.models.planning import ProjectPlan
+from asp.models.test import TestReport
 
 logger = logging.getLogger(__name__)
 
@@ -501,6 +502,196 @@ def render_code_review_markdown(review: CodeReviewReport) -> str:
         md += f"""---
 
 *Review completed in {review.review_duration_seconds:.1f} seconds*
+"""
+
+    return md
+
+
+def render_test_report_markdown(report: TestReport) -> str:
+    """
+    Render TestReport as human-readable Markdown.
+
+    Args:
+        report: TestReport Pydantic model
+
+    Returns:
+        Markdown formatted string
+    """
+    # Status emoji
+    status_emoji = {
+        "PASS": "✅",
+        "FAIL": "❌",
+        "BUILD_FAILED": "🔴",
+    }
+    emoji = status_emoji.get(report.test_status, "❓")
+
+    md = f"""# Test Report: {report.task_id}
+
+**Test Status:** {emoji} {report.test_status}
+**Tested by:** Test Agent v{report.agent_version}
+**Date:** {report.test_timestamp}
+**Duration:** {report.test_duration_seconds:.1f}s
+
+## Build Status
+
+**Build Successful:** {"✅ Yes" if report.build_successful else "❌ No"}
+
+"""
+
+    if report.build_errors:
+        md += "### Build Errors\n\n"
+        for error in report.build_errors:
+            md += f"- {error}\n"
+        md += "\n"
+
+    # Test execution summary
+    md += f"""## Test Execution Summary
+
+- **Total Tests:** {report.test_summary.get('total_tests', 0)}
+- **Passed:** {report.test_summary.get('passed', 0)} ✅
+- **Failed:** {report.test_summary.get('failed', 0)} ❌
+- **Skipped:** {report.test_summary.get('skipped', 0)} ⏭️
+- **Coverage:** {report.coverage_percentage or 'N/A'}%
+
+## Test Generation
+
+- **Tests Generated:** {report.total_tests_generated}
+- **Test Files Created:** {len(report.test_files_created)}
+
+"""
+
+    if report.test_files_created:
+        for file in report.test_files_created:
+            md += f"  - `{file}`\n"
+        md += "\n"
+
+    # Defects summary
+    md += f"""## Defects Summary
+
+- **Total Defects:** {len(report.defects_found)}
+- **Critical:** {report.critical_defects} 🔴
+- **High:** {report.high_defects} 🟠
+- **Medium:** {report.medium_defects} 🟡
+- **Low:** {report.low_defects} 🟢
+
+"""
+
+    # Critical defects
+    if report.critical_defects > 0:
+        md += "## Critical Defects\n\n"
+        for defect in report.defects_found:
+            if defect.severity == "Critical":
+                md += f"""### {defect.defect_id}: {defect.description}
+
+**Type:** {defect.defect_type}
+**Severity:** {defect.severity}
+**Phase Injected:** {defect.phase_injected}
+**File:** `{defect.file_path or 'N/A'}:{defect.line_number or 'N/A'}`
+
+**Evidence:**
+```
+{defect.evidence}
+```
+
+**Impact:** This is a critical defect that must be fixed before proceeding.
+
+---
+
+"""
+
+    # High defects
+    if report.high_defects > 0:
+        md += "## High Priority Defects\n\n"
+        for defect in report.defects_found:
+            if defect.severity == "High":
+                md += f"""### {defect.defect_id}: {defect.description}
+
+**Type:** {defect.defect_type}
+**Phase Injected:** {defect.phase_injected}
+**File:** `{defect.file_path or 'N/A'}:{defect.line_number or 'N/A'}`
+
+**Evidence:**
+```
+{defect.evidence}
+```
+
+---
+
+"""
+
+    # Medium and low defects (summary only)
+    if report.medium_defects > 0 or report.low_defects > 0:
+        md += "## Other Defects\n\n"
+        for defect in report.defects_found:
+            if defect.severity in ["Medium", "Low"]:
+                md += f"- **[{defect.severity}]** {defect.defect_id}: {defect.description} "
+                md += f"({defect.defect_type}) - `{defect.file_path or 'N/A'}`\n"
+        md += "\n"
+
+    # Defect analysis
+    if len(report.defects_found) > 0:
+        md += "## Defect Analysis\n\n"
+
+        # Group by phase injected
+        phases = {}
+        for defect in report.defects_found:
+            phase = defect.phase_injected
+            if phase not in phases:
+                phases[phase] = []
+            phases[phase].append(defect)
+
+        md += "### Defects by Phase Injected\n\n"
+        for phase, defects in sorted(phases.items()):
+            md += f"- **{phase}:** {len(defects)} defects\n"
+        md += "\n"
+
+        # Group by defect type
+        types = {}
+        for defect in report.defects_found:
+            dtype = defect.defect_type
+            if dtype not in types:
+                types[dtype] = []
+            types[dtype].append(defect)
+
+        md += "### Defects by Type\n\n"
+        for dtype, defects in sorted(types.items()):
+            md += f"- **{dtype}:** {len(defects)} defects\n"
+        md += "\n"
+
+    # Recommendations
+    if report.test_status != "PASS":
+        md += "## Recommendations\n\n"
+
+        if report.test_status == "BUILD_FAILED":
+            md += """### Immediate Actions Required
+
+1. Fix all build errors before proceeding
+2. Verify all dependencies are installed
+3. Check import statements and module paths
+4. Return to Code Agent for corrections
+
+"""
+        elif report.critical_defects > 0 or report.high_defects > 0:
+            md += """### Immediate Actions Required
+
+1. Address all Critical and High severity defects
+2. Re-run tests after fixes
+3. Return to Code Agent if needed
+
+"""
+        else:
+            md += """### Suggested Actions
+
+1. Review and address Medium/Low severity defects
+2. Consider proceeding with caution
+3. Document known issues for future work
+
+"""
+
+    # Footer
+    md += f"""---
+
+*Test report generated by Test Agent v{report.agent_version}*
 """
 
     return md

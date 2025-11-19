@@ -27,6 +27,7 @@ from asp.models.planning import (
     SemanticUnit,
     TaskRequirements,
 )
+from asp.models.test import TestDefect, TestInput, TestReport
 
 __all__ = [
     # Planning models
@@ -55,4 +56,8 @@ __all__ = [
     "CodeImprovementSuggestion",
     "CodeChecklistItemReview",
     "CodeReviewReport",
+    # Test models
+    "TestInput",
+    "TestDefect",
+    "TestReport",
 ]
