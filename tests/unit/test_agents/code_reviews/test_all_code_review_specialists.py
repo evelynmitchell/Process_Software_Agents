@@ -118,7 +118,13 @@ def create_mock_llm_response(issues_found, suggestions):
         "content": json.dumps({
             "issues_found": issues_found,
             "improvement_suggestions": suggestions,
-        })
+        }),
+        "usage": {
+            "input_tokens": 100,
+            "output_tokens": 50,
+        },
+        "model": "claude-sonnet-4",
+        "cost": 0.001,
     }
 
 
