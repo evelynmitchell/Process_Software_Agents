@@ -1,0 +1,21 @@
+{
+  "project_id": "TEST-HW",
+  "task_id": "HW-PLAN-001",
+  "semantic_units": [
+    {
+      "unit_id": "SU-001",
+      "description": "Create GET /hello route handler with JSON response",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 0,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 9,
+      "dependencies": []
+    }
+  ],
+  "total_est_complexity": 9,
+  "probe_ai_prediction": null,
+  "probe_ai_enabled": false,
+  "agent_version": "1.0.0"
+}
