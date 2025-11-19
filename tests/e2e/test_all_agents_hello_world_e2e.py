@@ -134,8 +134,29 @@ class TestAllAgentsHelloWorldE2E:
         print(f"    - Critical issues: {design_review.critical_issue_count}")
         print(f"    - High issues: {design_review.high_issue_count}")
 
-        # Get project plan from design spec for postmortem
-        project_plan = design_spec.project_plan
+        # Note: project_plan is only needed for postmortem agent later
+        # The orchestrator handled Planning internally, so we don't have direct access
+        # For now, create a mock project plan for the postmortem test
+        from asp.models.planning import ProjectPlan, SemanticUnit
+        project_plan = ProjectPlan(
+            project_id="HELLO-WORLD-E2E",
+            task_id="HW-001",
+            description="Hello World API",
+            semantic_units=[
+                SemanticUnit(
+                    unit_id="SU-001",
+                    description="Hello World API implementation",
+                    unit_type="API Development",
+                    api_interactions=1,
+                    data_transformations=0,
+                    logical_branches=1,
+                    code_entities_modified=3,
+                    novelty_multiplier=1.0,
+                    est_complexity=10,
+                )
+            ],
+            total_est_complexity=10,
+        )
 
         # =====================================================================
         # STEP 4: Code Agent - Generate Implementation
