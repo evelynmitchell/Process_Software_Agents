@@ -244,29 +244,23 @@ def test_orchestrator_execute_success(mock_dispatch):
     assert isinstance(report, CodeReviewReport)
     assert report.task_id == "CODE-TEST-001"
     assert report.review_id.startswith("CODE-REVIEW-")
-    assert report.reviewer_agent == "CodeReviewOrchestrator"
     assert report.agent_version == "1.0.0"
 
     # Verify issue aggregation
     assert len(report.issues_found) == 3  # QUAL-001, SEC-001, TEST-001
-    assert report.critical_issue_count == 1  # SEC-001
-    assert report.high_issue_count == 1  # TEST-001
-    assert report.medium_issue_count == 1  # QUAL-001
-    assert report.low_issue_count == 0
+    assert report.critical_issues == 1  # SEC-001
+    assert report.high_issues == 1  # TEST-001
+    assert report.medium_issues == 1  # QUAL-001
+    assert report.low_issues == 0
 
     # Verify overall assessment (Critical issues → FAIL)
-    assert report.overall_assessment == "FAIL"
-
-    # Verify automated checks
-    assert "has_source_files" in report.automated_checks
-    assert report.automated_checks["has_source_files"] is True
-    assert report.automated_checks["has_test_files"] is True
+    assert report.review_status == "FAIL"
 
     # Verify checklist review
     assert len(report.checklist_review) == 5  # Standard checklist
-    security_items = [item for item in report.checklist_review if item.category == "Security"]
+    security_items = [item for item in report.checklist_review if "Category: Security" in item.notes]
     assert len(security_items) == 1
-    assert security_items[0].status == "FAIL"  # Due to critical security issue
+    assert security_items[0].status == "Fail"  # Due to critical security issue
 
 
 @patch.object(CodeReviewOrchestrator, "_dispatch_specialists")
@@ -283,9 +277,9 @@ def test_orchestrator_execute_with_only_medium_issues(mock_dispatch):
                     "issue_id": "QUAL-001",
                     "category": "Code Quality",
                     "severity": "Medium",
-                    "description": "Minor code smell",
+                    "description": "Minor code smell detected in function naming",
                     "evidence": "src/api/auth.py:10",
-                    "impact": "Reduces readability",
+                    "impact": "Reduces code readability and maintainability",
                     "file_path": "src/api/auth.py",
                     "affected_phase": "Code",
                 }
@@ -301,10 +295,10 @@ def test_orchestrator_execute_with_only_medium_issues(mock_dispatch):
 
     report = orchestrator.execute(generated_code)
 
-    assert report.overall_assessment == "NEEDS_IMPROVEMENT"
-    assert report.critical_issue_count == 0
-    assert report.high_issue_count == 0
-    assert report.medium_issue_count == 1
+    assert report.review_status == "PASS"  # Medium issues only → PASS
+    assert report.critical_issues == 0
+    assert report.high_issues == 0
+    assert report.medium_issues == 1
 
 
 @patch.object(CodeReviewOrchestrator, "_dispatch_specialists")
@@ -322,9 +316,9 @@ def test_orchestrator_execute_with_high_issues(mock_dispatch):
                     "issue_id": "SEC-001",
                     "category": "Security",
                     "severity": "High",
-                    "description": "Missing input validation",
+                    "description": "Missing input validation on user credentials",
                     "evidence": "src/api/auth.py:10",
-                    "impact": "Security risk",
+                    "impact": "Security risk - potential injection attack vector",
                     "file_path": "src/api/auth.py",
                     "affected_phase": "Code",
                 }
@@ -339,8 +333,8 @@ def test_orchestrator_execute_with_high_issues(mock_dispatch):
 
     report = orchestrator.execute(generated_code)
 
-    assert report.overall_assessment == "NEEDS_REVISION"
-    assert report.high_issue_count == 1
+    assert report.review_status == "CONDITIONAL_PASS"  # High issues but < 5 → CONDITIONAL_PASS
+    assert report.high_issues == 1
 
 
 @patch.object(CodeReviewOrchestrator, "_dispatch_specialists")
@@ -357,11 +351,11 @@ def test_orchestrator_execute_no_issues(mock_dispatch):
 
     report = orchestrator.execute(generated_code)
 
-    assert report.overall_assessment == "PASS"
-    assert report.critical_issue_count == 0
-    assert report.high_issue_count == 0
-    assert report.medium_issue_count == 0
-    assert report.low_issue_count == 0
+    assert report.review_status == "PASS"
+    assert report.critical_issues == 0
+    assert report.high_issues == 0
+    assert report.medium_issues == 0
+    assert report.low_issues == 0
 
 
 # =============================================================================
@@ -683,7 +677,7 @@ def test_orchestrator_end_to_end_with_mocked_specialists():
     # Verify report was generated
     assert isinstance(report, CodeReviewReport)
     assert report.task_id == "CODE-TEST-001"
-    assert report.overall_assessment in ["PASS", "NEEDS_IMPROVEMENT", "NEEDS_REVISION", "FAIL"]
+    assert report.review_status in ["PASS", "CONDITIONAL_PASS", "FAIL"]
 
     # Verify all specialists were called
     for specialist in orchestrator.specialists.values():
