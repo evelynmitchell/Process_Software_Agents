@@ -491,7 +491,7 @@ def test_e2e_checklist_review_reflects_issues():
     # Security item should Fail due to critical issue
     security_item = security_items[0]
     assert security_item.status == "Fail"
-    assert "SEC-" in security_item.notes  # Related security issue in notes
+    assert "CODE-ISSUE-" in security_item.notes  # Related issue ID in notes
 
 
 # =============================================================================
@@ -583,9 +583,10 @@ def test_e2e_full_pipeline_integration():
                             "category": "Testing",
                             "severity": "Low",
                             "description": "Missing edge case tests for user validation",
-                            "evidence": "tests/test_user.py",
+                            "evidence": "tests/test_user.py:1",
                             "impact": "Incomplete test coverage may miss bugs in edge cases",
                             "file_path": "tests/test_user.py",
+                            "line_number": 1,
                             "affected_phase": "Code",
                         }
                     ],
