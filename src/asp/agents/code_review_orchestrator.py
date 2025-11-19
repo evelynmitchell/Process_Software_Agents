@@ -135,44 +135,52 @@ class CodeReviewOrchestrator(BaseAgent):
             medium_count = sum(1 for issue in issues_list if issue.severity == "Medium")
             low_count = sum(1 for issue in issues_list if issue.severity == "Low")
 
-            # Step 7: Determine overall assessment
-            if critical_count > 0:
-                overall_assessment = "FAIL"
+            # Step 7: Determine review status based on issue counts
+            # FAIL: Critical issues present OR ≥5 High issues
+            # CONDITIONAL_PASS: High issues present but <5, all Critical resolved
+            # PASS: No Critical/High issues
+            if critical_count > 0 or high_count >= 5:
+                review_status = "FAIL"
             elif high_count > 0:
-                overall_assessment = "NEEDS_REVISION"
-            elif medium_count > 0:
-                overall_assessment = "NEEDS_IMPROVEMENT"
+                review_status = "CONDITIONAL_PASS"
             else:
-                overall_assessment = "PASS"
+                review_status = "PASS"
 
             # Step 8: Calculate review duration
             end_time = datetime.now()
-            duration_ms = (end_time - start_time).total_seconds() * 1000
+            duration_seconds = (end_time - start_time).total_seconds()
 
             # Step 9: Generate review ID
             review_id = self._generate_review_id(generated_code.task_id, start_time)
 
-            # Step 10: Create review report
+            # Step 10: Calculate files and lines reviewed
+            files_reviewed = len(generated_code.files)
+            total_lines_reviewed = sum(
+                len(f.content.splitlines()) for f in generated_code.files
+            )
+
+            # Step 11: Create review report
             report = CodeReviewReport(
                 task_id=generated_code.task_id,
                 review_id=review_id,
-                timestamp=start_time,
-                overall_assessment=overall_assessment,
-                automated_checks=automated_checks,
+                review_status=review_status,
+                review_timestamp=start_time.isoformat(),
                 issues_found=issues_list,
                 improvement_suggestions=suggestions_list,
                 checklist_review=checklist_review_list,
-                critical_issue_count=critical_count,
-                high_issue_count=high_count,
-                medium_issue_count=medium_count,
-                low_issue_count=low_count,
-                reviewer_agent="CodeReviewOrchestrator",
+                critical_issues=critical_count,
+                high_issues=high_count,
+                medium_issues=medium_count,
+                low_issues=low_count,
+                total_issues=critical_count + high_count + medium_count + low_count,
+                files_reviewed=files_reviewed,
+                total_lines_reviewed=total_lines_reviewed,
                 agent_version="1.0.0",
-                review_duration_ms=duration_ms,
+                review_duration_seconds=duration_seconds,
             )
 
             logger.info(
-                f"Orchestrated code review completed: {overall_assessment} "
+                f"Orchestrated code review completed: {review_status} "
                 f"({critical_count}C/{high_count}H/{medium_count}M/{low_count}L issues)"
             )
             return report
@@ -615,17 +623,22 @@ class CodeReviewOrchestrator(BaseAgent):
                 has_critical_or_high = any(
                     s in ["Critical", "High"] for s in related_severities
                 )
-                status = "FAIL" if has_critical_or_high else "WARNING"
+                status = "Fail" if has_critical_or_high else "Needs Review"
             else:
-                status = "PASS"
+                status = "Pass"
+
+            # Build notes with category and related issues
+            notes_parts = [f"Category: {item['category']}"]
+            if related_issues:
+                notes_parts.append(f"Found {len(related_issues)} related issue(s): {', '.join(related_issues)}")
+            else:
+                notes_parts.append("No issues found for this checklist item")
 
             checklist_review.append({
-                "checklist_item_id": f"CODE-CHECK-{i+1:03d}",
-                "category": item["category"],
-                "description": item["description"],
+                "item_id": f"CODE-CHECK-{i+1:03d}",
+                "item_description": item["description"],
                 "status": status,
-                "notes": f"Found {len(related_issues)} related issue(s) in this category" if related_issues else "No issues found for this checklist item",
-                "related_issues": related_issues,
+                "notes": " | ".join(notes_parts),
             })
 
         return checklist_review
