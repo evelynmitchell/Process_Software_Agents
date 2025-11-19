@@ -36,11 +36,11 @@ assert_equals() {
 
     if [ "$expected" = "$actual" ]; then
         TESTS_PASSED=$((TESTS_PASSED + 1))
-        echo -e "${GREEN}✓${NC} $message"
+        echo -e "${GREEN}${NC} $message"
         return 0
     else
         TESTS_FAILED=$((TESTS_FAILED + 1))
-        echo -e "${RED}✗${NC} $message"
+        echo -e "${RED}${NC} $message"
         echo -e "  Expected: '$expected'"
         echo -e "  Got:      '$actual'"
         return 1
@@ -56,11 +56,11 @@ assert_contains() {
 
     if echo "$haystack" | grep -q "$needle"; then
         TESTS_PASSED=$((TESTS_PASSED + 1))
-        echo -e "${GREEN}✓${NC} $message"
+        echo -e "${GREEN}${NC} $message"
         return 0
     else
         TESTS_FAILED=$((TESTS_FAILED + 1))
-        echo -e "${RED}✗${NC} $message"
+        echo -e "${RED}${NC} $message"
         echo -e "  Expected to find: '$needle'"
         echo -e "  In: '$haystack'"
         return 1
@@ -76,11 +76,11 @@ assert_not_contains() {
 
     if ! echo "$haystack" | grep -q "$needle"; then
         TESTS_PASSED=$((TESTS_PASSED + 1))
-        echo -e "${GREEN}✓${NC} $message"
+        echo -e "${GREEN}${NC} $message"
         return 0
     else
         TESTS_FAILED=$((TESTS_FAILED + 1))
-        echo -e "${RED}✗${NC} $message"
+        echo -e "${RED}${NC} $message"
         echo -e "  Expected NOT to find: '$needle'"
         echo -e "  In: '$haystack'"
         return 1
@@ -96,11 +96,11 @@ assert_exit_code() {
 
     if [ "$expected" -eq "$actual" ]; then
         TESTS_PASSED=$((TESTS_PASSED + 1))
-        echo -e "${GREEN}✓${NC} $message"
+        echo -e "${GREEN}${NC} $message"
         return 0
     else
         TESTS_FAILED=$((TESTS_FAILED + 1))
-        echo -e "${RED}✗${NC} $message"
+        echo -e "${RED}${NC} $message"
         echo -e "  Expected exit code: $expected"
         echo -e "  Got exit code:      $actual"
         return 1
@@ -191,7 +191,7 @@ test_missing_commands() {
         if echo "$output" | grep -q "claude: not found"; then
             TESTS_RUN=$((TESTS_RUN + 1))
             TESTS_FAILED=$((TESTS_FAILED + 1))
-            echo -e "${RED}✗${NC} Script incorrectly reports claude as installed when it's missing"
+            echo -e "${RED}${NC} Script incorrectly reports claude as installed when it's missing"
         fi
     fi
 
@@ -199,7 +199,7 @@ test_missing_commands() {
         if echo "$output" | grep -q "uv: not found"; then
             TESTS_RUN=$((TESTS_RUN + 1))
             TESTS_FAILED=$((TESTS_FAILED + 1))
-            echo -e "${RED}✗${NC} Script incorrectly reports uv as installed when it's missing"
+            echo -e "${RED}${NC} Script incorrectly reports uv as installed when it's missing"
         fi
     fi
 
@@ -446,9 +446,9 @@ echo -e "${RED}Failed:       $TESTS_FAILED${NC}"
 echo ""
 
 if [ $TESTS_FAILED -eq 0 ]; then
-    echo -e "${GREEN}✓ All tests passed!${NC}"
+    echo -e "${GREEN} All tests passed!${NC}"
     exit 0
 else
-    echo -e "${RED}✗ Some tests failed${NC}"
+    echo -e "${RED} Some tests failed${NC}"
     exit 1
 fi

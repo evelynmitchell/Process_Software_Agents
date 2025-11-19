@@ -106,7 +106,7 @@ def print_review_report(report):
         passed = sum(1 for item in report.checklist_review if item.status == "Pass")
         print(f"  Passed: {passed}/{len(report.checklist_review)}")
         for i, item in enumerate(report.checklist_review, 1):
-            status_icon = "✓" if item.status == "Pass" else ("⚠" if item.status == "Warning" else "✗")
+            status_icon = "[PASS]" if item.status == "Pass" else ("[WARN]" if item.status == "Warning" else "[FAIL]")
             print(f"  {status_icon} [{item.category}] {item.status}")
             print(f"    {item.description}")
             if item.status != "Pass":
@@ -609,7 +609,7 @@ def save_report_to_file(report, filename: str):
     with open(output_path, "w") as f:
         json.dump(report_dict, f, indent=2)
 
-    print(f"✓ Report saved to: {output_path}")
+    print(f"Report saved to: {output_path}")
 
 
 def main():

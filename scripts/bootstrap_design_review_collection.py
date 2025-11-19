@@ -152,7 +152,7 @@ def run_bootstrap_design_review_collection():
 
         # Skip if already successfully completed
         if task_id in existing_results:
-            print(f"\n⏭️  TASK {i}/{len(successful_planning)}: {task_id} - SKIPPING (already successful)")
+            print(f"\nSKIPPING TASK {i}/{len(successful_planning)}: {task_id} (already successful)")
             continue
 
         print(f"\n{'='*80}")
@@ -289,7 +289,7 @@ def run_bootstrap_design_review_collection():
 
         # Save results incrementally after each task
         save_results(all_results, output_file)
-        print(f"💾 Results saved ({len(all_results)} tasks completed)")
+        print(f"Results saved ({len(all_results)} tasks completed)")
 
     # Final save with summary
     save_results(all_results, output_file)
