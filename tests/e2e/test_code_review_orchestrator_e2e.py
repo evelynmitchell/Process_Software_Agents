@@ -242,11 +242,11 @@ def test_e2e_simple_code_passes_review():
 
     assert isinstance(report, CodeReviewReport)
     assert report.task_id == "E2E-SIMPLE-001"
-    assert report.overall_assessment == "PASS"
-    assert report.critical_issue_count == 0
-    assert report.high_issue_count == 0
-    assert report.medium_issue_count == 0
-    assert report.low_issue_count == 0
+    assert report.review_status == "PASS"
+    assert report.critical_issues == 0
+    assert report.high_issues == 0
+    assert report.medium_issues == 0
+    assert report.low_issues == 0
     assert len(report.issues_found) == 0
 
 
@@ -309,8 +309,8 @@ def test_e2e_problematic_code_fails_review():
 
     report = orchestrator.execute(generated_code)
 
-    assert report.overall_assessment == "FAIL"
-    assert report.critical_issue_count >= 1
+    assert report.review_status == "FAIL"
+    assert report.critical_issues >= 1
     assert len(report.issues_found) >= 1
 
     # Verify issues were normalized
@@ -485,13 +485,13 @@ def test_e2e_checklist_review_reflects_issues():
     report = orchestrator.execute(generated_code)
 
     # Find security checklist item
-    security_items = [item for item in report.checklist_review if item.category == "Security"]
+    security_items = [item for item in report.checklist_review if "Category: Security" in item.notes]
     assert len(security_items) > 0
 
-    # Security item should FAIL due to critical issue
+    # Security item should Fail due to critical issue
     security_item = security_items[0]
-    assert security_item.status == "FAIL"
-    assert len(security_item.related_issues) > 0
+    assert security_item.status == "Fail"
+    assert "SEC-" in security_item.notes  # Related security issue in notes
 
 
 # =============================================================================
@@ -609,10 +609,10 @@ def test_e2e_full_pipeline_integration():
     report = orchestrator.execute(generated_code)
 
     # Verify mixed severities
-    assert report.overall_assessment == "NEEDS_REVISION"  # High severity issue present
-    assert report.high_issue_count == 1
-    assert report.medium_issue_count == 1
-    assert report.low_issue_count == 1
+    assert report.review_status == "CONDITIONAL_PASS"  # High severity issue present but < 5
+    assert report.high_issues == 1
+    assert report.medium_issues == 1
+    assert report.low_issues == 1
 
     # Verify total issue count
     assert len(report.issues_found) == 3
