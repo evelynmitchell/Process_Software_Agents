@@ -848,7 +848,7 @@ class TestErrorHandlingAndEdgeCases:
                     },
                     {
                         "issue_id": "ISSUE-008",
-                        "category": "Documentation",
+                        "category": "Maintainability",
                         "severity": "Low",
                         "description": "Low severity documentation issue needs attention",
                         "evidence": "Test evidence for low severity",
