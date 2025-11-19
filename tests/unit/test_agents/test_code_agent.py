@@ -227,7 +227,7 @@ class TestCodeAgentInitialization:
         agent = CodeAgent()
 
         assert agent.agent_version == "1.0.0"
-        assert agent.llm_client is not None
+        # Note: llm_client is lazily initialized, don't access it without API key
 
     def test_init_with_db_path(self, tmp_path):
         """Test Code Agent initializes with custom database path."""
