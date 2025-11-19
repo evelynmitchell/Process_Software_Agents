@@ -1264,7 +1264,7 @@
       "description": "Implement database sharding for horizontal scaling",
       "expected_complexity": "complex",
       "actual_total_complexity": 790,
-      "num_units": 8,
+      "num_units": 12,
       "execution_time_seconds": 13.24785828590393,
       "units": [
         {
@@ -1328,8 +1328,8 @@
         },
         {
           "unit_id": "SU-005",
-          "description": "Update ORM layer to be shard-aware with query routing and transaction handling",
-          "complexity": 111,
+          "description": "Update ORM layer to be shard-aware with shard detection logic",
+          "complexity": 55,
           "factors": {
             "api_interactions": 2,
             "data_transformations": 5,
@@ -1344,8 +1344,23 @@
         },
         {
           "unit_id": "SU-006",
-          "description": "Implement cross-shard query engine for analytics with result aggregation",
-          "complexity": 154,
+          "description": "Implement query routing and transaction handling for sharded database",
+          "complexity": 56,
+          "factors": {
+            "api_interactions": 2,
+            "data_transformations": 5,
+            "logical_branches": 7,
+            "code_entities_modified": 6,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-005"
+          ]
+        },
+        {
+          "unit_id": "SU-007",
+          "description": "Implement cross-shard query engine for distributed queries",
+          "complexity": 77,
           "factors": {
             "api_interactions": 8,
             "data_transformations": 6,
@@ -1354,13 +1369,28 @@
             "novelty_multiplier": 2.0
           },
           "dependencies": [
-            "SU-005"
+            "SU-006"
           ]
         },
         {
-          "unit_id": "SU-007",
-          "description": "Create data migration scripts for resharding with consistency validation",
-          "complexity": 122,
+          "unit_id": "SU-008",
+          "description": "Build result aggregation and merging for analytics queries across shards",
+          "complexity": 77,
+          "factors": {
+            "api_interactions": 8,
+            "data_transformations": 6,
+            "logical_branches": 5,
+            "code_entities_modified": 4,
+            "novelty_multiplier": 2.0
+          },
+          "dependencies": [
+            "SU-007"
+          ]
+        },
+        {
+          "unit_id": "SU-009",
+          "description": "Create data migration scripts for resharding and data movement",
+          "complexity": 61,
           "factors": {
             "api_interactions": 8,
             "data_transformations": 7,
@@ -1369,13 +1399,28 @@
             "novelty_multiplier": 1.5
           },
           "dependencies": [
-            "SU-005"
+            "SU-006"
           ]
         },
         {
-          "unit_id": "SU-008",
-          "description": "Build monitoring system for shard balance and health checks with failover logic",
-          "complexity": 120,
+          "unit_id": "SU-010",
+          "description": "Implement consistency validation and verification for migration process",
+          "complexity": 61,
+          "factors": {
+            "api_interactions": 8,
+            "data_transformations": 7,
+            "logical_branches": 6,
+            "code_entities_modified": 3,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-009"
+          ]
+        },
+        {
+          "unit_id": "SU-011",
+          "description": "Build monitoring system for shard balance and health checks",
+          "complexity": 60,
           "factors": {
             "api_interactions": 8,
             "data_transformations": 4,
@@ -1385,7 +1430,22 @@
           },
           "dependencies": [
             "SU-004",
-            "SU-005"
+            "SU-006"
+          ]
+        },
+        {
+          "unit_id": "SU-012",
+          "description": "Implement automatic failover logic and shard recovery mechanisms",
+          "complexity": 60,
+          "factors": {
+            "api_interactions": 8,
+            "data_transformations": 4,
+            "logical_branches": 8,
+            "code_entities_modified": 5,
+            "novelty_multiplier": 1.5
+          },
+          "dependencies": [
+            "SU-011"
           ]
         }
       ],
