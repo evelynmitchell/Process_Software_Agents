@@ -40,9 +40,9 @@ For each issue, determine which phase introduced it:
 
 Return JSON with "file_path" and "line_number" fields for code issues:
 
-{
+{{
   "issues_found": [
-    {
+    {{
       "issue_id": "QUAL-001",
       "category": "Code Quality",
       "severity": "High",
@@ -53,10 +53,10 @@ Return JSON with "file_path" and "line_number" fields for code issues:
       "file_path": "src/api/auth.py",
       "line_number": 45,
       "code_snippet": "def authenticate_user(username, password, ...):"
-    }
+    }}
   ],
   "improvement_suggestions": [
-    {
+    {{
       "suggestion_id": "QUAL-IMP-001",
       "related_issue_id": "QUAL-001",
       "category": "Code Quality",
@@ -65,9 +65,9 @@ Return JSON with "file_path" and "line_number" fields for code issues:
       "implementation_notes": "Extract validation, token generation, and session management into separate functions. Use strategy pattern for different auth methods.",
       "file_path": "src/api/auth.py",
       "suggested_code": "def authenticate_user(...):\n    validate_credentials(...)\n    token = generate_token(...)\n    ..."
-    }
+    }}
   ]
-}
+}}
 
 Use IDs: QUAL-001, QUAL-002, etc. and QUAL-IMP-001, QUAL-IMP-002, etc.
 
