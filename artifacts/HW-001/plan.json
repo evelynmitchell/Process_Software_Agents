@@ -1,0 +1,61 @@
+{
+  "project_id": "HELLO-WORLD-E2E",
+  "task_id": "HW-001",
+  "semantic_units": [
+    {
+      "unit_id": "SU-001",
+      "description": "Set up FastAPI project structure and basic application configuration",
+      "api_interactions": 0,
+      "data_transformations": 0,
+      "logical_branches": 1,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 11,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-002",
+      "description": "Implement GET /hello endpoint with optional name parameter and JSON response",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 2,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 19,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Implement GET /health endpoint with status and timestamp response",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 1,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 12,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Add error handling and HTTP status code management for both endpoints",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 3,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 22,
+      "dependencies": [
+        "SU-002",
+        "SU-003"
+      ]
+    }
+  ],
+  "total_est_complexity": 64,
+  "probe_ai_prediction": null,
+  "probe_ai_enabled": false,
+  "agent_version": "1.0.0"
+}
