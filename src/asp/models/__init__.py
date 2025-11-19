@@ -27,6 +27,18 @@ from asp.models.planning import (
     SemanticUnit,
     TaskRequirements,
 )
+from asp.models.postmortem import (
+    DefectLogEntry,
+    EffortLogEntry,
+    EstimationAccuracy,
+    MetricComparison,
+    PostmortemInput,
+    PostmortemReport,
+    ProcessImprovementProposal,
+    ProposedChange,
+    QualityMetrics,
+    RootCauseItem,
+)
 from asp.models.test import TestDefect, TestInput, TestReport
 
 __all__ = [
@@ -60,4 +72,15 @@ __all__ = [
     "TestInput",
     "TestDefect",
     "TestReport",
+    # Postmortem models
+    "PostmortemInput",
+    "EffortLogEntry",
+    "DefectLogEntry",
+    "MetricComparison",
+    "EstimationAccuracy",
+    "QualityMetrics",
+    "RootCauseItem",
+    "PostmortemReport",
+    "ProposedChange",
+    "ProcessImprovementProposal",
 ]
