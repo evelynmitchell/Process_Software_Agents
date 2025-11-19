@@ -4,25 +4,25 @@
 
 ## Architecture Overview
 
-Simple REST API with FastAPI framework using layered architecture. Application layer (FastAPIApplication) handles setup and configuration. Endpoint layer (HelloEndpoint, HealthEndpoint) handles HTTP requests and business logic. Error handling layer (ErrorHandler) provides centralized exception management. No database or external dependencies required. Stateless design with JSON responses.
+Simple REST API built with FastAPI framework using single-file architecture. Four main components: FastAPIApplication handles app initialization and configuration, HelloEndpoint manages greeting logic with input validation, HealthEndpoint provides status monitoring, and ErrorHandler centralizes exception management. No database or external dependencies required. Follows REST principles with proper HTTP status codes and JSON responses.
 
 ## Technology Stack
 
-{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'http_server': 'Uvicorn 0.24+', 'json_handling': 'Python json module (stdlib)', 'datetime_handling': 'Python datetime module (stdlib)', 'input_validation': 'Pydantic (included with FastAPI)', 'html_escaping': 'Python html module (stdlib)'}
+{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'asgi_server': 'uvicorn 0.24+', 'validation': 'pydantic (included with FastAPI)', 'datetime': 'Python datetime module (stdlib)', 'regex': 'Python re module (stdlib)'}
 
 ## Assumptions
 
-['No authentication or authorization required for any endpoints', 'No database or persistent storage needed', 'Application runs in single-threaded mode (sufficient for minimal API)', 'CORS middleware may be needed for browser access but not specified in requirements', 'Error logging goes to stdout/stderr (no file logging required)', 'No rate limiting required for this minimal API', 'UTC timezone used for all timestamps']
+['Application runs as single process (no clustering required)', 'No persistent data storage needed', 'No authentication or authorization required', 'Name parameter validation allows alphanumeric characters and spaces only', "Health endpoint always returns 'ok' status (no actual health checks)", 'Error messages can be generic for security (no sensitive information exposure)', 'UTC timezone used for all timestamps', 'Maximum name length of 100 characters is sufficient for use cases']
 
 ## API Contracts
 
 ### GET /hello
 
-- **Description:** Returns a greeting message with optional personalization
+- **Description:** Returns a greeting message with optional personalization via name parameter
 - **Authentication:** False
 - **Response Schema:**
 ```json
-{'message': 'string'}
+{'message': 'string (greeting message)'}
 ```
 - **Error Responses:** N/A, N/A
 
@@ -32,7 +32,7 @@ Simple REST API with FastAPI framework using layered architecture. Application l
 - **Authentication:** False
 - **Response Schema:**
 ```json
-{'status': "string (always 'ok')", 'timestamp': 'string (ISO 8601 format)'}
+{'status': "string (always 'ok')", 'timestamp': 'string (ISO 8601 UTC timestamp)'}
 ```
 - **Error Responses:** N/A
 
@@ -43,7 +43,7 @@ Simple REST API with FastAPI framework using layered architecture. Application l
 - **Responsibility:** Initializes and configures the FastAPI application instance with middleware and error handlers
 - **Semantic Unit:** SU-001
 - **Dependencies:** None
-- **Implementation Notes:** Create FastAPI instance with title='Hello World API', version='1.0.0', description='Minimal REST API with hello and health endpoints'. Add global exception handler for unhandled exceptions returning 500 status. Configure CORS middleware if needed for browser access.
+- **Implementation Notes:** Create FastAPI instance with title='Hello World API', version='1.0.0', description='Minimal REST API with hello and health endpoints'. Add global exception handler for unhandled exceptions that returns 500 status with generic error message. Use uvicorn as ASGI server.
 - **Interfaces:**
   - `create_app`
   - `setup_error_handlers`
@@ -53,17 +53,18 @@ Simple REST API with FastAPI framework using layered architecture. Application l
 - **Responsibility:** Handles GET /hello requests with optional name parameter and returns personalized greeting
 - **Semantic Unit:** SU-002
 - **Dependencies:** None
-- **Implementation Notes:** Use FastAPI Query parameter with default None for optional name. Validate name length <= 100 characters if provided. Return {'message': f'Hello, {name}!'} if name provided, else {'message': 'Hello, World!'}. Sanitize name parameter to prevent XSS (strip whitespace, basic HTML escaping). Raise HTTPException(400) for invalid name.
+- **Implementation Notes:** Use FastAPI Query parameter with default None for optional name. Validate name with regex pattern '^[a-zA-Z0-9\s]+$' and max length 100. Sanitize by stripping whitespace and title-casing. Return {'message': f'Hello, {name}!'} if name provided, else {'message': 'Hello, World!'}. Raise HTTPException(400) for invalid names.
 - **Interfaces:**
   - `get_hello`
   - `validate_name`
+  - `sanitize_name`
 
 ### HealthEndpoint
 
 - **Responsibility:** Handles GET /health requests and returns application status with current timestamp
 - **Semantic Unit:** SU-003
 - **Dependencies:** None
-- **Implementation Notes:** Use datetime.utcnow().isoformat() + 'Z' for timestamp in ISO 8601 format. Always return {'status': 'ok', 'timestamp': <current_time>}. This endpoint should never fail under normal circumstances. Use UTC timezone for consistency.
+- **Implementation Notes:** Use datetime.utcnow().isoformat() + 'Z' for timestamp generation. Always return {'status': 'ok', 'timestamp': <iso_timestamp>}. No validation needed as endpoint takes no parameters. Use @app.get('/health') decorator.
 - **Interfaces:**
   - `get_health`
   - `get_current_timestamp`
@@ -73,7 +74,7 @@ Simple REST API with FastAPI framework using layered architecture. Application l
 - **Responsibility:** Provides centralized error handling and HTTP status code management for all endpoints
 - **Semantic Unit:** SU-004
 - **Dependencies:** None
-- **Implementation Notes:** Register exception handlers with FastAPI app.exception_handler decorator. For RequestValidationError: return 400 with error details. For HTTPException: return original status code and message. For general Exception: log error details and return 500 with generic message (don't expose internal details). All error responses should be JSON format with consistent structure.
+- **Implementation Notes:** Register exception handlers using @app.exception_handler decorators. For RequestValidationError, return 400 with INVALID_REQUEST code. For HTTPException, pass through status and detail. For general Exception, log error and return 500 with INTERNAL_ERROR code. All responses use consistent JSON format: {'error': {'code': 'ERROR_CODE', 'message': 'Error message'}}.
 - **Interfaces:**
   - `handle_validation_error`
   - `handle_http_exception`
@@ -81,4 +82,4 @@ Simple REST API with FastAPI framework using layered architecture. Application l
 
 ---
 
-*Generated by Design Agent on 2025-11-19 21:21:55*
+*Generated by Design Agent on 2025-11-19 21:59:44*
