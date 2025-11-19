@@ -118,7 +118,13 @@ def create_mock_llm_response(issues_found, suggestions):
         "content": json.dumps({
             "issues_found": issues_found,
             "improvement_suggestions": suggestions,
-        })
+        }),
+        "usage": {
+            "input_tokens": 100,
+            "output_tokens": 50,
+        },
+        "model": "claude-sonnet-4",
+        "cost": 0.001,
     }
 
 
@@ -146,7 +152,7 @@ class TestCodeQualityReviewAgent:
     def test_execute_success(self):
         """Test successful code quality review."""
         mock_llm = Mock()
-        mock_llm.return_value = create_mock_llm_response(
+        mock_llm.call_with_retry.return_value = create_mock_llm_response(
             issues_found=[
                 {
                     "issue_id": "QUAL-001",
@@ -184,7 +190,7 @@ class TestCodeQualityReviewAgent:
     def test_execute_with_no_issues(self):
         """Test review with clean code (no issues)."""
         mock_llm = Mock()
-        mock_llm.return_value = create_mock_llm_response(
+        mock_llm.call_with_retry.return_value = create_mock_llm_response(
             issues_found=[],
             suggestions=[],
         )
@@ -200,7 +206,7 @@ class TestCodeQualityReviewAgent:
     def test_execute_handles_llm_failure(self):
         """Test error handling when LLM fails."""
         mock_llm = Mock()
-        mock_llm.side_effect = Exception("LLM call failed")
+        mock_llm.call_with_retry.side_effect = Exception("LLM call failed")
 
         agent = CodeQualityReviewAgent(llm_client=mock_llm)
         generated_code = create_test_generated_code_with_issues()
@@ -211,7 +217,7 @@ class TestCodeQualityReviewAgent:
     def test_execute_handles_invalid_json(self):
         """Test error handling when LLM returns invalid JSON."""
         mock_llm = Mock()
-        mock_llm.return_value = {"content": "not valid json"}
+        mock_llm.call_with_retry.return_value = {"content": "not valid json"}
 
         agent = CodeQualityReviewAgent(llm_client=mock_llm)
         generated_code = create_test_generated_code_with_issues()
@@ -237,7 +243,7 @@ class TestCodeSecurityReviewAgent:
     def test_execute_detects_sql_injection(self):
         """Test detection of SQL injection vulnerability."""
         mock_llm = Mock()
-        mock_llm.return_value = create_mock_llm_response(
+        mock_llm.call_with_retry.return_value = create_mock_llm_response(
             issues_found=[
                 {
                     "issue_id": "SEC-001",
@@ -273,7 +279,7 @@ class TestCodeSecurityReviewAgent:
     def test_execute_detects_hardcoded_secrets(self):
         """Test detection of hardcoded secrets."""
         mock_llm = Mock()
-        mock_llm.return_value = create_mock_llm_response(
+        mock_llm.call_with_retry.return_value = create_mock_llm_response(
             issues_found=[
                 {
                     "issue_id": "SEC-002",
@@ -315,7 +321,7 @@ class TestCodePerformanceReviewAgent:
     def test_execute_detects_n_plus_one(self):
         """Test detection of N+1 query problem."""
         mock_llm = Mock()
-        mock_llm.return_value = create_mock_llm_response(
+        mock_llm.call_with_retry.return_value = create_mock_llm_response(
             issues_found=[
                 {
                     "issue_id": "PERF-001",
@@ -365,7 +371,7 @@ class TestTestCoverageReviewAgent:
     def test_execute_detects_missing_tests(self):
         """Test detection of missing test coverage."""
         mock_llm = Mock()
-        mock_llm.return_value = create_mock_llm_response(
+        mock_llm.call_with_retry.return_value = create_mock_llm_response(
             issues_found=[
                 {
                     "issue_id": "TEST-001",
@@ -400,7 +406,7 @@ class TestTestCoverageReviewAgent:
     def test_execute_detects_missing_edge_cases(self):
         """Test detection of missing edge case tests."""
         mock_llm = Mock()
-        mock_llm.return_value = create_mock_llm_response(
+        mock_llm.call_with_retry.return_value = create_mock_llm_response(
             issues_found=[
                 {
                     "issue_id": "TEST-002",
@@ -441,7 +447,7 @@ class TestDocumentationReviewAgent:
     def test_execute_detects_missing_docstrings(self):
         """Test detection of missing docstrings."""
         mock_llm = Mock()
-        mock_llm.return_value = create_mock_llm_response(
+        mock_llm.call_with_retry.return_value = create_mock_llm_response(
             issues_found=[
                 {
                     "issue_id": "DOC-001",
@@ -476,7 +482,7 @@ class TestDocumentationReviewAgent:
     def test_execute_detects_missing_module_docs(self):
         """Test detection of missing module-level documentation."""
         mock_llm = Mock()
-        mock_llm.return_value = create_mock_llm_response(
+        mock_llm.call_with_retry.return_value = create_mock_llm_response(
             issues_found=[
                 {
                     "issue_id": "DOC-002",
@@ -517,7 +523,7 @@ class TestBestPracticesReviewAgent:
     def test_execute_detects_anti_patterns(self):
         """Test detection of anti-patterns and non-Pythonic code."""
         mock_llm = Mock()
-        mock_llm.return_value = create_mock_llm_response(
+        mock_llm.call_with_retry.return_value = create_mock_llm_response(
             issues_found=[
                 {
                     "issue_id": "BP-001",
@@ -552,7 +558,7 @@ class TestBestPracticesReviewAgent:
     def test_execute_detects_framework_misuse(self):
         """Test detection of framework misuse."""
         mock_llm = Mock()
-        mock_llm.return_value = create_mock_llm_response(
+        mock_llm.call_with_retry.return_value = create_mock_llm_response(
             issues_found=[
                 {
                     "issue_id": "BP-002",
@@ -632,7 +638,7 @@ class TestAllSpecialists:
     def test_all_agents_return_dict_with_required_keys(self, agent_class):
         """Test that all agents return dict with issues_found and improvement_suggestions."""
         mock_llm = Mock()
-        mock_llm.return_value = create_mock_llm_response(
+        mock_llm.call_with_retry.return_value = create_mock_llm_response(
             issues_found=[],
             suggestions=[],
         )

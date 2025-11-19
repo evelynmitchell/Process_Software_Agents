@@ -68,7 +68,7 @@ Return JSON with best practices details:
       "description": "Catch specific exceptions instead of bare except",
       "implementation_notes": "Replace bare except with specific exception types (AuthenticationError, ValidationError, etc.). Let system exceptions (KeyboardInterrupt, SystemExit) propagate. Log caught exceptions.",
       "file_path": "src/api/auth.py",
-      "suggested_code": "try:\n    authenticate_user()\nexcept (AuthenticationError, ValidationError) as e:\n    logger.error(f\"Auth failed: {e}\")\n    raise"
+      "suggested_code": "try:\n    authenticate_user()\nexcept (AuthenticationError, ValidationError) as e:\n    logger.error(f\"Auth failed: {{e}}\")\n    raise"
     }}
   ]
 }}
