@@ -126,7 +126,7 @@ git log --oneline -1
 ```
 {Agent Name}: {Action} for {task_id} [{status}]
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
+ Generated with [Claude Code](https://claude.com/claude-code)
 
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```

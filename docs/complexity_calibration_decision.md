@@ -186,16 +186,16 @@ However, dependency graphs show units *are* semantically coherent and properly s
 6. Make data-driven decision on bands and granularity
 
 **Pros:**
-- ✅ **Evidence-based decision** - will have real ground truth
-- ✅ No premature optimization
-- ✅ Preserves maximum information for PROBE-AI training
-- ✅ Can test multiple hypotheses simultaneously
-- ✅ Bootstrap data remains valid (baseline metrics)
+-  **Evidence-based decision** - will have real ground truth
+-  No premature optimization
+-  Preserves maximum information for PROBE-AI training
+-  Can test multiple hypotheses simultaneously
+-  Bootstrap data remains valid (baseline metrics)
 
 **Cons:**
-- ⏳ Delays final calibration (requires full agent suite)
-- ⚠️ Complexity bands in documentation may be temporarily inaccurate
-- ⚠️ Stakeholders may be confused by "high" numbers
+-  Delays final calibration (requires full agent suite)
+-  Complexity bands in documentation may be temporarily inaccurate
+-  Stakeholders may be confused by "high" numbers
 
 ---
 
@@ -210,7 +210,7 @@ However, dependency graphs show units *are* semantically coherent and properly s
 2. **Bootstrap Data is Valuable Regardless:** The 12 tasks provide a baseline dataset. Whether complexity bands are 1-100 or 1-1000, the *relative* differences and telemetry captured remain useful for PROBE-AI training.
 
 3. **Full Agent Suite Required:** We cannot validate complexity scoring without agents that can actually build these projects. Once we have:
-   - Planning Agent ✅ (complete)
+   - Planning Agent  (complete)
    - Design Agent (pending)
    - Code Agent (pending)
    - Test Agent (pending)
@@ -231,10 +231,10 @@ However, dependency graphs show units *are* semantically coherent and properly s
 ### What This Means
 
 **Short Term (Phase 1-2):**
-- ✅ Continue using current C1 formula and decomposition
-- ✅ Collect more bootstrap tasks if needed (20-30 total recommended)
-- ✅ Document that complexity bands are **provisional** pending validation
-- ⚠️ Communicate to stakeholders: "Complexity 277" is a baseline metric, not a normalized score
+-  Continue using current C1 formula and decomposition
+-  Collect more bootstrap tasks if needed (20-30 total recommended)
+-  Document that complexity bands are **provisional** pending validation
+-  Communicate to stakeholders: "Complexity 277" is a baseline metric, not a normalized score
 
 **Medium Term (Phase 3-4):**
 - Build remaining 6 agents
@@ -353,10 +353,10 @@ We will increase granularity if:
 
 ### Immediate (Phase 1, Week 3)
 
-1. ✅ Document this decision (this file)
-2. ⏸️ Update PRD Section 13.1 to note complexity bands are **provisional**
-3. ⏸️ Consider collecting 10-20 more bootstrap tasks to increase dataset size
-4. ⏸️ Begin implementing next agent (Design or Code Agent)
+1.  Document this decision (this file)
+2.  Update PRD Section 13.1 to note complexity bands are **provisional**
+3.  Consider collecting 10-20 more bootstrap tasks to increase dataset size
+4.  Begin implementing next agent (Design or Code Agent)
 
 ### Short Term (Phase 2-3)
 
@@ -379,10 +379,10 @@ We will increase granularity if:
 The bootstrap data collection revealed complexity scores 5-10x higher than expected bands. Rather than immediately recalibrating based on intuition, we are **deferring the decision** until we can validate complexity scores against actual development execution metrics from a complete agent suite.
 
 This approach:
-- ✅ Preserves maximum information for PROBE-AI training
-- ✅ Enables evidence-based decision making
-- ✅ Avoids premature optimization
-- ✅ Maintains scientific rigor
+-  Preserves maximum information for PROBE-AI training
+-  Enables evidence-based decision making
+-  Avoids premature optimization
+-  Maintains scientific rigor
 
 **Status:** Decision deferred pending empirical validation in Phase 3-4.
 

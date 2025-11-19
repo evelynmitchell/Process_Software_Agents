@@ -311,10 +311,10 @@ print(f"Design Review Report: {report.task_id}")
 print(f"{'='*60}")
 print(f"Overall Assessment: {report.overall_assessment}")
 print(f"\nIssues by Severity:")
-print(f"  🔴 Critical: {report.critical_issue_count}")
+print(f"   Critical: {report.critical_issue_count}")
 print(f"  🟠 High:     {report.high_issue_count}")
-print(f"  🟡 Medium:   {report.medium_issue_count}")
-print(f"  🟢 Low:      {report.low_issue_count}")
+print(f"   Medium:   {report.medium_issue_count}")
+print(f"   Low:      {report.low_issue_count}")
 print(f"\nSuggestions: {len(report.improvement_suggestions)}")
 print(f"Review Duration: {report.review_duration_ms/1000:.1f}s")
 ```
@@ -328,7 +328,7 @@ critical_issues = [
     if issue.severity == "Critical"
 ]
 
-print(f"\n🔴 Critical Issues ({len(critical_issues)}):")
+print(f"\n Critical Issues ({len(critical_issues)}):")
 for issue in critical_issues:
     print(f"\n{issue.issue_id}: {issue.description}")
     print(f"  Category: {issue.category}")

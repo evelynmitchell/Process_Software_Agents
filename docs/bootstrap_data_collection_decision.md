@@ -164,7 +164,7 @@ We will collect bootstrap data using the existing 4 agents before building more 
 **Goal:** Build comprehensive bootstrap dataset
 
 **Tasks to Run (5-10 tasks):**
-1. ✅ Health check endpoint (from Phase 1)
+1.  Health check endpoint (from Phase 1)
 2. User authentication endpoint
 3. Task submission endpoint
 4. Telemetry query endpoint
@@ -269,7 +269,7 @@ Success Criteria:
 
 ---
 
-**Decision Status:** ✅ ACCEPTED
+**Decision Status:**  ACCEPTED
 
 **Next Action:** Run health check task through Planning Agent
 

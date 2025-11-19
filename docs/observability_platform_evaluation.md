@@ -38,43 +38,43 @@ Open-source LLM engineering platform with deep observability for AI agents. MIT 
 
 ### Pros
 
-**✅ Purpose-Built for AI Agents:**
+** Purpose-Built for AI Agents:**
 - Native support for multi-agent workflows (LangGraph, CrewAI, AutoGen)
 - Traces entire agent sessions with hierarchical spans (API calls, tool usage, reasoning steps)
 - Built-in cost tracking per model/generation with dashboard breakdowns
 
-**✅ Rich Feature Set:**
+** Rich Feature Set:**
 - Prompt management and versioning (matches our FR-12 Process Scripts requirement)
 - Evaluation framework (useful for bootstrap learning validation)
 - Session replay for debugging (matches FR-22 execution traceability)
 
-**✅ Flexible Deployment:**
+** Flexible Deployment:**
 - Self-hosted option (full data control, no vendor lock-in)
 - Cloud-hosted option (fast setup, managed infrastructure)
 - SDK-based integration (Python, TypeScript) - typically 2-4 hours setup
 
-**✅ Cost-Effective:**
+** Cost-Effective:**
 - Open-source core (MIT license)
 - Free tier: 50k units/month, 2 users
 - Startup tier: $25-500/month (suitable for Phase 1-2)
 - Enterprise: $2,000-10,000+/month (Phase 4-5)
 
-**✅ Strong Ecosystem:**
+** Strong Ecosystem:**
 - Active development and community
 - Integrations with major frameworks
 - Good documentation
 
 ### Cons
 
-**❌ Learning Curve:**
+** Learning Curve:**
 - Requires understanding of Langfuse's trace/span model
 - May need custom instrumentation for ASP-specific metrics (Semantic Complexity, Defect Type)
 
-**❌ Schema Flexibility:**
+** Schema Flexibility:**
 - Optimized for LLM traces, may require workarounds for defect logging
 - Custom metadata fields limited compared to raw database
 
-**❌ Query Capabilities:**
+** Query Capabilities:**
 - Dashboard-focused, complex analytics may require exporting data
 - Limited support for custom aggregations (e.g., defect density by component)
 
@@ -100,43 +100,43 @@ Python SDK for AI agent monitoring with focus on session replays and multi-agent
 
 ### Pros
 
-**✅ Agent-Centric Design:**
+** Agent-Centric Design:**
 - Time-travel debugging and session replay (excellent for understanding agent behavior)
 - Multi-agent workflow visualization (useful for TSP Orchestrator debugging)
 - Real-time monitoring of cost, token usage, latency
 
-**✅ Easy Integration:**
+** Easy Integration:**
 - Extremely fast setup (minutes via LiteLLM)
 - Native integration with CrewAI, Langchain, AutoGen, OpenAI Agents SDK
 - Python SDK aligns with our Python-only decision (Q1)
 
-**✅ Cost-Effective:**
+** Cost-Effective:**
 - Free to get started
 - "Flexibility at scale" pricing (unclear exact tiers, but competitive)
 
-**✅ Session-Based Model:**
+** Session-Based Model:**
 - Natural fit for tracking agent "tasks" as sessions
 - Good for tracking failure patterns and multi-agent interactions
 
 ### Cons
 
-**❌ Python-Only, Cloud-Only:**
+** Python-Only, Cloud-Only:**
 - No self-hosting option (vendor lock-in, data privacy concerns)
 - Forces cloud dependency (may not meet enterprise security requirements)
 
-**❌ Smaller Ecosystem:**
+** Smaller Ecosystem:**
 - Less mature than Langfuse (fewer integrations, smaller community)
 - Limited documentation compared to Langfuse
 
-**❌ Limited Customization:**
+** Limited Customization:**
 - Unclear if defect taxonomy and custom metrics are supported
 - May not support complex bootstrap learning queries
 
-**❌ Pricing Uncertainty:**
+** Pricing Uncertainty:**
 - "Flexibility at scale" is vague - unclear costs for 100k+ records
 - Risk of unexpected cost scaling
 
-**❌ Query Capabilities:**
+** Query Capabilities:**
 - Focus on session replay/debugging, not analytics
 - May require data export for bootstrap learning analysis
 
@@ -162,46 +162,46 @@ Build custom telemetry system using PostgreSQL (relational) + TimescaleDB (time-
 
 ### Pros
 
-**✅ Complete Control:**
+** Complete Control:**
 - Design schema exactly to ASP requirements (Agent Cost Vector, Defect Log)
 - No vendor lock-in, no API limits
 - Can extend indefinitely (e.g., add Bootstrap Metrics tables)
 
-**✅ Optimal for Analytics:**
+** Optimal for Analytics:**
 - SQL enables any query/aggregation for bootstrap learning
 - Native support for time-series analysis (TimescaleDB)
 - Easy integration with data science tools (Jupyter, pandas, scikit-learn for PROBE-AI)
 
-**✅ Cost-Effective at Scale:**
+** Cost-Effective at Scale:**
 - No per-event pricing
 - Cloud hosting: $25-200/month (AWS RDS, DigitalOcean Managed PostgreSQL)
 - Self-hosted: Free (except infrastructure)
 
-**✅ Familiar Technology:**
+** Familiar Technology:**
 - SQL is widely known (lower learning curve for queries)
 - Mature ecosystem (ORMs like SQLAlchemy, visualization tools like Grafana)
 
-**✅ Production-Ready:**
+** Production-Ready:**
 - PostgreSQL is battle-tested for high-volume transactional systems
 - TimescaleDB optimized for time-series (perfect for Cost Vector logs)
 
 ### Cons
 
-**❌ High Initial Effort:**
+** High Initial Effort:**
 - Must design and implement all schemas from scratch
 - Must build instrumentation layer (Python decorator/context manager for telemetry)
 - Must build dashboards (Grafana or custom React app)
 
-**❌ No Agent-Specific Features:**
+** No Agent-Specific Features:**
 - No trace visualization like Langfuse/AgentOps
 - No prompt management, session replay, or built-in agent debugging
 - Requires building everything from first principles
 
-**❌ Maintenance Burden:**
+** Maintenance Burden:**
 - Responsible for schema migrations, backup/restore, performance tuning
 - Must handle TimescaleDB-specific operations (compression, retention policies)
 
-**❌ Slower Time-to-Value:**
+** Slower Time-to-Value:**
 - Weeks to reach feature parity with Langfuse/AgentOps
 - Risk of scope creep (building dashboards, alert systems, etc.)
 

@@ -71,7 +71,7 @@ As we implement the Code Agent (FR-4) and prepare for the main TSP Orchestrator,
 
 ## Considered Options
 
-### Option 1: Single-Step Feedback (Current Implementation) ❌
+### Option 1: Single-Step Feedback (Current Implementation) 
 
 **Architecture:**
 - Each review agent can only fail back to the immediately preceding agent
@@ -88,26 +88,26 @@ Planning → Design → Design Review (finds planning error)
 ```
 
 **Pros:**
-- ✅ Simple orchestration logic
-- ✅ No complex routing decisions
-- ✅ Fast to implement
-- ✅ Predictable behavior
+-  Simple orchestration logic
+-  No complex routing decisions
+-  Fast to implement
+-  Predictable behavior
 
 **Cons:**
-- ❌ Planning errors never get corrected
-- ❌ Violates PSP principle (fix defects where injected)
-- ❌ Leads to design workarounds instead of proper fixes
-- ❌ Accumulates technical debt
-- ❌ Poor training data for PROBE-AI (defect phase tracking inaccurate)
-- ❌ Doesn't align with PRD's defect tracking requirements
+-  Planning errors never get corrected
+-  Violates PSP principle (fix defects where injected)
+-  Leads to design workarounds instead of proper fixes
+-  Accumulates technical debt
+-  Poor training data for PROBE-AI (defect phase tracking inaccurate)
+-  Doesn't align with PRD's defect tracking requirements
 
 **Cost:** No additional API calls beyond single retry
 
-**Verdict:** ❌ **REJECTED** - Violates PSP principles and leads to poor quality
+**Verdict:**  **REJECTED** - Violates PSP principles and leads to poor quality
 
 ---
 
-### Option 2: Phase-Aware Feedback with Orchestrator Routing ✅ RECOMMENDED
+### Option 2: Phase-Aware Feedback with Orchestrator Routing  RECOMMENDED
 
 **Architecture:**
 - Issues include `affected_phase` field: "Planning", "Design", "Code", "Test"
@@ -188,20 +188,20 @@ Planning → Design → Design Review (finds planning error)
 ```
 
 **Pros:**
-- ✅ Aligns with PSP principle (fix defects where injected)
-- ✅ Prevents error propagation through pipeline
-- ✅ Accurate defect phase tracking for PROBE-AI
-- ✅ Clear audit trail of corrections
-- ✅ Extensible to 7-agent workflow
-- ✅ Maintains quality over speed
-- ✅ Prevents technical debt accumulation
+-  Aligns with PSP principle (fix defects where injected)
+-  Prevents error propagation through pipeline
+-  Accurate defect phase tracking for PROBE-AI
+-  Clear audit trail of corrections
+-  Extensible to 7-agent workflow
+-  Maintains quality over speed
+-  Prevents technical debt accumulation
 
 **Cons:**
-- ⚠️ More complex orchestrator logic
-- ⚠️ Additional API costs for replanning/redesign
-- ⚠️ Longer overall task completion time
-- ⚠️ Need max iteration limits to prevent infinite loops
-- ⚠️ Agents need to accept feedback parameter
+-  More complex orchestrator logic
+-  Additional API costs for replanning/redesign
+-  Longer overall task completion time
+-  Need max iteration limits to prevent infinite loops
+-  Agents need to accept feedback parameter
 
 **Cost Impact:**
 - Worst case: 2x cost (replan + redesign)
@@ -214,7 +214,7 @@ Planning → Design → Design Review (finds planning error)
 - Test: Max 2 iterations
 - Total pipeline: Max 10 iterations before human escalation
 
-**Verdict:** ✅ **RECOMMENDED** - Best alignment with PSP/TSP principles
+**Verdict:**  **RECOMMENDED** - Best alignment with PSP/TSP principles
 
 ---
 
@@ -240,16 +240,16 @@ Planning → Design Agent validates plan
 ```
 
 **Pros:**
-- ✅ Early error detection (fail fast)
-- ✅ Prevents wasted work on invalid inputs
-- ✅ Clear separation of validation vs. review
-- ✅ Simpler than full phase-aware feedback
+-  Early error detection (fail fast)
+-  Prevents wasted work on invalid inputs
+-  Clear separation of validation vs. review
+-  Simpler than full phase-aware feedback
 
 **Cons:**
-- ❌ Agents can only validate structure, not semantic quality
-- ❌ Misses errors that require domain expertise (security, performance)
-- ❌ Validation logic duplicates some review logic
-- ❌ Doesn't handle discovered errors (only input validation)
+-  Agents can only validate structure, not semantic quality
+-  Misses errors that require domain expertise (security, performance)
+-  Validation logic duplicates some review logic
+-  Doesn't handle discovered errors (only input validation)
 
 **Verdict:** 🔶 **PARTIAL SOLUTION** - Good complement to Option 2, not replacement
 
@@ -277,17 +277,17 @@ Planning → Design → Design Review (finds planning error)
 ```
 
 **Pros:**
-- ✅ Simple implementation
-- ✅ Human expert judgment for complex issues
-- ✅ No infinite loop risk
+-  Simple implementation
+-  Human expert judgment for complex issues
+-  No infinite loop risk
 
 **Cons:**
-- ❌ Not truly autonomous (requires human intervention)
-- ❌ Defeats purpose of autonomous agent system
-- ❌ Doesn't scale (human becomes bottleneck)
-- ❌ Poor learning loop (no automated correction data)
+-  Not truly autonomous (requires human intervention)
+-  Defeats purpose of autonomous agent system
+-  Doesn't scale (human becomes bottleneck)
+-  Poor learning loop (no automated correction data)
 
-**Verdict:** ❌ **REJECTED** - Contradicts autonomous development goal
+**Verdict:**  **REJECTED** - Contradicts autonomous development goal
 
 ---
 

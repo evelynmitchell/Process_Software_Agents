@@ -98,7 +98,7 @@ This is our first agent implementation, so architectural decisions made here wil
 
 ---
 
-### Option 3: Direct Anthropic SDK ✅ SELECTED
+### Option 3: Direct Anthropic SDK  SELECTED
 
 **Description:** Use Anthropic Python SDK directly with custom abstractions for retry logic, prompt management, and structured outputs.
 

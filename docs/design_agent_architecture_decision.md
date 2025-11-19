@@ -44,7 +44,7 @@ Following the successful implementation of the Planning Agent, we need to implem
 
 ## Considered Options
 
-### Option 1: Direct Anthropic SDK (BaseAgent Pattern) ✅ RECOMMENDED
+### Option 1: Direct Anthropic SDK (BaseAgent Pattern)  RECOMMENDED
 
 **Architecture:**
 - Inherit from existing `BaseAgent` class
@@ -54,17 +54,17 @@ Following the successful implementation of the Planning Agent, we need to implem
 - Automatic telemetry via `@track_agent_cost` decorator
 
 **Pros:**
-- ✅ Proven pattern from Planning Agent (102/102 tests passing)
-- ✅ Minimal additional infrastructure needed
-- ✅ Full control over prompt engineering
-- ✅ Built-in telemetry and error handling
-- ✅ Fast implementation (reuse 80% of Planning Agent patterns)
-- ✅ Predictable costs (~$0.02-0.04 per design)
+-  Proven pattern from Planning Agent (102/102 tests passing)
+-  Minimal additional infrastructure needed
+-  Full control over prompt engineering
+-  Built-in telemetry and error handling
+-  Fast implementation (reuse 80% of Planning Agent patterns)
+-  Predictable costs (~$0.02-0.04 per design)
 
 **Cons:**
-- ⚠️ Design prompt will be more complex than planning prompt
-- ⚠️ Need to design comprehensive Pydantic models for design output
-- ⚠️ Manual prompt engineering for design templates
+-  Design prompt will be more complex than planning prompt
+-  Need to design comprehensive Pydantic models for design output
+-  Manual prompt engineering for design templates
 
 **Cost Estimate:**
 - Input: ~2,000-3,000 tokens (requirements + project plan + design templates)
@@ -80,16 +80,16 @@ Following the successful implementation of the Planning Agent, we need to implem
 - Each step validates and refines previous steps
 
 **Pros:**
-- ✅ More structured, stepwise approach
-- ✅ Potential for higher quality through iteration
-- ✅ Better debugging (see intermediate states)
+-  More structured, stepwise approach
+-  Potential for higher quality through iteration
+-  Better debugging (see intermediate states)
 
 **Cons:**
-- ❌ 3-4x more LLM calls = 3-4x cost
-- ❌ Added complexity (LangGraph framework)
-- ❌ Longer latency (sequential steps)
-- ❌ Harder to test (stateful orchestration)
-- ❌ Over-engineered for current needs
+-  3-4x more LLM calls = 3-4x cost
+-  Added complexity (LangGraph framework)
+-  Longer latency (sequential steps)
+-  Harder to test (stateful orchestration)
+-  Over-engineered for current needs
 
 **Cost Estimate:**
 - 3-4 LLM calls per design
@@ -104,15 +104,15 @@ Following the successful implementation of the Planning Agent, we need to implem
 - Generate code as the "design"
 
 **Pros:**
-- ✅ Simpler workflow (fewer agents)
-- ✅ Lower cost (one less LLM call)
+-  Simpler workflow (fewer agents)
+-  Lower cost (one less LLM call)
 
 **Cons:**
-- ❌ Violates PSP process (no formal design review)
-- ❌ Higher defect rates (compounding errors)
-- ❌ Cannot implement Design Review Agent (FR-3)
-- ❌ Incompatible with PRD requirements
-- ❌ Loses architectural thinking step
+-  Violates PSP process (no formal design review)
+-  Higher defect rates (compounding errors)
+-  Cannot implement Design Review Agent (FR-3)
+-  Incompatible with PRD requirements
+-  Loses architectural thinking step
 
 ---
 
