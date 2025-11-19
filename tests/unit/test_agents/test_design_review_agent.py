@@ -296,7 +296,7 @@ class TestSecurityReviewAgent:
         """Test SecurityReviewAgent initialization."""
         agent = SecurityReviewAgent()
         assert agent.agent_version == "1.0.0"
-        assert agent.llm_client is not None
+        # Note: llm_client is lazily initialized, don't access it without API key
 
     def test_initialization_with_custom_client(self):
         """Test initialization with custom LLM client."""
@@ -368,7 +368,7 @@ class TestPerformanceReviewAgent:
         """Test PerformanceReviewAgent initialization."""
         agent = PerformanceReviewAgent()
         assert agent.agent_version == "1.0.0"
-        assert agent.llm_client is not None
+        # Note: llm_client is lazily initialized, don't access it without API key
 
     @patch("asp.agents.base_agent.BaseAgent.call_llm")
     @patch("asp.agents.base_agent.BaseAgent.load_prompt")
@@ -402,7 +402,7 @@ class TestDataIntegrityReviewAgent:
         """Test DataIntegrityReviewAgent initialization."""
         agent = DataIntegrityReviewAgent()
         assert agent.agent_version == "1.0.0"
-        assert agent.llm_client is not None
+        # Note: llm_client is lazily initialized, don't access it without API key
 
     @patch("asp.agents.base_agent.BaseAgent.call_llm")
     @patch("asp.agents.base_agent.BaseAgent.load_prompt")

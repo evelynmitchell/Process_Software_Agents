@@ -547,15 +547,20 @@ def test_design_specification_validation_success():
 
 
 def test_design_specification_validation_duplicate_semantic_units():
-    """Test DesignSpecification validation rejects duplicate semantic_unit_ids."""
+    """Test DesignSpecification allows duplicate semantic_unit_ids.
+
+    Multiple components can map to the same semantic unit when a complex
+    unit is broken into multiple implementation components.
+    """
     test_design = create_test_design_spec_dict()
     # Make two components have the same semantic_unit_id
     test_design["component_logic"][1]["semantic_unit_id"] = "SU-001"  # Same as first
 
-    with pytest.raises(ValidationError) as exc_info:
-        DesignSpecification(**test_design)
-
-    assert "Duplicate semantic_unit_id" in str(exc_info.value)
+    # Should NOT raise - duplicates are allowed by design
+    design_spec = DesignSpecification(**test_design)
+    assert design_spec is not None
+    assert design_spec.component_logic[0].semantic_unit_id == "SU-001"
+    assert design_spec.component_logic[1].semantic_unit_id == "SU-001"
 
 
 def test_design_specification_validation_no_high_priority_checklist():
