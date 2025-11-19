@@ -584,12 +584,7 @@ class TestDataIntegrityReviewAgentDetection:
                         {"name": "product_id", "type": "uuid", "constraints": []},
                     ],
                     relationships=[
-                        {
-                            "type": "foreign_key",
-                            "from_field": "order_id",
-                            "to_schema": "orders",
-                            "to_field": "id",
-                        }
+                        "ALTER TABLE order_items ADD FOREIGN KEY (order_id) REFERENCES orders(id)"
                     ],
                     
                 )
@@ -901,7 +896,7 @@ class TestDataIntegrityReviewAgentEdgeCases:
                         {"name": "user_id", "type": "uuid", "constraints": ["FOREIGN KEY", "NOT NULL"]},
                     ],
                     relationships=[
-                        {"type": "foreign_key", "from_field": "user_id", "to_schema": "users", "to_field": "id"}
+                        "ALTER TABLE posts ADD FOREIGN KEY (user_id) REFERENCES users(id)"
                     ],
                     
                 ),
@@ -914,8 +909,8 @@ class TestDataIntegrityReviewAgentEdgeCases:
                         {"name": "user_id", "type": "uuid", "constraints": ["FOREIGN KEY", "NOT NULL"]},
                     ],
                     relationships=[
-                        {"type": "foreign_key", "from_field": "post_id", "to_schema": "posts", "to_field": "id"},
-                        {"type": "foreign_key", "from_field": "user_id", "to_schema": "users", "to_field": "id"},
+                        "ALTER TABLE comments ADD FOREIGN KEY (post_id) REFERENCES posts(id)",
+                        "ALTER TABLE comments ADD FOREIGN KEY (user_id) REFERENCES users(id)",
                     ],
                     
                 ),
