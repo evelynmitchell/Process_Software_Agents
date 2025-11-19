@@ -4,15 +4,15 @@
 
 ## Architecture Overview
 
-Simple 3-layer FastAPI application with endpoint handlers (HelloEndpoint, HealthEndpoint), centralized error handling (ErrorHandler), and application configuration (FastAPIApplication). No database or external dependencies. Stateless design with input validation and proper HTTP status codes. Each endpoint is independently testable and follows single responsibility principle.
+Simple REST API with FastAPI framework using layered architecture. FastAPIApplication handles app initialization and configuration. Individual endpoint components (HelloEndpoint, HealthEndpoint) handle business logic for their respective routes. Centralized ErrorHandler manages exception handling and HTTP status codes. No database or external dependencies required. Stateless design with immediate JSON responses.
 
 ## Technology Stack
 
-{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'asgi_server': 'uvicorn 0.24+', 'datetime_handling': 'Python datetime module (stdlib)', 'validation': 'Pydantic (included with FastAPI)', 'json_handling': 'Python json module (stdlib)'}
+{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'asgi_server': 'uvicorn 0.24+', 'validation': 'pydantic (included with FastAPI)', 'datetime': 'Python datetime module (stdlib)', 'logging': 'Python logging module (stdlib)', 'regex': 'Python re module (stdlib)'}
 
 ## Assumptions
 
-['Application runs in single-threaded environment (no concurrency concerns)', 'No authentication or authorization required for any endpoints', 'No rate limiting needed for this minimal API', 'No logging configuration beyond basic error logging', 'No database or persistent storage required', 'CORS is not required (same-origin requests only)', 'Name parameter validation allows common name characters (letters, spaces, hyphens, apostrophes)', "Health endpoint always returns 'ok' status (no external dependency checks)"]
+['Application runs in single-threaded mode (no concurrency concerns)', 'No authentication or authorization required', 'No rate limiting needed for this minimal API', 'No database or persistent storage required', 'CORS is not required (same-origin requests only)', 'Name parameter validation is basic (alphanumeric and spaces only)', "Health endpoint always returns 'ok' (no actual health checks)", 'Logging output goes to stdout/stderr (no file logging)', 'No metrics or monitoring integration required']
 
 ## API Contracts
 
@@ -43,7 +43,7 @@ Simple 3-layer FastAPI application with endpoint handlers (HelloEndpoint, Health
 - **Responsibility:** Initializes and configures the FastAPI application instance with middleware and error handlers
 - **Semantic Unit:** SU-001
 - **Dependencies:** None
-- **Implementation Notes:** Create FastAPI instance with title='Hello World API', version='1.0.0', description='Minimal REST API with hello and health endpoints'. Add global exception handler for unhandled exceptions returning 500 status. Configure CORS middleware if needed. Set up JSON response formatting.
+- **Implementation Notes:** Create FastAPI instance with title='Hello World API', version='1.0.0', description='Minimal REST API with hello and health endpoints'. Add global exception handler for 500 errors. Configure CORS middleware if needed. Set up JSON response formatting.
 - **Interfaces:**
   - `create_app`
   - `setup_error_handlers`
@@ -53,7 +53,7 @@ Simple 3-layer FastAPI application with endpoint handlers (HelloEndpoint, Health
 - **Responsibility:** Handles GET /hello requests with optional name parameter and returns personalized greeting
 - **Semantic Unit:** SU-002
 - **Dependencies:** None
-- **Implementation Notes:** Use FastAPI Query parameter with default None for optional name. Validate name length <= 100 chars and contains only alphanumeric chars, spaces, hyphens, apostrophes. Strip whitespace and title-case the name. Return {'message': f'Hello, {name}!'} if name provided, else {'message': 'Hello, World!'}. Raise HTTPException(400) for invalid names.
+- **Implementation Notes:** Use FastAPI Query parameter with default None. Validate name: max 100 chars, alphanumeric and spaces only using regex ^[a-zA-Z0-9\s]+$. Strip whitespace and title-case the name. Return {'message': f'Hello, {name}!'} or {'message': 'Hello, World!'} if no name. Raise HTTPException(400) for invalid names.
 - **Interfaces:**
   - `get_hello`
   - `validate_name`
@@ -64,7 +64,7 @@ Simple 3-layer FastAPI application with endpoint handlers (HelloEndpoint, Health
 - **Responsibility:** Handles GET /health requests and returns application status with current timestamp
 - **Semantic Unit:** SU-003
 - **Dependencies:** None
-- **Implementation Notes:** Use datetime.utcnow().isoformat() + 'Z' for timestamp generation. Always return status='ok' (this is a simple health check, not monitoring external dependencies). Return {'status': 'ok', 'timestamp': timestamp_string}. Use UTC timezone consistently.
+- **Implementation Notes:** Always return {'status': 'ok', 'timestamp': <current_utc_iso8601>}. Use datetime.utcnow().isoformat() + 'Z' for timestamp format. No validation needed as endpoint takes no parameters. This endpoint should never fail unless system-level issues.
 - **Interfaces:**
   - `get_health`
   - `get_current_timestamp`
@@ -74,12 +74,12 @@ Simple 3-layer FastAPI application with endpoint handlers (HelloEndpoint, Health
 - **Responsibility:** Provides centralized error handling and HTTP status code management for all endpoints
 - **Semantic Unit:** SU-004
 - **Dependencies:** None
-- **Implementation Notes:** Register exception handlers using @app.exception_handler decorators. For RequestValidationError: return 400 with standardized error format. For HTTPException: pass through status and detail. For general Exception: log error details, return 500 with generic message (don't expose internal details). All error responses use JSON format with 'error' and 'message' fields.
+- **Implementation Notes:** Use FastAPI HTTPException for expected errors. Add @app.exception_handler for unexpected exceptions. Log all 500 errors with traceback. Return consistent error format: {'error': {'code': 'ERROR_CODE', 'message': 'Human readable message'}}. Use Python logging module with INFO level for requests, ERROR level for exceptions.
 - **Interfaces:**
   - `handle_validation_error`
-  - `handle_http_exception`
-  - `handle_general_exception`
+  - `handle_internal_error`
+  - `create_error_response`
 
 ---
 
-*Generated by Design Agent on 2025-11-19 22:12:43*
+*Generated by Design Agent on 2025-11-19 22:37:24*
