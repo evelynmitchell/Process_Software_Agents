@@ -314,12 +314,13 @@ The Design Review Agent is a **production-ready multi-agent system** that perfor
 - [database/README.md](database/README.md) - Database Setup Guide (SQLite & PostgreSQL)
 
 ### Testing Documentation
-- [docs/comprehensive_agent_test_plan.md](docs/comprehensive_agent_test_plan.md) - **NEW!** Complete test plan for all 21 agents with test cases, execution commands, and success criteria
-- [docs/test_plan_quick_start.md](docs/test_plan_quick_start.md) - **NEW!** Quick reference guide for executing the comprehensive test plan
+- [docs/comprehensive_agent_test_plan.md](docs/comprehensive_agent_test_plan.md) - **UPDATED!** Complete test plan for all 21 agents + 106 new critical tests for AI safety, resource management, and bootstrap learning (~300+ total tests)
+- [docs/test_gap_analysis_and_recommendations.md](docs/test_gap_analysis_and_recommendations.md) - **NEW!** Analysis of missing test cases with focus on prompt injection, cost control, hallucination detection, and bootstrap learning validation
+- [docs/test_plan_quick_start.md](docs/test_plan_quick_start.md) - Quick reference guide for executing the comprehensive test plan
 - [docs/test_coverage_analysis.md](docs/test_coverage_analysis.md) - Comprehensive test coverage analysis and gap identification
 - [docs/test_implementation_plan.md](docs/test_implementation_plan.md) - Detailed 3-4 week implementation roadmap for test coverage
-- [scripts/run_agent_tests.py](scripts/run_agent_tests.py) - **NEW!** Python test runner with incremental execution modes
-- [scripts/run_agent_tests.sh](scripts/run_agent_tests.sh) - **NEW!** Bash test runner for Linux/macOS
+- [scripts/run_agent_tests.py](scripts/run_agent_tests.py) - Python test runner with incremental execution modes
+- [scripts/run_agent_tests.sh](scripts/run_agent_tests.sh) - Bash test runner for Linux/macOS
 
 ### Development Guidelines
 - [Claude.md](Claude.md) - Guidelines for Claude Code
