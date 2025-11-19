@@ -224,7 +224,7 @@ def test_get_orders():
 def test_e2e_simple_code_passes_review():
     """Test that simple, well-written code passes review."""
     # Mock all specialists to return no issues
-    def create_clean_response(prompt):
+    def create_clean_response(prompt, **kwargs):
         return {
             "content": json.dumps({
                 "issues_found": [],
@@ -253,7 +253,7 @@ def test_e2e_simple_code_passes_review():
 def test_e2e_problematic_code_fails_review():
     """Test that code with critical issues fails review."""
     # Mock specialists to return critical security issues
-    def create_security_issues_response(prompt):
+    def create_security_issues_response(prompt, **kwargs):
         if "security" in prompt.lower() or "code_security" in prompt.lower():
             return {
                 "content": json.dumps({
@@ -321,7 +321,7 @@ def test_e2e_problematic_code_fails_review():
 def test_e2e_performance_issues_needs_revision():
     """Test that code with high-severity performance issues gets NEEDS_REVISION."""
     # Mock specialists to return high-severity performance issues
-    def create_performance_issues_response(prompt):
+    def create_performance_issues_response(prompt, **kwargs):
         if "performance" in prompt.lower() or "code_performance" in prompt.lower():
             return {
                 "content": json.dumps({
@@ -448,7 +448,7 @@ def test_e2e_automated_checks_detect_oversized_files():
 def test_e2e_checklist_review_reflects_issues():
     """Test that checklist review correctly reflects found issues."""
     # Mock security specialist to return critical issue
-    def create_security_issue_response(prompt):
+    def create_security_issue_response(prompt, **kwargs):
         if "security" in prompt.lower():
             return {
                 "content": json.dumps({
@@ -535,7 +535,7 @@ def test_e2e_review_id_format():
 def test_e2e_full_pipeline_integration():
     """Test full code review pipeline with mixed issue severities."""
     # Mock specialists with varied responses
-    def create_varied_responses(prompt):
+    def create_varied_responses(prompt, **kwargs):
         if "quality" in prompt.lower():
             return {
                 "content": json.dumps({
