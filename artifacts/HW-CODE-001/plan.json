@@ -1,0 +1,21 @@
+{
+  "project_id": "TEST-HW",
+  "task_id": "HW-CODE-001",
+  "semantic_units": [
+    {
+      "unit_id": "SU-001",
+      "description": "Create GET /hello route handler that returns Hello World response",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 0,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 13,
+      "dependencies": []
+    }
+  ],
+  "total_est_complexity": 13,
+  "probe_ai_prediction": null,
+  "probe_ai_enabled": false,
+  "agent_version": "1.0.0"
+}
