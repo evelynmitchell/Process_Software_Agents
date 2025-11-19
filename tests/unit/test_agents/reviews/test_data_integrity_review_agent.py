@@ -71,15 +71,15 @@ class TestDataIntegrityReviewAgentExecute:
             ],
             data_schemas=[
                 DataSchema(
-                    schema_name="orders",
-                    schema_type="table",
-                    fields=[
+                    table_name="orders",
+                    description="Database table storing information",
+                    columns=[
                         {"name": "id", "type": "uuid", "constraints": ["PRIMARY KEY"]},
                         {"name": "user_id", "type": "uuid", "constraints": []},
                         {"name": "total", "type": "decimal", "constraints": []},
                     ],
                     relationships=[],
-                    semantic_unit_ids=["SU-001"],
+                    
                 )
             ],
             design_review_checklist=[
@@ -251,16 +251,16 @@ class TestDataIntegrityReviewAgentDetection:
             ],
             data_schemas=[
                 DataSchema(
-                    schema_name="comments",
-                    schema_type="table",
-                    fields=[
+                    table_name="comments",
+                    description="Database table storing information",
+                    columns=[
                         {"name": "id", "type": "uuid", "constraints": ["PRIMARY KEY"]},
                         {"name": "post_id", "type": "uuid", "constraints": []},
                         {"name": "user_id", "type": "uuid", "constraints": []},
                         {"name": "content", "type": "text", "constraints": []},
                     ],
                     relationships=[],
-                    semantic_unit_ids=["SU-001"],
+                    
                 )
             ],
             design_review_checklist=[
@@ -270,7 +270,35 @@ class TestDataIntegrityReviewAgentDetection:
                     severity="Critical",
                     description="Foreign keys must reference parent tables",
                     validation_criteria="post_id and user_id have FOREIGN KEY constraints",
-                )
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-002",
+                    category="Data Integrity",
+                    severity="High",
+                    description="Additional checklist item for comprehensive review coverage",
+                    validation_criteria="Validation criteria for completeness",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-003",
+                    category="Data Integrity",
+                    severity="Medium",
+                    description="Additional checklist item for thorough evaluation",
+                    validation_criteria="Validation criteria for quality",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-004",
+                    category="Data Integrity",
+                    severity="Medium",
+                    description="Additional checklist item for detailed assessment",
+                    validation_criteria="Validation criteria for standards",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-005",
+                    category="Data Integrity",
+                    severity="Low",
+                    description="Additional checklist item for complete verification",
+                    validation_criteria="Validation criteria for best practices",
+                ),
             ],
             architecture_overview="Comment system without foreign key constraints on post_id and user_id",
             technology_stack={"database": "PostgreSQL"},
@@ -333,15 +361,15 @@ class TestDataIntegrityReviewAgentDetection:
             ],
             data_schemas=[
                 DataSchema(
-                    schema_name="products",
-                    schema_type="table",
-                    fields=[
+                    table_name="products",
+                    description="Database table storing information",
+                    columns=[
                         {"name": "id", "type": "uuid", "constraints": ["PRIMARY KEY"]},
                         {"name": "name", "type": "varchar(255)", "constraints": []},
                         {"name": "price", "type": "decimal(10,2)", "constraints": []},
                     ],
                     relationships=[],
-                    semantic_unit_ids=["SU-001"],
+                    
                 )
             ],
             design_review_checklist=[
@@ -351,7 +379,35 @@ class TestDataIntegrityReviewAgentDetection:
                     severity="High",
                     description="Required fields must have NOT NULL constraints",
                     validation_criteria="name and price marked as NOT NULL",
-                )
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-002",
+                    category="Data Integrity",
+                    severity="High",
+                    description="Additional checklist item for comprehensive review coverage",
+                    validation_criteria="Validation criteria for completeness",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-003",
+                    category="Data Integrity",
+                    severity="Medium",
+                    description="Additional checklist item for thorough evaluation",
+                    validation_criteria="Validation criteria for quality",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-004",
+                    category="Data Integrity",
+                    severity="Medium",
+                    description="Additional checklist item for detailed assessment",
+                    validation_criteria="Validation criteria for standards",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-005",
+                    category="Data Integrity",
+                    severity="Low",
+                    description="Additional checklist item for complete verification",
+                    validation_criteria="Validation criteria for best practices",
+                ),
             ],
             architecture_overview="Product catalog where name and price are required but missing NOT NULL constraints",
             technology_stack={"database": "PostgreSQL"},
@@ -413,14 +469,14 @@ class TestDataIntegrityReviewAgentDetection:
             ],
             data_schemas=[
                 DataSchema(
-                    schema_name="inventory",
-                    schema_type="table",
-                    fields=[
+                    table_name="inventory",
+                    description="Database table storing information",
+                    columns=[
                         {"name": "product_id", "type": "uuid", "constraints": ["PRIMARY KEY"]},
                         {"name": "quantity", "type": "integer", "constraints": []},
                     ],
                     relationships=[],
-                    semantic_unit_ids=["SU-001"],
+                    
                 )
             ],
             design_review_checklist=[
@@ -430,7 +486,35 @@ class TestDataIntegrityReviewAgentDetection:
                     severity="High",
                     description="Use CHECK constraints to enforce business rules",
                     validation_criteria="quantity >= 0 enforced by CHECK constraint",
-                )
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-002",
+                    category="Data Integrity",
+                    severity="High",
+                    description="Additional checklist item for comprehensive review coverage",
+                    validation_criteria="Validation criteria for completeness",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-003",
+                    category="Data Integrity",
+                    severity="Medium",
+                    description="Additional checklist item for thorough evaluation",
+                    validation_criteria="Validation criteria for quality",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-004",
+                    category="Data Integrity",
+                    severity="Medium",
+                    description="Additional checklist item for detailed assessment",
+                    validation_criteria="Validation criteria for standards",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-005",
+                    category="Data Integrity",
+                    severity="Low",
+                    description="Additional checklist item for complete verification",
+                    validation_criteria="Validation criteria for best practices",
+                ),
             ],
             architecture_overview="Inventory system without CHECK constraint on quantity field allowing negative values",
             technology_stack={"database": "PostgreSQL"},
@@ -492,9 +576,9 @@ class TestDataIntegrityReviewAgentDetection:
             ],
             data_schemas=[
                 DataSchema(
-                    schema_name="order_items",
-                    schema_type="table",
-                    fields=[
+                    table_name="order_items",
+                    description="Database table storing information",
+                    columns=[
                         {"name": "id", "type": "uuid", "constraints": ["PRIMARY KEY"]},
                         {"name": "order_id", "type": "uuid", "constraints": ["FOREIGN KEY"]},
                         {"name": "product_id", "type": "uuid", "constraints": []},
@@ -507,7 +591,7 @@ class TestDataIntegrityReviewAgentDetection:
                             "to_field": "id",
                         }
                     ],
-                    semantic_unit_ids=["SU-001"],
+                    
                 )
             ],
             design_review_checklist=[
@@ -517,7 +601,35 @@ class TestDataIntegrityReviewAgentDetection:
                     severity="Medium",
                     description="Foreign keys must define cascade behavior",
                     validation_criteria="ON DELETE and ON UPDATE rules specified",
-                )
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-002",
+                    category="Data Integrity",
+                    severity="High",
+                    description="Additional checklist item for comprehensive review coverage",
+                    validation_criteria="Validation criteria for completeness",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-003",
+                    category="Data Integrity",
+                    severity="Medium",
+                    description="Additional checklist item for thorough evaluation",
+                    validation_criteria="Validation criteria for quality",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-004",
+                    category="Data Integrity",
+                    severity="Medium",
+                    description="Additional checklist item for detailed assessment",
+                    validation_criteria="Validation criteria for standards",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-005",
+                    category="Data Integrity",
+                    severity="Low",
+                    description="Additional checklist item for complete verification",
+                    validation_criteria="Validation criteria for best practices",
+                ),
             ],
             architecture_overview="Order items with foreign key but no cascade rules defined for deletion behavior",
             technology_stack={"database": "PostgreSQL"},
@@ -579,7 +691,7 @@ class TestDataIntegrityReviewAgentErrorHandling:
                     semantic_unit_id="SU-001",
                     responsibility="Test component for error handling",
                     interfaces=[{"method": "test"}],
-                    implementation_notes="Test implementation",
+                    implementation_notes="Test implementation for unit tests",
                 )
             ],
             design_review_checklist=[
@@ -587,11 +699,39 @@ class TestDataIntegrityReviewAgentErrorHandling:
                     checklist_item_id="CHECK-001",
                     category="Data Integrity",
                     severity="Critical",
-                    description="Test checklist item",
-                    validation_criteria="Test validation",
-                )
+                    description="Test checklist item for validation purposes",
+                    validation_criteria="Test validation criteria applied",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-002",
+                    category="Data Integrity",
+                    severity="High",
+                    description="Test checklist item for comprehensive testing",
+                    validation_criteria="Test validation criteria checked",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-003",
+                    category="Data Integrity",
+                    severity="Medium",
+                    description="Test checklist item for medium severity cases",
+                    validation_criteria="Test validation criteria validated",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-004",
+                    category="Data Integrity",
+                    severity="Medium",
+                    description="Test checklist item for additional test coverage",
+                    validation_criteria="Test validation criteria confirmed",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-005",
+                    category="Data Integrity",
+                    severity="Low",
+                    description="Test checklist item for low severity verification",
+                    validation_criteria="Test validation criteria ensured",
+                ),
             ],
-            architecture_overview="Test architecture for error handling scenarios",
+            architecture_overview="Test architecture overview for error handling test scenarios",
             technology_stack={"language": "Python"},
         )
 
@@ -669,7 +809,7 @@ class TestDataIntegrityReviewAgentEdgeCases:
                     semantic_unit_id="SU-001",
                     responsibility="Edge case testing component",
                     interfaces=[{"method": "test"}],
-                    implementation_notes="Test implementation",
+                    implementation_notes="Test implementation for unit tests",
                 )
             ],
             design_review_checklist=[
@@ -677,11 +817,39 @@ class TestDataIntegrityReviewAgentEdgeCases:
                     checklist_item_id="CHECK-001",
                     category="Data Integrity",
                     severity="Critical",
-                    description="Edge case checklist item",
-                    validation_criteria="Edge case validation",
-                )
+                    description="Edge case checklist item for validation purposes",
+                    validation_criteria="Edge case validation criteria applied",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-002",
+                    category="Data Integrity",
+                    severity="High",
+                    description="Edge case checklist item for comprehensive testing",
+                    validation_criteria="Edge case validation criteria checked",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-003",
+                    category="Data Integrity",
+                    severity="Medium",
+                    description="Edge case checklist item for medium severity cases",
+                    validation_criteria="Edge case validation criteria validated",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-004",
+                    category="Data Integrity",
+                    severity="Medium",
+                    description="Edge case checklist item for additional test coverage",
+                    validation_criteria="Edge case validation criteria confirmed",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-005",
+                    category="Data Integrity",
+                    severity="Low",
+                    description="Edge case checklist item for low severity verification",
+                    validation_criteria="Edge case validation criteria ensured",
+                ),
             ],
-            architecture_overview="Edge case architecture for testing string response handling",
+            architecture_overview="Edge case architecture overview for testing string response handling",
             technology_stack={"language": "Python"},
         )
 
@@ -716,31 +884,31 @@ class TestDataIntegrityReviewAgentEdgeCases:
             ],
             data_schemas=[
                 DataSchema(
-                    schema_name="users",
-                    schema_type="table",
-                    fields=[
+                    table_name="users",
+                    description="Database table storing information",
+                    columns=[
                         {"name": "id", "type": "uuid", "constraints": ["PRIMARY KEY"]},
                         {"name": "email", "type": "varchar(255)", "constraints": ["UNIQUE", "NOT NULL"]},
                     ],
                     relationships=[],
-                    semantic_unit_ids=["SU-001"],
+                    
                 ),
                 DataSchema(
-                    schema_name="posts",
-                    schema_type="table",
-                    fields=[
+                    table_name="posts",
+                    description="Database table storing information",
+                    columns=[
                         {"name": "id", "type": "uuid", "constraints": ["PRIMARY KEY"]},
                         {"name": "user_id", "type": "uuid", "constraints": ["FOREIGN KEY", "NOT NULL"]},
                     ],
                     relationships=[
                         {"type": "foreign_key", "from_field": "user_id", "to_schema": "users", "to_field": "id"}
                     ],
-                    semantic_unit_ids=["SU-001"],
+                    
                 ),
                 DataSchema(
-                    schema_name="comments",
-                    schema_type="table",
-                    fields=[
+                    table_name="comments",
+                    description="Database table storing information",
+                    columns=[
                         {"name": "id", "type": "uuid", "constraints": ["PRIMARY KEY"]},
                         {"name": "post_id", "type": "uuid", "constraints": ["FOREIGN KEY", "NOT NULL"]},
                         {"name": "user_id", "type": "uuid", "constraints": ["FOREIGN KEY", "NOT NULL"]},
@@ -749,7 +917,7 @@ class TestDataIntegrityReviewAgentEdgeCases:
                         {"type": "foreign_key", "from_field": "post_id", "to_schema": "posts", "to_field": "id"},
                         {"type": "foreign_key", "from_field": "user_id", "to_schema": "users", "to_field": "id"},
                     ],
-                    semantic_unit_ids=["SU-001"],
+                    
                 ),
             ],
             design_review_checklist=[
@@ -759,7 +927,35 @@ class TestDataIntegrityReviewAgentEdgeCases:
                     severity="Critical",
                     description="Complex schema checklist item",
                     validation_criteria="Complex schema validation",
-                )
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-002",
+                    category="Data Integrity",
+                    severity="High",
+                    description="Additional checklist item for comprehensive review coverage",
+                    validation_criteria="Validation criteria for completeness",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-003",
+                    category="Data Integrity",
+                    severity="Medium",
+                    description="Additional checklist item for thorough evaluation",
+                    validation_criteria="Validation criteria for quality",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-004",
+                    category="Data Integrity",
+                    severity="Medium",
+                    description="Additional checklist item for detailed assessment",
+                    validation_criteria="Validation criteria for standards",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-005",
+                    category="Data Integrity",
+                    severity="Low",
+                    description="Additional checklist item for complete verification",
+                    validation_criteria="Validation criteria for best practices",
+                ),
             ],
             architecture_overview="Complex multi-table schema with users, posts, and comments relationships",
             technology_stack={"database": "PostgreSQL"},

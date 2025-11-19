@@ -85,15 +85,14 @@ class TestPerformanceReviewAgentExecute:
             ],
             data_schemas=[
                 DataSchema(
-                    schema_name="users",
-                    schema_type="table",
-                    fields=[
+                    table_name="users",
+                    description="Database table storing user account information and profile data",
+                    columns=[
                         {"name": "id", "type": "uuid", "constraints": ["PRIMARY KEY"]},
                         {"name": "email", "type": "varchar(255)", "constraints": []},
                         {"name": "name", "type": "varchar(100)", "constraints": []},
                     ],
                     relationships=[],
-                    semantic_unit_ids=["SU-001"],
                 )
             ],
             design_review_checklist=[
@@ -269,14 +268,13 @@ class TestPerformanceReviewAgentDetection:
             ],
             data_schemas=[
                 DataSchema(
-                    schema_name="users",
-                    schema_type="table",
-                    fields=[
+                    table_name="users",
+                    description="Database table storing user authentication and account information",
+                    columns=[
                         {"name": "id", "type": "uuid", "constraints": ["PRIMARY KEY"]},
                         {"name": "email", "type": "varchar(255)", "constraints": []},
                     ],
                     relationships=[],
-                    semantic_unit_ids=["SU-001"],
                 )
             ],
             design_review_checklist=[
@@ -286,7 +284,35 @@ class TestPerformanceReviewAgentDetection:
                     severity="Critical",
                     description="All WHERE clause columns must be indexed",
                     validation_criteria="Email column should have index",
-                )
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-002",
+                    category="Performance",
+                    severity="High",
+                    description="Additional checklist item for comprehensive review coverage",
+                    validation_criteria="Validation criteria for completeness",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-003",
+                    category="Performance",
+                    severity="Medium",
+                    description="Additional checklist item for thorough evaluation",
+                    validation_criteria="Validation criteria for quality",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-004",
+                    category="Performance",
+                    severity="Medium",
+                    description="Additional checklist item for detailed assessment",
+                    validation_criteria="Validation criteria for standards",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-005",
+                    category="Performance",
+                    severity="Low",
+                    description="Additional checklist item for complete verification",
+                    validation_criteria="Validation criteria for best practices",
+                ),
             ],
             architecture_overview="User authentication system with email lookup requiring fast query performance",
             technology_stack={"database": "PostgreSQL"},
@@ -366,7 +392,35 @@ class TestPerformanceReviewAgentDetection:
                     severity="High",
                     description="High-traffic read endpoints should use caching",
                     validation_criteria="Redis or in-memory cache for product catalog",
-                )
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-002",
+                    category="Performance",
+                    severity="High",
+                    description="Additional checklist item for comprehensive review coverage",
+                    validation_criteria="Validation criteria for completeness",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-003",
+                    category="Performance",
+                    severity="Medium",
+                    description="Additional checklist item for thorough evaluation",
+                    validation_criteria="Validation criteria for quality",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-004",
+                    category="Performance",
+                    severity="Medium",
+                    description="Additional checklist item for detailed assessment",
+                    validation_criteria="Validation criteria for standards",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-005",
+                    category="Performance",
+                    severity="Low",
+                    description="Additional checklist item for complete verification",
+                    validation_criteria="Validation criteria for best practices",
+                ),
             ],
             architecture_overview="E-commerce product catalog API with high read traffic and infrequent updates",
             technology_stack={"database": "PostgreSQL"},
@@ -433,7 +487,35 @@ class TestPerformanceReviewAgentDetection:
                     severity="High",
                     description="Avoid N+1 query patterns in data retrieval",
                     validation_criteria="Use JOIN or batch loading for related data",
-                )
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-002",
+                    category="Performance",
+                    severity="High",
+                    description="Additional checklist item for comprehensive review coverage",
+                    validation_criteria="Validation criteria for completeness",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-003",
+                    category="Performance",
+                    severity="Medium",
+                    description="Additional checklist item for thorough evaluation",
+                    validation_criteria="Validation criteria for quality",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-004",
+                    category="Performance",
+                    severity="Medium",
+                    description="Additional checklist item for detailed assessment",
+                    validation_criteria="Validation criteria for standards",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-005",
+                    category="Performance",
+                    severity="Low",
+                    description="Additional checklist item for complete verification",
+                    validation_criteria="Validation criteria for best practices",
+                ),
             ],
             architecture_overview="Order management system that displays customer information with each order",
             technology_stack={"database": "PostgreSQL"},
@@ -562,7 +644,7 @@ class TestPerformanceReviewAgentErrorHandling:
                     semantic_unit_id="SU-001",
                     responsibility="Test component for error handling",
                     interfaces=[{"method": "test"}],
-                    implementation_notes="Test implementation",
+                    implementation_notes="Test implementation for unit tests",
                 )
             ],
             design_review_checklist=[
@@ -570,11 +652,39 @@ class TestPerformanceReviewAgentErrorHandling:
                     checklist_item_id="CHECK-001",
                     category="Performance",
                     severity="Critical",
-                    description="Test checklist item",
-                    validation_criteria="Test validation",
-                )
+                    description="Test checklist item for validation purposes",
+                    validation_criteria="Test validation criteria applied",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-002",
+                    category="Performance",
+                    severity="High",
+                    description="Test checklist item for comprehensive testing",
+                    validation_criteria="Test validation criteria checked",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-003",
+                    category="Performance",
+                    severity="Medium",
+                    description="Test checklist item for medium severity cases",
+                    validation_criteria="Test validation criteria validated",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-004",
+                    category="Performance",
+                    severity="Medium",
+                    description="Test checklist item for additional test coverage",
+                    validation_criteria="Test validation criteria confirmed",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-005",
+                    category="Performance",
+                    severity="Low",
+                    description="Test checklist item for low severity verification",
+                    validation_criteria="Test validation criteria ensured",
+                ),
             ],
-            architecture_overview="Test architecture for error handling scenarios",
+            architecture_overview="Test architecture overview for error handling test scenarios",
             technology_stack={"language": "Python"},
         )
 
@@ -652,7 +762,7 @@ class TestPerformanceReviewAgentEdgeCases:
                     semantic_unit_id="SU-001",
                     responsibility="Edge case testing component",
                     interfaces=[{"method": "test"}],
-                    implementation_notes="Test implementation",
+                    implementation_notes="Test implementation for unit tests",
                 )
             ],
             design_review_checklist=[
@@ -660,11 +770,39 @@ class TestPerformanceReviewAgentEdgeCases:
                     checklist_item_id="CHECK-001",
                     category="Performance",
                     severity="Critical",
-                    description="Edge case checklist item",
-                    validation_criteria="Edge case validation",
-                )
+                    description="Edge case checklist item for validation purposes",
+                    validation_criteria="Edge case validation criteria applied",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-002",
+                    category="Performance",
+                    severity="High",
+                    description="Edge case checklist item for comprehensive testing",
+                    validation_criteria="Edge case validation criteria checked",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-003",
+                    category="Performance",
+                    severity="Medium",
+                    description="Edge case checklist item for medium severity cases",
+                    validation_criteria="Edge case validation criteria validated",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-004",
+                    category="Performance",
+                    severity="Medium",
+                    description="Edge case checklist item for additional test coverage",
+                    validation_criteria="Edge case validation criteria confirmed",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-005",
+                    category="Performance",
+                    severity="Low",
+                    description="Edge case checklist item for low severity verification",
+                    validation_criteria="Edge case validation criteria ensured",
+                ),
             ],
-            architecture_overview="Edge case architecture for testing string response handling",
+            architecture_overview="Edge case architecture overview for testing string response handling",
             technology_stack={"language": "Python"},
         )
 
@@ -704,7 +842,35 @@ class TestPerformanceReviewAgentEdgeCases:
                     severity="Critical",
                     description="Large test checklist item",
                     validation_criteria="Large test validation",
-                )
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-002",
+                    category="Performance",
+                    severity="High",
+                    description="Additional checklist item for comprehensive review coverage",
+                    validation_criteria="Validation criteria for completeness",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-003",
+                    category="Performance",
+                    severity="Medium",
+                    description="Additional checklist item for thorough evaluation",
+                    validation_criteria="Validation criteria for quality",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-004",
+                    category="Performance",
+                    severity="Medium",
+                    description="Additional checklist item for detailed assessment",
+                    validation_criteria="Validation criteria for standards",
+                ),
+                DesignReviewChecklistItem(
+                    checklist_item_id="CHECK-005",
+                    category="Performance",
+                    severity="Low",
+                    description="Additional checklist item for complete verification",
+                    validation_criteria="Validation criteria for best practices",
+                ),
             ],
             architecture_overview="Architecture with many performance issues for testing large result handling",
             technology_stack={"language": "Python"},
