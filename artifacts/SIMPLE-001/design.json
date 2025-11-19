@@ -1,0 +1,145 @@
+{
+  "task_id": "SIMPLE-001",
+  "api_contracts": [
+    {
+      "endpoint": "/hello",
+      "method": "GET",
+      "description": "Returns a simple Hello World greeting message in JSON format",
+      "request_schema": null,
+      "request_params": null,
+      "response_schema": {
+        "message": "string (exactly 'Hello, World!')"
+      },
+      "error_responses": [
+        {
+          "status": 500,
+          "code": "INTERNAL_ERROR",
+          "message": "Internal server error"
+        }
+      ],
+      "authentication_required": false,
+      "rate_limit": null
+    }
+  ],
+  "data_schemas": [],
+  "component_logic": [
+    {
+      "component_name": "ProjectSetup",
+      "semantic_unit_id": "SU-001",
+      "responsibility": "Sets up FastAPI project structure with required dependencies and configuration files",
+      "interfaces": [
+        {
+          "method": "create_project_structure",
+          "parameters": {},
+          "returns": "None",
+          "description": "Creates necessary project files and directory structure"
+        },
+        {
+          "method": "setup_dependencies",
+          "parameters": {},
+          "returns": "None",
+          "description": "Configures requirements.txt with FastAPI and uvicorn dependencies"
+        }
+      ],
+      "dependencies": [],
+      "implementation_notes": "Create main.py as the primary application file. Create requirements.txt with fastapi>=0.104.0 and uvicorn[standard]>=0.24.0. No additional project structure needed for this minimal API. Use Python 3.12 compatible versions.",
+      "complexity": 8
+    },
+    {
+      "component_name": "HelloEndpoint",
+      "semantic_unit_id": "SU-002",
+      "responsibility": "Implements the GET /hello endpoint that returns a JSON greeting message",
+      "interfaces": [
+        {
+          "method": "get_hello",
+          "parameters": {},
+          "returns": "dict[str, str]",
+          "description": "Returns dictionary with message key containing Hello World greeting"
+        }
+      ],
+      "dependencies": [
+        "FastAPIApp"
+      ],
+      "implementation_notes": "Use FastAPI @app.get('/hello') decorator. Return exactly {'message': 'Hello, World!'} as dictionary (FastAPI auto-converts to JSON). No input validation needed since no parameters. Function should be async def for FastAPI best practices.",
+      "complexity": 9
+    },
+    {
+      "component_name": "FastAPIApp",
+      "semantic_unit_id": "SU-003",
+      "responsibility": "Configures and initializes the FastAPI application instance with server startup configuration",
+      "interfaces": [
+        {
+          "method": "create_app",
+          "parameters": {},
+          "returns": "FastAPI",
+          "description": "Creates and configures FastAPI application instance"
+        },
+        {
+          "method": "configure_server",
+          "parameters": {},
+          "returns": "None",
+          "description": "Sets up server configuration for development"
+        }
+      ],
+      "dependencies": [],
+      "implementation_notes": "Create FastAPI() instance with title='Hello World API' and version='1.0.0'. Include if __name__ == '__main__': uvicorn.run() block for development server. Use host='0.0.0.0', port=8000, reload=True for development. Import uvicorn for server startup.",
+      "complexity": 7
+    }
+  ],
+  "design_review_checklist": [
+    {
+      "category": "Architecture",
+      "description": "Verify FastAPI application is properly structured with correct imports and decorators",
+      "validation_criteria": "main.py must import FastAPI and uvicorn. Must create FastAPI() instance. Must use @app.get('/hello') decorator for endpoint registration.",
+      "severity": "Critical"
+    },
+    {
+      "category": "Data Integrity",
+      "description": "Verify endpoint returns exact JSON structure as specified",
+      "validation_criteria": "GET /hello must return exactly {'message': 'Hello, World!'} dictionary. Response must be JSON serializable by FastAPI.",
+      "severity": "High"
+    },
+    {
+      "category": "Performance",
+      "description": "Verify endpoint uses async/await pattern for FastAPI best practices",
+      "validation_criteria": "Hello endpoint function should be defined as 'async def' even though no async operations are performed, following FastAPI conventions.",
+      "severity": "Medium"
+    },
+    {
+      "category": "Error Handling",
+      "description": "Verify application handles basic server errors gracefully",
+      "validation_criteria": "FastAPI automatically handles 500 errors. No custom error handling required for this simple endpoint, but server should start without errors.",
+      "severity": "Medium"
+    },
+    {
+      "category": "Architecture",
+      "description": "Verify server configuration allows external access and development features",
+      "validation_criteria": "uvicorn.run() must use host='0.0.0.0' for external access, port=8000 for standard development, and reload=True for development convenience.",
+      "severity": "Low"
+    },
+    {
+      "category": "Data Integrity",
+      "description": "Verify dependencies are correctly specified with compatible versions",
+      "validation_criteria": "requirements.txt must include fastapi>=0.104.0 and uvicorn[standard]>=0.24.0 with Python 3.12 compatibility.",
+      "severity": "High"
+    }
+  ],
+  "architecture_overview": "Simple single-file FastAPI application with minimal structure. Contains one GET endpoint (/hello) that returns static JSON response. Uses uvicorn ASGI server for development. No database, authentication, or complex business logic required. Standard FastAPI request-response cycle with automatic JSON serialization.",
+  "technology_stack": {
+    "language": "Python 3.12",
+    "web_framework": "FastAPI 0.104+",
+    "asgi_server": "uvicorn 0.24+ with standard extras",
+    "http_client": "None required (testing can use requests or httpx)",
+    "deployment": "Development server (uvicorn) with reload capability"
+  },
+  "assumptions": [
+    "Application runs in development mode with auto-reload enabled",
+    "Server listens on all interfaces (0.0.0.0) for accessibility",
+    "Port 8000 is available and not blocked by firewall",
+    "No authentication or authorization required for hello endpoint",
+    "Static response message never changes ('Hello, World!' exactly)",
+    "No logging or monitoring requirements beyond FastAPI defaults",
+    "Single-file application structure is acceptable for this minimal API"
+  ],
+  "timestamp": "2025-11-19T22:35:28.791761"
+}
