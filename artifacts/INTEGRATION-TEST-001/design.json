@@ -1,0 +1,65 @@
+{
+  "task_id": "INTEGRATION-TEST-001",
+  "api_contracts": [],
+  "data_schemas": [],
+  "component_logic": [
+    {
+      "component_name": "APIService",
+      "semantic_unit_id": "SU-001",
+      "responsibility": "Handles API requests and responses",
+      "interfaces": [
+        {
+          "method": "handle_request",
+          "parameters": {},
+          "returns": "dict",
+          "description": "Handle request"
+        }
+      ],
+      "dependencies": [],
+      "implementation_notes": "Use FastAPI decorators for routing",
+      "complexity": 30
+    }
+  ],
+  "design_review_checklist": [
+    {
+      "category": "Architecture",
+      "description": "Check design meets requirements",
+      "validation_criteria": "Design meets all requirements",
+      "severity": "High"
+    },
+    {
+      "category": "Security",
+      "description": "Check security vulnerabilities",
+      "validation_criteria": "No security vulnerabilities found",
+      "severity": "Critical"
+    },
+    {
+      "category": "Performance",
+      "description": "Check performance requirements",
+      "validation_criteria": "Meets SLA requirements",
+      "severity": "Medium"
+    },
+    {
+      "category": "Data Integrity",
+      "description": "Check data validation",
+      "validation_criteria": "Valid data constraints",
+      "severity": "High"
+    },
+    {
+      "category": "Error Handling",
+      "description": "Check error handling",
+      "validation_criteria": "Proper error handling implemented",
+      "severity": "Medium"
+    }
+  ],
+  "architecture_overview": "Simple REST API architecture with FastAPI framework and PostgreSQL database backend",
+  "technology_stack": {
+    "language": "Python 3.12",
+    "framework": "FastAPI"
+  },
+  "assumptions": [
+    "API is stateless",
+    "Database is PostgreSQL"
+  ],
+  "timestamp": "2025-11-19T02:53:49.887117"
+}
