@@ -92,10 +92,14 @@ def test_login_success():
                 description="Basic unit tests for authentication - incomplete coverage",
             ),
         ],
+        file_structure={
+            "src/api": ["auth.py"],
+            "tests": ["test_auth.py"],
+        },
         dependencies=["fastapi", "pydantic"],
         total_files=2,
         total_lines_of_code=25,
-        implementation_notes="Basic JWT auth implementation",
+        implementation_notes="Basic JWT authentication implementation using FastAPI router with POST endpoint for user login. Includes simple username/password validation and token generation. Tests provide minimal coverage of successful login scenario.",
     )
 
 
@@ -499,9 +503,11 @@ def test_automated_checks_all_pass():
                 description="Comprehensive test suite for the module",
             ),
         ],
+        file_structure={"src": ["module.py"], "tests": ["test_module.py"]},
         dependencies=["fastapi", "pydantic"],
         total_files=2,
         total_lines_of_code=80,
+        implementation_notes="Well-structured module with comprehensive test coverage and proper documentation following best practices",
     )
 
     checks = orchestrator._run_automated_checks(generated_code)
@@ -528,9 +534,11 @@ def test_automated_checks_missing_tests():
                 description="Source module without tests",
             ),
         ],
+        file_structure={"src": ["module.py"]},
         dependencies=["fastapi"],
         total_files=1,
         total_lines_of_code=50,
+        implementation_notes="Simple module implementation without accompanying test suite for validation and quality assurance",
     )
 
     checks = orchestrator._run_automated_checks(generated_code)
@@ -554,9 +562,11 @@ def test_automated_checks_oversized_file():
                 description="A very large source file that should be split",
             ),
         ],
+        file_structure={"src": ["huge_module.py"]},
         dependencies=[],
         total_files=1,
         total_lines_of_code=1500,
+        implementation_notes="Very large monolithic module implementation exceeding recommended file size limits and requiring refactoring into smaller focused modules",
     )
 
     checks = orchestrator._run_automated_checks(generated_code)
