@@ -7,7 +7,7 @@ Tests the phase-aware feedback loop implementation.
 import pytest
 from unittest.mock import Mock, MagicMock
 
-from asp.orchestrators import PlanningDesignOrchestrator
+from asp.orchestrators import PlanningDesignOrchestrator, PlanningDesignResult
 from asp.models.planning import TaskRequirements, ProjectPlan, SemanticUnit
 from asp.models.design import DesignSpecification, APIContract, ComponentLogic
 from asp.models.design_review import DesignReviewReport, DesignIssue
@@ -113,9 +113,18 @@ class TestPlanningDesignOrchestrator:
         mock_review_agent.execute.return_value = mock_review
 
         # Execute orchestrator
-        design_spec, review = orchestrator.execute(requirements)
+        result = orchestrator.execute(requirements)
+
+        # Verify result type
+        assert isinstance(result, PlanningDesignResult)
+
+        # Unpack result
+        project_plan = result.project_plan
+        design_spec = result.design_specification
+        review = result.design_review
 
         # Verify results
+        assert project_plan == mock_plan
         assert design_spec == mock_design
         assert review == mock_review
         assert review.overall_assessment == "PASS"
@@ -266,9 +275,18 @@ class TestPlanningDesignOrchestrator:
         mock_review_agent.execute.side_effect = [mock_review_fail, mock_review_pass]
 
         # Execute orchestrator
-        design_spec, review = orchestrator.execute(requirements)
+        result = orchestrator.execute(requirements)
+
+        # Verify result type
+        assert isinstance(result, PlanningDesignResult)
+
+        # Unpack result
+        project_plan = result.project_plan
+        design_spec = result.design_specification
+        review = result.design_review
 
         # Verify final result is v2 and PASS
+        assert project_plan == mock_plan
         assert design_spec == mock_design_v2
         assert review == mock_review_pass
         assert len(design_spec.api_contracts) == 1

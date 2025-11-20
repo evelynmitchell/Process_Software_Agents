@@ -22,6 +22,7 @@ from asp.agents.planning_agent import PlanningAgent
 from asp.models.design import DesignInput, DesignSpecification
 from asp.models.design_review import DesignReviewReport
 from asp.models.planning import ProjectPlan, TaskRequirements
+from asp.orchestrators.types import PlanningDesignResult
 
 
 logger = logging.getLogger(__name__)
@@ -49,8 +50,8 @@ class PlanningDesignOrchestrator:
     Example:
         >>> orchestrator = PlanningDesignOrchestrator()
         >>> requirements = TaskRequirements(...)
-        >>> design_spec, review = orchestrator.execute(requirements)
-        >>> print(f"Design passed review: {review.overall_assessment == 'PASS'}")
+        >>> result = orchestrator.execute(requirements)
+        >>> print(f"Design passed review: {result.design_review.overall_assessment == 'PASS'}")
     """
 
     # Maximum iterations per phase
@@ -114,7 +115,7 @@ class PlanningDesignOrchestrator:
         self,
         requirements: TaskRequirements,
         design_constraints: Optional[str] = None,
-    ) -> tuple[DesignSpecification, DesignReviewReport]:
+    ) -> PlanningDesignResult:
         """
         Execute Planning → Design → Design Review with feedback loops.
 
@@ -134,8 +135,11 @@ class PlanningDesignOrchestrator:
             design_constraints: Optional design constraints/standards
 
         Returns:
-            Tuple of (DesignSpecification, DesignReviewReport) where
-            review.overall_assessment is "PASS" or "NEEDS_IMPROVEMENT"
+            PlanningDesignResult containing:
+            - project_plan: ProjectPlan from Planning Agent
+            - design_specification: DesignSpecification from Design Agent
+            - design_review: DesignReviewReport with overall_assessment
+              "PASS" or "NEEDS_IMPROVEMENT"
 
         Raises:
             MaxIterationsExceeded: If cannot resolve issues within iteration limits
@@ -174,7 +178,11 @@ class PlanningDesignOrchestrator:
                     f"Design passed review after {total_iterations} total iterations "
                     f"(planning={planning_iterations}, design={design_iterations})"
                 )
-                return design_spec, review_report
+                return PlanningDesignResult(
+                    project_plan=project_plan,
+                    design_specification=design_spec,
+                    design_review=review_report,
+                )
 
             # Check if only NEEDS_IMPROVEMENT (Medium/Low issues)
             if review_report.overall_assessment == "NEEDS_IMPROVEMENT":
@@ -182,7 +190,11 @@ class PlanningDesignOrchestrator:
                     f"Design has minor improvements suggested, but acceptable "
                     f"(planning={planning_iterations}, design={design_iterations})"
                 )
-                return design_spec, review_report
+                return PlanningDesignResult(
+                    project_plan=project_plan,
+                    design_specification=design_spec,
+                    design_review=review_report,
+                )
 
             # Design FAILED - analyze issues and route feedback
             logger.warning(
@@ -245,7 +257,11 @@ class PlanningDesignOrchestrator:
 
                 if review_report.overall_assessment in ["PASS", "NEEDS_IMPROVEMENT"]:
                     logger.info(f"Design passed review after redesign")
-                    return design_spec, review_report
+                    return PlanningDesignResult(
+                        project_plan=project_plan,
+                        design_specification=design_spec,
+                        design_review=review_report,
+                    )
 
             else:
                 # No phase-specific issues identified - treat as design issue by default

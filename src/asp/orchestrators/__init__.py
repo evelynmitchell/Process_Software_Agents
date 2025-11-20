@@ -6,5 +6,6 @@ implementing phase-aware error correction per PSP/TSP principles.
 """
 
 from asp.orchestrators.planning_design_orchestrator import PlanningDesignOrchestrator
+from asp.orchestrators.types import PlanningDesignResult
 
-__all__ = ["PlanningDesignOrchestrator"]
+__all__ = ["PlanningDesignOrchestrator", "PlanningDesignResult"]
