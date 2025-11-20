@@ -181,7 +181,7 @@ def health_check() -> dict[str, str]:
     Returns:
         dict: Status information
     """
-    return {"status": "healthy", "version": "1.0.0"}
+    return {{"status": "healthy", "version": "1.0.0"}}
 
 
 ## Example 2: Test File (tests/test_main.py for Hello World API)
