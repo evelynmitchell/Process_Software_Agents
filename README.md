@@ -107,8 +107,16 @@ uv run pytest -m unit          # Fast unit tests only
 uv run pytest -m integration   # Integration tests
 uv run pytest --cov            # With coverage report
 
-# Check database
+# Verify orchestrator
+uv run python -c "from asp.orchestrators import PlanningDesignOrchestrator; print('✓ Orchestrator ready')"
+
+# Inspect artifacts
+ls -la artifacts/              # List all task artifacts
+cat artifacts/BOOTSTRAP-001/plan.md  # View a planning artifact
+
+# Check database and telemetry
 sqlite3 data/asp_telemetry.db ".tables"
+sqlite3 data/asp_telemetry.db "SELECT COUNT(*) FROM agent_cost_vector;"
 ```
 
 ---
@@ -119,14 +127,20 @@ sqlite3 data/asp_telemetry.db ".tables"
 Process_Software_Agents/
 ├── src/asp/                    # Main application package
 │   ├── agents/                 # 7 specialized agent implementations
-│   ├── orchestrator/           # TSP Orchestrator (control plane)
+│   ├── orchestrators/          # Pipeline orchestrators with phase-aware feedback
+│   │   ├── planning_design_orchestrator.py  # Planning-Design-Review coordination
+│   │   └── types.py            # PlanningDesignResult and shared types
 │   ├── telemetry/              # Observability and logging
 │   ├── models/                 # Data models (Pydantic/SQLAlchemy)
 │   ├── prompts/                # Agent prompt templates (versioned)
 │   └── utils/                  # Utility functions
+├── artifacts/                  # Agent output artifacts (task-specific)
+│   ├── BOOTSTRAP-001/          # Bootstrap task artifacts
+│   ├── HW-001/                 # Hello World task artifacts
+│   └── .../                    # 12+ task directories with plans, designs, code
 ├── tests/                      # Test suite (unit, integration, e2e)
 ├── database/                   # SQL migrations and schemas
-├── docs/                       # Documentation
+├── docs/                       # Documentation (ADRs, user guides, specs)
 ├── config/                     # Configuration files
 └── scripts/                    # Utility scripts
 ```
@@ -163,15 +177,82 @@ All agent capabilities start in "Learning Mode" and graduate to autonomy based o
 4. **Review Agent Effectiveness** (20-40 reviews, TP >80%, FP <20%)
 5. **Defect Type Prediction** (50+ tasks, 60% prediction accuracy)
 
-### 3. Quality Gates
+### 3. Orchestrator Infrastructure
 
-Mandatory review phases prevent defects from propagating:
+The ASP Platform uses specialized orchestrators to coordinate multi-agent workflows with automatic error correction:
 
+#### PlanningDesignOrchestrator
+
+Coordinates Planning → Design → Design Review with phase-aware feedback loops that route defects back to their originating phase.
+
+**Phase-Aware Routing:**
+- **Planning-phase issues** → Routes back to Planning Agent for replanning
+- **Design-phase issues** → Routes back to Design Agent for redesign
+- **Multi-phase issues** → Triggers both replanning and redesign
+
+**Error Correction Flow:**
 ```
-Planning → Design → Design Review (GATE) → Code → Code Review (GATE) → Test → Postmortem
+Planning → Design → Design Review (finds planning error)
+    ↑                      ↓
+    └───── REPLAN ─────────┘  (fixes error at source)
 ```
 
-If a review fails, the orchestrator halts and loops back to the originating agent with defect details.
+**Key Features:**
+- Automatic defect routing to originating phase (implements PSP principle: fix defects where injected)
+- Iteration limits prevent infinite loops (max 3 per phase, 10 total)
+- Complete telemetry for bootstrap learning and PROBE-AI
+- Returns complete artifact set: `PlanningDesignResult(plan, design, review)`
+
+**Cost Impact:** 20-50% increase for tasks requiring corrections, offset by preventing downstream defects and rework.
+
+**Architecture:** See [docs/error_correction_feedback_loops_decision.md](docs/error_correction_feedback_loops_decision.md) for design rationale and [docs/artifact_traceability_decision.md](docs/artifact_traceability_decision.md) for artifact flow details.
+
+#### Artifact Flow and Traceability
+
+The orchestrator ensures complete artifact traceability through the pipeline for bootstrap learning and PROBE-AI:
+
+**Artifact Flow:**
+```
+PlanningDesignOrchestrator.execute()
+    ↓
+Returns: PlanningDesignResult
+    ├─ ProjectPlan         → Used by Postmortem Agent for effort analysis
+    ├─ DesignSpecification → Used by Code Agent for implementation
+    └─ DesignReviewReport  → Quality metrics for bootstrap learning
+```
+
+**Benefits:**
+- **Traceability:** Every artifact links back to its source task and phase
+- **PROBE-AI Learning:** Planned vs. actual metrics enable effort estimation
+- **Quality Analysis:** Complete audit trail from requirements to code
+- **No Data Duplication:** Single source of truth for each artifact
+
+All artifacts are persisted to `artifacts/<TASK-ID>/` with both JSON (machine-readable) and Markdown (human-readable) formats.
+
+### 4. Quality Gates with Phase-Aware Feedback
+
+Review phases prevent defect propagation and route issues back to their originating phase:
+
+**Standard Flow (No Issues):**
+```
+Planning → Design → Design Review (PASS) → Code → Code Review (PASS) → Test → Postmortem
+```
+
+**Feedback Flow (Issues Found):**
+```
+Planning → Design → Design Review (FAIL: planning error detected)
+    ↑                      ↓
+    └────── Replan ────────┘
+             ↓
+    Design (with corrected plan) → Design Review (PASS) → Continue...
+```
+
+**Review Agent Actions:**
+- **PASS:** Proceed to next phase
+- **NEEDS_IMPROVEMENT:** Log issues, proceed (no critical/high severity defects)
+- **FAIL:** Route back to appropriate phase (Planning or Design) with detailed defect information
+
+This implements the PSP principle: **fix defects in the phase where they were injected**, preventing error compounding through the pipeline.
 
 ---
 
@@ -206,7 +287,12 @@ If a review fails, the orchestrator halts and loops back to the originating agen
 | **Test Agent** | ✅ Complete | Unit tests | - | - |
 | **Postmortem Agent** | ✅ Complete | Unit tests | Work Summary | - |
 
-**All 21 agents (7 core + 2 orchestrators + 12 specialists) are now implemented!**
+**All 21 agents are now implemented:**
+- **7 Core Agents:** Planning, Design, Design Review, Code, Code Review, Test, Postmortem
+- **2 Multi-Agent Review Orchestrators:** Design Review Orchestrator, Code Review Orchestrator
+- **12 Specialist Review Agents:** 6 design specialists (Security, Performance, Data Integrity, Maintainability, Architecture, API Design) + 6 code review specialists (Code Quality, Security, Performance, Best Practices, Test Coverage, Documentation)
+
+**Plus 1 Pipeline Orchestrator:** PlanningDesignOrchestrator (phase-aware feedback loops)
 
 ### Recently Completed
 
@@ -304,9 +390,17 @@ The Design Review Agent is a **production-ready multi-agent system** that perfor
 - [docs/planning_agent_architecture_decision.md](docs/planning_agent_architecture_decision.md) - Planning Agent design
 - [docs/design_agent_architecture_decision.md](docs/design_agent_architecture_decision.md) - Design Agent design
 - [docs/design_review_agent_architecture_decision.md](docs/design_review_agent_architecture_decision.md) - Design Review multi-agent architecture
+- [docs/error_correction_feedback_loops_decision.md](docs/error_correction_feedback_loops_decision.md) - Phase-aware feedback and orchestrator routing
+- [docs/artifact_traceability_decision.md](docs/artifact_traceability_decision.md) - Artifact flow through pipeline and PlanningDesignResult
+- [docs/artifact_persistence_version_control_decision.md](docs/artifact_persistence_version_control_decision.md) - Artifact storage and version control strategy
+- [docs/phase_aware_feedback_revision_plan.md](docs/phase_aware_feedback_revision_plan.md) - Implementation plan for orchestrator feedback loops
+- [docs/complexity_calibration_decision.md](docs/complexity_calibration_decision.md) - Semantic complexity scoring for PROBE-AI
+- [docs/bootstrap_data_collection_decision.md](docs/bootstrap_data_collection_decision.md) - Bootstrap learning framework implementation
 
 ### Agent User Guides
-- [docs/design_review_agent_user_guide.md](docs/design_review_agent_user_guide.md) - **NEW!** Complete guide for Design Review Agent (usage, examples, API reference, troubleshooting)
+- [docs/design_review_agent_user_guide.md](docs/design_review_agent_user_guide.md) - Complete guide for Design Review Agent (usage, examples, API reference, troubleshooting)
+- [docs/artifact_persistence_user_guide.md](docs/artifact_persistence_user_guide.md) - How to use the artifact persistence system
+- [docs/telemetry_user_guide.md](docs/telemetry_user_guide.md) - Using telemetry decorators and observability features
 
 ### Technical Specifications
 - [docs/database_schema_specification.md](docs/database_schema_specification.md) - Database Design
@@ -341,7 +435,7 @@ The Design Review Agent is a **production-ready multi-agent system** that perfor
 | **Observability** | Langfuse (Cloud/Self-hosted) | Agent tracing and telemetry |
 | **Database (Phase 1-3)** | SQLite | Local file-based storage |
 | **Database (Phase 4+)** | PostgreSQL + TimescaleDB | Production time-series storage |
-| **Orchestration** | Custom (TSP-based) | Multi-agent workflow control |
+| **Orchestration** | Custom (Phase-aware feedback) | Multi-agent workflow with error correction |
 | **Testing** | pytest | Unit, integration, e2e tests |
 | **Linting/Formatting** | ruff | Fast Python linter and formatter |
 | **Type Checking** | mypy | Static type analysis |
@@ -423,34 +517,33 @@ See [Claude.md](Claude.md) for detailed guidelines.
 
 ## Roadmap
 
-### Phase 1: ASP0 - Measurement (Months 1-2) [In Progress]
+### Phase 1: ASP0 - Measurement (Months 1-2) **87.5% Complete**
 - [x] Database schema design (SQLite with PostgreSQL migration path)
 - [x] Observability platform selection (Langfuse)
 - [x] Project structure setup (uv, 119 dependencies)
 - [x] Secrets management strategy (GitHub Codespaces Secrets)
 - [x] SQLite database implementation (4 tables, 25+ indexes)
-- [ ] Deploy telemetry infrastructure (decorators, instrumentation)
-- [ ] Implement Planning Agent with telemetry
-- [ ] Collect baseline data (30+ tasks)
+- [x] Deploy telemetry infrastructure (decorators, instrumentation)
+- [x] Implement Planning Agent with telemetry (102 unit tests, 8 E2E tests)
+- [ ] Collect baseline data (30+ tasks) - **In Progress: 12+ tasks collected**
 
 ### Phase 2: ASP1 - Estimation (Months 3-4)
-- [ ] Implement Planning Agent
-- [ ] Build PROBE-AI linear regression
+- [ ] Build PROBE-AI linear regression (requires 30+ tasks)
 - [ ] Validate estimation accuracy (±20%)
 
-### Phase 3: ASP2 - Gated Review (Months 5-6)
-- [ ] Implement Design Review Agent
-- [ ] Implement Code Review Agent
-- [ ] Achieve >70% phase yield
+### Phase 3: ASP2 - Gated Review (Months 5-6) **66% Complete**
+- [x] Implement Design Review Agent (multi-agent system, 24/24 tests passing)
+- [x] Implement Code Review Agent (multi-agent system)
+- [ ] Achieve >70% phase yield (measuring with bootstrap data)
 
-### Phase 4: ASP-TSP - Orchestration (Months 7-9)
-- [ ] Deploy all 7 agents
-- [ ] Build TSP Orchestrator
+### Phase 4: ASP-TSP - Orchestration (Months 7-9) **Started**
+- [x] Deploy all 7 agents (Planning, Design, Design Review, Code, Code Review, Test, Postmortem)
+- [ ] Build TSP Orchestrator - **Partial: PlanningDesignOrchestrator complete with phase-aware feedback**
 - [ ] 50% task completion rate (low-risk tasks)
 
-### Phase 5: ASP-Loop - Self-Improvement (Months 10-12)
-- [ ] Implement Postmortem Agent
-- [ ] Enable PIP workflow
+### Phase 5: ASP-Loop - Self-Improvement (Months 10-12) **33% Complete**
+- [x] Implement Postmortem Agent (performance analysis, quality metrics, root cause analysis)
+- [ ] Enable PIP workflow (Process Improvement Proposals with HITL approval)
 - [ ] Continuous improvement cycle operational
 
 ---
