@@ -9,8 +9,8 @@
       "request_params": null,
       "response_schema": {
         "message": "string (exactly 'Hello World')",
-        "timestamp": "string (ISO 8601 timestamp)",
-        "status": "string (exactly 'success')"
+        "status": "string (exactly 'success')",
+        "timestamp": "string (ISO 8601 timestamp)"
       },
       "error_responses": [
         {
@@ -42,66 +42,87 @@
             "message": "str"
           },
           "returns": "dict[str, str]",
-          "description": "Formats response with message, timestamp, and status"
+          "description": "Formats response with message, status, and timestamp"
         }
       ],
       "dependencies": [],
-      "implementation_notes": "Use datetime.utcnow().isoformat() + 'Z' for timestamp in UTC. Return exactly 'Hello World' as message. Include status field with value 'success'. Handle any exceptions and return 500 error. Use FastAPI route decorator @app.get('/hello').",
+      "implementation_notes": "Return exactly 'Hello World' as message. Include 'success' status and current UTC timestamp in ISO 8601 format (YYYY-MM-DDTHH:MM:SS.fffffZ). Use datetime.utcnow().isoformat() + 'Z' for timestamp generation. Response must be JSON serializable dict.",
       "complexity": 13
+    },
+    {
+      "component_name": "HelloWorldRouter",
+      "semantic_unit_id": "SU-001",
+      "responsibility": "Defines the FastAPI route configuration for the /hello endpoint",
+      "interfaces": [
+        {
+          "method": "setup_routes",
+          "parameters": {
+            "app": "FastAPI"
+          },
+          "returns": "None",
+          "description": "Registers the /hello GET route with the FastAPI application"
+        }
+      ],
+      "dependencies": [
+        "HelloWorldHandler"
+      ],
+      "implementation_notes": "Use FastAPI @app.get('/hello') decorator. Set response_model to dict[str, str]. Include summary='Get Hello World message' and description='Returns a simple Hello World greeting with timestamp'. Handle any exceptions and return 500 error response.",
+      "complexity": 8
     }
   ],
   "design_review_checklist": [
     {
       "category": "Architecture",
-      "description": "Verify endpoint follows REST conventions",
-      "validation_criteria": "API contract must use GET method for /hello endpoint. Response must be JSON format with consistent structure.",
-      "severity": "High"
-    },
-    {
-      "category": "Error Handling",
-      "description": "Verify proper error handling for unexpected failures",
-      "validation_criteria": "Component must handle exceptions and return 500 status code. No unhandled exceptions should crash the application.",
+      "description": "Verify proper separation of concerns between handler and router",
+      "validation_criteria": "HelloWorldHandler contains business logic (message formatting, timestamp generation). HelloWorldRouter only handles HTTP routing and delegates to handler.",
       "severity": "High"
     },
     {
       "category": "Data Integrity",
-      "description": "Verify response format consistency",
-      "validation_criteria": "Response must always include message, timestamp, and status fields. Message must be exactly 'Hello World'.",
-      "severity": "Medium"
+      "description": "Verify response format matches API contract exactly",
+      "validation_criteria": "Response must contain exactly three fields: 'message' (Hello World), 'status' (success), 'timestamp' (ISO 8601 UTC). No additional or missing fields.",
+      "severity": "Critical"
+    },
+    {
+      "category": "Error Handling",
+      "description": "Verify proper error handling for unexpected failures",
+      "validation_criteria": "Router must catch all exceptions and return 500 status with INTERNAL_ERROR code. No unhandled exceptions should crash the application.",
+      "severity": "High"
     },
     {
       "category": "Performance",
-      "description": "Verify endpoint has minimal processing overhead",
-      "validation_criteria": "Handler should execute in under 10ms. No database calls or external API calls. Simple string formatting only.",
-      "severity": "Low"
-    },
-    {
-      "category": "Security",
-      "description": "Verify no sensitive information is exposed",
-      "validation_criteria": "Response must not include server details, internal paths, or system information. Only return specified fields.",
+      "description": "Verify timestamp generation is efficient",
+      "validation_criteria": "Use datetime.utcnow().isoformat() for timestamp generation. No expensive operations in the handler. Response time should be under 10ms.",
       "severity": "Medium"
     },
     {
       "category": "Architecture",
-      "description": "Verify semantic unit mapping is complete",
-      "validation_criteria": "SU-001 must be implemented by HelloWorldHandler component. All project plan requirements must be addressed.",
-      "severity": "Critical"
+      "description": "Verify component dependencies are minimal and correct",
+      "validation_criteria": "HelloWorldHandler has no dependencies. HelloWorldRouter depends only on HelloWorldHandler. No circular dependencies.",
+      "severity": "Medium"
+    },
+    {
+      "category": "Data Integrity",
+      "description": "Verify timestamp format is consistent and valid",
+      "validation_criteria": "Timestamp must be UTC timezone, ISO 8601 format with 'Z' suffix. Format: YYYY-MM-DDTHH:MM:SS.fffffZ. Must be parseable by standard ISO 8601 parsers.",
+      "severity": "High"
     }
   ],
-  "architecture_overview": "Simple single-endpoint REST API with minimal architecture. HelloWorldHandler component processes GET requests to /hello endpoint and returns static Hello World message with current timestamp. No database or external dependencies required. FastAPI framework handles HTTP routing and JSON serialization.",
+  "architecture_overview": "Simple single-endpoint REST API with two-layer architecture: Router layer (HelloWorldRouter) handles HTTP concerns and route registration, Handler layer (HelloWorldHandler) contains business logic for message formatting and timestamp generation. No database or external dependencies required. Stateless design with immediate response generation.",
   "technology_stack": {
     "language": "Python 3.12",
     "web_framework": "FastAPI 0.104+",
     "datetime_handling": "Python datetime module (stdlib)",
-    "json_serialization": "FastAPI automatic JSON response",
-    "http_server": "Uvicorn ASGI server"
+    "json_serialization": "FastAPI automatic JSON serialization",
+    "server": "Uvicorn ASGI server"
   },
   "assumptions": [
-    "No authentication or authorization required for hello endpoint",
-    "Response format includes timestamp for request tracking",
-    "UTC timezone used for all timestamps",
-    "No rate limiting required for simple hello endpoint",
-    "No logging requirements specified beyond error handling"
+    "No authentication or authorization required for /hello endpoint",
+    "Response format is JSON (FastAPI default)",
+    "Timestamp precision to microseconds is acceptable",
+    "UTC timezone is appropriate for all users",
+    "No rate limiting required for this simple endpoint",
+    "No logging or monitoring requirements specified"
   ],
-  "timestamp": "2025-11-20T22:41:42.231315"
+  "timestamp": "2025-11-20T23:12:34.399736"
 }
