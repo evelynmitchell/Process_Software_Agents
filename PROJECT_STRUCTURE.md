@@ -9,28 +9,47 @@ This document describes the directory structure and organization of the Agentic 
 ```
 Process_Software_Agents/
 ├── src/asp/                    # Main application package
-│   ├── agents/                 # Agent implementations (7 specialized agents)
+│   ├── agents/                 # Agent implementations (7 core + 14 specialized)
+│   │   ├── base_agent.py
 │   │   ├── planning_agent.py
 │   │   ├── design_agent.py
 │   │   ├── design_review_agent.py
-│   │   ├── coding_agent.py
-│   │   ├── code_review_agent.py
+│   │   ├── design_review_orchestrator.py  # Multi-agent design review
+│   │   ├── code_agent.py
+│   │   ├── code_review_orchestrator.py    # Multi-agent code review
 │   │   ├── test_agent.py
-│   │   └── postmortem_agent.py
-│   ├── orchestrator/           # TSP Orchestrator (control plane)
-│   │   ├── orchestrator.py
-│   │   ├── quality_gates.py
-│   │   └── hitl_workflow.py
+│   │   ├── postmortem_agent.py
+│   │   ├── reviews/            # 6 Design review specialist agents
+│   │   │   ├── security_review_agent.py
+│   │   │   ├── performance_review_agent.py
+│   │   │   ├── data_integrity_review_agent.py
+│   │   │   ├── maintainability_review_agent.py
+│   │   │   ├── architecture_review_agent.py
+│   │   │   └── api_design_review_agent.py
+│   │   └── code_reviews/       # 6 Code review specialist agents
+│   │       ├── code_quality_review_agent.py
+│   │       ├── code_security_review_agent.py
+│   │       ├── code_performance_review_agent.py
+│   │       ├── best_practices_review_agent.py
+│   │       ├── test_coverage_review_agent.py
+│   │       └── documentation_review_agent.py
+│   ├── orchestrators/          # Pipeline orchestrators with phase-aware feedback
+│   │   ├── planning_design_orchestrator.py  # Planning-Design-Review coordination
+│   │   └── types.py            # PlanningDesignResult and shared types
 │   ├── telemetry/              # Observability and logging
 │   │   ├── instrumentation.py
 │   │   ├── langfuse_client.py
 │   │   ├── cost_tracker.py
 │   │   └── defect_logger.py
 │   ├── models/                 # Data models (Pydantic/SQLAlchemy)
-│   │   ├── task.py
-│   │   ├── agent_cost.py
-│   │   ├── defect.py
-│   │   └── bootstrap.py
+│   │   ├── planning.py
+│   │   ├── design.py
+│   │   ├── design_review.py
+│   │   ├── code.py
+│   │   ├── code_review.py
+│   │   ├── test.py
+│   │   ├── postmortem.py
+│   │   └── telemetry.py
 │   ├── prompts/                # Agent prompt templates (versioned)
 │   │   ├── planning_agent_v1.txt
 │   │   ├── design_agent_v1.txt
@@ -39,6 +58,14 @@ Process_Software_Agents/
 │       ├── semantic_complexity.py
 │       ├── probe_ai.py
 │       └── config.py
+├── artifacts/                  # Agent output artifacts (task-specific)
+│   ├── BOOTSTRAP-001/          # Bootstrap task artifacts
+│   ├── HW-001/                 # Hello World task artifacts
+│   └── .../                    # 12+ task directories with plans, designs, code
+├── data/                       # Runtime data (gitignored except .gitkeep)
+│   ├── asp_telemetry.db        # SQLite database
+│   ├── bootstrap_results.json  # Bootstrap learning data
+│   └── bootstrap_analysis.md   # Bootstrap analysis reports
 ├── tests/                      # Test suite
 │   ├── unit/                   # Unit tests
 │   │   ├── test_agents/
@@ -60,9 +87,14 @@ Process_Software_Agents/
 │   ├── database_schema_specification.md
 │   └── ...
 ├── scripts/                    # Utility scripts
-│   ├── run_migrations.sh
-│   ├── setup_dev_env.sh
-│   └── ...
+│   ├── init_database.py        # Initialize SQLite database
+│   ├── query_telemetry.py      # Query telemetry data
+│   ├── run_agent_tests.py      # Test runner with incremental execution
+│   ├── run_agent_tests.sh      # Bash test runner
+│   ├── bootstrap_data_collection.py  # Collect bootstrap learning data
+│   ├── bootstrap_code_collection.py
+│   ├── bootstrap_design_review_collection.py
+│   └── test_single_task.py     # Single task testing utility
 ├── config/                     # Configuration files
 │   ├── agents.yaml
 │   ├── prompts.yaml
@@ -91,15 +123,21 @@ Process_Software_Agents/
 
 The core ASP platform implementation.
 
-**`agents/`** - Specialized Agent Implementations
-- Each file implements one of the 7 specialized agents (Section V of PRD)
-- Agents are stateless and communicate via orchestrator
-- Prompts loaded from `prompts/` directory
+**`agents/`** - Agent Implementations (21 Total)
+- **7 Core Agents:** Planning, Design, Design Review, Code, Code Review, Test, Postmortem
+- **2 Multi-Agent Review Orchestrators:** Design Review Orchestrator, Code Review Orchestrator
+- **12 Specialist Review Agents:** 6 design specialists + 6 code review specialists
+- `reviews/` subdirectory: Design review specialists (security, performance, data integrity, maintainability, architecture, API design)
+- `code_reviews/` subdirectory: Code review specialists (quality, security, performance, best practices, test coverage, documentation)
+- All agents extend `base_agent.py` for common functionality
+- Agents are stateless and load prompts from `prompts/` directory
 
-**`orchestrator/`** - TSP Orchestrator (Control Plane)
-- `orchestrator.py` - Main orchestrator logic (TSP-based workflow)
-- `quality_gates.py` - Implements mandatory review gates (FR-3, FR-5)
-- `hitl_workflow.py` - Human-in-the-Loop approval workflows
+**`orchestrators/`** - Pipeline Orchestrators (Phase-Aware Feedback)
+- `planning_design_orchestrator.py` - Coordinates Planning → Design → Design Review with automatic error correction
+- `types.py` - `PlanningDesignResult` dataclass for artifact traceability
+- Implements phase-aware feedback loops: routes defects back to originating phase
+- Iteration limits prevent infinite loops (max 3 per phase, 10 total)
+- Returns complete artifact set for downstream agents and PROBE-AI learning
 
 **`telemetry/`** - Observability and Telemetry
 - `instrumentation.py` - Decorators for automatic agent logging
@@ -122,12 +160,37 @@ The core ASP platform implementation.
 - `probe_ai.py` - PROBE-AI linear regression (Section 14.2 B1)
 - `config.py` - Configuration management
 
+### `artifacts/` - Agent Output Artifacts
+
+Task-specific directories containing agent outputs:
+- Each task gets a directory named by task ID (e.g., `BOOTSTRAP-001/`, `HW-001/`)
+- Contains both JSON (machine-readable) and Markdown (human-readable) formats
+- **Files per task:**
+  - `plan.json`, `plan.md` - Planning Agent output (ProjectPlan)
+  - `design.json`, `design.md` - Design Agent output (DesignSpecification)
+  - `design_review.json` - Design Review Agent output (DesignReviewReport)
+  - `code/` - Code Agent output (generated source files)
+  - `test_results.json` - Test Agent output
+  - `postmortem.json`, `postmortem.md` - Postmortem Agent analysis
+- Used for bootstrap learning, PROBE-AI training, and artifact traceability
+- 12+ task directories currently collected
+
+### `data/` - Runtime Data
+
+Runtime files (gitignored except `.gitkeep`):
+- `asp_telemetry.db` - SQLite database with telemetry data (4 tables, 25+ indexes)
+- `bootstrap_results.json` - Bootstrap learning metrics and analysis
+- `bootstrap_analysis.md` - Human-readable bootstrap reports
+- Generated during development and testing
+- Database file location per ADR: `data/asp_telemetry.db`
+
 ### `tests/` - Test Suite
 
 **`unit/`** - Unit Tests
 - Test individual agents, functions, and classes in isolation
 - Mock external dependencies (LLM API, database)
 - Fast execution (<1 second per test)
+- 200+ tests across all agents
 
 **`integration/`** - Integration Tests
 - Test interactions between components (e.g., orchestrator + agents)
@@ -138,23 +201,28 @@ The core ASP platform implementation.
 - Test complete workflows (e.g., task submission → code generation → review)
 - Use full system with real LLM calls (or recorded responses)
 - Slow execution (30+ seconds per test)
+- Validates orchestrator feedback loops and artifact flow
 
 ### `database/` - Database Schemas
 
-- SQL migration scripts for PostgreSQL/TimescaleDB
+- SQL migration scripts for SQLite/PostgreSQL
 - See `database/README.md` for setup instructions
+- Schema specification in `docs/database_schema_specification.md`
 
 ### `docs/` - Documentation
 
-- Technical specifications
-- Architecture diagrams
-- Decision records (observability platform, etc.)
+- **Architecture Decision Records (ADRs):** 11+ decision documents
+- **User Guides:** Agent usage, artifact persistence, telemetry
+- **Technical Specifications:** Database schema, observability platform, test plans
+- **Planning Documents:** PRD, PSPdoc, test implementation plans
 
 ### `scripts/` - Utility Scripts
 
-- `run_migrations.sh` - Apply database migrations
-- `setup_dev_env.sh` - Set up local development environment
-- Deployment scripts, data seeding, etc.
+- `init_database.py` - One-command database initialization with sample data
+- `query_telemetry.py` - Query and analyze telemetry data
+- `run_agent_tests.py` - Test runner with incremental execution modes
+- `bootstrap_*.py` - Scripts for collecting bootstrap learning data
+- `test_single_task.py` - Single task testing and validation
 
 ### `config/` - Configuration Files
 
@@ -248,42 +316,62 @@ Project overview, quick start guide, contribution guidelines
 
 ---
 
-## Phase 1 Implementation Priorities
+## Current Implementation Status
 
-Based on the 5-phase roadmap (PRD Section 7), focus areas for Phase 1:
+Based on the 5-phase roadmap (PRD Section 7):
 
-### Month 1-2: ASP0 - Measurement Foundation
+### Phase 1: ASP0 - Measurement Foundation **87.5% Complete**
+- ✅ `src/asp/telemetry/` - Core logging and instrumentation implemented
+- ✅ `src/asp/models/` - All data models created (planning, design, code, telemetry)
+- ✅ `database/` - SQLite database deployed with 4 tables, 25+ indexes
+- ✅ `tests/` - 200+ tests across all agents
+- ✅ `data/` - Telemetry database operational
+- 🟡 `artifacts/` - 12+ tasks collected, need 30+ for PROBE-AI
 
-**Priority Directories:**
-1. `src/asp/telemetry/` - Implement core logging
-2. `src/asp/models/` - Create data models for agent_cost_vector, defect_log
-3. `database/` - Deploy and test migrations
-4. `tests/unit/test_telemetry/` - Validate telemetry accuracy
+### Phase 2: ASP1 - Estimation **Not Started**
+- ⏳ `src/asp/utils/probe_ai.py` - Requires 30+ tasks for linear regression
+- ⏳ Validation of estimation accuracy (±20%)
 
-**Deferred:**
-- Full agent implementations (Phase 4)
-- Orchestrator (Phase 4)
-- Postmortem agent (Phase 5)
+### Phase 3: ASP2 - Gated Review **66% Complete**
+- ✅ `src/asp/agents/design_review_agent.py` - Multi-agent system (6 specialists)
+- ✅ `src/asp/agents/code_review_agent.py` - Multi-agent system (6 specialists)
+- ✅ `src/asp/agents/design_review_orchestrator.py` - Design review orchestrator
+- ✅ `src/asp/agents/code_review_orchestrator.py` - Code review orchestrator
+- 🟡 Phase yield measurement (requires more bootstrap data)
 
-### Month 3-4: ASP1 - Estimation
+### Phase 4: ASP-TSP - Orchestration **Started**
+- ✅ All 7 core agents implemented
+- ✅ `src/asp/orchestrators/planning_design_orchestrator.py` - Phase-aware feedback
+- ✅ `src/asp/orchestrators/types.py` - PlanningDesignResult for artifact traceability
+- 🟡 Full TSP orchestrator (partial - planning-design complete)
+- ⏳ 50% task completion rate measurement
 
-**Priority Directories:**
-1. `src/asp/agents/planning_agent.py` - Implement Planning Agent
-2. `src/asp/utils/probe_ai.py` - Implement PROBE-AI
-3. `src/asp/utils/semantic_complexity.py` - Implement complexity calculation
-4. `tests/integration/` - Validate estimation accuracy
+### Phase 5: ASP-Loop - Self-Improvement **33% Complete**
+- ✅ `src/asp/agents/postmortem_agent.py` - Performance analysis and root cause analysis
+- ⏳ PIP workflow (Process Improvement Proposals)
+- ⏳ Continuous improvement cycle
 
 ---
 
-## Next Steps
+## Recent Additions
 
-- [ ] Create `pyproject.toml` with dependencies
-- [ ] Initialize with `uv sync`
-- [ ] Create stub implementations for agents
-- [ ] Set up pre-commit hooks
-- [ ] Write initial unit tests
+**Orchestrator Infrastructure (Nov 19-20, 2025):**
+- `src/asp/orchestrators/planning_design_orchestrator.py` - Coordinates Planning → Design → Design Review with phase-aware feedback loops
+- Routes defects back to originating phase (implements PSP principle)
+- Iteration limits prevent infinite loops
+- Returns complete artifact set for downstream agents
+
+**Artifact Traceability:**
+- `artifacts/` directory with 12+ task directories
+- Each task has plan, design, design review, code artifacts
+- Used for bootstrap learning and PROBE-AI training
+
+**Documentation:**
+- 11+ Architecture Decision Records in `docs/`
+- User guides for artifact persistence and telemetry
+- Comprehensive test plans and gap analysis
 
 ---
 
-**Version:** 1.0
-**Last Updated:** 2025-11-11
+**Version:** 2.0
+**Last Updated:** 2025-11-20
