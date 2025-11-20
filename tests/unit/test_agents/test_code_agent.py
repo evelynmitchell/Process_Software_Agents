@@ -509,6 +509,71 @@ class TestErrorHandling:
         with pytest.raises(AgentExecutionError, match="validation failed"):
             agent.execute(input_data)
 
+    @patch("asp.agents.code_agent.CodeAgent.call_llm")
+    def test_extract_json_from_markdown_fence_standard(self, mock_call_llm):
+        """Test JSON extraction from standard markdown fence format."""
+        agent = CodeAgent()
+        input_data = create_test_code_input()
+
+        # LLM returns JSON wrapped in markdown code fence (standard format)
+        response = create_test_generated_code().model_dump()
+        json_str = json.dumps(response, indent=2)
+        markdown_content = f"```json\n{json_str}\n```"
+        mock_call_llm.return_value = {"content": markdown_content}
+
+        # Execute - should successfully extract and parse JSON
+        result = agent.execute(input_data)
+        assert isinstance(result, GeneratedCode)
+        assert result.task_id == "TEST-001"
+
+    @patch("asp.agents.code_agent.CodeAgent.call_llm")
+    def test_extract_json_from_markdown_fence_no_newlines(self, mock_call_llm):
+        """Test JSON extraction from markdown fence without newlines."""
+        agent = CodeAgent()
+        input_data = create_test_code_input()
+
+        # LLM returns JSON wrapped in markdown fence without surrounding newlines
+        response = create_test_generated_code().model_dump()
+        json_str = json.dumps(response)
+        markdown_content = f"```json{json_str}```"
+        mock_call_llm.return_value = {"content": markdown_content}
+
+        # Execute - should successfully extract and parse JSON
+        result = agent.execute(input_data)
+        assert isinstance(result, GeneratedCode)
+        assert result.task_id == "TEST-001"
+
+    @patch("asp.agents.code_agent.CodeAgent.call_llm")
+    def test_extract_json_from_markdown_fence_extra_whitespace(self, mock_call_llm):
+        """Test JSON extraction from markdown fence with extra whitespace."""
+        agent = CodeAgent()
+        input_data = create_test_code_input()
+
+        # LLM returns JSON wrapped in markdown fence with extra spaces/newlines
+        response = create_test_generated_code().model_dump()
+        json_str = json.dumps(response, indent=2)
+        markdown_content = f"```json  \n\n{json_str}\n\n  ```"
+        mock_call_llm.return_value = {"content": markdown_content}
+
+        # Execute - should successfully extract and parse JSON
+        result = agent.execute(input_data)
+        assert isinstance(result, GeneratedCode)
+        assert result.task_id == "TEST-001"
+
+    @patch("asp.agents.code_agent.CodeAgent.call_llm")
+    def test_extract_json_invalid_json_in_fence(self, mock_call_llm):
+        """Test error when markdown fence contains invalid JSON."""
+        agent = CodeAgent()
+        input_data = create_test_code_input()
+
+        # Markdown fence with invalid JSON
+        markdown_content = "```json\n{invalid json}\n```"
+        mock_call_llm.return_value = {"content": markdown_content}
+
+        # Execute - should raise error with helpful message
+        with pytest.raises(AgentExecutionError, match="Failed to parse JSON from markdown fence"):
+            agent.execute(input_data)
+
 
 # =============================================================================
 # Output Validation Tests
