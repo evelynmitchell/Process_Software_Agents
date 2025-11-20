@@ -2,7 +2,7 @@
 # Production dependencies
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-python-multipart==0.0.6
+python-multipart==0.0.18
 
 # Development and testing dependencies
 pytest==7.4.3
