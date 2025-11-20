@@ -238,10 +238,14 @@ class CodeAgent(BaseAgent):
             raise AgentExecutionError(f"Prompt template not found: {e}") from e
 
         # Format prompt with design specification and standards
+        # Escape curly braces in design specification JSON to avoid format() issues
+        design_spec_json = input_data.design_specification.model_dump_json(indent=2)
+        design_spec_escaped = design_spec_json.replace("{", "{{").replace("}", "}}")
+
         formatted_prompt = self.format_prompt(
             prompt_template,
             task_id=input_data.task_id,
-            design_specification=input_data.design_specification.model_dump_json(indent=2),
+            design_specification=design_spec_escaped,
             coding_standards=input_data.coding_standards or "Follow industry best practices",
             context_files="\n".join(input_data.context_files or []),
         )
@@ -448,10 +452,14 @@ class CodeAgent(BaseAgent):
             raise AgentExecutionError(f"Manifest prompt template not found: {e}") from e
 
         # Format prompt with design specification and standards
+        # Escape curly braces in design specification JSON to avoid format() issues
+        design_spec_json = input_data.design_specification.model_dump_json(indent=2)
+        design_spec_escaped = design_spec_json.replace("{", "{{").replace("}", "}}")
+
         formatted_prompt = self.format_prompt(
             prompt_template,
             task_id=input_data.task_id,
-            design_specification=input_data.design_specification.model_dump_json(indent=2),
+            design_specification=design_spec_escaped,
             coding_standards=input_data.coding_standards or "Follow industry best practices",
             context_files="\n".join(input_data.context_files or []),
         )
@@ -570,6 +578,10 @@ class CodeAgent(BaseAgent):
             raise AgentExecutionError(f"File generation prompt template not found: {e}") from e
 
         # Format prompt with file metadata and design specification
+        # Escape curly braces in design specification JSON to avoid format() issues
+        design_spec_json = input_data.design_specification.model_dump_json(indent=2)
+        design_spec_escaped = design_spec_json.replace("{", "{{").replace("}", "}}")
+
         formatted_prompt = self.format_prompt(
             prompt_template,
             file_path=file_meta.file_path,
@@ -579,7 +591,7 @@ class CodeAgent(BaseAgent):
             component_id=file_meta.component_id or "None",
             estimated_lines=file_meta.estimated_lines,
             dependencies=", ".join(file_meta.dependencies) if file_meta.dependencies else "None",
-            design_specification=input_data.design_specification.model_dump_json(indent=2),
+            design_specification=design_spec_escaped,
             coding_standards=input_data.coding_standards or "Follow industry best practices",
         )
 
