@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from asp.agents.base_agent import BaseAgent, AgentExecutionError
-from asp.models.code import CodeInput, GeneratedCode, GeneratedFile
+from asp.models.code import CodeInput, GeneratedCode, GeneratedFile, FileManifest
 from asp.telemetry import track_agent_cost
 from asp.utils.artifact_io import write_artifact_json, write_artifact_markdown, write_generated_file
 from asp.utils.git_utils import git_commit_artifact, is_git_repository
@@ -377,3 +377,119 @@ class CodeAgent(BaseAgent):
             raise AgentExecutionError(f"Duplicate file paths found: {duplicates}")
 
         logger.debug("File structure validation passed")
+
+    def _generate_file_manifest(self, input_data: CodeInput) -> FileManifest:
+        """
+        Generate file manifest using LLM (Phase 1 of multi-stage generation).
+
+        This is Phase 1 of the multi-stage code generation process. It generates
+        a manifest listing all files that need to be created, along with their
+        metadata (file type, description, estimated lines, dependencies).
+
+        The manifest is a small JSON output (2-5KB) that doesn't contain any
+        actual code content, avoiding the JSON escaping issues that occur when
+        embedding large code blocks in JSON strings.
+
+        Args:
+            input_data: CodeInput with design specification and standards
+
+        Returns:
+            FileManifest with list of all files and their metadata
+
+        Raises:
+            AgentExecutionError: If LLM call fails or response is invalid
+        """
+        # Load manifest generation prompt template
+        try:
+            prompt_template = self.load_prompt("code_agent_v2_manifest")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"Manifest prompt template not found: {e}") from e
+
+        # Format prompt with design specification and standards
+        formatted_prompt = self.format_prompt(
+            prompt_template,
+            task_id=input_data.task_id,
+            design_specification=input_data.design_specification.model_dump_json(indent=2),
+            coding_standards=input_data.coding_standards or "Follow industry best practices",
+            context_files="\n".join(input_data.context_files or []),
+        )
+
+        logger.debug(f"Generated manifest prompt ({len(formatted_prompt)} chars)")
+
+        # Call LLM to generate manifest
+        # Manifest is small, so use lower token limit
+        response = self.call_llm(
+            prompt=formatted_prompt,
+            max_tokens=4000,  # Sufficient for manifest (no code content)
+            temperature=0.0,  # Deterministic for manifest generation
+        )
+
+        # Parse response
+        content = response.get("content")
+
+        # If content is a string, try to extract JSON from markdown fences
+        if isinstance(content, str):
+            import re
+            import json
+
+            # Try to extract JSON from markdown code blocks
+            json_match = re.search(r'```json\s*(.*?)\s*```', content, re.DOTALL)
+            if json_match:
+                try:
+                    json_str = json_match.group(1).strip()
+                    content = json.loads(json_str)
+                    logger.debug("Successfully extracted JSON from markdown code fence")
+                except json.JSONDecodeError as e:
+                    json_preview = json_match.group(1).strip()[:500]
+                    raise AgentExecutionError(
+                        f"Failed to parse manifest JSON from markdown fence: {e}\n"
+                        f"JSON content preview: {json_preview}..."
+                    )
+            else:
+                # Try to parse the whole string as JSON
+                try:
+                    content = json.loads(content)
+                    logger.debug("Successfully parsed string content as JSON")
+                except json.JSONDecodeError:
+                    raise AgentExecutionError(
+                        f"LLM returned non-JSON response: {content[:500]}...\n"
+                        f"Expected JSON matching FileManifest schema"
+                    )
+
+        if not isinstance(content, dict):
+            raise AgentExecutionError(
+                f"LLM returned non-dict response after parsing: {type(content)}\n"
+                f"Expected JSON matching FileManifest schema"
+            )
+
+        logger.debug(f"Received manifest response with {len(content)} top-level keys")
+
+        # Validate and create FileManifest
+        try:
+            # Ensure total_files matches actual count
+            if "total_files" not in content or content["total_files"] == 0:
+                content["total_files"] = len(content.get("files", []))
+
+            # Calculate total_estimated_lines if not provided
+            if "total_estimated_lines" not in content or content["total_estimated_lines"] == 0:
+                total_estimated = sum(
+                    file_data.get("estimated_lines", 0)
+                    for file_data in content.get("files", [])
+                )
+                content["total_estimated_lines"] = total_estimated
+
+            manifest = FileManifest(**content)
+
+            logger.info(
+                f"Manifest generation successful: {manifest.total_files} files, "
+                f"{manifest.total_estimated_lines} estimated LOC"
+            )
+
+            return manifest
+
+        except Exception as e:
+            logger.error(f"Failed to validate file manifest: {e}")
+            logger.debug(
+                f"Response content keys: {content.keys() if isinstance(content, dict) else 'not a dict'}"
+            )
+            raise AgentExecutionError(f"Manifest validation failed: {e}") from e

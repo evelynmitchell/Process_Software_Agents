@@ -16,6 +16,137 @@ from asp.models.design import DesignSpecification
 from asp.models.design_review import DesignReviewReport
 
 
+class FileMetadata(BaseModel):
+    """
+    Metadata for a single file in the code generation manifest.
+
+    Used in Phase 1 of multi-stage code generation to plan the file structure
+    before generating actual file contents.
+    """
+
+    file_path: str = Field(
+        ...,
+        min_length=1,
+        description="Relative file path (e.g., 'src/api/auth.py', 'tests/test_auth.py')",
+    )
+    file_type: str = Field(
+        ...,
+        description=(
+            "File type category: 'source', 'test', 'config', 'documentation', "
+            "'requirements', 'schema'"
+        ),
+    )
+    semantic_unit_id: Optional[str] = Field(
+        default=None,
+        description="Semantic unit ID from planning (for traceability)",
+    )
+    component_id: Optional[str] = Field(
+        default=None,
+        description="Component ID from design (for traceability)",
+    )
+    description: str = Field(
+        ...,
+        min_length=20,
+        description="Clear explanation of what this file will implement (1-2 sentences)",
+    )
+    estimated_lines: int = Field(
+        ...,
+        gt=0,
+        description="Rough estimate of lines of code (50, 100, 200, 500, etc.)",
+    )
+    dependencies: list[str] = Field(
+        default_factory=list,
+        description="List of other files this file depends on (imports from)",
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "file_path": "src/api/auth.py",
+                "file_type": "source",
+                "semantic_unit_id": "SU-001",
+                "component_id": "COMP-001",
+                "description": "JWT authentication API endpoints with login, token generation, and validation",
+                "estimated_lines": 250,
+                "dependencies": ["src/models/user.py", "src/utils/jwt_utils.py"],
+            }
+        }
+
+
+class FileManifest(BaseModel):
+    """
+    Complete file manifest for code generation.
+
+    Phase 1 output of multi-stage code generation. Contains the list of all files
+    that need to be created, along with their metadata. This manifest is then used
+    in Phase 2 to generate individual file contents.
+    """
+
+    task_id: str = Field(
+        ...,
+        min_length=3,
+        description="Task identifier matching input",
+    )
+    project_id: Optional[str] = Field(
+        default=None,
+        min_length=3,
+        description="Project identifier (if part of larger project)",
+    )
+    files: list[FileMetadata] = Field(
+        ...,
+        min_items=1,
+        description="List of all files to be generated with their metadata",
+    )
+    dependencies: list[str] = Field(
+        default_factory=list,
+        description=(
+            "All external dependencies required (pip packages, npm packages, etc.). "
+            "Format: 'package==version' (e.g., 'fastapi==0.104.1')"
+        ),
+    )
+    setup_instructions: str = Field(
+        ...,
+        min_length=20,
+        description=(
+            "Step-by-step instructions for setting up and running the generated code "
+            "(installation, database setup, environment variables, etc.)"
+        ),
+    )
+    total_files: int = Field(
+        ...,
+        gt=0,
+        description="Total number of files in the manifest",
+    )
+    total_estimated_lines: int = Field(
+        default=0,
+        ge=0,
+        description="Sum of all estimated_lines values from files",
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "task_id": "JWT-AUTH-001",
+                "project_id": "PROJECT-2025-001",
+                "files": [
+                    {
+                        "file_path": "src/api/auth.py",
+                        "file_type": "source",
+                        "semantic_unit_id": "SU-001",
+                        "component_id": "COMP-001",
+                        "description": "JWT authentication API endpoints",
+                        "estimated_lines": 250,
+                        "dependencies": ["src/models/user.py"],
+                    }
+                ],
+                "dependencies": ["fastapi==0.104.1", "python-jose==3.3.0"],
+                "setup_instructions": "1. pip install -r requirements.txt\n2. Run: uvicorn main:app",
+                "total_files": 10,
+                "total_estimated_lines": 2500,
+            }
+        }
+
+
 class CodeInput(BaseModel):
     """
     Input data for Code Agent.
