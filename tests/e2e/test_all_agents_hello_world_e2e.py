@@ -155,7 +155,7 @@ class TestAllAgentsHelloWorldE2E:
         print("\n[4/6] CODE AGENT - Code Generation")
         print("-" * 80)
 
-        code_agent = CodeAgent()
+        code_agent = CodeAgent(use_multi_stage=True)
 
         code_input = CodeInput(
             task_id="HW-001",
@@ -407,7 +407,7 @@ class TestAllAgentsHelloWorldE2E:
         design = design_agent.execute(design_input)
 
         # Now test code generation
-        code_agent = CodeAgent()
+        code_agent = CodeAgent(use_multi_stage=True)
         code_input = CodeInput(
             task_id="HW-CODE-001",
             design_specification=design,

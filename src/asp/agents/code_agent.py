@@ -65,6 +65,7 @@ class CodeAgent(BaseAgent):
         self,
         db_path: Optional[Path] = None,
         llm_client: Optional[Any] = None,
+        use_multi_stage: Optional[bool] = None,
     ):
         """
         Initialize Code Agent.
@@ -72,10 +73,22 @@ class CodeAgent(BaseAgent):
         Args:
             db_path: Optional path to SQLite database for telemetry
             llm_client: Optional LLM client (for dependency injection in tests)
+            use_multi_stage: Optional flag to enable multi-stage generation.
+                If None, checks ASP_MULTI_STAGE_CODE_GEN environment variable.
+                If True, uses multi-stage generation (manifest + individual files).
+                If False, uses legacy single-call generation.
         """
         super().__init__(db_path=db_path, llm_client=llm_client)
         self.agent_version = "1.0.0"
-        logger.info("CodeAgent initialized")
+
+        # Determine multi-stage mode: explicit param > env var > default (False)
+        if use_multi_stage is not None:
+            self.use_multi_stage = use_multi_stage
+        else:
+            self.use_multi_stage = os.getenv("ASP_MULTI_STAGE_CODE_GEN", "false").lower() == "true"
+
+        mode = "multi-stage" if self.use_multi_stage else "single-call"
+        logger.info(f"CodeAgent initialized (mode: {mode})")
 
     @track_agent_cost(
         agent_role="Code",
@@ -194,14 +207,12 @@ class CodeAgent(BaseAgent):
         Raises:
             AgentExecutionError: If LLM call fails or response is invalid
         """
-        # Check if multi-stage generation is enabled
-        use_multi_stage = os.getenv("ASP_MULTI_STAGE_CODE_GEN", "false").lower() == "true"
-
-        if use_multi_stage:
-            logger.info("Using multi-stage code generation (ASP_MULTI_STAGE_CODE_GEN=true)")
+        # Use mode determined at initialization
+        if self.use_multi_stage:
+            logger.info("Using multi-stage code generation")
             return self._generate_code_multi_stage(input_data)
         else:
-            logger.info("Using legacy single-call code generation (ASP_MULTI_STAGE_CODE_GEN=false)")
+            logger.info("Using legacy single-call code generation")
             return self._generate_code_single_call(input_data)
 
     def _generate_code_single_call(self, input_data: CodeInput) -> GeneratedCode:
