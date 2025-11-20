@@ -26,7 +26,7 @@
     {
       "component_name": "FastAPIServer",
       "semantic_unit_id": "SU-001",
-      "responsibility": "Initialize and configure the FastAPI application server",
+      "responsibility": "Creates and configures the FastAPI application instance with basic server setup",
       "interfaces": [
         {
           "method": "create_app",
@@ -44,13 +44,13 @@
         }
       ],
       "dependencies": [],
-      "implementation_notes": "Use FastAPI() constructor with title='Hello World API' and version='1.0.0'. Add CORSMiddleware to allow all origins for development. Configure exception handlers for 500 errors to return JSON format. Set up basic logging configuration.",
+      "implementation_notes": "Use FastAPI() constructor with title='Hello World API' and version='1.0.0'. Add CORSMiddleware to allow all origins for development. Configure basic exception handlers for 500 errors. Set up uvicorn server configuration with host='0.0.0.0' and port=8000.",
       "complexity": 11
     },
     {
       "component_name": "HelloWorldHandler",
       "semantic_unit_id": "SU-002",
-      "responsibility": "Handle GET /hello requests and return Hello World response",
+      "responsibility": "Handles the GET /hello endpoint and returns Hello World response",
       "interfaces": [
         {
           "method": "get_hello",
@@ -59,14 +59,16 @@
           "description": "Return Hello World message as JSON response"
         }
       ],
-      "dependencies": [],
-      "implementation_notes": "Use FastAPI @app.get('/hello') decorator. Return dictionary with single key 'message' and value 'Hello World'. Response will be automatically serialized to JSON by FastAPI. No input validation needed as endpoint takes no parameters.",
+      "dependencies": [
+        "FastAPIServer"
+      ],
+      "implementation_notes": "Use @app.get('/hello') decorator. Return exactly {'message': 'Hello World'} as JSON. No input validation needed since no parameters. Use response_model=dict to ensure proper JSON serialization. Function should be async def for FastAPI best practices.",
       "complexity": 12
     },
     {
       "component_name": "ErrorHandler",
       "semantic_unit_id": "SU-003",
-      "responsibility": "Handle HTTP errors and exceptions with proper status codes and JSON responses",
+      "responsibility": "Provides centralized error handling and HTTP status code management",
       "interfaces": [
         {
           "method": "handle_internal_error",
@@ -75,19 +77,23 @@
             "exc": "Exception"
           },
           "returns": "JSONResponse",
-          "description": "Handle 500 internal server errors with JSON response"
+          "description": "Handle unexpected exceptions and return 500 error response"
         },
         {
-          "method": "setup_exception_handlers",
+          "method": "create_error_response",
           "parameters": {
-            "app": "FastAPI"
+            "status_code": "int",
+            "error_code": "str",
+            "message": "str"
           },
-          "returns": "None",
-          "description": "Register exception handlers with FastAPI app"
+          "returns": "JSONResponse",
+          "description": "Create standardized error response format"
         }
       ],
-      "dependencies": [],
-      "implementation_notes": "Use @app.exception_handler(500) decorator for internal server errors. Return JSONResponse with status_code=500 and JSON body containing error code and message. Log exceptions using Python logging module. Handle generic Exception class to catch any unhandled errors.",
+      "dependencies": [
+        "FastAPIServer"
+      ],
+      "implementation_notes": "Use @app.exception_handler(Exception) decorator for global exception handling. Log all exceptions using Python logging module. Return JSONResponse with status_code=500 and body={'error': 'INTERNAL_ERROR', 'message': 'Internal server error'}. Import Request and JSONResponse from fastapi.",
       "complexity": 10
     }
   ],
@@ -95,41 +101,41 @@
     {
       "category": "Architecture",
       "description": "Verify FastAPI application is properly structured with separation of concerns",
-      "validation_criteria": "FastAPIServer handles app initialization, HelloWorldHandler handles route logic, ErrorHandler manages error responses. No business logic mixed with server setup.",
+      "validation_criteria": "FastAPIServer component must handle app creation, HelloWorldHandler must handle route logic, ErrorHandler must handle exceptions. No business logic in server setup.",
       "severity": "High"
     },
     {
       "category": "Error Handling",
-      "description": "Verify proper HTTP status codes and JSON error responses",
-      "validation_criteria": "ErrorHandler must return JSONResponse with proper status codes. 500 errors must return JSON format, not HTML. Exception handler must be registered with FastAPI app.",
+      "description": "Verify global exception handling is implemented",
+      "validation_criteria": "ErrorHandler must implement @app.exception_handler(Exception) decorator. All unhandled exceptions must return 500 status with proper JSON error format.",
       "severity": "Critical"
     },
     {
       "category": "Performance",
-      "description": "Verify endpoint returns response efficiently without unnecessary processing",
-      "validation_criteria": "HelloWorldHandler.get_hello() must return static dictionary directly. No database calls, file I/O, or complex computations for simple Hello World response.",
+      "description": "Verify async/await pattern is used correctly",
+      "validation_criteria": "HelloWorldHandler.get_hello() must be defined as 'async def' for FastAPI best practices and non-blocking operation.",
       "severity": "Medium"
     },
     {
       "category": "Data Integrity",
-      "description": "Verify response format matches API contract exactly",
-      "validation_criteria": "Response must be JSON object with single 'message' key containing exactly 'Hello World' string. No additional fields or different message text.",
+      "description": "Verify exact response format matches specification",
+      "validation_criteria": "GET /hello must return exactly {'message': 'Hello World'} with Content-Type: application/json. No additional fields or different message text.",
       "severity": "High"
     },
     {
       "category": "Architecture",
-      "description": "Verify proper FastAPI decorators and routing configuration",
-      "validation_criteria": "Route must use @app.get('/hello') decorator. Method must be async def or regular def. FastAPI app must be properly instantiated and configured.",
-      "severity": "High"
+      "description": "Verify proper FastAPI configuration and middleware setup",
+      "validation_criteria": "FastAPIServer must configure CORS middleware, set proper app metadata (title, version), and handle server configuration. No hardcoded values in route handlers.",
+      "severity": "Medium"
     },
     {
       "category": "Error Handling",
-      "description": "Verify logging is configured for error tracking",
-      "validation_criteria": "ErrorHandler must log exceptions using Python logging module. Log level should be ERROR or higher. Include exception details in log messages.",
-      "severity": "Medium"
+      "description": "Verify error responses follow consistent format",
+      "validation_criteria": "All error responses must use JSONResponse with consistent schema: {'error': 'ERROR_CODE', 'message': 'description'}. Status codes must match API contract.",
+      "severity": "High"
     }
   ],
-  "architecture_overview": "Simple single-tier FastAPI web application with three components: FastAPIServer initializes the web framework, HelloWorldHandler implements the /hello endpoint logic, and ErrorHandler manages HTTP error responses. No database or external dependencies required. Follows FastAPI best practices with proper separation of server setup, route handling, and error management.",
+  "architecture_overview": "Simple 3-layer FastAPI application: FastAPIServer handles application setup and configuration, HelloWorldHandler implements the single GET /hello endpoint, and ErrorHandler provides centralized exception management. No database or external dependencies required. Uses async/await pattern for scalability despite simple functionality.",
   "technology_stack": {
     "language": "Python 3.12",
     "web_framework": "FastAPI 0.104+",
@@ -138,13 +144,12 @@
     "logging": "Python logging module (stdlib)"
   },
   "assumptions": [
-    "Application runs on single process/thread (no concurrency requirements)",
-    "No authentication or authorization needed for /hello endpoint",
-    "Response format is JSON (FastAPI default)",
-    "CORS is enabled for all origins (development setup)",
-    "Server runs on default host and port (uvicorn defaults)",
-    "No rate limiting required for simple Hello World endpoint",
-    "Error responses follow JSON format for API consistency"
+    "Application runs on localhost:8000 for development",
+    "CORS is enabled for all origins (development configuration)",
+    "No authentication or rate limiting required",
+    "Response must be exactly 'Hello World' (case-sensitive)",
+    "Server uses async handlers even though no I/O operations needed",
+    "Error logging goes to stdout/stderr (no file logging required)"
   ],
-  "timestamp": "2025-11-19T21:25:51.563835"
+  "timestamp": "2025-11-20T18:25:20.147159"
 }
