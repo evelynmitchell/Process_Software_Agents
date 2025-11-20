@@ -223,15 +223,23 @@ class CodeAgent(BaseAgent):
             import json
 
             # Try to extract JSON from markdown code blocks
-            json_match = re.search(r'```json\s*\n(.*?)\n```', content, re.DOTALL)
+            # More robust pattern that handles various whitespace formatting:
+            # - Allows any whitespace (including newlines) after ```json
+            # - Allows any whitespace before closing ```
+            # - Handles cases with/without newlines in various positions
+            json_match = re.search(r'```json\s*(.*?)\s*```', content, re.DOTALL)
             if json_match:
                 try:
-                    content = json.loads(json_match.group(1))
+                    # Extract and strip the JSON content
+                    json_str = json_match.group(1).strip()
+                    content = json.loads(json_str)
                     logger.debug("Successfully extracted JSON from markdown code fence")
                 except json.JSONDecodeError as e:
+                    # Provide more helpful error message with the actual JSON string attempted
+                    json_preview = json_match.group(1).strip()[:500]
                     raise AgentExecutionError(
                         f"Failed to parse JSON from markdown fence: {e}\n"
-                        f"Content preview: {content[:500]}..."
+                        f"JSON content preview: {json_preview}..."
                     )
             else:
                 # Try to parse the whole string as JSON
