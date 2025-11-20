@@ -1,336 +1,506 @@
-# Hello World API
+# Agentic Software Process (ASP) Platform
 
-A simple REST API built with FastAPI that returns a "Hello World" greeting message with timestamp.
+A multi-agent orchestration system that applies Personal Software Process (PSP) and Team Software Process (TSP) methodology to autonomous AI agents, enabling disciplined development with built-in quality gates, automated telemetry, and self-improvement capabilities.
+
+---
 
 ## Overview
 
-This is a minimal REST API that provides a single endpoint `/hello` which returns a JSON response containing:
-- A "Hello World" message
-- Current UTC timestamp in ISO 8601 format
-- Success status indicator
+The ASP Platform transforms autonomous AI agents from unpredictable "copilots" into disciplined, measurable, and continuously improving development team members through:
 
-## Features
+- **7 Specialized Agents:** Planning, Design, Design Review, Coding, Code Review, Test, Postmortem
+- **Mandatory Quality Gates:** Formal review phases prevent "compounding errors"
+- **PROBE-AI Estimation:** Linear regression-based effort estimation using historical data
+- **Bootstrap Learning:** Agents earn autonomy through demonstrated reliability
+- **Full Observability:** Complete telemetry of agent performance, cost, and quality metrics
 
-- ✅ Single GET endpoint: `/hello`
-- ✅ JSON response with consistent structure
-- ✅ UTC timestamp generation
-- ✅ Comprehensive error handling
-- ✅ Health check endpoint
-- ✅ Interactive API documentation
-- ✅ High test coverage (90%+)
-- ✅ Production-ready logging
-- ✅ Performance optimized (sub-10ms response time)
+---
 
-## Technology Stack
+## Quick Start
 
-- **Language**: Python 3.12+
-- **Web Framework**: FastAPI 0.104+
-- **ASGI Server**: Uvicorn
-- **Testing**: Pytest with async support
-- **Code Quality**: Black, isort, flake8, mypy
+### Option 1: GitHub Codespaces (Recommended)
 
-## API Endpoints
+**Perfect for zero-setup development in the cloud.**
 
-### GET /hello
+#### 1. Create Codespace
 
-Returns a Hello World greeting with timestamp.
+Click the "Code" button on GitHub → "Codespaces" → "Create codespace on main"
 
-**Response:**
-```json
-{
-  "message": "Hello World",
-  "timestamp": "2025-11-19T21:32:24.399603Z",
-  "status": "success"
-}
-```
+#### 2. Configure Secrets (One-Time Setup)
 
-**Status Codes:**
-- `200 OK`: Success
-- `500 Internal Server Error`: Server error
+Add the following secrets to [Repository Settings → Codespaces Secrets](https://github.com/evelynmitchell/Process_Software_Agents/settings/secrets/codespaces):
 
-### GET /health
+| Secret Name | Where to Get It | Required |
+|-------------|----------------|----------|
+| `LANGFUSE_PUBLIC_KEY` | [Langfuse Dashboard](https://cloud.langfuse.com) → Settings → API Keys | Yes |
+| `LANGFUSE_SECRET_KEY` | [Langfuse Dashboard](https://cloud.langfuse.com) → Settings → API Keys | Yes |
+| `LANGFUSE_HOST` | Set to: `https://cloud.langfuse.com` | Yes |
+| `ANTHROPIC_API_KEY` | [Anthropic Console](https://console.anthropic.com) → API Keys | Yes |
 
-Health check endpoint for monitoring.
+After adding secrets, **restart your Codespace** for them to take effect.
 
-**Response:**
-```json
-{
-  "status": "healthy",
-  "timestamp": "2025-11-19T21:32:24.399603Z"
-}
-```
-
-### GET /
-
-Root endpoint with API information.
-
-## Installation
-
-### Prerequisites
-
-- Python 3.12 or higher
-- pip (Python package manager)
-
-### Setup Instructions
-
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd hello-world-api
-   ```
-
-2. **Create virtual environment:**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Set up environment variables (optional):**
-   ```bash
-   cp .env.example .env
-   # Edit .env file with your preferred settings
-   ```
-
-## Running the Application
-
-### Development Server
+#### 3. Verify Setup
 
 ```bash
-# Start the development server with auto-reload
-python main.py
+# Check secrets are loaded
+echo $LANGFUSE_PUBLIC_KEY  # Should show pk-lf-...
+echo $ANTHROPIC_API_KEY    # Should show sk-ant-...
 
-# Or using uvicorn directly
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+# Install dependencies (if not already done)
+uv sync --all-extras
+
+# Initialize database
+uv run python scripts/init_database.py --with-sample-data
+
+# Run tests
+uv run pytest
 ```
 
-The API will be available at:
-- **API Base URL**: http://localhost:8000
-- **Hello Endpoint**: http://localhost:8000/hello
-- **Interactive Docs**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-- **Health Check**: http://localhost:8000/health
+**You're ready to develop!** All dependencies, database, and secrets are configured.
 
-### Production Server
+---
+
+### Option 2: Local Development
+
+**For development on your local machine.**
+
+#### Prerequisites
+
+- Python 3.12+
+- [uv](https://github.com/astral-sh/uv) package manager
+
+#### Installation
 
 ```bash
-# Production server (without auto-reload)
-uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+# 1. Clone the repository
+git clone https://github.com/evelynmitchell/Process_Software_Agents.git
+cd Process_Software_Agents
+
+# 2. Install dependencies
+uv sync --all-extras
+
+# 3. Configure environment (copy and uncomment variables)
+cp .env.example .env
+# Edit .env with your API keys:
+#   LANGFUSE_PUBLIC_KEY=pk-lf-your-key
+#   LANGFUSE_SECRET_KEY=sk-lf-your-key
+#   LANGFUSE_HOST=https://cloud.langfuse.com
+#   ANTHROPIC_API_KEY=sk-ant-your-key
+
+# 4. Initialize database
+uv run python scripts/init_database.py --with-sample-data
+
+# 5. Run tests
+uv run pytest
 ```
 
-## Testing
+---
 
-### Run All Tests
+### Quick Verification
 
 ```bash
-# Run all tests with coverage
-pytest
+# Run all tests
+uv run pytest
 
-# Run tests with verbose output
-pytest -v
+# Run specific test categories
+uv run pytest -m unit          # Fast unit tests only
+uv run pytest -m integration   # Integration tests
+uv run pytest --cov            # With coverage report
 
-# Run specific test file
-pytest tests/test_hello.py
-
-# Run tests with coverage report
-pytest --cov=main --cov-report=html
+# Check database
+sqlite3 data/asp_telemetry.db ".tables"
 ```
 
-### Test Categories
-
-- **Unit Tests**: Test individual components (HelloWorldHandler)
-- **Integration Tests**: Test API endpoints end-to-end
-- **Edge Cases**: Test error conditions and boundary cases
-- **Performance Tests**: Verify response time requirements
-- **Security Tests**: Ensure no sensitive information exposure
-
-### Coverage Report
-
-After running tests with coverage, open `htmlcov/index.html` in your browser to view the detailed coverage report.
-
-## Code Quality
-
-### Linting and Formatting
-
-```bash
-# Format code with Black
-black .
-
-# Sort imports with isort
-isort .
-
-# Lint with flake8
-flake8 .
-
-# Type checking with mypy
-mypy main.py
-```
-
-### Pre-commit Checks
-
-```bash
-# Run all quality checks
-black . && isort . && flake8 . && mypy main.py && pytest
-```
+---
 
 ## Project Structure
 
 ```
-hello-world-api/
-├── main.py                 # Main FastAPI application
-├── tests/
-│   └── test_hello.py      # Comprehensive test suite
-├── requirements.txt        # Python dependencies
-├── pyproject.toml         # Modern Python project config
-├── pytest.ini            # Pytest configuration
-├── .env.example           # Environment variables template
-├── README.md              # This file
-└── htmlcov/               # Coverage reports (generated)
+Process_Software_Agents/
+├── src/asp/                    # Main application package
+│   ├── agents/                 # 7 specialized agent implementations
+│   ├── orchestrator/           # TSP Orchestrator (control plane)
+│   ├── telemetry/              # Observability and logging
+│   ├── models/                 # Data models (Pydantic/SQLAlchemy)
+│   ├── prompts/                # Agent prompt templates (versioned)
+│   └── utils/                  # Utility functions
+├── tests/                      # Test suite (unit, integration, e2e)
+├── database/                   # SQL migrations and schemas
+├── docs/                       # Documentation
+├── config/                     # Configuration files
+└── scripts/                    # Utility scripts
 ```
 
-## Architecture
-
-### Components
-
-1. **HelloWorldHandler**: Core business logic component
-   - `get_hello()`: Main entry point for hello requests
-   - `format_response()`: Response formatting with timestamp
-
-2. **FastAPI Application**: HTTP server and routing
-   - Route handlers for endpoints
-   - Error handling middleware
-   - Request/response serialization
-
-3. **Logging System**: Structured logging for monitoring
-   - Request/response logging
-   - Error tracking
-   - Performance monitoring
-
-### Design Principles
-
-- **Single Responsibility**: Each component has one clear purpose
-- **Error Handling**: Comprehensive exception handling with proper HTTP status codes
-- **Performance**: Optimized for sub-10ms response times
-- **Security**: No sensitive information exposure
-- **Testability**: High test coverage with unit and integration tests
-- **Maintainability**: Clean code with proper documentation
-
-## Performance
-
-- **Response Time**: < 10ms average response time
-- **Throughput**: Handles 1000+ requests per second
-- **Memory Usage**: Minimal memory footprint
-- **CPU Usage**: Low CPU utilization
-
-## Monitoring
-
-### Health Checks
-
-- **Endpoint**: `GET /health`
-- **Purpose**: Application health monitoring
-- **Response**: JSON with status and timestamp
-
-### Logging
-
-- **Format**: Structured JSON logging
-- **Levels**: INFO, ERROR, DEBUG
-- **Output**: Console (configurable)
-
-## Deployment
-
-### Docker (Optional)
-
-```dockerfile
-# Dockerfile example
-FROM python:3.12-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-COPY . .
-EXPOSE 8000
-
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-### Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| HOST | 0.0.0.0 | Server host address |
-| PORT | 8000 | Server port |
-| LOG_LEVEL | info | Logging level |
-| RELOAD | false | Auto-reload on changes |
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Port already in use**
-   ```bash
-   # Kill process using port 8000
-   lsof -ti:8000 | xargs kill -9
-   # Or use different port
-   uvicorn main:app --port 8001
-   ```
-
-2. **Import errors**
-   ```bash
-   # Ensure virtual environment is activated
-   source venv/bin/activate
-   # Reinstall dependencies
-   pip install -r requirements.txt
-   ```
-
-3. **Test failures**
-   ```bash
-   # Run tests with verbose output
-   pytest -v -s
-   # Check test environment
-   python -m pytest --version
-   ```
-
-4. **Permission errors**
-   ```bash
-   # On Unix systems, ensure proper permissions
-   chmod +x main.py
-   ```
-
-### Debug Mode
-
-```bash
-# Enable debug logging
-export LOG_LEVEL=debug
-python main.py
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make changes with tests
-4. Run quality checks: `black . && isort . && flake8 . && mypy main.py && pytest`
-5. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details.
-
-## Support
-
-For issues and questions:
-1. Check the troubleshooting section above
-2. Review the test suite for usage examples
-3. Open an issue on the repository
+See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for detailed documentation.
 
 ---
 
-**Version**: 1.0.0  
-**Last Updated**: 2025-11-19  
-**Python Version**: 3.12+  
-**FastAPI Version**: 0.104+
+## Core Concepts
+
+### 1. PSP Adaptation for AI Agents
+
+The ASP Platform adapts the Personal Software Process (PSP) for autonomous agents:
+
+| PSP Concept | ASP Implementation |
+|-------------|-------------------|
+| **Size (LOC)** | Semantic Complexity (weighted score) |
+| **Effort (minutes)** | Agent Cost Vector (latency, tokens, API cost) |
+| **Quality (defects)** | Alignment Deviations (AI-specific taxonomy) |
+| **Schedule** | Planned vs. Actual Cost Vector |
+
+### 2. Bootstrap Learning Framework
+
+All agent capabilities start in "Learning Mode" and graduate to autonomy based on demonstrated accuracy:
+
+- **Learning Mode:** Human validates all outputs, system collects data
+- **Shadow Mode:** Agent provides recommendations, predictions compared to actuals
+- **Autonomous Mode:** Agent operates independently with periodic recalibration
+
+**5 Bootstrap Capabilities:**
+1. **PROBE-AI Estimation** (10-20 tasks, MAPE < 20%)
+2. **Task Decomposition Quality** (15-30 tasks, <10% correction rate)
+3. **Error-Prone Area Detection** (30+ tasks, risk map generation)
+4. **Review Agent Effectiveness** (20-40 reviews, TP >80%, FP <20%)
+5. **Defect Type Prediction** (50+ tasks, 60% prediction accuracy)
+
+### 3. Quality Gates
+
+Mandatory review phases prevent defects from propagating:
+
+```
+Planning → Design → Design Review (GATE) → Code → Code Review (GATE) → Test → Postmortem
+```
+
+If a review fails, the orchestrator halts and loops back to the originating agent with defect details.
+
+---
+
+## Implementation Status
+
+### Phase 1: Measurement Foundation **COMPLETE**
+
+**Goal:** Establish baseline telemetry and bootstrap learning data collection.
+
+**Completed:**
+- SQLite database schema (4 tables, 25+ indexes)
+- Langfuse Cloud integration
+- Telemetry decorators (`@track_agent_cost`, `@log_defect`)
+- Pydantic data models for all agents
+- Planning Agent with full telemetry
+- Design Agent with full telemetry
+- Design Review Agent (multi-agent system)
+- Code Agent with full telemetry
+- Code Review Agent (multi-agent system)
+- Test Agent with AI Defect Taxonomy
+- Bootstrap data collection (12 planning tasks)
+
+### Implemented Agents (7/7 Complete) ✅
+
+| Agent | Status | Tests | Docs | Bootstrap Data |
+|-------|--------|-------|------|----------------|
+| **Planning Agent** | ✅ Complete | 102/102 unit, 8/8 E2E | ADR, Examples | 12 tasks |
+| **Design Agent** | ✅ Complete | 23/23 unit, 5/5 E2E | ADR, Examples | Partial |
+| **Design Review Agent** | ✅ Complete | 21/21 unit, 3/3 E2E | ADR, User Guide | Partial |
+| **Code Agent** | ✅ Complete | Unit tests | - | - |
+| **Code Review Agent** | ✅ Complete | Unit tests | - | - |
+| **Test Agent** | ✅ Complete | Unit tests | - | - |
+| **Postmortem Agent** | ✅ Complete | Unit tests | Work Summary | - |
+
+**All 21 agents (7 core + 2 orchestrators + 12 specialists) are now implemented!**
+
+### Recently Completed
+
+#### Comprehensive Test Plan for All 21 Agents (NEW!)
+
+A **production-ready testing framework** covering all agents in the ASP Platform:
+
+**Test Coverage:**
+- **7 Core Agents** - Planning, Design, Design Review, Code, Code Review, Test, Postmortem
+- **2 Orchestrator Agents** - Design Review and Code Review orchestrators
+- **12 Specialist Review Agents** - 6 design + 6 code review specialists
+
+**Test Execution:**
+- **200+ tests** across all agents
+- **Incremental execution** - Phase-by-phase testing for faster feedback
+- **Performance benchmarks** - Latency and cost validation
+- **Integration tests** - End-to-end workflow validation
+
+**Easy Execution:**
+```bash
+python scripts/run_agent_tests.py incremental  # Run all tests
+python scripts/run_agent_tests.py coverage     # With coverage report
+```
+
+**[Read the Quick Start Guide](docs/test_plan_quick_start.md)** for complete testing instructions.
+
+#### Postmortem Agent (COMPLETE!)
+
+The Postmortem Agent is a **meta-agent for performance analysis and self-improvement** that completes the 7-agent PSP/TSP workflow:
+
+**Core Capabilities:**
+- **Performance Analysis** - Planned vs. actual metrics (latency, tokens, cost, complexity)
+- **Quality Metrics** - Defect density, phase distribution, phase yield
+- **Root Cause Analysis** - Top defect types by fix effort
+- **Process Improvement Proposals (PIPs)** - LLM-generated process changes for HITL approval
+
+**Self-Improvement Loop:**
+1. Analyze completed task performance
+2. Identify top defect patterns
+3. Generate defensive process changes
+4. Submit PIPs for human approval
+5. Update agent prompts/checklists after approval
+
+This completes the foundation for **Phase 5: ASP-Loop Self-Improvement**.
+
+#### Test Agent (COMPLETE!)
+
+The Test Agent is a **production-ready testing system** that validates generated code through comprehensive testing and defect logging:
+
+**4-Phase Testing Process:**
+- **Build Validation** - Verify compilation, imports, dependencies
+- **Test Generation** - Create comprehensive unit tests from design specs
+- **Test Execution** - Run tests and calculate coverage metrics
+- **Defect Logging** - Classify defects using AI Defect Taxonomy (8 types)
+
+**AI Defect Taxonomy:**
+- Planning Failure, Prompt Misinterpretation, Tool Use Error
+- Hallucination, Security Vulnerability, Conventional Code Bug
+- Task Execution Error, Alignment Deviation
+
+**Quality Gates:** PASS / FAIL / BUILD_FAILED
+**Severity Levels:** Critical, High, Medium, Low
+**Phase-Aware Tracking:** Links defects to Planning/Design/Code phases
+
+#### Design Review Agent
+
+The Design Review Agent is a **production-ready multi-agent system** that performs comprehensive design quality reviews across 6 specialized dimensions:
+
+**6 Specialist Agents:**
+- **SecurityReviewAgent** - OWASP Top 10, authentication, encryption, injection prevention
+- **PerformanceReviewAgent** - Indexing, caching, N+1 queries, scalability
+- **DataIntegrityReviewAgent** - FK constraints, referential integrity, transactions
+- **MaintainabilityReviewAgent** - Coupling, cohesion, separation of concerns
+- **ArchitectureReviewAgent** - Design patterns, layering, SOLID principles
+- **APIDesignReviewAgent** - RESTful design, error handling, versioning
+
+**Performance:** 25-40 seconds per review (parallel execution)
+**Cost:** ~$0.15-0.25 per review
+**Test Coverage:** 24/24 tests passing (100%)
+
+**[Read the Full User Guide](docs/design_review_agent_user_guide.md)** for usage examples, API reference, and troubleshooting.
+
+---
+
+## Documentation
+
+### Product & Architecture
+- [PRD.md](PRD.md) - Product Requirements Document
+- [PSPdoc.md](PSPdoc.md) - ASP Framework Source Document
+- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Directory Organization
+
+### Architecture Decisions
+- [docs/data_storage_decision.md](docs/data_storage_decision.md) - SQLite vs PostgreSQL (with database file location)
+- [docs/secrets_management_decision.md](docs/secrets_management_decision.md) - GitHub Codespaces Secrets strategy
+- [docs/planning_agent_architecture_decision.md](docs/planning_agent_architecture_decision.md) - Planning Agent design
+- [docs/design_agent_architecture_decision.md](docs/design_agent_architecture_decision.md) - Design Agent design
+- [docs/design_review_agent_architecture_decision.md](docs/design_review_agent_architecture_decision.md) - Design Review multi-agent architecture
+
+### Agent User Guides
+- [docs/design_review_agent_user_guide.md](docs/design_review_agent_user_guide.md) - **NEW!** Complete guide for Design Review Agent (usage, examples, API reference, troubleshooting)
+
+### Technical Specifications
+- [docs/database_schema_specification.md](docs/database_schema_specification.md) - Database Design
+- [docs/observability_platform_evaluation.md](docs/observability_platform_evaluation.md) - Platform Selection
+- [database/README.md](database/README.md) - Database Setup Guide (SQLite & PostgreSQL)
+
+### Testing Documentation
+- [docs/comprehensive_agent_test_plan.md](docs/comprehensive_agent_test_plan.md) - **UPDATED!** Complete test plan for all 21 agents + 106 new critical tests for AI safety, resource management, and bootstrap learning (~300+ total tests)
+- [docs/test_gap_analysis_and_recommendations.md](docs/test_gap_analysis_and_recommendations.md) - **NEW!** Analysis of missing test cases with focus on prompt injection, cost control, hallucination detection, and bootstrap learning validation
+- [docs/test_plan_quick_start.md](docs/test_plan_quick_start.md) - Quick reference guide for executing the comprehensive test plan
+- [docs/test_coverage_analysis.md](docs/test_coverage_analysis.md) - Comprehensive test coverage analysis and gap identification
+- [docs/test_implementation_plan.md](docs/test_implementation_plan.md) - Detailed 3-4 week implementation roadmap for test coverage
+- [scripts/run_agent_tests.py](scripts/run_agent_tests.py) - Python test runner with incremental execution modes
+- [scripts/run_agent_tests.sh](scripts/run_agent_tests.sh) - Bash test runner for Linux/macOS
+
+### Development Guidelines
+- [Claude.md](Claude.md) - Guidelines for Claude Code
+- [.env.example](.env.example) - Environment Variables Reference
+- [Summary/](Summary/) - Daily Work Logs
+
+---
+
+## Technology Stack
+
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| **Language** | Python 3.12+ | Core implementation |
+| **Package Manager** | uv | Fast, Rust-based dependency management |
+| **Development Env** | GitHub Codespaces | Cloud-based development |
+| **Secrets Management** | GitHub Codespaces Secrets | Secure API key storage |
+| **LLM Providers** | Anthropic (Claude), OpenAI | Multi-provider support |
+| **Observability** | Langfuse (Cloud/Self-hosted) | Agent tracing and telemetry |
+| **Database (Phase 1-3)** | SQLite | Local file-based storage |
+| **Database (Phase 4+)** | PostgreSQL + TimescaleDB | Production time-series storage |
+| **Orchestration** | Custom (TSP-based) | Multi-agent workflow control |
+| **Testing** | pytest | Unit, integration, e2e tests |
+| **Linting/Formatting** | ruff | Fast Python linter and formatter |
+| **Type Checking** | mypy | Static type analysis |
+
+---
+
+## Development Workflow
+
+### 1. Install Development Tools
+
+```bash
+uv sync --all-extras
+```
+
+### 2. Run Pre-Commit Hooks (Optional)
+
+```bash
+uv run pre-commit install
+uv run pre-commit run --all-files
+```
+
+### 3. Format and Lint
+
+```bash
+# Format code
+uv run ruff format .
+
+# Run linter
+uv run ruff check --fix .
+
+# Type check
+uv run mypy src/
+```
+
+### 4. Run Tests
+
+```bash
+# Option 1: Use the comprehensive test runner (recommended)
+python scripts/run_agent_tests.py incremental  # Run all tests phase by phase
+python scripts/run_agent_tests.py coverage     # Run with coverage report
+python scripts/run_agent_tests.py core         # Test only core agents
+
+# Option 2: Direct pytest commands
+uv run pytest                                   # All tests
+uv run pytest --cov --cov-report=html          # With coverage
+uv run pytest -m unit                          # Unit tests only
+uv run pytest -m integration                   # Integration tests only
+uv run pytest -m bootstrap                     # Bootstrap tests only
+```
+
+See [docs/test_plan_quick_start.md](docs/test_plan_quick_start.md) for complete testing guide.
+
+### 5. Create Feature Branch
+
+```bash
+git checkout -b feature/my-feature
+# Make changes
+git add .
+git commit -m "Add feature: description"
+git push origin feature/my-feature
+```
+
+---
+
+## Contributing
+
+We follow a structured development process (inspired by PSP!):
+
+1. **Problem Analysis:** Understand requirements and examples
+2. **Design:** Create function signatures and stubs
+3. **Examples:** Write test cases before implementation
+4. **Implementation:** Fill in the function body
+5. **Testing:** Validate with tests
+6. **Review:** Get code reviewed before merge
+
+See [Claude.md](Claude.md) for detailed guidelines.
+
+---
+
+## Roadmap
+
+### Phase 1: ASP0 - Measurement (Months 1-2) [In Progress]
+- [x] Database schema design (SQLite with PostgreSQL migration path)
+- [x] Observability platform selection (Langfuse)
+- [x] Project structure setup (uv, 119 dependencies)
+- [x] Secrets management strategy (GitHub Codespaces Secrets)
+- [x] SQLite database implementation (4 tables, 25+ indexes)
+- [ ] Deploy telemetry infrastructure (decorators, instrumentation)
+- [ ] Implement Planning Agent with telemetry
+- [ ] Collect baseline data (30+ tasks)
+
+### Phase 2: ASP1 - Estimation (Months 3-4)
+- [ ] Implement Planning Agent
+- [ ] Build PROBE-AI linear regression
+- [ ] Validate estimation accuracy (±20%)
+
+### Phase 3: ASP2 - Gated Review (Months 5-6)
+- [ ] Implement Design Review Agent
+- [ ] Implement Code Review Agent
+- [ ] Achieve >70% phase yield
+
+### Phase 4: ASP-TSP - Orchestration (Months 7-9)
+- [ ] Deploy all 7 agents
+- [ ] Build TSP Orchestrator
+- [ ] 50% task completion rate (low-risk tasks)
+
+### Phase 5: ASP-Loop - Self-Improvement (Months 10-12)
+- [ ] Implement Postmortem Agent
+- [ ] Enable PIP workflow
+- [ ] Continuous improvement cycle operational
+
+---
+
+## Key Features
+
+### Delivered (Phase 1 Infrastructure)
+- **Database:** SQLite schema (4 tables, 25+ indexes) with PostgreSQL migration path
+- **Secrets Management:** GitHub Codespaces Secrets integration
+- **Database Tooling:** Python CLI for one-command database initialization
+- **Data Organization:** Structured `data/` directory for runtime files
+- **Project Structure:** uv package management with 119 dependencies
+- **Documentation:** PRD v1.2 with 24 FRs, Bootstrap Learning Framework, 2 architecture decisions
+- **Development Environment:** GitHub Codespaces with zero-setup workflow
+
+### In Progress (Phase 1)
+- Telemetry decorators (`@track_agent_cost`, `@log_defect`)
+- Python data models (SQLAlchemy/Pydantic)
+- Planning Agent implementation with telemetry
+- Langfuse API integration
+
+### Planned (Phase 2-5)
+- Full 7-agent orchestration (Planning, Design, Code, Review, Test, Postmortem)
+- PROBE-AI estimation engine (linear regression)
+- Bootstrap dashboard (FR-23, FR-24)
+- Quality gates (Design Review, Code Review)
+- Self-improvement PIP workflow
+
+---
+
+## License
+
+MIT License - See [LICENSE](LICENSE) for details.
+
+---
+
+## Acknowledgments
+
+- **PSP/TSP Framework:** Watts Humphrey, Software Engineering Institute (SEI), Carnegie Mellon University
+- **Agentic AI Research:** Informed by recent research on specification-first AI development and agent observability
+
+---
+
+## Contact
+
+- **Repository:** [github.com/evelynmitchell/Process_Software_Agents](https://github.com/evelynmitchell/Process_Software_Agents)
+- **Issues:** [github.com/evelynmitchell/Process_Software_Agents/issues](https://github.com/evelynmitchell/Process_Software_Agents/issues)
+
+---
+
+**Built with Claude Code**
+
+*Autonomy is earned through demonstrated reliability, not assumed.*
