@@ -14,12 +14,13 @@ Date: November 17, 2025
 """
 
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
 from asp.agents.base_agent import BaseAgent, AgentExecutionError
-from asp.models.code import CodeInput, GeneratedCode, GeneratedFile, FileManifest
+from asp.models.code import CodeInput, GeneratedCode, GeneratedFile, FileManifest, FileMetadata
 from asp.telemetry import track_agent_cost
 from asp.utils.artifact_io import write_artifact_json, write_artifact_markdown, write_generated_file
 from asp.utils.git_utils import git_commit_artifact, is_git_repository
@@ -179,6 +180,36 @@ class CodeAgent(BaseAgent):
     def _generate_code(self, input_data: CodeInput) -> GeneratedCode:
         """
         Generate complete code using LLM.
+
+        Supports two modes via ASP_MULTI_STAGE_CODE_GEN environment variable:
+        - "true": Use multi-stage generation (manifest + individual files)
+        - "false" (default): Use legacy single-call generation
+
+        Args:
+            input_data: CodeInput with design specification and standards
+
+        Returns:
+            GeneratedCode parsed from LLM response
+
+        Raises:
+            AgentExecutionError: If LLM call fails or response is invalid
+        """
+        # Check if multi-stage generation is enabled
+        use_multi_stage = os.getenv("ASP_MULTI_STAGE_CODE_GEN", "false").lower() == "true"
+
+        if use_multi_stage:
+            logger.info("Using multi-stage code generation (ASP_MULTI_STAGE_CODE_GEN=true)")
+            return self._generate_code_multi_stage(input_data)
+        else:
+            logger.info("Using legacy single-call code generation (ASP_MULTI_STAGE_CODE_GEN=false)")
+            return self._generate_code_single_call(input_data)
+
+    def _generate_code_single_call(self, input_data: CodeInput) -> GeneratedCode:
+        """
+        Generate complete code using single LLM call (legacy approach).
+
+        This is the original approach that generates all code in one JSON response.
+        Can fail with JSONDecodeError for large code blocks due to escaping issues.
 
         Args:
             input_data: CodeInput with design specification and standards
@@ -493,3 +524,235 @@ class CodeAgent(BaseAgent):
                 f"Response content keys: {content.keys() if isinstance(content, dict) else 'not a dict'}"
             )
             raise AgentExecutionError(f"Manifest validation failed: {e}") from e
+
+    def _generate_file_content(
+        self,
+        file_meta: FileMetadata,
+        input_data: CodeInput,
+        max_retries: int = 3,
+    ) -> str:
+        """
+        Generate content for a single file using LLM (Phase 2 of multi-stage generation).
+
+        This is Phase 2 of the multi-stage code generation process. It generates
+        the actual code content for a single file based on the file metadata and
+        design specification.
+
+        The LLM returns RAW CODE CONTENT (no JSON wrapping), which avoids the
+        JSON escaping issues that occur with large code blocks.
+
+        Args:
+            file_meta: FileMetadata with file path, type, description, etc.
+            input_data: CodeInput with design specification and standards
+            max_retries: Maximum number of retry attempts if generation fails
+
+        Returns:
+            str: Raw file content (code, documentation, config, etc.)
+
+        Raises:
+            AgentExecutionError: If LLM call fails after retries or content is invalid
+        """
+        # Load file generation prompt template
+        try:
+            prompt_template = self.load_prompt("code_agent_v2_file_generation")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"File generation prompt template not found: {e}") from e
+
+        # Format prompt with file metadata and design specification
+        formatted_prompt = self.format_prompt(
+            prompt_template,
+            file_path=file_meta.file_path,
+            file_type=file_meta.file_type,
+            description=file_meta.description,
+            semantic_unit_id=file_meta.semantic_unit_id or "None",
+            component_id=file_meta.component_id or "None",
+            estimated_lines=file_meta.estimated_lines,
+            dependencies=", ".join(file_meta.dependencies) if file_meta.dependencies else "None",
+            design_specification=input_data.design_specification.model_dump_json(indent=2),
+            coding_standards=input_data.coding_standards or "Follow industry best practices",
+        )
+
+        logger.debug(
+            f"Generating content for {file_meta.file_path} "
+            f"({file_meta.estimated_lines} estimated lines)"
+        )
+
+        # Retry loop for robustness
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                # Call LLM to generate file content
+                # Token limit based on estimated file size
+                max_tokens = min(8000, max(2000, file_meta.estimated_lines * 2))
+
+                response = self.call_llm(
+                    prompt=formatted_prompt,
+                    max_tokens=max_tokens,
+                    temperature=0.0,  # Deterministic for code generation
+                )
+
+                # Extract content
+                content = response.get("content")
+
+                if not isinstance(content, str):
+                    raise AgentExecutionError(
+                        f"LLM returned non-string content for {file_meta.file_path}: {type(content)}"
+                    )
+
+                # Strip any markdown fences if present (shouldn't be, but be defensive)
+                # Remove ```python, ```markdown, ``` etc. from the beginning/end
+                content = content.strip()
+                if content.startswith("```"):
+                    # Find the first newline after opening fence
+                    first_newline = content.find("\n")
+                    if first_newline > 0:
+                        content = content[first_newline + 1 :]
+                    # Remove closing fence
+                    if content.endswith("```"):
+                        content = content[:-3].rstrip()
+
+                # Validate content is not empty
+                if not content or len(content.strip()) < 10:
+                    raise AgentExecutionError(
+                        f"Generated content for {file_meta.file_path} is too short or empty: "
+                        f"{len(content)} characters"
+                    )
+
+                logger.info(
+                    f"File content generated: {file_meta.file_path} "
+                    f"({len(content)} chars, {len(content.split(chr(10)))} lines)"
+                )
+
+                return content
+
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    logger.warning(
+                        f"File generation attempt {attempt + 1}/{max_retries} failed "
+                        f"for {file_meta.file_path}: {e}. Retrying..."
+                    )
+                else:
+                    logger.error(
+                        f"File generation failed after {max_retries} attempts "
+                        f"for {file_meta.file_path}: {e}"
+                    )
+
+        # If we get here, all retries failed
+        raise AgentExecutionError(
+            f"Failed to generate content for {file_meta.file_path} after {max_retries} attempts: "
+            f"{last_error}"
+        ) from last_error
+
+    def _generate_code_multi_stage(self, input_data: CodeInput) -> GeneratedCode:
+        """
+        Generate complete code using multi-stage approach (Phase 1 + Phase 2).
+
+        This is the new multi-stage approach that avoids JSON escaping issues:
+        - Phase 1: Generate file manifest (small JSON, no code content)
+        - Phase 2: Generate each file content separately (raw code, no JSON)
+
+        Args:
+            input_data: CodeInput with design specification and standards
+
+        Returns:
+            GeneratedCode assembled from manifest and individual file contents
+
+        Raises:
+            AgentExecutionError: If generation fails
+        """
+        logger.info(f"Starting multi-stage code generation for task_id={input_data.task_id}")
+
+        # Phase 1: Generate file manifest
+        logger.info("Phase 1: Generating file manifest...")
+        manifest = self._generate_file_manifest(input_data)
+
+        logger.info(
+            f"Manifest generated: {manifest.total_files} files, "
+            f"{manifest.total_estimated_lines} estimated LOC"
+        )
+
+        # Phase 2: Generate content for each file
+        logger.info(f"Phase 2: Generating content for {manifest.total_files} files...")
+        generated_files = []
+
+        for idx, file_meta in enumerate(manifest.files, 1):
+            logger.info(
+                f"Generating file {idx}/{manifest.total_files}: {file_meta.file_path}"
+            )
+
+            # Generate file content
+            content = self._generate_file_content(file_meta, input_data)
+
+            # Create GeneratedFile
+            generated_file = GeneratedFile(
+                file_path=file_meta.file_path,
+                content=content,
+                file_type=file_meta.file_type,
+                semantic_unit_id=file_meta.semantic_unit_id,
+                component_id=file_meta.component_id,
+                description=file_meta.description,
+            )
+            generated_files.append(generated_file)
+
+        # Build file_structure from generated files
+        file_structure: dict[str, list[str]] = {}
+        for file in generated_files:
+            # Extract directory and filename
+            path_parts = file.file_path.split("/")
+            if len(path_parts) == 1:
+                # Root level file
+                directory = "."
+                filename = path_parts[0]
+            else:
+                # File in subdirectory
+                directory = "/".join(path_parts[:-1])
+                filename = path_parts[-1]
+
+            if directory not in file_structure:
+                file_structure[directory] = []
+            file_structure[directory].append(filename)
+
+        # Calculate total lines of code
+        total_loc = sum(
+            len([line for line in file.content.split("\n") if line.strip()])
+            for file in generated_files
+        )
+
+        # Extract semantic units and components implemented
+        semantic_units = list(
+            {file.semantic_unit_id for file in generated_files if file.semantic_unit_id}
+        )
+        components = list(
+            {file.component_id for file in generated_files if file.component_id}
+        )
+
+        # Assemble GeneratedCode
+        generated_code = GeneratedCode(
+            task_id=input_data.task_id,
+            project_id=manifest.project_id,
+            files=generated_files,
+            file_structure=file_structure,
+            implementation_notes=(
+                f"Generated using multi-stage approach with {manifest.total_files} files. "
+                f"Manifest estimated {manifest.total_estimated_lines} LOC, "
+                f"actual {total_loc} LOC. "
+                f"Uses {len(manifest.dependencies)} external dependencies."
+            ),
+            dependencies=manifest.dependencies,
+            setup_instructions=manifest.setup_instructions,
+            total_lines_of_code=total_loc,
+            total_files=len(generated_files),
+            test_coverage_target=80.0,  # Default target
+            semantic_units_implemented=semantic_units,
+            components_implemented=components,
+            agent_version=self.agent_version,
+            generation_timestamp=datetime.now().isoformat(),
+        )
+
+        logger.info(
+            f"Multi-stage code generation complete: {generated_code.total_files} files, "
+            f"{generated_code.total_lines_of_code} LOC"
+        )
+
+        return generated_code
