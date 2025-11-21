@@ -99,6 +99,7 @@ Return a complete JSON design specification. IMPORTANT: Follow this EXACT schema
         "email": "string (email format, required)",
         "password": "string (min 8 chars, required)"
       }},
+      "request_params": null,
       "response_schema": {{
         "user_id": "string (UUID)",
         "email": "string"
@@ -186,11 +187,15 @@ Return a complete JSON design specification. IMPORTANT: Follow this EXACT schema
 ## CRITICAL SCHEMA RULES
 
 1. **api_contracts[].endpoint**: Use "endpoint" NOT "path"
-2. **api_contracts[].error_responses**: Must be a LIST of objects, NOT a dictionary
-3. **component_logic**: REQUIRED field - must have at least one component
-4. **component_logic[].semantic_unit_id**: Must match pattern "SU-XXX" (e.g., "SU-001")
-5. **design_review_checklist**: Must be LIST of OBJECTS with category, description, validation_criteria, severity
-6. **design_review_checklist**: Must have at least 5 items, with at least one Critical or High severity
+2. **api_contracts[].request_params**: Must be a DICTIONARY (object) with string keys/values, NOT a list
+   - Correct: {{"user_id": "string (UUID, path parameter)", "limit": "integer (optional, default=10)"}}
+   - Correct: null (if no parameters)
+   - WRONG: [{{"name": "user_id", "type": "string"}}] (this is a list, not allowed!)
+3. **api_contracts[].error_responses**: Must be a LIST of objects, NOT a dictionary
+4. **component_logic**: REQUIRED field - must have at least one component
+5. **component_logic[].semantic_unit_id**: Must match pattern "SU-XXX" (e.g., "SU-001")
+6. **design_review_checklist**: Must be LIST of OBJECTS with category, description, validation_criteria, severity
+7. **design_review_checklist**: Must have at least 5 items, with at least one Critical or High severity
 7. **technology_stack**: Simple key-value string pairs only (no nested objects)
 8. **severity values**: Must be exactly "Critical", "High", "Medium", or "Low"
 
