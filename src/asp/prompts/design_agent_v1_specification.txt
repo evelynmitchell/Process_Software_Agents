@@ -98,7 +98,7 @@ Follow these principles when creating your design:
 ## API Contract Template
 
 For each API endpoint, provide:
-- **endpoint:** URL path (e.g., "/api/v1/resource/{{{{id}}}}")
+- **endpoint:** URL path (e.g., "/api/v1/resource/{{{{{{{id}}}}}}}")
 - **method:** HTTP method (GET, POST, PUT, DELETE, PATCH)
 - **description:** What this endpoint does (1-2 sentences)
 - **request_schema:** JSON structure with types and constraints
@@ -160,56 +160,56 @@ Each checklist item includes:
 
 **Project Plan:**
 ```json
-{{
+{{{{
   "task_id": "USER-REG-001",
   "semantic_units": [
-    {{"semantic_unit_id": "SU-001", "description": "API endpoint for user registration", "complexity": 25}},
-    {{"semantic_unit_id": "SU-002", "description": "Database schema for users table", "complexity": 15}},
-    {{"semantic_unit_id": "SU-003", "description": "Password hashing service", "complexity": 20}}
+    {{{{"semantic_unit_id": "SU-001", "description": "API endpoint for user registration", "complexity": 25}}}},
+    {{{{"semantic_unit_id": "SU-002", "description": "Database schema for users table", "complexity": 15}}}},
+    {{{{"semantic_unit_id": "SU-003", "description": "Password hashing service", "complexity": 20}}}}
   ],
   "total_complexity": 60
-}}
+}}}}
 ```
 
 **Design Specification:**
 ```json
-{{
+{{{{
   "task_id": "USER-REG-001",
   "api_contracts": [
-    {{
+    {{{{
       "endpoint": "/api/v1/auth/register",
       "method": "POST",
       "description": "Register a new user with email and password",
-      "request_schema": {{
+      "request_schema": {{{{
         "email": "string (email format, required, max 255 chars)",
         "password": "string (min 8 chars, required, max 128 chars)"
-      }},
+      }}}},
       "request_params": null,
-      "response_schema": {{
+      "response_schema": {{{{
         "user_id": "string (UUID format)",
         "email": "string",
         "created_at": "string (ISO 8601 timestamp)"
-      }},
+      }}}},
       "error_responses": [
-        {{"status": 400, "code": "INVALID_EMAIL", "message": "Email format is invalid"}},
-        {{"status": 400, "code": "PASSWORD_TOO_SHORT", "message": "Password must be at least 8 characters"}},
-        {{"status": 409, "code": "USER_EXISTS", "message": "User with this email already exists"}},
-        {{"status": 500, "code": "INTERNAL_ERROR", "message": "Internal server error"}}
+        {{{{"status": 400, "code": "INVALID_EMAIL", "message": "Email format is invalid"}}}},
+        {{{{"status": 400, "code": "PASSWORD_TOO_SHORT", "message": "Password must be at least 8 characters"}}}},
+        {{{{"status": 409, "code": "USER_EXISTS", "message": "User with this email already exists"}}}},
+        {{{{"status": 500, "code": "INTERNAL_ERROR", "message": "Internal server error"}}}}
       ],
       "authentication_required": false,
       "rate_limit": "5 requests per minute per IP address"
-    }}
+    }}}}
   ],
   "data_schemas": [
-    {{
+    {{{{
       "table_name": "users",
       "description": "Stores user account information including credentials",
       "columns": [
-        {{"name": "user_id", "type": "UUID", "constraints": "PRIMARY KEY DEFAULT gen_random_uuid()"}},
-        {{"name": "email", "type": "VARCHAR(255)", "constraints": "NOT NULL UNIQUE"}},
-        {{"name": "password_hash", "type": "VARCHAR(255)", "constraints": "NOT NULL"}},
-        {{"name": "created_at", "type": "TIMESTAMP", "constraints": "NOT NULL DEFAULT CURRENT_TIMESTAMP"}},
-        {{"name": "updated_at", "type": "TIMESTAMP", "constraints": "NOT NULL DEFAULT CURRENT_TIMESTAMP"}}
+        {{{{"name": "user_id", "type": "UUID", "constraints": "PRIMARY KEY DEFAULT gen_random_uuid()"}}}},
+        {{{{"name": "email", "type": "VARCHAR(255)", "constraints": "NOT NULL UNIQUE"}}}},
+        {{{{"name": "password_hash", "type": "VARCHAR(255)", "constraints": "NOT NULL"}}}},
+        {{{{"name": "created_at", "type": "TIMESTAMP", "constraints": "NOT NULL DEFAULT CURRENT_TIMESTAMP"}}}},
+        {{{{"name": "updated_at", "type": "TIMESTAMP", "constraints": "NOT NULL DEFAULT CURRENT_TIMESTAMP"}}}}
       ],
       "indexes": [
         "CREATE INDEX idx_users_email ON users(email)",
@@ -220,129 +220,129 @@ Each checklist item includes:
         "CHECK (LENGTH(email) >= 5)",
         "CHECK (LENGTH(password_hash) >= 50)"
       ]
-    }}
+    }}}}
   ],
   "component_logic": [
-    {{
+    {{{{
       "component_name": "UserRegistrationService",
       "semantic_unit_id": "SU-001",
       "responsibility": "Handles user registration including validation, password hashing, and database storage",
       "interfaces": [
-        {{
+        {{{{
           "method": "register_user",
-          "parameters": {{"email": "str", "password": "str"}},
+          "parameters": {{{{"email": "str", "password": "str"}}}},
           "returns": "dict[str, Any]",
           "description": "Register new user and return user data"
-        }},
-        {{
+        }}}},
+        {{{{
           "method": "validate_email",
-          "parameters": {{"email": "str"}},
+          "parameters": {{{{"email": "str"}}}},
           "returns": "bool",
           "description": "Validate email format using regex"
-        }},
-        {{
+        }}}},
+        {{{{
           "method": "check_user_exists",
-          "parameters": {{"email": "str"}},
+          "parameters": {{{{"email": "str"}}}},
           "returns": "bool",
           "description": "Check if user with email already exists"
-        }}
+        }}}}
       ],
       "dependencies": ["DatabaseService", "PasswordHasher"],
       "implementation_notes": "Use regex for email validation (RFC 5322 simplified). Validate password length (8-128 chars). Hash password before storage. Use transactions for atomicity. Return 409 if user exists. Log registration events.",
       "complexity": 25
-    }},
-    {{
+    }}}},
+    {{{{
       "component_name": "PasswordHasher",
       "semantic_unit_id": "SU-003",
       "responsibility": "Handles password hashing and verification using bcrypt",
       "interfaces": [
-        {{
+        {{{{
           "method": "hash_password",
-          "parameters": {{"password": "str"}},
+          "parameters": {{{{"password": "str"}}}},
           "returns": "str",
           "description": "Hash password using bcrypt with cost factor 12"
-        }},
-        {{
+        }}}},
+        {{{{
           "method": "verify_password",
-          "parameters": {{"password": "str", "password_hash": "str"}},
+          "parameters": {{{{"password": "str", "password_hash": "str"}}}},
           "returns": "bool",
           "description": "Verify password against hash"
-        }}
+        }}}}
       ],
       "dependencies": [],
       "implementation_notes": "Use bcrypt library with cost factor 12. Generate unique salt per password. Never log passwords or hashes. Hash should be 60 characters (bcrypt standard).",
       "complexity": 20
-    }},
-    {{
+    }}}},
+    {{{{
       "component_name": "DatabaseService",
       "semantic_unit_id": "SU-002",
       "responsibility": "Handles database operations for user data storage and retrieval",
       "interfaces": [
-        {{
+        {{{{
           "method": "create_user",
-          "parameters": {{"email": "str", "password_hash": "str"}},
+          "parameters": {{{{"email": "str", "password_hash": "str"}}}},
           "returns": "dict[str, Any]",
           "description": "Insert new user record and return user data"
-        }},
-        {{
+        }}}},
+        {{{{
           "method": "get_user_by_email",
-          "parameters": {{"email": "str"}},
+          "parameters": {{{{"email": "str"}}}},
           "returns": "Optional[dict[str, Any]]",
           "description": "Retrieve user by email, return None if not found"
-        }}
+        }}}}
       ],
       "dependencies": [],
       "implementation_notes": "Use parameterized queries to prevent SQL injection. Use connection pooling (pool size 10-20). Handle unique constraint violations (user exists). Use transactions with proper rollback. Return user_id, email, created_at (no password_hash).",
       "complexity": 15
-    }}
+    }}}}
   ],
   "design_review_checklist": [
-    {{
+    {{{{
       "category": "Security",
       "description": "Verify passwords are hashed, never stored in plaintext",
       "validation_criteria": "DataSchema for users table must use 'password_hash' column, NOT 'password'. Component must use PasswordHasher.hash_password() before database storage.",
       "severity": "Critical"
-    }},
-    {{
+    }}}},
+    {{{{
       "category": "Security",
       "description": "Verify SQL injection prevention",
       "validation_criteria": "DatabaseService must use parameterized queries for all database operations. No string concatenation or f-strings in SQL queries.",
       "severity": "Critical"
-    }},
-    {{
+    }}}},
+    {{{{
       "category": "Data Integrity",
       "description": "Verify email uniqueness is enforced",
       "validation_criteria": "DataSchema must have UNIQUE constraint on email column. check_user_exists() must be called before create_user().",
       "severity": "High"
-    }},
-    {{
+    }}}},
+    {{{{
       "category": "Error Handling",
       "description": "Verify all error cases have appropriate responses",
       "validation_criteria": "API contract must define error responses for: invalid email (400), password too short (400), user exists (409), internal error (500).",
       "severity": "High"
-    }},
-    {{
+    }}}},
+    {{{{
       "category": "Performance",
       "description": "Verify database indexes for query optimization",
       "validation_criteria": "DataSchema must include index on email column for fast lookups during registration check.",
       "severity": "Medium"
-    }},
-    {{
+    }}}},
+    {{{{
       "category": "Security",
       "description": "Verify rate limiting to prevent abuse",
       "validation_criteria": "API contract must specify rate limit (5 req/min per IP recommended) to prevent brute force attacks.",
       "severity": "High"
-    }}
+    }}}}
   ],
   "architecture_overview": "Simple 3-tier architecture: API layer (UserRegistrationService) receives HTTP requests, business logic layer (PasswordHasher) handles security concerns, and data layer (DatabaseService) manages persistence. No caching required for registration endpoint. Rate limiting at API gateway level.",
-  "technology_stack": {{
+  "technology_stack": {{{{
     "language": "Python 3.12",
     "web_framework": "FastAPI 0.104+",
     "database": "PostgreSQL 15+",
     "password_hashing": "bcrypt (via bcrypt library v4.1+)",
     "email_validation": "email-validator library v2.1+",
     "database_driver": "psycopg2 or asyncpg"
-  }},
+  }}}},
   "assumptions": [
     "Email addresses are unique user identifiers (no separate username)",
     "Password complexity validation happens client-side (server only checks length)",
@@ -350,7 +350,7 @@ Each checklist item includes:
     "HTTPS is enforced at infrastructure level (passwords safe in transit)",
     "Rate limiting is implemented at API gateway or application level"
   ]
-}}
+}}}}
 ```
 
 ## Example 2: Data Pipeline with ETL Operations
@@ -360,35 +360,35 @@ Each checklist item includes:
 
 **Project Plan:**
 ```json
-{{
+{{{{
   "task_id": "ETL-PIPELINE-001",
   "semantic_units": [
-    {{"semantic_unit_id": "SU-001", "description": "CSV file extraction with error handling", "complexity": 30}},
-    {{"semantic_unit_id": "SU-002", "description": "Data transformation and aggregation logic", "complexity": 45}},
-    {{"semantic_unit_id": "SU-003", "description": "Database loader with batch operations", "complexity": 35}},
-    {{"semantic_unit_id": "SU-004", "description": "Database schema for aggregated metrics", "complexity": 20}}
+    {{{{"semantic_unit_id": "SU-001", "description": "CSV file extraction with error handling", "complexity": 30}}}},
+    {{{{"semantic_unit_id": "SU-002", "description": "Data transformation and aggregation logic", "complexity": 45}}}},
+    {{{{"semantic_unit_id": "SU-003", "description": "Database loader with batch operations", "complexity": 35}}}},
+    {{{{"semantic_unit_id": "SU-004", "description": "Database schema for aggregated metrics", "complexity": 20}}}}
   ],
   "total_complexity": 130
-}}
+}}}}
 ```
 
 **Design Specification:**
 ```json
-{{
+{{{{
   "task_id": "ETL-PIPELINE-001",
   "api_contracts": [],
   "data_schemas": [
-    {{
+    {{{{
       "table_name": "user_activity_metrics",
       "description": "Stores aggregated user activity metrics from ETL pipeline",
       "columns": [
-        {{"name": "metric_id", "type": "UUID", "constraints": "PRIMARY KEY DEFAULT gen_random_uuid()"}},
-        {{"name": "user_id", "type": "UUID", "constraints": "NOT NULL"}},
-        {{"name": "event_count", "type": "INTEGER", "constraints": "NOT NULL CHECK (event_count >= 0)"}},
-        {{"name": "first_event_at", "type": "TIMESTAMP", "constraints": "NOT NULL"}},
-        {{"name": "last_event_at", "type": "TIMESTAMP", "constraints": "NOT NULL"}},
-        {{"name": "event_types", "type": "JSONB", "constraints": "NOT NULL"}},
-        {{"name": "processed_at", "type": "TIMESTAMP", "constraints": "NOT NULL DEFAULT CURRENT_TIMESTAMP"}}
+        {{{{"name": "metric_id", "type": "UUID", "constraints": "PRIMARY KEY DEFAULT gen_random_uuid()"}}}},
+        {{{{"name": "user_id", "type": "UUID", "constraints": "NOT NULL"}}}},
+        {{{{"name": "event_count", "type": "INTEGER", "constraints": "NOT NULL CHECK (event_count >= 0)"}}}},
+        {{{{"name": "first_event_at", "type": "TIMESTAMP", "constraints": "NOT NULL"}}}},
+        {{{{"name": "last_event_at", "type": "TIMESTAMP", "constraints": "NOT NULL"}}}},
+        {{{{"name": "event_types", "type": "JSONB", "constraints": "NOT NULL"}}}},
+        {{{{"name": "processed_at", "type": "TIMESTAMP", "constraints": "NOT NULL DEFAULT CURRENT_TIMESTAMP"}}}}
       ],
       "indexes": [
         "CREATE INDEX idx_user_activity_user_id ON user_activity_metrics(user_id)",
@@ -398,132 +398,132 @@ Each checklist item includes:
       "constraints": [
         "CHECK (last_event_at >= first_event_at)"
       ]
-    }}
+    }}}}
   ],
   "component_logic": [
-    {{
+    {{{{
       "component_name": "CSVExtractor",
       "semantic_unit_id": "SU-001",
       "responsibility": "Extracts user activity log data from CSV files with error handling and validation",
       "interfaces": [
-        {{
+        {{{{
           "method": "extract",
-          "parameters": {{"file_path": "str"}},
+          "parameters": {{{{"file_path": "str"}}}},
           "returns": "Iterator[dict[str, Any]]",
           "description": "Read CSV file and yield rows as dictionaries"
-        }},
-        {{
+        }}}},
+        {{{{
           "method": "validate_row",
-          "parameters": {{"row": "dict[str, Any]"}},
+          "parameters": {{{{"row": "dict[str, Any]"}}}},
           "returns": "bool",
           "description": "Validate row has required fields and correct types"
-        }}
+        }}}}
       ],
       "dependencies": [],
       "implementation_notes": "Use Python csv.DictReader for parsing. Validate required columns: user_id (UUID), event_type (str), timestamp (ISO 8601). Skip invalid rows and log warnings. Use iterator pattern to handle large files without loading into memory. Handle encoding errors (default UTF-8, fallback latin-1).",
       "complexity": 30
-    }},
-    {{
+    }}}},
+    {{{{
       "component_name": "DataTransformer",
       "semantic_unit_id": "SU-002",
       "responsibility": "Aggregates user activity events by user_id and computes metrics",
       "interfaces": [
-        {{
+        {{{{
           "method": "transform",
-          "parameters": {{"events": "Iterator[dict[str, Any]]"}},
+          "parameters": {{{{"events": "Iterator[dict[str, Any]]"}}}},
           "returns": "list[dict[str, Any]]",
           "description": "Aggregate events per user and return metrics"
-        }},
-        {{
+        }}}},
+        {{{{
           "method": "aggregate_by_user",
-          "parameters": {{"events": "list[dict[str, Any]]"}},
+          "parameters": {{{{"events": "list[dict[str, Any]]"}}}},
           "returns": "dict[str, dict[str, Any]]",
           "description": "Group events by user_id and compute aggregates"
-        }}
+        }}}}
       ],
       "dependencies": [],
       "implementation_notes": "Use collections.defaultdict for aggregation. Compute: event_count (total events), first_event_at (min timestamp), last_event_at (max timestamp), event_types (dict with counts per type). Handle timezone conversion to UTC. Process in batches of 10,000 events to manage memory.",
       "complexity": 45
-    }},
-    {{
+    }}}},
+    {{{{
       "component_name": "DatabaseLoader",
       "semantic_unit_id": "SU-003",
       "responsibility": "Loads aggregated metrics into database using batch operations",
       "interfaces": [
-        {{
+        {{{{
           "method": "load",
-          "parameters": {{"metrics": "list[dict[str, Any]]"}},
+          "parameters": {{{{"metrics": "list[dict[str, Any]]"}}}},
           "returns": "int",
           "description": "Insert metrics into database and return count inserted"
-        }},
-        {{
+        }}}},
+        {{{{
           "method": "batch_insert",
-          "parameters": {{"metrics": "list[dict[str, Any]]", "batch_size": "int"}},
+          "parameters": {{{{"metrics": "list[dict[str, Any]]", "batch_size": "int"}}}},
           "returns": "int",
           "description": "Insert metrics in batches for performance"
-        }}
+        }}}}
       ],
       "dependencies": [],
       "implementation_notes": "Use batch INSERT with batch_size=1000 for performance. Use transactions with proper rollback on error. Use JSONB for event_types storage. Return count of successfully inserted records. Log errors but don't stop pipeline. Use executemany() or COPY for PostgreSQL.",
       "complexity": 35
-    }},
-    {{
+    }}}},
+    {{{{
       "component_name": "ETLPipeline",
       "semantic_unit_id": "SU-001",
       "responsibility": "Orchestrates the extract-transform-load workflow",
       "interfaces": [
-        {{
+        {{{{
           "method": "run",
-          "parameters": {{"file_path": "str"}},
+          "parameters": {{{{"file_path": "str"}}}},
           "returns": "dict[str, Any]",
           "description": "Execute full ETL pipeline and return summary statistics"
-        }}
+        }}}}
       ],
       "dependencies": ["CSVExtractor", "DataTransformer", "DatabaseLoader"],
       "implementation_notes": "Wire together extractor → transformer → loader. Track statistics: rows_extracted, rows_transformed, rows_loaded, errors. Use logging for observability. Implement retry logic for database connection failures (3 attempts, exponential backoff). Return summary dict with stats.",
       "complexity": 25
-    }}
+    }}}}
   ],
   "design_review_checklist": [
-    {{
+    {{{{
       "category": "Performance",
       "description": "Verify pipeline processes large files without memory overflow",
       "validation_criteria": "CSVExtractor must use iterator pattern (yield rows). DataTransformer must process in batches. No full file loading into memory.",
       "severity": "Critical"
-    }},
-    {{
+    }}}},
+    {{{{
       "category": "Data Integrity",
       "description": "Verify database transactions ensure atomicity",
       "validation_criteria": "DatabaseLoader must use transactions with rollback on error. Partial loads should not corrupt database.",
       "severity": "High"
-    }},
-    {{
+    }}}},
+    {{{{
       "category": "Error Handling",
       "description": "Verify pipeline handles malformed CSV data gracefully",
       "validation_criteria": "CSVExtractor must validate rows and skip invalid data with logging. Pipeline should not crash on bad data.",
       "severity": "High"
-    }},
-    {{
+    }}}},
+    {{{{
       "category": "Performance",
       "description": "Verify batch operations for database insertion",
       "validation_criteria": "DatabaseLoader must use batch_insert with batch_size >= 1000. No single-row inserts in loops.",
       "severity": "High"
-    }},
-    {{
+    }}}},
+    {{{{
       "category": "Data Integrity",
       "description": "Verify timestamp validation and timezone handling",
       "validation_criteria": "All timestamps must be converted to UTC. CHECK constraint ensures last_event_at >= first_event_at.",
       "severity": "Medium"
-    }}
+    }}}}
   ],
   "architecture_overview": "Linear ETL pipeline with three stages: Extraction (CSVExtractor reads CSV with validation), Transformation (DataTransformer aggregates events per user), and Loading (DatabaseLoader batch-inserts to PostgreSQL). Pipeline coordinator (ETLPipeline) wires stages together with error handling and statistics tracking. Iterator pattern ensures memory efficiency for large files.",
-  "technology_stack": {{
+  "technology_stack": {{{{
     "language": "Python 3.12",
     "database": "PostgreSQL 15+ (JSONB support required)",
     "csv_parsing": "Python csv module (stdlib)",
     "database_driver": "psycopg2 v2.9+",
     "logging": "Python logging module"
-  }},
+  }}}},
   "assumptions": [
     "CSV files use UTF-8 encoding (fallback to latin-1)",
     "CSV has header row with column names: user_id, event_type, timestamp",
@@ -531,7 +531,7 @@ Each checklist item includes:
     "Files may be multiple GB (must use streaming)",
     "Invalid rows are logged but don't stop pipeline"
   ]
-}}
+}}}}
 ```
 
 # REQUIREMENTS (FROM INPUT)
@@ -572,12 +572,12 @@ You MUST output a single JSON object matching the DesignSpecification schema. Th
 
 **Example output structure (fill with actual design):**
 
-{{
+{{{{
   "task_id": "TASK-ID-HERE",
   "api_contracts": [...],
   "data_schemas": [...],
   "component_logic": [
-    {{
+    {{{{
       "component_name": "ComponentName",
       "semantic_unit_id": "SU-001",
       "responsibility": "What this component does",
@@ -585,24 +585,24 @@ You MUST output a single JSON object matching the DesignSpecification schema. Th
       "dependencies": [...],
       "implementation_notes": "Detailed guidance here",
       "complexity": 25
-    }}
+    }}}}
   ],
   "design_review_checklist": [
-    {{
+    {{{{
       "category": "Security",
       "description": "What to check",
       "validation_criteria": "How to validate",
       "severity": "Critical"
-    }},
+    }}}},
     ...minimum 5 items...
   ],
   "architecture_overview": "High-level architecture description (minimum 50 characters)",
-  "technology_stack": {{
+  "technology_stack": {{{{
     "language": "Python 3.12",
     "framework": "FastAPI",
     ...
-  }},
+  }}}},
   "assumptions": ["assumption 1", "assumption 2"]
-}}
+}}}}
 
 Generate the complete design now. Remember: this design will be used directly by a Coding Agent, so it must be complete, unambiguous, and implementable without any further clarification.

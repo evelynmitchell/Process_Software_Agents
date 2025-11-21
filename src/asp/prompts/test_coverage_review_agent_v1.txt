@@ -43,9 +43,9 @@ For each issue, determine which phase introduced it:
 
 Return JSON with test-specific details:
 
-{{
+{{{{
   "issues_found": [
-    {{
+    {{{{
       "issue_id": "TEST-001",
       "category": "Testing",
       "severity": "Critical",
@@ -56,10 +56,10 @@ Return JSON with test-specific details:
       "file_path": "src/services/payment.py",
       "line_number": 45,
       "code_snippet": "def process_payment(amount, card_details):"
-    }}
+    }}}}
   ],
   "improvement_suggestions": [
-    {{
+    {{{{
       "suggestion_id": "TEST-IMP-001",
       "related_issue_id": "TEST-001",
       "category": "Testing",
@@ -68,9 +68,9 @@ Return JSON with test-specific details:
       "implementation_notes": "Create tests/services/test_payment.py with tests for: valid payment, invalid card, insufficient funds, timeout scenarios, refund flow. Mock external payment gateway. Use pytest fixtures for test data.",
       "file_path": "tests/services/test_payment.py",
       "suggested_code": "def test_process_payment_success():\n    result = process_payment(100.00, valid_card)\n    assert result.status == 'success'"
-    }}
+    }}}}
   ]
-}}
+}}}}
 
 Use IDs: TEST-001, TEST-002, etc. and TEST-IMP-001, TEST-IMP-002, etc.
 

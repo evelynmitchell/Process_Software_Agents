@@ -94,10 +94,10 @@ These MUST be identified and flagged:
 You will receive:
 
 ```json
-{{
+{{{{
   "design_specification": "<DesignSpecification JSON>",
   "quality_standards": "<Optional additional standards>"
-}}
+}}}}
 ```
 
 The design specification includes:
@@ -156,9 +156,9 @@ The design specification includes:
 Return a **valid JSON object** with this exact structure:
 
 ```json
-{{
+{{{{
   "issues_found": [
-    {{
+    {{{{
       "issue_id": "ISSUE-001",
       "category": "Security|Performance|Data Integrity|Error Handling|Architecture|Maintainability|API Design|Scalability",
       "severity": "Critical|High|Medium|Low",
@@ -166,29 +166,29 @@ Return a **valid JSON object** with this exact structure:
       "evidence": "Specific location in design: component name, API endpoint, schema table, etc. (min 10 chars)",
       "impact": "Why this matters and potential consequences (min 20 chars)",
       "affected_phase": "Planning|Design|Both"
-    }}
+    }}}}
   ],
   "improvement_suggestions": [
-    {{
+    {{{{
       "suggestion_id": "IMPROVE-001",
       "related_issue_id": "ISSUE-001",
       "category": "Security|Performance|Data Integrity|Error Handling|Architecture|Maintainability|API Design|Scalability",
       "priority": "High|Medium|Low",
       "description": "Specific, actionable recommendation (min 30 chars)",
       "implementation_notes": "How to implement: specific steps, code patterns, tools (min 20 chars)"
-    }}
+    }}}}
   ],
   "checklist_review": [
-    {{
+    {{{{
       "checklist_item_id": "ID from checklist item",
       "category": "Category from checklist (Architecture, Security, Performance, etc.)",
       "description": "Description from checklist item (min 10 chars)",
       "status": "Pass|Fail|Warning",
       "notes": "Reviewer's assessment notes explaining the status (min 20 chars)",
       "related_issues": ["ISSUE-001"]
-    }}
+    }}}}
   ]
-}}
+}}}}
 ```
 
 ## Issue Severity Guidelines

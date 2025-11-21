@@ -44,9 +44,9 @@ For each issue, determine which phase introduced it:
 
 Return JSON with performance-specific details:
 
-{{
+{{{{
   "issues_found": [
-    {{
+    {{{{
       "issue_id": "PERF-001",
       "category": "Performance",
       "severity": "Critical",
@@ -57,10 +57,10 @@ Return JSON with performance-specific details:
       "file_path": "src/api/posts.py",
       "line_number": 78,
       "code_snippet": "for post in posts:\n    user = db.query(User).get(post.user_id)"
-    }}
+    }}}}
   ],
   "improvement_suggestions": [
-    {{
+    {{{{
       "suggestion_id": "PERF-IMP-001",
       "related_issue_id": "PERF-001",
       "category": "Performance",
@@ -69,9 +69,9 @@ Return JSON with performance-specific details:
       "implementation_notes": "Use SQLAlchemy joinedload or selectinload to fetch related users in one query. Alternatively, fetch all user IDs and query in batch with IN clause.",
       "file_path": "src/api/posts.py",
       "suggested_code": "posts = db.query(Post).options(joinedload(Post.user)).all()"
-    }}
+    }}}}
   ]
-}}
+}}}}
 
 Use IDs: PERF-001, PERF-002, etc. and PERF-IMP-001, PERF-IMP-002, etc.
 

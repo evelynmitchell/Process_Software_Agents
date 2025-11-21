@@ -80,107 +80,107 @@ When analyzing feedback issues, look for:
 Return a complete JSON design specification. IMPORTANT: Follow this EXACT schema structure:
 
 ```json
-{{
+{{{{
   "task_id": "TASK-XXX",
   "architecture_overview": "High-level system architecture description (at least 50 characters)",
-  "technology_stack": {{
+  "technology_stack": {{{{
     "language": "Python 3.12",
     "framework": "FastAPI",
     "database": "PostgreSQL 16",
     "cache": "Redis 7"
-  }},
+  }}}},
   "api_contracts": [
-    {{
+    {{{{
       "endpoint": "/api/v1/users",
       "method": "POST",
       "description": "Create new user account (at least 10 characters)",
       "authentication_required": false,
-      "request_schema": {{
+      "request_schema": {{{{
         "email": "string (email format, required)",
         "password": "string (min 8 chars, required)"
-      }},
-      "response_schema": {{
+      }}}},
+      "response_schema": {{{{
         "user_id": "string (UUID)",
         "email": "string"
-      }},
+      }}}},
       "error_responses": [
-        {{"status": 400, "code": "INVALID_INPUT", "message": "Invalid email format"}},
-        {{"status": 409, "code": "USER_EXISTS", "message": "Email already registered"}}
+        {{{{"status": 400, "code": "INVALID_INPUT", "message": "Invalid email format"}}}},
+        {{{{"status": 409, "code": "USER_EXISTS", "message": "Email already registered"}}}}
       ],
       "rate_limit": "10 requests per minute per IP"
-    }}
+    }}}}
   ],
   "data_schemas": [
-    {{
+    {{{{
       "table_name": "users",
       "description": "User account information (at least 10 characters)",
       "columns": [
-        {{"name": "user_id", "type": "UUID", "constraints": "PRIMARY KEY"}},
-        {{"name": "email", "type": "VARCHAR(255)", "constraints": "NOT NULL UNIQUE"}},
-        {{"name": "password_hash", "type": "VARCHAR(255)", "constraints": "NOT NULL"}}
+        {{{{"name": "user_id", "type": "UUID", "constraints": "PRIMARY KEY"}}}},
+        {{{{"name": "email", "type": "VARCHAR(255)", "constraints": "NOT NULL UNIQUE"}}}},
+        {{{{"name": "password_hash", "type": "VARCHAR(255)", "constraints": "NOT NULL"}}}}
       ],
       "indexes": [
         "CREATE INDEX idx_users_email ON users(email)"
       ],
       "relationships": [],
       "constraints": []
-    }}
+    }}}}
   ],
   "component_logic": [
-    {{
+    {{{{
       "component_name": "UserService",
       "semantic_unit_id": "SU-001",
       "responsibility": "Handles user account creation and management (at least 10 characters)",
       "interfaces": [
-        {{
+        {{{{
           "method": "create_user",
-          "parameters": {{"email": "str", "password": "str"}},
+          "parameters": {{{{"email": "str", "password": "str"}}}},
           "returns": "User",
           "description": "Create new user with hashed password"
-        }}
+        }}}}
       ],
       "dependencies": ["UserRepository", "PasswordHasher"],
       "implementation_notes": "Use bcrypt with cost factor 12 for password hashing. Validate email format with regex before database insert. (at least 20 characters)",
       "complexity": 45
-    }}
+    }}}}
   ],
   "design_review_checklist": [
-    {{
+    {{{{
       "category": "Security",
       "description": "Verify all passwords are hashed (at least 10 characters)",
       "validation_criteria": "DataSchema for users table must use password_hash not password (at least 10 characters)",
       "severity": "Critical"
-    }},
-    {{
+    }}}},
+    {{{{
       "category": "Architecture",
       "description": "Verify component dependencies are correct",
       "validation_criteria": "No circular dependencies between components",
       "severity": "High"
-    }},
-    {{
+    }}}},
+    {{{{
       "category": "Performance",
       "description": "Verify database indexes exist for common queries",
       "validation_criteria": "Index exists for email lookup",
       "severity": "Medium"
-    }},
-    {{
+    }}}},
+    {{{{
       "category": "Data Integrity",
       "description": "Verify unique constraints on identifiers",
       "validation_criteria": "Email column has UNIQUE constraint",
       "severity": "High"
-    }},
-    {{
+    }}}},
+    {{{{
       "category": "Error Handling",
       "description": "Verify API error responses are complete",
       "validation_criteria": "All endpoints have 400, 401, 500 error responses defined",
       "severity": "Medium"
-    }}
+    }}}}
   ],
   "assumptions": [
     "PostgreSQL 16 or higher is available",
     "System will handle less than 1000 concurrent users initially"
   ]
-}}
+}}}}
 ```
 
 ## CRITICAL SCHEMA RULES

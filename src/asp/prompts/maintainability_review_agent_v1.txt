@@ -30,7 +30,7 @@ For each issue, determine which phase introduced it:
 
 ## Output Format
 
-Return JSON with "affected_phase" field: {{"issues_found": [{{"issue_id": "MAINT-001", "category": "Maintainability", "severity": "High", "description": "...", "evidence": "...", "impact": "...", "affected_phase": "Design"}}], "improvement_suggestions": [...]}}
+Return JSON with "affected_phase" field: {{{{"issues_found": [{{{{"issue_id": "MAINT-001", "category": "Maintainability", "severity": "High", "description": "...", "evidence": "...", "impact": "...", "affected_phase": "Design"}}}}], "improvement_suggestions": [...]}}}}
 
 Use IDs: MAINT-001, MAINT-002, etc. and MAINT-IMP-001, MAINT-IMP-002, etc.
 

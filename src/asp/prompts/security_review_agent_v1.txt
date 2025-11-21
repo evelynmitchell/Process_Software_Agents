@@ -143,9 +143,9 @@ For each security issue you identify, determine which phase introduced the probl
 Return a JSON object with this structure:
 
 ```json
-{{
+{{{{
   "issues_found": [
-    {{
+    {{{{
       "issue_id": "SEC-001",
       "category": "Security",
       "severity": "Critical",
@@ -153,19 +153,19 @@ Return a JSON object with this structure:
       "evidence": "users table 'password' column is VARCHAR(255), no PasswordHashingService component",
       "impact": "User credentials vulnerable to breach if database compromised; violates OWASP Top 10 (A02:2021 Cryptographic Failures)",
       "affected_phase": "Design"
-    }}
+    }}}}
   ],
   "improvement_suggestions": [
-    {{
+    {{{{
       "suggestion_id": "SEC-IMP-001",
       "related_issue_id": "SEC-001",
       "category": "Security",
       "priority": "High",
       "description": "Implement bcrypt password hashing with salt in PasswordHashingService",
       "implementation_notes": "1. Add bcrypt library (bcrypt>=4.1.0). 2. Create PasswordHashingService with hashPassword(plaintext)->hash using bcrypt.hashpw(). 3. Change users.password to password_hash CHAR(60). 4. Set salt rounds=12 (tunable via config). 5. Use bcrypt.checkpw() for verification."
-    }}
+    }}}}
   ]
-}}
+}}}}
 ```
 
 ## Important Guidelines
@@ -184,68 +184,68 @@ Return a JSON object with this structure:
 
 **Design Specification:**
 ```json
-{{
+{{{{
   "task_id": "USER-AUTH",
   "api_contracts": [
-    {{
+    {{{{
       "endpoint": "/api/v1/auth/register",
       "method": "POST",
-      "request_schema": {{
+      "request_schema": {{{{
         "email": "string (valid email, max 255 chars)",
         "password": "string (min 12 chars, requires uppercase, lowercase, number, special char)"
-      }},
-      "response_schema": {{"user_id": "uuid", "email": "string"}},
+      }}}},
+      "response_schema": {{{{"user_id": "uuid", "email": "string"}}}},
       "authentication_required": false,
       "rate_limit": "5 requests/minute per IP"
-    }},
-    {{
+    }}}},
+    {{{{
       "endpoint": "/api/v1/auth/login",
       "method": "POST",
-      "request_schema": {{"email": "string", "password": "string"}},
-      "response_schema": {{"access_token": "jwt", "refresh_token": "jwt"}},
+      "request_schema": {{{{"email": "string", "password": "string"}}}},
+      "response_schema": {{{{"access_token": "jwt", "refresh_token": "jwt"}}}},
       "authentication_required": false,
       "rate_limit": "3 requests/minute per IP, lockout after 5 failed attempts"
-    }}
+    }}}}
   ],
   "data_schemas": [
-    {{
+    {{{{
       "table_name": "users",
       "columns": [
-        {{"name": "user_id", "type": "UUID PRIMARY KEY"}},
-        {{"name": "email", "type": "VARCHAR(255) UNIQUE NOT NULL"}},
-        {{"name": "password_hash", "type": "CHAR(60) NOT NULL"}},
-        {{"name": "created_at", "type": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"}}
+        {{{{"name": "user_id", "type": "UUID PRIMARY KEY"}}}},
+        {{{{"name": "email", "type": "VARCHAR(255) UNIQUE NOT NULL"}}}},
+        {{{{"name": "password_hash", "type": "CHAR(60) NOT NULL"}}}},
+        {{{{"name": "created_at", "type": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"}}}}
       ],
-      "indexes": [{{"name": "idx_users_email", "columns": ["email"]}}],
-      "constraints": ["CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{{2,}}$')"]
-    }}
+      "indexes": [{{{{"name": "idx_users_email", "columns": ["email"]}}}}],
+      "constraints": ["CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{{{{2,}}}}$')"]
+    }}}}
   ],
   "component_logic": [
-    {{
+    {{{{
       "component_name": "PasswordHashingService",
       "responsibility": "Hash passwords using bcrypt with auto-generated salt (rounds=12)",
       "interfaces": ["hashPassword(plaintext)->hash", "verifyPassword(plaintext, hash)->bool"],
       "dependencies": [],
       "implementation_notes": "Uses bcrypt library v4.1+, salt rounds=12, work factor configurable"
-    }},
-    {{
+    }}}},
+    {{{{
       "component_name": "AuthenticationService",
       "responsibility": "Authenticate users, generate JWT tokens, handle rate limiting",
       "interfaces": ["register(email, password)->User", "login(email, password)->Tokens"],
       "dependencies": ["PasswordHashingService", "DatabaseService", "JWTService"],
       "implementation_notes": "Uses parameterized queries via SQLAlchemy ORM, implements exponential backoff for failed logins"
-    }}
+    }}}}
   ],
   "architecture_overview": "3-tier REST API with JWT authentication. All communication over HTTPS/TLS 1.3. Passwords hashed with bcrypt. Parameterized queries prevent SQL injection.",
   "technology_stack": ["Python 3.12", "FastAPI 0.104+", "PostgreSQL 15+", "bcrypt 4.1+", "PyJWT 2.8+"]
-}}
+}}}}
 ```
 
 **Expected Security Review:**
 ```json
-{{
+{{{{
   "issues_found": [
-    {{
+    {{{{
       "issue_id": "SEC-001",
       "category": "Security",
       "severity": "Medium",
@@ -253,8 +253,8 @@ Return a JSON object with this structure:
       "evidence": "API contracts do not specify CORS configuration or allowed origins",
       "impact": "Without proper CORS configuration, API may be vulnerable to unauthorized cross-origin requests from malicious websites",
       "affected_phase": "Design"
-    }},
-    {{
+    }}}},
+    {{{{
       "issue_id": "SEC-002",
       "category": "Security",
       "severity": "Low",
@@ -262,35 +262,35 @@ Return a JSON object with this structure:
       "evidence": "Architecture overview mentions HTTPS/TLS but doesn't specify security headers",
       "impact": "Missing security headers leave application vulnerable to clickjacking and other client-side attacks",
       "affected_phase": "Design"
-    }}
+    }}}}
   ],
   "improvement_suggestions": [
-    {{
+    {{{{
       "suggestion_id": "SEC-IMP-001",
       "related_issue_id": "SEC-001",
       "category": "Security",
       "priority": "Medium",
       "description": "Add CORS configuration to API with strict origin whitelist",
       "implementation_notes": "1. Add FastAPI CORSMiddleware with allow_origins=['https://yourdomain.com']. 2. Set allow_credentials=True. 3. Specify allow_methods=['GET', 'POST'] explicitly. 4. Add to architecture_overview."
-    }},
-    {{
+    }}}},
+    {{{{
       "suggestion_id": "SEC-IMP-002",
       "related_issue_id": "SEC-002",
       "category": "Security",
       "priority": "Low",
       "description": "Implement security headers middleware",
       "implementation_notes": "1. Add Secure Headers middleware to FastAPI. 2. Set Strict-Transport-Security: max-age=31536000. 3. Set X-Frame-Options: DENY. 4. Set Content-Security-Policy with strict policy. 5. Document in architecture_overview."
-    }},
-    {{
+    }}}},
+    {{{{
       "suggestion_id": "SEC-IMP-003",
       "related_issue_id": null,
       "category": "Security",
       "priority": "Medium",
       "description": "Add JWT token expiration and refresh token rotation",
       "implementation_notes": "1. Set access_token expiration to 15 minutes. 2. Set refresh_token expiration to 7 days. 3. Implement refresh token rotation (issue new refresh token on use). 4. Store refresh tokens with revocation capability. 5. Add JWTService.verifyToken() to check expiration."
-    }}
+    }}}}
   ]
-}}
+}}}}
 ```
 
 ---
@@ -299,55 +299,55 @@ Return a JSON object with this structure:
 
 **Design Specification:**
 ```json
-{{
+{{{{
   "task_id": "ADMIN-PORTAL",
   "api_contracts": [
-    {{
+    {{{{
       "endpoint": "/api/admin/users",
       "method": "GET",
       "description": "Get all users",
-      "request_schema": {{}},
-      "response_schema": {{"users": "array"}},
+      "request_schema": {{{{}}}},
+      "response_schema": {{{{"users": "array"}}}},
       "authentication_required": false
-    }},
-    {{
+    }}}},
+    {{{{
       "endpoint": "/api/login",
       "method": "POST",
-      "request_schema": {{"username": "string", "password": "string"}},
-      "response_schema": {{"token": "string"}},
+      "request_schema": {{{{"username": "string", "password": "string"}}}},
+      "response_schema": {{{{"token": "string"}}}},
       "authentication_required": false
-    }}
+    }}}}
   ],
   "data_schemas": [
-    {{
+    {{{{
       "table_name": "users",
       "columns": [
-        {{"name": "id", "type": "INT PRIMARY KEY"}},
-        {{"name": "username", "type": "VARCHAR(100)"}},
-        {{"name": "password", "type": "VARCHAR(255)"}},
-        {{"name": "role", "type": "VARCHAR(50)"}}
+        {{{{"name": "id", "type": "INT PRIMARY KEY"}}}},
+        {{{{"name": "username", "type": "VARCHAR(100)"}}}},
+        {{{{"name": "password", "type": "VARCHAR(255)"}}}},
+        {{{{"name": "role", "type": "VARCHAR(50)"}}}}
       ]
-    }}
+    }}}}
   ],
   "component_logic": [
-    {{
+    {{{{
       "component_name": "AdminController",
       "responsibility": "Handle admin API requests",
       "interfaces": ["getAllUsers()->array", "login(username, password)->token"],
       "dependencies": ["Database"],
       "implementation_notes": "Query users table with SQL: SELECT * FROM users WHERE username='$username' AND password='$password'"
-    }}
+    }}}}
   ],
   "architecture_overview": "Simple REST API for admin portal",
   "technology_stack": ["Node.js 18", "Express 4.18", "MySQL 8.0"]
-}}
+}}}}
 ```
 
 **Expected Security Review:**
 ```json
-{{
+{{{{
   "issues_found": [
-    {{
+    {{{{
       "issue_id": "SEC-001",
       "category": "Security",
       "severity": "Critical",
@@ -355,8 +355,8 @@ Return a JSON object with this structure:
       "evidence": "users table 'password' column is VARCHAR(255), no password hashing component mentioned",
       "impact": "User credentials including admin passwords vulnerable to breach if database compromised. Violates OWASP A02:2021 Cryptographic Failures and likely compliance requirements (GDPR, PCI-DSS)",
       "affected_phase": "Design"
-    }},
-    {{
+    }}}},
+    {{{{
       "issue_id": "SEC-002",
       "category": "Security",
       "severity": "Critical",
@@ -364,8 +364,8 @@ Return a JSON object with this structure:
       "evidence": "AdminController implementation notes: \"SELECT * FROM users WHERE username='$username' AND password='$password'\" uses string concatenation",
       "impact": "Attacker can bypass authentication with input like \\\"admin' OR '1'='1\\\" or extract entire database. Violates OWASP A03:2021 Injection",
       "affected_phase": "Design"
-    }},
-    {{
+    }}}},
+    {{{{
       "issue_id": "SEC-003",
       "category": "Security",
       "severity": "Critical",
@@ -373,67 +373,67 @@ Return a JSON object with this structure:
       "evidence": "/api/admin/users endpoint has authentication_required=false",
       "impact": "Anyone can access sensitive user data including usernames, passwords, roles without authentication. Complete security bypass. Violates OWASP A01:2021 Broken Access Control",
       "affected_phase": "Planning"
-    }},
-    {{
+    }}}},
+    {{{{
       "issue_id": "SEC-004",
       "category": "Security",
       "severity": "High",
       "description": "No rate limiting on authentication endpoints",
       "evidence": "/api/login endpoint has no rate_limit field",
       "impact": "Vulnerable to brute-force password attacks and credential stuffing. Attacker can try unlimited password combinations"
-    }},
-    {{
+    }}}},
+    {{{{
       "issue_id": "SEC-005",
       "category": "Security",
       "severity": "High",
       "description": "No HTTPS/TLS requirement specified",
       "evidence": "Architecture overview and technology stack don't mention HTTPS, SSL/TLS, or secure communication",
       "impact": "Passwords and tokens transmitted in plaintext over network, vulnerable to man-in-the-middle attacks and packet sniffing"
-    }}
+    }}}}
   ],
   "improvement_suggestions": [
-    {{
+    {{{{
       "suggestion_id": "SEC-IMP-001",
       "related_issue_id": "SEC-001",
       "category": "Security",
       "priority": "High",
       "description": "Implement bcrypt password hashing immediately",
       "implementation_notes": "1. Install bcrypt library (npm install bcrypt). 2. Create PasswordService with hashPassword(plaintext) using bcrypt.hash(password, 12). 3. Change users.password to password_hash CHAR(60). 4. Update AdminController to use bcrypt.compare() for verification. 5. Force password reset for all existing users."
-    }},
-    {{
+    }}}},
+    {{{{
       "suggestion_id": "SEC-IMP-002",
       "related_issue_id": "SEC-002",
       "category": "Security",
       "priority": "High",
       "description": "Use parameterized queries or ORM to prevent SQL injection",
-      "implementation_notes": "1. Replace raw SQL with parameterized query: db.query('SELECT * FROM users WHERE username=? AND password_hash=?', [username, passwordHash]). 2. Better: Use Sequelize ORM: User.findOne({{where: {{username, password_hash: passwordHash}}}}). 3. Update implementation notes to document parameterized queries."
-    }},
-    {{
+      "implementation_notes": "1. Replace raw SQL with parameterized query: db.query('SELECT * FROM users WHERE username=? AND password_hash=?', [username, passwordHash]). 2. Better: Use Sequelize ORM: User.findOne({{{{where: {{{{username, password_hash: passwordHash}}}}}}}}). 3. Update implementation notes to document parameterized queries."
+    }}}},
+    {{{{
       "suggestion_id": "SEC-IMP-003",
       "related_issue_id": "SEC-003",
       "category": "Security",
       "priority": "High",
       "description": "Add JWT authentication to /api/admin/users endpoint",
       "implementation_notes": "1. Change authentication_required=true for /api/admin/users. 2. Add AuthMiddleware to verify JWT token from Authorization header. 3. Check user role is 'admin' in middleware. 4. Return 401 Unauthorized if no token, 403 Forbidden if not admin role."
-    }},
-    {{
+    }}}},
+    {{{{
       "suggestion_id": "SEC-IMP-004",
       "related_issue_id": "SEC-004",
       "category": "Security",
       "priority": "High",
       "description": "Implement rate limiting on authentication endpoint",
       "implementation_notes": "1. Install express-rate-limit middleware. 2. Add to /api/login: rate_limit='3 requests/minute per IP'. 3. Implement account lockout: after 5 failed attempts, lock account for 15 minutes. 4. Add RateLimitService component to track attempts."
-    }},
-    {{
+    }}}},
+    {{{{
       "suggestion_id": "SEC-IMP-005",
       "related_issue_id": "SEC-005",
       "category": "Security",
       "priority": "High",
       "description": "Require HTTPS/TLS for all API communication",
       "implementation_notes": "1. Configure Express to redirect HTTP to HTTPS. 2. Obtain SSL/TLS certificate (Let's Encrypt). 3. Update architecture_overview: 'All communication over HTTPS/TLS 1.3'. 4. Add helmet middleware for HSTS header (force HTTPS). 5. Document in deployment guide."
-    }}
+    }}}}
   ]
-}}
+}}}}
 ```
 
 ---

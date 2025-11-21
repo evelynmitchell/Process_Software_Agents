@@ -32,9 +32,9 @@ CALIBRATION EXAMPLES:
 Example 1: Simple REST API Endpoint
 Input: "Build GET /users/:id endpoint to retrieve user profile from PostgreSQL"
 Output:
-{{
+{{{{
   "semantic_units": [
-    {{
+    {{{{
       "unit_id": "SU-001",
       "description": "Create GET /users/:id route handler with parameter validation",
       "api_interactions": 1,
@@ -43,8 +43,8 @@ Output:
       "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
       "est_complexity": 14
-    }},
-    {{
+    }}}},
+    {{{{
       "unit_id": "SU-002",
       "description": "Implement database query and error handling for user not found",
       "api_interactions": 1,
@@ -53,16 +53,16 @@ Output:
       "code_entities_modified": 1,
       "novelty_multiplier": 1.0,
       "est_complexity": 13
-    }}
+    }}}}
   ]
-}}
+}}}}
 
 Example 2: JWT Authentication System
 Input: "Implement JWT token authentication with user registration and login"
 Output:
-{{
+{{{{
   "semantic_units": [
-    {{
+    {{{{
       "unit_id": "SU-001",
       "description": "Design JWT authentication schema and database tables for users",
       "api_interactions": 1,
@@ -71,8 +71,8 @@ Output:
       "code_entities_modified": 3,
       "novelty_multiplier": 1.0,
       "est_complexity": 16
-    }},
-    {{
+    }}}},
+    {{{{
       "unit_id": "SU-002",
       "description": "Implement user registration endpoint with password hashing (bcrypt)",
       "api_interactions": 2,
@@ -81,8 +81,8 @@ Output:
       "code_entities_modified": 3,
       "novelty_multiplier": 1.0,
       "est_complexity": 27
-    }},
-    {{
+    }}}},
+    {{{{
       "unit_id": "SU-003",
       "description": "Create login endpoint with JWT token generation and validation",
       "api_interactions": 2,
@@ -91,8 +91,8 @@ Output:
       "code_entities_modified": 3,
       "novelty_multiplier": 1.0,
       "est_complexity": 25
-    }},
-    {{
+    }}}},
+    {{{{
       "unit_id": "SU-004",
       "description": "Build authentication middleware for protected routes",
       "api_interactions": 0,
@@ -101,16 +101,16 @@ Output:
       "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
       "est_complexity": 20
-    }}
+    }}}}
   ]
-}}
+}}}}
 
 Example 3: Complex Data Pipeline with Novel Algorithm
 Input: "Build real-time data processing pipeline with custom anomaly detection algorithm"
 Output:
-{{
+{{{{
   "semantic_units": [
-    {{
+    {{{{
       "unit_id": "SU-001",
       "description": "Design streaming data ingestion architecture with Kafka",
       "api_interactions": 3,
@@ -119,8 +119,8 @@ Output:
       "code_entities_modified": 4,
       "novelty_multiplier": 1.5,
       "est_complexity": 51
-    }},
-    {{
+    }}}},
+    {{{{
       "unit_id": "SU-002",
       "description": "Implement custom anomaly detection algorithm (statistical analysis)",
       "api_interactions": 0,
@@ -129,8 +129,8 @@ Output:
       "code_entities_modified": 5,
       "novelty_multiplier": 2.0,
       "est_complexity": 110
-    }},
-    {{
+    }}}},
+    {{{{
       "unit_id": "SU-003",
       "description": "Build data transformation pipeline with validation and error recovery",
       "api_interactions": 2,
@@ -139,9 +139,9 @@ Output:
       "code_entities_modified": 4,
       "novelty_multiplier": 1.5,
       "est_complexity": 76
-    }}
+    }}}}
   ]
-}}
+}}}}
 
 NOW DECOMPOSE THIS TASK:
 
@@ -156,9 +156,9 @@ Context Files:
 
 OUTPUT FORMAT:
 Return ONLY a JSON object (no markdown, no explanations) with this exact structure:
-{{
+{{{{
   "semantic_units": [
-    {{
+    {{{{
       "unit_id": "SU-001",
       "description": "Clear description of work",
       "api_interactions": <int 0-10>,
@@ -168,9 +168,9 @@ Return ONLY a JSON object (no markdown, no explanations) with this exact structu
       "novelty_multiplier": <float 1.0, 1.5, or 2.0>,
       "est_complexity": <int calculated using formula above>,
       "dependencies": ["SU-XXX", ...]  // Optional: list of unit_ids this depends on, or empty array
-    }}
+    }}}}
   ]
-}}
+}}}}
 
 Requirements:
 - Return 3-8 semantic units
