@@ -4,6 +4,17 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
+      "description": "Set up Express.js application structure and configure basic server",
+      "api_interactions": 0,
+      "data_transformations": 0,
+      "logical_branches": 1,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 11,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-002",
       "description": "Create GET /hello route handler with JSON response",
       "api_interactions": 0,
       "data_transformations": 1,
@@ -11,10 +22,25 @@
       "code_entities_modified": 1,
       "novelty_multiplier": 1.0,
       "est_complexity": 9,
-      "dependencies": []
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Implement request validation and error handling for /hello endpoint",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 2,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 15,
+      "dependencies": [
+        "SU-002"
+      ]
     }
   ],
-  "total_est_complexity": 9,
+  "total_est_complexity": 35,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"
