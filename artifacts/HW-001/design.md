@@ -4,35 +4,35 @@
 
 ## Architecture Overview
 
-Simple 3-tier REST API architecture using FastAPI framework. Application layer (FastAPIApplicationFactory) initializes and configures the FastAPI application with global exception handlers. Endpoint layer (HelloEndpointHandler, HealthEndpointHandler) handles HTTP requests and returns JSON responses. Exception handling layer (GlobalExceptionHandler) intercepts all exceptions and returns standardized error responses with appropriate HTTP status codes. No database or external service dependencies. Stateless design allows horizontal scaling.
+The Hello World API is a minimal 3-component FastAPI application. The FastAPIApplicationFactory initializes the application with middleware and exception handlers. The HelloEndpointHandler processes GET /hello requests with optional name parameter validation and returns personalized greetings. The HealthEndpointHandler processes GET /health requests and returns service status with current UTC timestamp. The GlobalExceptionHandler catches all exceptions and returns properly formatted error responses. The ErrorResponseFormatter ensures consistent error response structure across all error cases. All components follow REST best practices with appropriate HTTP status codes and JSON responses.
 
 ## Technology Stack
 
-{'language': 'Python 3.12', 'framework': 'FastAPI 0.104.1', 'asgi_server': 'Uvicorn 0.24.0', 'datetime_handling': 'Python datetime module (stdlib)', 'json_serialization': 'FastAPI built-in JSON encoder', 'validation': 'Pydantic v2 (included with FastAPI)', 'logging': 'Python logging module (stdlib)'}
+{'language': 'Python 3.12', 'framework': 'FastAPI 0.104.1', 'web_server': 'Uvicorn 0.24.0', 'datetime_handling': 'Python datetime module (stdlib)', 'validation': 'Pydantic v2 (included with FastAPI)', 'logging': 'Python logging module (stdlib)', 'regex': 'Python re module (stdlib)'}
 
 ## Assumptions
 
-['FastAPI is running on Uvicorn ASGI server with default settings (host 0.0.0.0, port 8000)', 'All timestamps are in UTC timezone and formatted as ISO 8601 with microseconds', 'Name parameter validation uses regex pattern allowing only alphanumeric characters and spaces', 'No authentication or authorization is required for either endpoint', 'Application runs in a single process (no distributed deployment considerations)', 'JSON responses use UTF-8 encoding', 'HTTP status codes follow standard REST conventions (200 for success, 400 for client errors, 500 for server errors)', 'Exception handlers log errors but do not expose internal implementation details in error responses']
+['FastAPI is running with Uvicorn ASGI server', 'All timestamps are in UTC timezone', 'Name parameter contains only alphanumeric characters and spaces (no special characters)', 'No database or external service dependencies required', 'Application runs on localhost:8000 by default (configurable)', 'CORS is enabled for all origins in development environment', 'Logging is configured at application startup', 'HTTP 200 is returned for successful requests', 'HTTP 400 is returned for client validation errors', 'HTTP 500 is returned for unexpected server errors']
 
 ## API Contracts
 
 ### GET /hello
 
-- **Description:** Greets the user with an optional name parameter. Returns a personalized greeting or a default greeting if no name is provided.
+- **Description:** Returns a personalized greeting message. Accepts an optional name query parameter to customize the greeting.
 - **Authentication:** False
 - **Response Schema:**
 ```json
-{'message': "string (format: 'Hello, {name}!' or 'Hello, World!')"}
+{'message': "string (format: 'Hello, {name}!' or 'Hello, World!' if name not provided)"}
 ```
 - **Error Responses:** N/A, N/A, N/A
 
 ### GET /health
 
-- **Description:** Returns the health status of the API service along with the current server timestamp in ISO 8601 format.
+- **Description:** Returns the health status of the API service with current server timestamp.
 - **Authentication:** False
 - **Response Schema:**
 ```json
-{'status': "string (value: 'ok')", 'timestamp': "string (ISO 8601 format, e.g., '2024-01-15T10:30:45.123456Z')"}
+{'status': "string (value: 'ok')", 'timestamp': 'string (ISO 8601 format UTC timestamp)'}
 ```
 - **Error Responses:** N/A
 
@@ -40,45 +40,58 @@ Simple 3-tier REST API architecture using FastAPI framework. Application layer (
 
 ### FastAPIApplicationFactory
 
-- **Responsibility:** Initializes and configures the FastAPI application with middleware, exception handlers, and core settings.
+- **Responsibility:** Initializes and configures the FastAPI application with middleware, exception handlers, and route registration.
 - **Semantic Unit:** SU-001
 - **Dependencies:** None
-- **Implementation Notes:** Use FastAPI 0.104+ with Uvicorn ASGI server. Set title='Hello World API', version='1.0.0', description='Minimal REST API with hello and health endpoints'. Configure JSON encoder to handle datetime objects. Register exception handlers in setup_exception_handlers() method. Use dependency injection for request validation. Initialize app with docs enabled (default Swagger UI at /docs).
+- **Implementation Notes:** Use FastAPI 0.104+ for application creation. Configure CORS middleware with allow_origins=['*'] for development. Set up exception handlers before route registration. Use app.add_exception_handler() for custom exception handling. Initialize app with title='Hello World API', version='1.0.0', description='Minimal REST API with hello and health endpoints'.
 - **Interfaces:**
   - `create_app`
   - `setup_exception_handlers`
+  - `setup_middleware`
 
 ### HelloEndpointHandler
 
-- **Responsibility:** Handles GET /hello requests with optional name parameter and returns personalized or default greeting message.
+- **Responsibility:** Handles GET /hello requests with optional name parameter and returns personalized greeting message.
 - **Semantic Unit:** SU-002
-- **Dependencies:** None
-- **Implementation Notes:** Use FastAPI Query parameter with default=None for optional name. Validate name using regex pattern: ^[a-zA-Z0-9\s]{1,255}$ (alphanumeric and spaces only). Raise HTTPException(status_code=400, detail='INVALID_NAME_PARAMETER') if validation fails. Strip whitespace from name before processing. Return dict with 'message' key containing greeting string. Handle None case explicitly to return 'Hello, World!'.
+- **Dependencies:** ErrorResponseFormatter
+- **Implementation Notes:** Use FastAPI Query parameter with default=None for optional name. Validate name: max 255 characters, alphanumeric and spaces only (regex: ^[a-zA-Z0-9 ]*$). Raise HTTPException(status_code=400, detail={...}) for validation failures. Return dict with 'message' key. If name is None or empty string, use 'World' as default. Strip whitespace from name parameter before validation.
 - **Interfaces:**
   - `get_hello`
   - `validate_name_parameter`
+  - `format_greeting_message`
 
 ### HealthEndpointHandler
 
-- **Responsibility:** Handles GET /health requests and returns service status with current server timestamp in ISO 8601 format.
+- **Responsibility:** Handles GET /health requests and returns service status with current UTC timestamp.
 - **Semantic Unit:** SU-003
 - **Dependencies:** None
-- **Implementation Notes:** Use datetime.datetime.utcnow() or datetime.datetime.now(datetime.timezone.utc) to get current time. Format timestamp using isoformat() method with 'Z' suffix for UTC indicator. Return dict with 'status' key set to 'ok' and 'timestamp' key with ISO 8601 formatted string. Example: '2024-01-15T10:30:45.123456Z'. Ensure microseconds are included in timestamp output.
+- **Implementation Notes:** Use datetime.datetime.utcnow().isoformat() + 'Z' for ISO 8601 UTC timestamp format. Return dict with keys: 'status' (value: 'ok'), 'timestamp' (ISO 8601 string). No parameters required. Always return HTTP 200 status code. Timestamp should include milliseconds (e.g., '2024-01-15T10:30:45.123456Z').
 - **Interfaces:**
   - `get_health`
   - `get_current_timestamp`
 
 ### GlobalExceptionHandler
 
-- **Responsibility:** Handles all exceptions globally and returns appropriate HTTP status codes with standardized error response formatting.
+- **Responsibility:** Handles all exceptions globally and returns properly formatted error responses with appropriate HTTP status codes.
 - **Semantic Unit:** SU-004
 - **Dependencies:** None
-- **Implementation Notes:** Register exception handlers using @app.exception_handler() decorator. For HTTPException: return JSONResponse with status_code from exception and detail from exception. For RequestValidationError: return JSONResponse with status_code=400 and formatted validation errors. For generic Exception: return JSONResponse with status_code=500 and message 'INTERNAL_SERVER_ERROR'. Log all exceptions using Python logging module at ERROR level. Never expose internal error details in 500 responses. Include error code and message in all error responses.
+- **Implementation Notes:** Register exception handlers using @app.exception_handler(ExceptionType). For HTTPException: extract status_code and detail, return JSONResponse with status_code. For RequestValidationError: return 400 with error_code='VALIDATION_ERROR'. For generic Exception: return 500 with error_code='INTERNAL_SERVER_ERROR', log exception with logging module. Error response format: {"error_code": "CODE", "message": "description"}. Always include error_code and message fields. Log all errors with logging.error() including exception traceback.
 - **Interfaces:**
   - `handle_http_exception`
   - `handle_validation_error`
   - `handle_generic_exception`
+  - `format_error_response`
+
+### ErrorResponseFormatter
+
+- **Responsibility:** Formats error responses with consistent structure and appropriate HTTP status codes.
+- **Semantic Unit:** SU-004
+- **Dependencies:** None
+- **Implementation Notes:** Return dict with keys: 'error_code' (string), 'message' (string). Use HTTPException from fastapi with status_code and detail parameters. Detail should be dict with error_code and message. Ensure all error responses follow same format for consistency.
+- **Interfaces:**
+  - `format_validation_error`
+  - `create_http_exception`
 
 ---
 
-*Generated by Design Agent on 2025-11-21 20:36:25*
+*Generated by Design Agent on 2025-11-21 20:38:24*
