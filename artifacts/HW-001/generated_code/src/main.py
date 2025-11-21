@@ -1,8 +1,8 @@
 """
 FastAPI Hello World Application
 
-Main application entry point that configures FastAPI with CORS middleware,
-error handlers, and endpoint routing for a simple greeting API.
+Main application entry point with CORS middleware, router registration, and startup configuration.
+Provides /hello and /health endpoints with comprehensive error handling.
 
 Component ID: COMP-001
 Semantic Unit: SU-001
@@ -16,16 +16,8 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Compile regex for name validation
-NAME_PATTERN = re.compile(r'^[a-zA-Z0-9\s]*$')
+from fastapi.responses import JSONResponse
 
 
 def create_app() -> FastAPI:
@@ -33,15 +25,15 @@ def create_app() -> FastAPI:
     Create and configure FastAPI application instance.
     
     Returns:
-        FastAPI: Configured application instance
+        FastAPI: Configured application instance with middleware and error handlers
     """
     app = FastAPI(
         title="Hello World API",
-        description="Simple REST API that returns greeting messages",
-        version="1.0.0"
+        description="Simple REST API that returns greeting messages and health status",
+        version="1.0.0",
     )
     
-    # Add CORS middleware
+    # Add CORS middleware for development
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -61,83 +53,68 @@ def setup_error_handlers(app: FastAPI) -> None:
     Configure global exception handlers for the application.
     
     Args:
-        app: FastAPI application instance
+        app: FastAPI application instance to configure
     """
     
     @app.exception_handler(RequestValidationError)
     async def handle_validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
         """
-        Handle FastAPI validation errors and return 400 with proper error format.
+        Handle FastAPI validation errors and return 400 response.
         
         Args:
-            request: HTTP request object
-            exc: Validation error exception
+            request: The incoming request
+            exc: The validation error exception
             
         Returns:
-            JSONResponse: Formatted error response
+            JSONResponse: 400 error response with validation details
         """
-        logger.warning(f"Validation error for {request.url}: {exc}")
         return JSONResponse(
             status_code=400,
-            content=format_error_response(400, "VALIDATION_ERROR", "Invalid request parameters")
+            content={
+                "code": "INVALID_NAME",
+                "message": "Name parameter contains invalid characters or exceeds 100 characters"
+            }
         )
     
     @app.exception_handler(HTTPException)
     async def handle_http_exception(request: Request, exc: HTTPException) -> JSONResponse:
         """
-        Handle HTTP exceptions and return formatted error response.
+        Handle HTTPException and return appropriate JSON response.
         
         Args:
-            request: HTTP request object
-            exc: HTTP exception
+            request: The incoming request
+            exc: The HTTP exception
             
         Returns:
-            JSONResponse: Formatted error response
+            JSONResponse: JSON error response with preserved status code
         """
-        logger.warning(f"HTTP exception for {request.url}: {exc.status_code} - {exc.detail}")
-        error_code = getattr(exc, 'error_code', 'HTTP_ERROR')
         return JSONResponse(
             status_code=exc.status_code,
-            content=format_error_response(exc.status_code, error_code, exc.detail)
+            content={
+                "code": "INVALID_NAME" if exc.status_code == 400 else "HTTP_ERROR",
+                "message": exc.detail
+            }
         )
     
     @app.exception_handler(Exception)
     async def handle_general_exception(request: Request, exc: Exception) -> JSONResponse:
         """
-        Handle unexpected exceptions and return 500 error.
+        Handle unexpected exceptions and return 500 response.
         
         Args:
-            request: HTTP request object
-            exc: General exception
+            request: The incoming request
+            exc: The general exception
             
         Returns:
-            JSONResponse: Formatted error response
+            JSONResponse: 500 error response for internal errors
         """
-        logger.error(f"Unexpected error for {request.url}: {exc}", exc_info=True)
         return JSONResponse(
             status_code=500,
-            content=format_error_response(500, "INTERNAL_ERROR", "Internal server error")
+            content={
+                "code": "INTERNAL_ERROR",
+                "message": "Internal server error"
+            }
         )
-
-
-def format_error_response(status_code: int, error_code: str, message: str) -> dict[str, dict[str, str]]:
-    """
-    Format error response with consistent structure.
-    
-    Args:
-        status_code: HTTP status code
-        error_code: Application-specific error code
-        message: Error message description
-        
-    Returns:
-        dict: Formatted error response
-    """
-    return {
-        "error": {
-            "code": error_code,
-            "message": message
-        }
-    }
 
 
 def validate_name(name: str) -> bool:
@@ -145,14 +122,16 @@ def validate_name(name: str) -> bool:
     Validate name parameter contains only alphanumeric characters and spaces.
     
     Args:
-        name: Name string to validate
+        name: The name string to validate
         
     Returns:
-        bool: True if valid, False otherwise
+        bool: True if name is valid, False otherwise
     """
     if len(name) > 100:
         return False
-    return bool(NAME_PATTERN.match(name))
+    
+    pattern = r'^[a-zA-Z0-9 ]+$'
+    return bool(re.match(pattern, name))
 
 
 def sanitize_name(name: str) -> str:
@@ -160,10 +139,10 @@ def sanitize_name(name: str) -> str:
     Clean and format name parameter for safe usage.
     
     Args:
-        name: Raw name string
+        name: The name string to sanitize
         
     Returns:
-        str: Sanitized and formatted name
+        str: Cleaned and formatted name
     """
     return name.strip().title()
 
@@ -173,43 +152,46 @@ def get_current_timestamp() -> str:
     Generate ISO 8601 formatted UTC timestamp.
     
     Returns:
-        str: ISO 8601 timestamp with Z suffix
+        str: Current UTC timestamp in ISO 8601 format with Z suffix
     """
     return datetime.utcnow().isoformat() + 'Z'
 
 
-# Create FastAPI application
+# Create application instance
 app = create_app()
 
 
 @app.get("/hello")
 async def get_hello(name: Optional[str] = Query(None, max_length=100)) -> dict[str, str]:
     """
-    Return greeting message, personalized if name provided.
+    Generate greeting message based on optional name parameter.
     
     Args:
-        name: Optional name parameter for personalization
+        name: Optional name parameter for personalized greeting
         
     Returns:
-        dict: JSON response with greeting message
+        dict[str, str]: JSON response with greeting message
         
     Raises:
-        HTTPException: 400 if name contains invalid characters
-    """
-    if name is not None:
-        if not validate_name(name):
-            exc = HTTPException(
-                status_code=400,
-                detail="Name parameter contains invalid characters or exceeds 100 characters"
-            )
-            exc.error_code = "INVALID_NAME"
-            raise exc
+        HTTPException: 400 error if name contains invalid characters
         
-        sanitized_name = sanitize_name(name)
-        if sanitized_name:
-            return {"message": f"Hello, {sanitized_name}!"}
+    Example:
+        >>> await get_hello()
+        {'message': 'Hello, World!'}
+        >>> await get_hello("John")
+        {'message': 'Hello, John!'}
+    """
+    if name is None:
+        return {"message": "Hello, World!"}
     
-    return {"message": "Hello, World!"}
+    if not validate_name(name):
+        raise HTTPException(
+            status_code=400,
+            detail="Name parameter contains invalid characters or exceeds 100 characters"
+        )
+    
+    sanitized_name = sanitize_name(name)
+    return {"message": f"Hello, {sanitized_name}!"}
 
 
 @app.get("/health")
@@ -218,9 +200,14 @@ async def get_health() -> dict[str, str]:
     Return health status and current UTC timestamp.
     
     Returns:
-        dict: JSON response with status and timestamp
+        dict[str, str]: JSON response with status and timestamp
+        
+    Example:
+        >>> await get_health()
+        {'status': 'ok', 'timestamp': '2023-11-21T17:46:28.707525Z'}
     """
+    timestamp = get_current_timestamp()
     return {
         "status": "ok",
-        "timestamp": get_current_timestamp()
+        "timestamp": timestamp
     }

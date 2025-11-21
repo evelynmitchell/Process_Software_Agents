@@ -1,8 +1,8 @@
 """
-SQLAlchemy database connection setup, session management, and base model configuration.
+SQLAlchemy database connection setup and session management.
 
-This module provides database connection management, session handling, and base model
-configuration for SQLAlchemy ORM operations.
+Provides database connection configuration, session factory, and initialization
+utilities for the Hello World API application.
 
 Component ID: COMP-010
 Semantic Unit: SU-010
@@ -15,8 +15,8 @@ import os
 from contextlib import contextmanager
 from typing import Generator, Optional
 
-from sqlalchemy import create_engine, event, Engine
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import create_engine, event, Engine, text
+from sqlalchemy.exc import SQLAlchemyError, OperationalError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
@@ -30,7 +30,7 @@ Base = declarative_base()
 
 # Global database engine and session factory
 _engine: Optional[Engine] = None
-_session_factory: Optional[sessionmaker] = None
+_SessionLocal: Optional[sessionmaker] = None
 
 
 class DatabaseConfig:
@@ -47,6 +47,34 @@ class DatabaseConfig:
         self.max_overflow = int(os.getenv("DATABASE_MAX_OVERFLOW", "10"))
         self.pool_timeout = int(os.getenv("DATABASE_POOL_TIMEOUT", "30"))
         self.pool_recycle = int(os.getenv("DATABASE_POOL_RECYCLE", "3600"))
+        
+    def get_engine_kwargs(self) -> dict:
+        """Get SQLAlchemy engine configuration parameters."""
+        kwargs = {
+            "echo": self.echo_sql,
+            "future": True,
+        }
+        
+        # SQLite-specific configuration
+        if self.database_url.startswith("sqlite"):
+            kwargs.update({
+                "poolclass": StaticPool,
+                "connect_args": {
+                    "check_same_thread": False,
+                    "timeout": 20,
+                },
+            })
+        else:
+            # PostgreSQL/MySQL configuration
+            kwargs.update({
+                "pool_size": self.pool_size,
+                "max_overflow": self.max_overflow,
+                "pool_timeout": self.pool_timeout,
+                "pool_recycle": self.pool_recycle,
+                "pool_pre_ping": True,
+            })
+            
+        return kwargs
 
 
 def create_database_engine(config: Optional[DatabaseConfig] = None) -> Engine:
@@ -64,41 +92,19 @@ def create_database_engine(config: Optional[DatabaseConfig] = None) -> Engine:
         
     Example:
         >>> engine = create_database_engine()
-        >>> engine.url.database
-        './hello_world.db'
+        >>> isinstance(engine, Engine)
+        True
     """
     if config is None:
         config = DatabaseConfig()
-    
+        
     try:
-        # Configure engine parameters based on database type
-        engine_kwargs = {
-            "echo": config.echo_sql,
-            "future": True,  # Use SQLAlchemy 2.0 style
-        }
+        engine = create_engine(
+            config.database_url,
+            **config.get_engine_kwargs()
+        )
         
-        # SQLite-specific configuration
-        if config.database_url.startswith("sqlite"):
-            engine_kwargs.update({
-                "poolclass": StaticPool,
-                "connect_args": {
-                    "check_same_thread": False,
-                    "timeout": 20,
-                }
-            })
-        else:
-            # PostgreSQL/MySQL configuration
-            engine_kwargs.update({
-                "pool_size": config.pool_size,
-                "max_overflow": config.max_overflow,
-                "pool_timeout": config.pool_timeout,
-                "pool_recycle": config.pool_recycle,
-                "pool_pre_ping": True,  # Verify connections before use
-            })
-        
-        engine = create_engine(config.database_url, **engine_kwargs)
-        
-        # Add connection event listeners
+        # Add event listeners for connection handling
         _setup_engine_events(engine)
         
         logger.info(f"Database engine created successfully: {config.database_url}")
@@ -111,110 +117,129 @@ def create_database_engine(config: Optional[DatabaseConfig] = None) -> Engine:
 
 def _setup_engine_events(engine: Engine) -> None:
     """
-    Set up database engine event listeners for connection management.
+    Set up SQLAlchemy engine event listeners.
     
     Args:
         engine: SQLAlchemy engine to configure
     """
     @event.listens_for(engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
-        """Configure SQLite connection settings."""
+        """Enable foreign key constraints for SQLite connections."""
         if engine.url.drivername == "sqlite":
             cursor = dbapi_connection.cursor()
-            # Enable foreign key constraints
             cursor.execute("PRAGMA foreign_keys=ON")
-            # Set journal mode for better concurrency
             cursor.execute("PRAGMA journal_mode=WAL")
-            # Set synchronous mode for better performance
-            cursor.execute("PRAGMA synchronous=NORMAL")
             cursor.close()
-    
+            
     @event.listens_for(engine, "engine_connect")
-    def log_connection(conn, branch):
-        """Log database connections."""
+    def receive_engine_connect(conn, branch):
+        """Log successful database connections."""
         logger.debug("Database connection established")
 
 
-def initialize_database(config: Optional[DatabaseConfig] = None) -> None:
+def initialize_database(engine: Optional[Engine] = None) -> None:
     """
-    Initialize the global database engine and session factory.
+    Initialize database by creating all tables.
     
     Args:
-        config: Database configuration object. If None, creates default config.
+        engine: SQLAlchemy engine. If None, uses global engine.
         
     Raises:
         SQLAlchemyError: If database initialization fails
-        RuntimeError: If database is already initialized
+        RuntimeError: If no engine is available
         
     Example:
         >>> initialize_database()
-        >>> get_engine() is not None
+        # Creates all tables defined in Base metadata
+    """
+    if engine is None:
+        engine = get_engine()
+        
+    if engine is None:
+        raise RuntimeError("No database engine available. Call setup_database() first.")
+        
+    try:
+        # Create all tables
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables created successfully")
+        
+        # Verify database connection
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+            logger.info("Database connection verified")
+            
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+        raise SQLAlchemyError(f"Failed to initialize database: {e}") from e
+
+
+def setup_database(config: Optional[DatabaseConfig] = None) -> None:
+    """
+    Set up global database engine and session factory.
+    
+    Args:
+        config: Database configuration. If None, uses default configuration.
+        
+    Raises:
+        SQLAlchemyError: If database setup fails
+        
+    Example:
+        >>> setup_database()
+        >>> engine = get_engine()
+        >>> engine is not None
         True
     """
-    global _engine, _session_factory
-    
-    if _engine is not None:
-        raise RuntimeError("Database already initialized. Call close_database() first.")
+    global _engine, _SessionLocal
     
     try:
+        # Create database engine
         _engine = create_database_engine(config)
-        _session_factory = sessionmaker(
+        
+        # Create session factory
+        _SessionLocal = sessionmaker(
             bind=_engine,
             autocommit=False,
             autoflush=False,
-            expire_on_commit=False,
+            expire_on_commit=False
         )
         
-        logger.info("Database initialized successfully")
+        logger.info("Database setup completed successfully")
         
     except Exception as e:
-        logger.error(f"Database initialization failed: {e}")
-        _engine = None
-        _session_factory = None
-        raise
+        logger.error(f"Database setup failed: {e}")
+        raise SQLAlchemyError(f"Failed to setup database: {e}") from e
 
 
-def get_engine() -> Engine:
+def get_engine() -> Optional[Engine]:
     """
     Get the global database engine.
     
     Returns:
-        Engine: The global SQLAlchemy engine
-        
-    Raises:
-        RuntimeError: If database is not initialized
+        Optional[Engine]: Database engine or None if not initialized
         
     Example:
-        >>> initialize_database()
+        >>> setup_database()
         >>> engine = get_engine()
-        >>> engine.url is not None
+        >>> engine is not None
         True
     """
-    if _engine is None:
-        raise RuntimeError("Database not initialized. Call initialize_database() first.")
     return _engine
 
 
-def get_session_factory() -> sessionmaker:
+def get_session_factory() -> Optional[sessionmaker]:
     """
     Get the global session factory.
     
     Returns:
-        sessionmaker: The global SQLAlchemy session factory
-        
-    Raises:
-        RuntimeError: If database is not initialized
+        Optional[sessionmaker]: Session factory or None if not initialized
         
     Example:
-        >>> initialize_database()
+        >>> setup_database()
         >>> factory = get_session_factory()
-        >>> session = factory()
-        >>> isinstance(session, Session)
+        >>> factory is not None
         True
     """
-    if _session_factory is None:
-        raise RuntimeError("Database not initialized. Call initialize_database() first.")
-    return _session_factory
+    return _SessionLocal
 
 
 def create_session() -> Session:
@@ -225,25 +250,18 @@ def create_session() -> Session:
         Session: New SQLAlchemy session
         
     Raises:
-        RuntimeError: If database is not initialized
-        SQLAlchemyError: If session creation fails
+        RuntimeError: If session factory is not initialized
         
     Example:
-        >>> initialize_database()
+        >>> setup_database()
         >>> session = create_session()
-        >>> session.is_active
+        >>> isinstance(session, Session)
         True
-        >>> session.close()
     """
-    try:
-        session_factory = get_session_factory()
-        session = session_factory()
-        logger.debug("Database session created")
-        return session
+    if _SessionLocal is None:
+        raise RuntimeError("Database not initialized. Call setup_database() first.")
         
-    except Exception as e:
-        logger.error(f"Failed to create database session: {e}")
-        raise SQLAlchemyError(f"Session creation failed: {e}") from e
+    return _SessionLocal()
 
 
 @contextmanager
@@ -252,15 +270,8 @@ def get_db_session() -> Generator[Session, None, None]:
     Context manager for database sessions with automatic cleanup.
     
     Yields:
-        Session: Database session that will be automatically closed
+        Session: Database session
         
     Raises:
-        RuntimeError: If database is not initialized
-        SQLAlchemyError: If session operations fail
-        
-    Example:
-        >>> initialize_database()
-        >>> with get_db_session() as session:
-        ...     # Use session for database operations
-        ...     result = session.execute("SELECT 1")
-        ...
+        RuntimeError: If session factory is not initialized
+        SQL

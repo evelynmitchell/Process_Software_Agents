@@ -135,8 +135,8 @@ class TokenRefreshRequest(BaseModel):
     )
 
 
-class UserProfileResponse(BaseModel):
-    """Schema for user profile response."""
+class UserProfile(BaseModel):
+    """Schema for user profile information."""
     
     id: int = Field(
         ...,
@@ -154,8 +154,8 @@ class UserProfileResponse(BaseModel):
         example="John Doe"
     )
     is_active: bool = Field(
-        ...,
-        description="User account status",
+        default=True,
+        description="Whether user account is active",
         example=True
     )
     created_at: datetime = Field(
@@ -170,38 +170,17 @@ class UserProfileResponse(BaseModel):
     )
 
 
-class UserProfileUpdateRequest(BaseModel):
-    """Schema for user profile update request validation."""
+class UserRegistrationResponse(BaseModel):
+    """Schema for user registration response."""
     
-    full_name: Optional[str] = Field(
-        None,
-        min_length=1,
-        max_length=100,
-        description="Updated full name",
-        example="John Smith"
+    user: UserProfile = Field(
+        ...,
+        description="Created user profile information"
     )
-    
-    @validator('full_name')
-    def validate_full_name(cls, v: Optional[str]) -> Optional[str]:
-        """
-        Validate full name contains only allowed characters.
-        
-        Args:
-            v: Full name string to validate
-            
-        Returns:
-            Optional[str]: Validated and cleaned full name
-            
-        Raises:
-            ValueError: If name contains invalid characters
-        """
-        if v is None:
-            return v
-        
-        # Allow letters, spaces, hyphens, and apostrophes
-        if not re.match(r"^[a-zA-Z\s\-']+$", v.strip()):
-            raise ValueError('Full name can only contain letters, spaces, hyphens, and apostrophes')
-        return v.strip()
+    tokens: TokenResponse = Field(
+        ...,
+        description="Authentication tokens for the new user"
+    )
 
 
 class PasswordChangeRequest(BaseModel):
@@ -211,7 +190,7 @@ class PasswordChangeRequest(BaseModel):
         ...,
         min_length=1,
         max_length=128,
-        description="Current password",
+        description="Current user password",
         example="OldPassword123!"
     )
     new_password: str = Field(
@@ -252,14 +231,40 @@ class PasswordResetRequest(BaseModel):
     
     email: EmailStr = Field(
         ...,
-        description="User email address for password reset",
+        description="Email address for password reset",
         example="user@example.com"
     )
 
 
-class PasswordResetConfirmRequest(BaseModel):
-    """Schema for password reset confirmation request validation."""
+class PasswordResetConfirm(BaseModel):
+    """Schema for password reset confirmation validation."""
     
     token: str = Field(
         ...,
-        min_length
+        min_length=1,
+        description="Password reset token",
+        example="abc123def456"
+    )
+    new_password: str = Field(
+        ...,
+        min_length=8,
+        max_length=128,
+        description="New password (8-128 characters)",
+        example="NewSecurePassword123!"
+    )
+    
+    @validator('new_password')
+    def validate_reset_password_strength(cls, v: str) -> str:
+        """
+        Validate reset password meets security requirements.
+        
+        Args:
+            v: Reset password string to validate
+            
+        Returns:
+            str: Validated password
+            
+        Raises:
+            ValueError: If password doesn't meet requirements
+        """
+        if not re.search(r'[A-Z]',

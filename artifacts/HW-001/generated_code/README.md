@@ -1,15 +1,15 @@
 # Hello World API
 
-A simple FastAPI REST API that returns greeting messages with optional personalization and health monitoring capabilities.
+A simple FastAPI REST API that returns personalized greeting messages with comprehensive error handling and health monitoring.
 
 ## Features
 
 - **Personalized Greetings**: `/hello` endpoint with optional name parameter
 - **Health Monitoring**: `/health` endpoint with status and timestamp
-- **Input Validation**: Secure name parameter validation with length and character restrictions
-- **Error Handling**: Comprehensive error responses with proper HTTP status codes
-- **Interactive Documentation**: Automatic OpenAPI/Swagger documentation
-- **Production Ready**: Proper logging, error handling, and CORS support
+- **Input Validation**: Secure name parameter validation with alphanumeric and space characters only
+- **Error Handling**: Comprehensive JSON error responses with consistent format
+- **CORS Support**: Cross-origin requests enabled for development
+- **Interactive Documentation**: Auto-generated API docs with Swagger UI and ReDoc
 
 ## Prerequisites
 
@@ -24,25 +24,6 @@ A simple FastAPI REST API that returns greeting messages with optional personali
    ```bash
    pip install -r requirements.txt
    ```
-
-## Configuration
-
-No additional configuration is required for basic usage. The application runs with default settings suitable for development and production.
-
-### Environment Variables (Optional)
-
-You can customize the application behavior using these environment variables:
-
-- `HOST`: Server host address (default: `127.0.0.1`)
-- `PORT`: Server port number (default: `8000`)
-- `LOG_LEVEL`: Logging level (default: `INFO`)
-
-Create a `.env` file in the project root:
-```bash
-HOST=0.0.0.0
-PORT=8000
-LOG_LEVEL=INFO
-```
 
 ## Running the Application
 
@@ -61,29 +42,25 @@ The API will be available at http://localhost:8000
 Start the production server:
 
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-### Using Docker (Optional)
+### Custom Port
 
-If you have Docker installed:
+If port 8000 is already in use:
 
 ```bash
-# Build the image
-docker build -t hello-world-api .
-
-# Run the container
-docker run -p 8000:8000 hello-world-api
+uvicorn main:app --port 8001
 ```
 
 ## API Documentation
 
 ### GET /hello
 
-Returns a greeting message with optional personalization.
+Returns a personalized greeting message.
 
 **Parameters:**
-- `name` (optional, query parameter): Name to personalize the greeting
+- `name` (optional, query parameter): Name to include in greeting
   - Type: string
   - Max length: 100 characters
   - Allowed characters: alphanumeric and spaces only
@@ -96,20 +73,18 @@ Returns a greeting message with optional personalization.
 }
 ```
 
-**Personalized Response (200 OK):**
+**Success Response with Name (200 OK):**
 ```json
 {
   "message": "Hello, John Doe!"
 }
 ```
 
-**Error Response (400 Bad Request):**
+**Error Response - Invalid Name (400 Bad Request):**
 ```json
 {
-  "error": {
-    "code": "INVALID_NAME",
-    "message": "Name parameter contains invalid characters or exceeds 100 characters"
-  }
+  "code": "INVALID_NAME",
+  "message": "Name parameter contains invalid characters or exceeds 100 characters"
 }
 ```
 
@@ -121,7 +96,7 @@ curl http://localhost:8000/hello
 # Personalized greeting
 curl "http://localhost:8000/hello?name=Alice"
 
-# Invalid name (contains special characters)
+# Invalid characters (returns 400 error)
 curl "http://localhost:8000/hello?name=Alice@123"
 ```
 
@@ -144,15 +119,13 @@ curl http://localhost:8000/health
 
 ### Error Responses
 
-All endpoints may return these error responses:
+All endpoints may return the following error response:
 
-**500 Internal Server Error:**
+**Internal Server Error (500):**
 ```json
 {
-  "error": {
-    "code": "INTERNAL_ERROR",
-    "message": "Internal server error"
-  }
+  "code": "INTERNAL_ERROR",
+  "message": "Internal server error"
 }
 ```
 
@@ -164,100 +137,78 @@ FastAPI automatically generates interactive API documentation:
 - **ReDoc**: http://localhost:8000/redoc
 - **OpenAPI Schema**: http://localhost:8000/openapi.json
 
-These interfaces allow you to:
-- View all available endpoints
-- Test API calls directly in the browser
-- See request/response schemas
-- Download the OpenAPI specification
+## Input Validation
+
+The API implements strict input validation for security:
+
+### Name Parameter Rules
+
+- **Maximum length**: 100 characters
+- **Allowed characters**: Letters (a-z, A-Z), numbers (0-9), and spaces
+- **Automatic formatting**: Names are trimmed and title-cased
+- **Invalid examples**: 
+  - `Alice@domain.com` (contains @ symbol)
+  - `John<script>` (contains < and > symbols)
+  - Names longer than 100 characters
 
 ## Testing
 
-### Running Tests
-
-Run the complete test suite:
+### Run All Tests
 
 ```bash
 pytest tests/ -v
 ```
 
-Run tests with coverage report:
+### Run Tests with Coverage
 
 ```bash
 pytest tests/ --cov=. --cov-report=html
 ```
 
-View the coverage report:
-```bash
-open htmlcov/index.html  # macOS
-xdg-open htmlcov/index.html  # Linux
-```
+View coverage report by opening `htmlcov/index.html` in your browser.
 
-### Test Categories
-
-The test suite includes:
-
-- **Unit Tests**: Individual function testing
-- **Integration Tests**: API endpoint testing
-- **Edge Case Tests**: Boundary conditions and invalid inputs
-- **Error Handling Tests**: Exception scenarios
-
-### Manual Testing
-
-Test the endpoints manually:
+### Run Specific Test Categories
 
 ```bash
-# Test basic hello endpoint
-curl -X GET http://localhost:8000/hello
+# Unit tests only
+pytest tests/test_main.py -v
 
-# Test personalized greeting
-curl -X GET "http://localhost:8000/hello?name=TestUser"
-
-# Test health endpoint
-curl -X GET http://localhost:8000/health
-
-# Test invalid name parameter
-curl -X GET "http://localhost:8000/hello?name=Invalid@Name"
+# Integration tests only
+pytest tests/test_integration.py -v
 ```
 
-## Security Considerations
+## Development
 
-### Input Validation
+### Project Structure
 
-- **Name Parameter**: Restricted to alphanumeric characters and spaces only
-- **Length Limits**: Maximum 100 characters for name parameter
-- **Sanitization**: Input is automatically trimmed and formatted
+```
+.
+├── main.py              # FastAPI application
+├── requirements.txt     # Python dependencies
+├── tests/
+│   ├── test_main.py    # Unit tests
+│   └── test_integration.py  # Integration tests
+└── README.md           # This file
+```
 
-### Error Handling
+### Code Quality
 
-- **No Information Leakage**: Error responses don't expose internal details
-- **Consistent Format**: All errors follow the same JSON structure
-- **Proper HTTP Status Codes**: Appropriate status codes for different error types
+The project follows Python best practices:
 
-### Best Practices Implemented
+- **PEP 8**: Python style guide compliance
+- **Type hints**: Full type annotation coverage
+- **Docstrings**: Comprehensive documentation
+- **Error handling**: Robust exception management
+- **Input validation**: Security-focused validation
+- **Testing**: High test coverage with unit and integration tests
 
-- Input validation using regex patterns
-- Parameterized responses (no string injection)
-- Proper HTTP status codes
-- Comprehensive error handling
-- Request/response logging
+### Adding New Endpoints
 
-## Monitoring and Logging
-
-### Health Checks
-
-Use the `/health` endpoint for:
-- Load balancer health checks
-- Container orchestration health probes
-- Monitoring system status checks
-
-### Logging
-
-The application logs:
-- Request information (INFO level)
-- Validation errors (WARNING level)
-- Internal errors (ERROR level)
-
-Log format includes timestamp, level, and message details.
+1. Define the endpoint function in `main.py`
+2. Add appropriate type hints and docstrings
+3. Implement input validation if needed
+4. Add error handling with consistent JSON responses
+5. Write comprehensive tests in `tests/`
 
 ## Troubleshooting
 
@@ -281,68 +232,86 @@ uvicorn main:app --port 8001
 pip install -r requirements.txt
 ```
 
-#### Permission Denied (Port 80/443)
+#### Permission Denied (Production)
 
 **Error**: `PermissionError: [Errno 13] Permission denied`
 
-**Solution**: Use a port above 1024 or run with sudo (not recommended):
+**Solution**: Use a port above 1024 or run with appropriate permissions:
 ```bash
 uvicorn main:app --port 8080
 ```
 
-#### Invalid Name Parameter
+#### CORS Issues in Browser
 
-**Error**: 400 Bad Request with INVALID_NAME code
+**Error**: Cross-origin request blocked
 
-**Solution**: Ensure name parameter:
-- Contains only letters, numbers, and spaces
-- Is 100 characters or less
-- Example: `name=John Doe` ✓, `name=John@Doe` ✗
-
-### Performance Issues
-
-#### Slow Response Times
-
-1. **Check system resources**: CPU and memory usage
-2. **Monitor logs**: Look for error patterns
-3. **Use production server**: Run with multiple workers:
-   ```bash
-   uvicorn main:app --workers 4
-   ```
-
-#### High Memory Usage
-
-1. **Update dependencies**: Ensure latest versions
-2. **Monitor for memory leaks**: Use memory profiling tools
-3. **Restart application**: Temporary solution for memory issues
+**Solution**: The API includes CORS middleware for development. For production, configure specific origins in `main.py`:
+```python
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://yourdomain.com"],
+    allow_credentials=True,
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
+```
 
 ### Debugging
 
-#### Enable Debug Mode
+#### Enable Debug Logging
 
-For development debugging:
+Add logging configuration to see detailed request information:
+
 ```bash
-uvicorn main:app --reload --log-level debug
+uvicorn main:app --log-level debug
 ```
 
-#### Check Application Logs
+#### Test API Endpoints
 
-View detailed request/response information in the console output.
+Use curl or httpie to test endpoints:
 
-#### Validate API Responses
+```bash
+# Test basic functionality
+curl -v http://localhost:8000/hello
 
-Use the interactive documentation at `/docs` to test endpoints and validate responses.
+# Test with parameters
+curl -v "http://localhost:8000/hello?name=Test User"
 
-## Development
-
-### Project Structure
-
+# Test health endpoint
+curl -v http://localhost:8000/health
 ```
-hello-world-api/
-├── main.py              # FastAPI application and endpoints
-├── requirements.txt     # Python dependencies
-├── tests/              # Test files
-│   ├── __init__.py
-│   ├── test_main.py    # Unit and integration tests
-│   └── conftest.py     # Test configuration
-├── README
+
+#### Validate JSON Responses
+
+Use jq to format JSON responses:
+
+```bash
+curl -s http://localhost:8000/hello | jq .
+```
+
+### Performance Considerations
+
+- The API is designed for high concurrency with FastAPI's async capabilities
+- No blocking operations in endpoint handlers
+- Minimal memory footprint with no external dependencies
+- Suitable for containerization with Docker
+
+### Security Notes
+
+- Input validation prevents injection attacks
+- No sensitive data stored or transmitted
+- CORS configured for development (restrict for production)
+- Error messages don't expose internal system details
+- No authentication required (add as needed for production use)
+
+## Contributing
+
+1. Follow PEP 8 style guidelines
+2. Add type hints to all functions
+3. Write comprehensive tests for new features
+4. Update documentation for API changes
+5. Ensure all tests pass before submitting changes
+
+## License
+
+This project is provided as-is for educational and development purposes.

@@ -1,8 +1,8 @@
 """
-Task management API endpoints for CRUD operations with authentication middleware and user-specific filtering.
+Task management API endpoints for CRUD operations with authentication middleware and user authorization.
 
 This module provides REST API endpoints for managing tasks including creation, retrieval,
-updating, and deletion with proper authentication and user-specific data filtering.
+updating, and deletion with proper user authentication and authorization.
 
 Component ID: COMP-003
 Semantic Unit: SU-003
@@ -17,173 +17,150 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPBearer
-from pydantic import BaseModel, Field, validator
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from src.database.connection import get_db_session
-from src.models.task import Task, TaskStatus, TaskPriority
+from src.models.task import Task
 from src.models.user import User
+from src.schemas.task import (
+    TaskCreate,
+    TaskResponse,
+    TaskUpdate,
+    TaskListResponse,
+    TaskStatus,
+    TaskPriority
+)
 from src.utils.jwt_utils import decode_jwt_token, get_current_user
+from src.database import get_db
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Security scheme
+# Initialize router and security
+router = APIRouter(prefix="/api/v1/tasks", tags=["tasks"])
 security = HTTPBearer()
 
-# Router for task endpoints
-router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
-
-class TaskCreateRequest(BaseModel):
-    """Request model for creating a new task."""
-    
-    title: str = Field(..., min_length=1, max_length=200, description="Task title")
-    description: Optional[str] = Field(None, max_length=1000, description="Task description")
-    priority: TaskPriority = Field(TaskPriority.MEDIUM, description="Task priority level")
-    due_date: Optional[datetime] = Field(None, description="Task due date")
-    
-    @validator('title')
-    def validate_title(cls, v: str) -> str:
-        """Validate and sanitize task title."""
-        if not v or not v.strip():
-            raise ValueError("Title cannot be empty or whitespace only")
-        return v.strip()
-    
-    @validator('description')
-    def validate_description(cls, v: Optional[str]) -> Optional[str]:
-        """Validate and sanitize task description."""
-        if v is not None:
-            return v.strip() if v.strip() else None
-        return v
-    
-    @validator('due_date')
-    def validate_due_date(cls, v: Optional[datetime]) -> Optional[datetime]:
-        """Validate due date is not in the past."""
-        if v is not None and v < datetime.utcnow():
-            raise ValueError("Due date cannot be in the past")
-        return v
-
-
-class TaskUpdateRequest(BaseModel):
-    """Request model for updating an existing task."""
-    
-    title: Optional[str] = Field(None, min_length=1, max_length=200, description="Task title")
-    description: Optional[str] = Field(None, max_length=1000, description="Task description")
-    status: Optional[TaskStatus] = Field(None, description="Task status")
-    priority: Optional[TaskPriority] = Field(None, description="Task priority level")
-    due_date: Optional[datetime] = Field(None, description="Task due date")
-    
-    @validator('title')
-    def validate_title(cls, v: Optional[str]) -> Optional[str]:
-        """Validate and sanitize task title."""
-        if v is not None:
-            if not v or not v.strip():
-                raise ValueError("Title cannot be empty or whitespace only")
-            return v.strip()
-        return v
-    
-    @validator('description')
-    def validate_description(cls, v: Optional[str]) -> Optional[str]:
-        """Validate and sanitize task description."""
-        if v is not None:
-            return v.strip() if v.strip() else None
-        return v
-    
-    @validator('due_date')
-    def validate_due_date(cls, v: Optional[datetime]) -> Optional[datetime]:
-        """Validate due date is not in the past."""
-        if v is not None and v < datetime.utcnow():
-            raise ValueError("Due date cannot be in the past")
-        return v
-
-
-class TaskResponse(BaseModel):
-    """Response model for task data."""
-    
-    id: UUID
-    title: str
-    description: Optional[str]
-    status: TaskStatus
-    priority: TaskPriority
-    due_date: Optional[datetime]
-    created_at: datetime
-    updated_at: datetime
-    user_id: UUID
-    
-    class Config:
-        from_attributes = True
-
-
-class TaskListResponse(BaseModel):
-    """Response model for task list with pagination."""
-    
-    tasks: List[TaskResponse]
-    total: int
-    page: int
-    page_size: int
-    has_next: bool
-    has_previous: bool
-
-
-def validate_task_ownership(task: Task, user: User) -> None:
+def validate_task_ownership(task: Task, current_user: User) -> None:
     """
     Validate that the current user owns the specified task.
     
     Args:
-        task: Task instance to validate
-        user: Current authenticated user
+        task: Task instance to validate ownership for
+        current_user: Currently authenticated user
         
     Raises:
-        HTTPException: If user doesn't own the task
+        HTTPException: If user doesn't own the task (403 Forbidden)
     """
-    if task.user_id != user.id:
-        logger.warning(f"User {user.id} attempted to access task {task.id} owned by {task.user_id}")
+    if task.user_id != current_user.id:
+        logger.warning(
+            f"User {current_user.id} attempted to access task {task.id} "
+            f"owned by user {task.user_id}"
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied: You can only access your own tasks"
+            detail="You don't have permission to access this task"
         )
 
 
-def get_task_by_id(task_id: UUID, db: Session, user: User) -> Task:
+def validate_task_data(task_data: TaskCreate) -> None:
     """
-    Retrieve a task by ID and validate ownership.
+    Validate task creation data for business rules.
     
     Args:
-        task_id: UUID of the task to retrieve
-        db: Database session
-        user: Current authenticated user
-        
-    Returns:
-        Task: The requested task
+        task_data: Task creation data to validate
         
     Raises:
-        HTTPException: If task not found or access denied
+        HTTPException: If validation fails (400 Bad Request)
     """
-    try:
-        task = db.query(Task).filter(Task.id == task_id).first()
-        if not task:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Task with ID {task_id} not found"
-            )
-        
-        validate_task_ownership(task, user)
-        return task
-        
-    except SQLAlchemyError as e:
-        logger.error(f"Database error retrieving task {task_id}: {str(e)}")
+    if not task_data.title or not task_data.title.strip():
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database error occurred"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Task title cannot be empty"
         )
+    
+    if len(task_data.title.strip()) > 200:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Task title cannot exceed 200 characters"
+        )
+    
+    if task_data.description and len(task_data.description) > 2000:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Task description cannot exceed 2000 characters"
+        )
+    
+    if task_data.due_date and task_data.due_date < datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Due date cannot be in the past"
+        )
+
+
+def sanitize_task_input(task_data: TaskCreate) -> TaskCreate:
+    """
+    Sanitize and clean task input data.
+    
+    Args:
+        task_data: Raw task creation data
+        
+    Returns:
+        TaskCreate: Sanitized task data
+    """
+    # Strip whitespace from title and description
+    title = task_data.title.strip() if task_data.title else ""
+    description = task_data.description.strip() if task_data.description else None
+    
+    return TaskCreate(
+        title=title,
+        description=description,
+        status=task_data.status or TaskStatus.TODO,
+        priority=task_data.priority or TaskPriority.MEDIUM,
+        due_date=task_data.due_date,
+        tags=task_data.tags or []
+    )
+
+
+def build_task_filters(
+    status: Optional[TaskStatus] = None,
+    priority: Optional[TaskPriority] = None,
+    tag: Optional[str] = None,
+    due_before: Optional[datetime] = None,
+    due_after: Optional[datetime] = None
+) -> dict:
+    """
+    Build filter dictionary for task queries.
+    
+    Args:
+        status: Filter by task status
+        priority: Filter by task priority
+        tag: Filter by tag (partial match)
+        due_before: Filter tasks due before this date
+        due_after: Filter tasks due after this date
+        
+    Returns:
+        dict: Filter conditions for database query
+    """
+    filters = {}
+    
+    if status:
+        filters['status'] = status
+    if priority:
+        filters['priority'] = priority
+    if tag:
+        filters['tag'] = tag
+    if due_before:
+        filters['due_before'] = due_before
+    if due_after:
+        filters['due_after'] = due_after
+        
+    return filters
 
 
 @router.post("/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 def create_task(
-    task_data: TaskCreateRequest,
-    db: Session = Depends(get_db_session),
+    task_data: TaskCreate,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> TaskResponse:
     """
@@ -192,40 +169,69 @@ def create_task(
     Args:
         task_data: Task creation data
         db: Database session
-        current_user: Authenticated user
+        current_user: Currently authenticated user
         
     Returns:
         TaskResponse: Created task data
         
     Raises:
-        HTTPException: If task creation fails
+        HTTPException: If validation fails or creation error occurs
     """
     try:
-        # Create new task instance
+        # Validate and sanitize input
+        validate_task_data(task_data)
+        sanitized_data = sanitize_task_input(task_data)
+        
+        # Create new task
         new_task = Task(
-            title=task_data.title,
-            description=task_data.description,
-            priority=task_data.priority,
-            due_date=task_data.due_date,
+            title=sanitized_data.title,
+            description=sanitized_data.description,
+            status=sanitized_data.status,
+            priority=sanitized_data.priority,
+            due_date=sanitized_data.due_date,
+            tags=sanitized_data.tags,
             user_id=current_user.id,
-            status=TaskStatus.TODO,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
         
-        # Save to database
         db.add(new_task)
         db.commit()
         db.refresh(new_task)
         
-        logger.info(f"Task {new_task.id} created successfully for user {current_user.id}")
+        logger.info(f"Task {new_task.id} created by user {current_user.id}")
+        
         return TaskResponse.from_orm(new_task)
         
-    except SQLAlchemyError as e:
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating task for user {current_user.id}: {str(e)}")
         db.rollback()
-        logger.error(f"Database error creating task for user {current_user.id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create task due to database error"
+            detail="Failed to create task"
         )
-    except Exception as
+
+
+@router.get("/", response_model=TaskListResponse)
+def get_tasks(
+    skip: int = Query(0, ge=0, description="Number of tasks to skip"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of tasks to return"),
+    status_filter: Optional[TaskStatus] = Query(None, alias="status"),
+    priority_filter: Optional[TaskPriority] = Query(None, alias="priority"),
+    tag_filter: Optional[str] = Query(None, alias="tag", max_length=50),
+    due_before: Optional[datetime] = Query(None),
+    due_after: Optional[datetime] = Query(None),
+    search: Optional[str] = Query(None, max_length=200, description="Search in title and description"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> TaskListResponse:
+    """
+    Retrieve tasks for the authenticated user with filtering and pagination.
+    
+    Args:
+        skip: Number of tasks to skip for pagination
+        limit: Maximum number of tasks to return
+        status_filter: Filter by task status
+        priority_filter:

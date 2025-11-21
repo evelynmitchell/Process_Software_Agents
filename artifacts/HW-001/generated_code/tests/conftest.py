@@ -1,285 +1,243 @@
 """
 Pytest configuration and fixtures for Hello World API tests.
 
-Provides test database setup, user and task fixtures, and cleanup utilities
-for comprehensive testing of the API endpoints and business logic.
+Provides test client setup, fixtures, and configuration for comprehensive testing
+of the FastAPI application endpoints and error handling.
 
 Author: ASP Code Agent
 """
 
-import asyncio
-import os
-import tempfile
-from datetime import datetime, timezone
-from typing import AsyncGenerator, Generator
-from unittest.mock import Mock, patch
-
 import pytest
-import pytest_asyncio
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
-from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from unittest.mock import patch, MagicMock
+from datetime import datetime
+from typing import Generator, Dict, Any
 
-# Import application components
-from src.database.connection import Base, get_db_session
-from src.models.user import User
-from src.models.task import Task
-
-
-# Test database configuration
-TEST_DATABASE_URL = "sqlite:///:memory:"
+from src.main import app
 
 
 @pytest.fixture(scope="session")
-def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
+def test_client() -> TestClient:
     """
-    Create an event loop for the test session.
+    Create a test client for the FastAPI application.
     
-    Yields:
-        asyncio.AbstractEventLoop: Event loop for async tests
+    Returns:
+        TestClient: Configured test client for making HTTP requests
     """
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    yield loop
-    loop.close()
+    return TestClient(app)
 
 
-@pytest.fixture(scope="session")
-def test_engine() -> Generator[Engine, None, None]:
+@pytest.fixture(scope="function")
+def mock_datetime() -> Generator[MagicMock, None, None]:
     """
-    Create SQLAlchemy engine for testing with in-memory SQLite database.
+    Mock datetime.utcnow() for consistent timestamp testing.
     
     Yields:
-        Engine: SQLAlchemy engine configured for testing
+        MagicMock: Mocked datetime object with fixed timestamp
     """
-    engine = create_engine(
-        TEST_DATABASE_URL,
-        connect_args={
-            "check_same_thread": False,
+    fixed_datetime = datetime(2023, 12, 25, 10, 30, 45)
+    with patch('src.main.datetime') as mock_dt:
+        mock_dt.utcnow.return_value = fixed_datetime
+        yield mock_dt
+
+
+@pytest.fixture(scope="function")
+def valid_names() -> list[str]:
+    """
+    Provide list of valid name parameters for testing.
+    
+    Returns:
+        list[str]: Valid name strings for parameter testing
+    """
+    return [
+        "John",
+        "Jane Doe",
+        "Alice123",
+        "Bob Smith Jr",
+        "Test User 42",
+        "a",
+        "A" * 100,  # Maximum length
+        "123",
+        "User With Spaces",
+        "CamelCase",
+        "lowercase",
+        "UPPERCASE"
+    ]
+
+
+@pytest.fixture(scope="function")
+def invalid_names() -> list[str]:
+    """
+    Provide list of invalid name parameters for testing.
+    
+    Returns:
+        list[str]: Invalid name strings that should trigger validation errors
+    """
+    return [
+        "John@Doe",  # Special character
+        "Jane-Smith",  # Hyphen
+        "User!",  # Exclamation mark
+        "Test<script>",  # HTML/XSS attempt
+        "Name with\nnewline",  # Newline character
+        "User\t",  # Tab character
+        "A" * 101,  # Exceeds maximum length
+        "José",  # Non-ASCII character
+        "User#123",  # Hash symbol
+        "Test$User",  # Dollar sign
+        "Name%20",  # URL encoding
+        "User&Co",  # Ampersand
+        "",  # Empty string (handled separately)
+        "   ",  # Only whitespace
+    ]
+
+
+@pytest.fixture(scope="function")
+def expected_hello_responses() -> Dict[str, str]:
+    """
+    Provide expected responses for hello endpoint with different names.
+    
+    Returns:
+        Dict[str, str]: Mapping of input names to expected response messages
+    """
+    return {
+        "John": "Hello, John!",
+        "jane doe": "Hello, Jane Doe!",
+        "alice123": "Hello, Alice123!",
+        "bob smith jr": "Hello, Bob Smith Jr!",
+        "test user 42": "Hello, Test User 42!",
+        "a": "Hello, A!",
+        "123": "Hello, 123!",
+        "user with spaces": "Hello, User With Spaces!",
+        "camelcase": "Hello, Camelcase!",
+        "lowercase": "Hello, Lowercase!",
+        "UPPERCASE": "Hello, Uppercase!",
+        "  padded  ": "Hello, Padded!",
+    }
+
+
+@pytest.fixture(scope="function")
+def error_response_schemas() -> Dict[str, Dict[str, Any]]:
+    """
+    Provide expected error response schemas for validation.
+    
+    Returns:
+        Dict[str, Dict[str, Any]]: Error response schema definitions
+    """
+    return {
+        "validation_error": {
+            "required_fields": ["code", "message"],
+            "code_value": "INVALID_NAME",
+            "status_code": 400
         },
-        poolclass=StaticPool,
-        echo=False,  # Set to True for SQL debugging
-    )
-    
-    # Enable foreign key constraints for SQLite
-    @event.listens_for(engine, "connect")
-    def set_sqlite_pragma(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-    
-    yield engine
-    engine.dispose()
+        "internal_error": {
+            "required_fields": ["code", "message"],
+            "code_value": "INTERNAL_ERROR",
+            "status_code": 500
+        }
+    }
 
 
-@pytest.fixture(scope="session")
-def test_session_factory(test_engine: Engine) -> Generator[sessionmaker, None, None]:
+@pytest.fixture(scope="function")
+def health_response_schema() -> Dict[str, Any]:
     """
-    Create session factory for test database.
+    Provide expected health endpoint response schema.
     
-    Args:
-        test_engine: SQLAlchemy engine for testing
-        
-    Yields:
-        sessionmaker: Session factory for creating database sessions
+    Returns:
+        Dict[str, Any]: Health response schema definition
     """
-    TestSessionLocal = sessionmaker(
-        autocommit=False,
-        autoflush=False,
-        bind=test_engine
-    )
-    yield TestSessionLocal
+    return {
+        "required_fields": ["status", "timestamp"],
+        "status_value": "ok",
+        "timestamp_format": r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$"
+    }
+
+
+@pytest.fixture(scope="function")
+def hello_response_schema() -> Dict[str, Any]:
+    """
+    Provide expected hello endpoint response schema.
+    
+    Returns:
+        Dict[str, Any]: Hello response schema definition
+    """
+    return {
+        "required_fields": ["message"],
+        "message_format": r"^Hello, .+!$|^Hello, World!$"
+    }
 
 
 @pytest.fixture(autouse=True)
-def setup_test_database(test_engine: Engine) -> Generator[None, None, None]:
+def reset_app_state():
     """
-    Set up and tear down test database for each test.
+    Reset application state before each test.
     
-    Args:
-        test_engine: SQLAlchemy engine for testing
-        
-    Yields:
-        None
+    This fixture runs automatically before each test to ensure
+    clean state and prevent test interference.
     """
-    # Create all tables
-    Base.metadata.create_all(bind=test_engine)
+    # Clear any cached data or state if needed
+    # For this simple app, no state reset is required
     yield
-    # Drop all tables after test
-    Base.metadata.drop_all(bind=test_engine)
+    # Cleanup after test if needed
 
 
-@pytest.fixture
-def db_session(test_session_factory: sessionmaker) -> Generator[Session, None, None]:
+@pytest.fixture(scope="function")
+def mock_exception() -> Generator[MagicMock, None, None]:
     """
-    Create database session for individual tests.
+    Mock for testing exception handling scenarios.
     
-    Args:
-        test_session_factory: Session factory for creating sessions
-        
     Yields:
-        Session: Database session for testing
+        MagicMock: Mock object that can be configured to raise exceptions
     """
-    session = test_session_factory()
-    try:
-        yield session
-    finally:
-        session.rollback()
-        session.close()
+    with patch('src.main.datetime') as mock_dt:
+        mock_dt.utcnow.side_effect = Exception("Simulated internal error")
+        yield mock_dt
 
 
-@pytest.fixture
-def client(db_session: Session) -> Generator[TestClient, None, None]:
+@pytest.fixture(scope="session")
+def test_config() -> Dict[str, Any]:
     """
-    Create FastAPI test client with database session override.
-    
-    Args:
-        db_session: Database session for testing
-        
-    Yields:
-        TestClient: FastAPI test client
-    """
-    from main import app
-    
-    def override_get_db():
-        try:
-            yield db_session
-        finally:
-            pass
-    
-    app.dependency_overrides[get_db_session] = override_get_db
-    
-    with TestClient(app) as test_client:
-        yield test_client
-    
-    # Clean up dependency overrides
-    app.dependency_overrides.clear()
-
-
-@pytest.fixture
-def sample_user_data() -> dict[str, str]:
-    """
-    Provide sample user data for testing.
+    Provide test configuration settings.
     
     Returns:
-        dict: Sample user data with valid fields
+        Dict[str, Any]: Test configuration parameters
     """
     return {
-        "username": "testuser",
-        "email": "test@example.com",
-        "full_name": "Test User",
-        "password": "securepassword123"
+        "timeout": 30,
+        "max_retries": 3,
+        "test_name_max_length": 100,
+        "expected_content_type": "application/json",
+        "cors_origins": ["*"],
+        "api_version": "1.0.0",
+        "api_title": "Hello World API"
     }
 
 
-@pytest.fixture
-def sample_task_data() -> dict[str, str]:
-    """
-    Provide sample task data for testing.
-    
-    Returns:
-        dict: Sample task data with valid fields
-    """
-    return {
-        "title": "Test Task",
-        "description": "This is a test task for unit testing",
-        "priority": "medium",
-        "status": "pending"
-    }
-
-
-@pytest.fixture
-def test_user(db_session: Session, sample_user_data: dict[str, str]) -> User:
-    """
-    Create a test user in the database.
-    
-    Args:
-        db_session: Database session for testing
-        sample_user_data: Sample user data
-        
-    Returns:
-        User: Created test user instance
-    """
-    user = User(
-        username=sample_user_data["username"],
-        email=sample_user_data["email"],
-        full_name=sample_user_data["full_name"],
-        hashed_password="$2b$12$hashed_password_placeholder"  # Mock hashed password
+# Pytest configuration
+def pytest_configure(config):
+    """Configure pytest with custom markers and settings."""
+    config.addinivalue_line(
+        "markers", "unit: mark test as a unit test"
     )
-    db_session.add(user)
-    db_session.commit()
-    db_session.refresh(user)
-    return user
-
-
-@pytest.fixture
-def test_task(db_session: Session, test_user: User, sample_task_data: dict[str, str]) -> Task:
-    """
-    Create a test task in the database.
-    
-    Args:
-        db_session: Database session for testing
-        test_user: Test user who owns the task
-        sample_task_data: Sample task data
-        
-    Returns:
-        Task: Created test task instance
-    """
-    task = Task(
-        title=sample_task_data["title"],
-        description=sample_task_data["description"],
-        priority=sample_task_data["priority"],
-        status=sample_task_data["status"],
-        user_id=test_user.id,
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc)
+    config.addinivalue_line(
+        "markers", "integration: mark test as an integration test"
     )
-    db_session.add(task)
-    db_session.commit()
-    db_session.refresh(task)
-    return task
+    config.addinivalue_line(
+        "markers", "error_handling: mark test as error handling test"
+    )
+    config.addinivalue_line(
+        "markers", "validation: mark test as input validation test"
+    )
 
 
-@pytest.fixture
-def multiple_users(db_session: Session) -> list[User]:
-    """
-    Create multiple test users for testing pagination and filtering.
-    
-    Args:
-        db_session: Database session for testing
-        
-    Returns:
-        list[User]: List of created test users
-    """
-    users = []
-    for i in range(5):
-        user = User(
-            username=f"user{i}",
-            email=f"user{i}@example.com",
-            full_name=f"User {i}",
-            hashed_password="$2b$12$hashed_password_placeholder"
-        )
-        db_session.add(user)
-        users.append(user)
-    
-    db_session.commit()
-    for user in users:
-        db_session.refresh(user)
-    
-    return users
-
-
-@pytest.fixture
-def multiple_tasks(db_session: Session, test_user: User) -> list[Task]:
-    """
-    Create multiple test tasks for testing pagination and filtering.
-    
-    Args:
-        db_session: Database session for testing
-        test_user: Test user who owns the tasks
-        
-    Returns:
-        list[Task]: List of created test tasks
-    """
+def pytest_collection_modifyitems(config, items):
+    """Modify test collection to add markers based on test names."""
+    for item in items:
+        # Add markers based on test function names
+        if "error" in item.name or "exception" in item.name:
+            item.add_marker(pytest.mark.error_handling)
+        if "validation" in item.name or "invalid" in item.name:
+            item.add_marker(pytest.mark.validation)
+        if "integration" in item.name or "endpoint" in item.name:
+            item.add_marker(pytest.mark.integration)
+        else:
+            item.add_marker(pytest.mark.unit)
