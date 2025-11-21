@@ -348,9 +348,9 @@ Returns a greeting message.
 
 **Response:**
 ```json
-{
+{{
   "message": "Hello, World!"
-}
+}}
 ```
 
 **Status Codes:**
@@ -362,10 +362,10 @@ Health check endpoint for monitoring.
 
 **Response:**
 ```json
-{
+{{
   "status": "healthy",
   "version": "1.0.0"
-}
+}}
 ```
 
 ## Testing
@@ -430,5 +430,25 @@ Before returning the file content, verify:
 3. **FOCUS ON THIS FILE:** Generate only the content for the specified file. Don't include other files or additional context.
 
 4. **FOLLOW STANDARDS:** Match the coding standards exactly (naming, formatting, style).
+
+# YOUR TASK
+
+Generate the complete content for the file with the following specifications:
+
+**File Path:** {file_path}
+**File Type:** {file_type}
+**Description:** {description}
+
+**File Metadata:**
+- Semantic Unit ID: {semantic_unit_id}
+- Component ID: {component_id}
+- Estimated Lines: {estimated_lines}
+- Dependencies: {dependencies}
+
+**Design Specification:**
+{design_specification}
+
+**Coding Standards:**
+{coding_standards}
 
 Now, generate the complete content for the specified file.
