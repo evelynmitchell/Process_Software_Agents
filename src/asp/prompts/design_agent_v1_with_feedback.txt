@@ -77,364 +77,122 @@ When analyzing feedback issues, look for:
 
 # OUTPUT FORMAT
 
-Return a complete JSON design specification with the same structure as your original design:
+Return a complete JSON design specification. IMPORTANT: Follow this EXACT schema structure:
 
 ```json
 {{
   "task_id": "TASK-XXX",
-  "architecture_overview": "High-level system architecture description",
+  "architecture_overview": "High-level system architecture description (at least 50 characters)",
   "technology_stack": {{
     "language": "Python 3.12",
     "framework": "FastAPI",
     "database": "PostgreSQL 16",
-    "libraries": ["bcrypt", "pydantic", "sqlalchemy"]
+    "cache": "Redis 7"
   }},
   "api_contracts": [
     {{
-      "endpoint_id": "API-001",
-      "semantic_unit_id": "SU-001",
+      "endpoint": "/api/v1/users",
       "method": "POST",
-      "path": "/api/users",
-      "description": "Create new user account",
-      "authentication_required": true,
+      "description": "Create new user account (at least 10 characters)",
+      "authentication_required": false,
       "request_schema": {{
-        "type": "object",
-        "properties": {{
-          "email": {{"type": "string", "format": "email", "maxLength": 255}},
-          "password": {{"type": "string", "minLength": 8}}
-        }},
-        "required": ["email", "password"]
+        "email": "string (email format, required)",
+        "password": "string (min 8 chars, required)"
       }},
       "response_schema": {{
-        "200": {{
-          "type": "object",
-          "properties": {{
-            "user_id": {{"type": "string", "format": "uuid"}},
-            "email": {{"type": "string"}}
-          }}
-        }}
+        "user_id": "string (UUID)",
+        "email": "string"
       }},
-      "error_responses": {{
-        "400": "Invalid input",
-        "409": "Email already exists"
-      }},
-      "implementation_notes": "Hash password with bcrypt cost 12 before storing"
+      "error_responses": [
+        {{"status": 400, "code": "INVALID_INPUT", "message": "Invalid email format"}},
+        {{"status": 409, "code": "USER_EXISTS", "message": "Email already registered"}}
+      ],
+      "rate_limit": "10 requests per minute per IP"
     }}
   ],
   "data_schemas": [
     {{
       "table_name": "users",
-      "description": "User account information",
+      "description": "User account information (at least 10 characters)",
       "columns": [
-        {{"name": "user_id", "type": "UUID PRIMARY KEY DEFAULT gen_random_uuid()"}},
-        {{"name": "email", "type": "VARCHAR(255) UNIQUE NOT NULL"}},
-        {{"name": "password_hash", "type": "VARCHAR(255) NOT NULL"}},
-        {{"name": "created_at", "type": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"}}
+        {{"name": "user_id", "type": "UUID", "constraints": "PRIMARY KEY"}},
+        {{"name": "email", "type": "VARCHAR(255)", "constraints": "NOT NULL UNIQUE"}},
+        {{"name": "password_hash", "type": "VARCHAR(255)", "constraints": "NOT NULL"}}
       ],
       "indexes": [
-        {{"name": "idx_users_email", "columns": ["email"], "unique": true}}
+        "CREATE INDEX idx_users_email ON users(email)"
       ],
-      "relationships": []
+      "relationships": [],
+      "constraints": []
     }}
   ],
-  "components": [
+  "component_logic": [
     {{
-      "component_id": "COMP-001",
+      "component_name": "UserService",
       "semantic_unit_id": "SU-001",
-      "name": "UserService",
-      "type": "Service",
-      "description": "Handles user account creation and management",
-      "responsibilities": ["User creation", "Password hashing", "Email validation"],
-      "dependencies": ["UserRepository", "PasswordHasher"],
-      "public_interface": [
+      "responsibility": "Handles user account creation and management (at least 10 characters)",
+      "interfaces": [
         {{
           "method": "create_user",
-          "parameters": [
-            {{"name": "email", "type": "str"}},
-            {{"name": "password", "type": "str"}}
-          ],
-          "returns": {{"type": "User"}},
-          "raises": ["ValidationError", "DuplicateEmailError"]
+          "parameters": {{"email": "str", "password": "str"}},
+          "returns": "User",
+          "description": "Create new user with hashed password"
         }}
       ],
-      "implementation_notes": "Use bcrypt with cost factor 12 for password hashing. Validate email format with regex before database insert."
+      "dependencies": ["UserRepository", "PasswordHasher"],
+      "implementation_notes": "Use bcrypt with cost factor 12 for password hashing. Validate email format with regex before database insert. (at least 20 characters)",
+      "complexity": 45
     }}
   ],
   "design_review_checklist": [
-    "All API endpoints have authentication specified",
-    "All passwords are hashed, never plaintext",
-    "All database queries use parameterized statements",
-    "All foreign key relationships are defined",
-    "All common queries have appropriate indexes"
+    {{
+      "category": "Security",
+      "description": "Verify all passwords are hashed (at least 10 characters)",
+      "validation_criteria": "DataSchema for users table must use password_hash not password (at least 10 characters)",
+      "severity": "Critical"
+    }},
+    {{
+      "category": "Architecture",
+      "description": "Verify component dependencies are correct",
+      "validation_criteria": "No circular dependencies between components",
+      "severity": "High"
+    }},
+    {{
+      "category": "Performance",
+      "description": "Verify database indexes exist for common queries",
+      "validation_criteria": "Index exists for email lookup",
+      "severity": "Medium"
+    }},
+    {{
+      "category": "Data Integrity",
+      "description": "Verify unique constraints on identifiers",
+      "validation_criteria": "Email column has UNIQUE constraint",
+      "severity": "High"
+    }},
+    {{
+      "category": "Error Handling",
+      "description": "Verify API error responses are complete",
+      "validation_criteria": "All endpoints have 400, 401, 500 error responses defined",
+      "severity": "Medium"
+    }}
   ],
   "assumptions": [
     "PostgreSQL 16 or higher is available",
-    "System will handle <1000 users initially"
+    "System will handle less than 1000 concurrent users initially"
   ]
 }}
 ```
 
-# EXAMPLE REVISION
+## CRITICAL SCHEMA RULES
 
-## Original Requirements
-"Build a simple user management API with registration and login"
-
-## Original Design (Excerpt - Has Issues)
-```json
-{{
-  "api_contracts": [
-    {{
-      "endpoint_id": "API-001",
-      "method": "POST",
-      "path": "/register",
-      "description": "Register new user",
-      "authentication_required": false,
-      "request_schema": {{
-        "type": "object",
-        "properties": {{
-          "email": {{"type": "string"}},
-          "password": {{"type": "string"}}
-        }}
-      }},
-      "response_schema": {{
-        "200": {{"type": "object", "properties": {{"user_id": {{"type": "string"}}}}}}
-      }}
-    }}
-  ],
-  "data_schemas": [
-    {{
-      "table_name": "users",
-      "columns": [
-        {{"name": "id", "type": "INT"}},
-        {{"name": "email", "type": "TEXT"}},
-        {{"name": "password", "type": "VARCHAR(255)"}}
-      ]
-    }}
-  ]
-}}
-```
-
-## Feedback from Design Review
-```
-ISSUE-001 (Design Phase, Critical): Passwords stored in plaintext
-Evidence: users.password column stores raw passwords, no password_hash column
-Impact: Severe security vulnerability. User credentials exposed in database breach.
-
-ISSUE-002 (Design Phase, High): Missing primary key constraint on users table
-Evidence: users.id column is INT but not defined as PRIMARY KEY
-Impact: Duplicate user records possible, referential integrity violations
-
-ISSUE-003 (Design Phase, High): Missing UNIQUE constraint on email
-Evidence: users.email allows duplicates
-Impact: Multiple accounts with same email, authentication ambiguity
-
-ISSUE-004 (Design Phase, Medium): Missing input validation in request schema
-Evidence: /register endpoint request_schema doesn't specify email format, password length
-Impact: Invalid data accepted (non-email strings, empty passwords)
-
-ISSUE-005 (Design Phase, Medium): Missing error responses
-Evidence: API-001 only specifies 200 response, no 400/409 error cases
-Impact: Client cannot handle validation or duplicate email errors properly
-```
-
-## Revised Design (Addressing All Feedback)
-```json
-{{
-  "task_id": "USER-MGMT",
-  "architecture_overview": "Simple REST API with FastAPI for user registration and authentication. PostgreSQL database with bcrypt password hashing.",
-  "technology_stack": {{
-    "language": "Python 3.12",
-    "framework": "FastAPI 0.104",
-    "database": "PostgreSQL 16",
-    "libraries": ["bcrypt 4.0", "pydantic 2.5", "sqlalchemy 2.0", "python-jose 3.3"]
-  }},
-  "api_contracts": [
-    {{
-      "endpoint_id": "API-001",
-      "semantic_unit_id": "SU-001",
-      "method": "POST",
-      "path": "/api/users/register",
-      "description": "Register new user account with email and password",
-      "authentication_required": false,
-      "request_schema": {{
-        "type": "object",
-        "properties": {{
-          "email": {{
-            "type": "string",
-            "format": "email",
-            "maxLength": 255,
-            "description": "Valid email address"
-          }},
-          "password": {{
-            "type": "string",
-            "minLength": 8,
-            "maxLength": 128,
-            "description": "Password (8-128 characters)"
-          }}
-        }},
-        "required": ["email", "password"]
-      }},
-      "response_schema": {{
-        "201": {{
-          "type": "object",
-          "properties": {{
-            "user_id": {{"type": "string", "format": "uuid"}},
-            "email": {{"type": "string", "format": "email"}},
-            "created_at": {{"type": "string", "format": "date-time"}}
-          }}
-        }}
-      }},
-      "error_responses": {{
-        "400": "Invalid email format or password too short",
-        "409": "Email already registered",
-        "422": "Validation error"
-      }},
-      "rate_limiting": "10 requests per minute per IP",
-      "implementation_notes": "ADDRESSES ISSUE-001: Hash password with bcrypt cost factor 12 before storing. NEVER store plaintext password. ADDRESSES ISSUE-004: Validate email format with pydantic EmailStr. ADDRESSES ISSUE-005: Return 409 for duplicate email, 400 for validation errors."
-    }}
-  ],
-  "data_schemas": [
-    {{
-      "table_name": "users",
-      "description": "User account information with secure password storage",
-      "columns": [
-        {{
-          "name": "user_id",
-          "type": "UUID PRIMARY KEY DEFAULT gen_random_uuid()",
-          "description": "ADDRESSES ISSUE-002: Primary key ensures unique user identification"
-        }},
-        {{
-          "name": "email",
-          "type": "VARCHAR(255) UNIQUE NOT NULL",
-          "description": "ADDRESSES ISSUE-003: UNIQUE constraint prevents duplicate emails"
-        }},
-        {{
-          "name": "password_hash",
-          "type": "VARCHAR(255) NOT NULL",
-          "description": "ADDRESSES ISSUE-001: Bcrypt hash of password, NEVER plaintext"
-        }},
-        {{
-          "name": "created_at",
-          "type": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
-        }},
-        {{
-          "name": "updated_at",
-          "type": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
-        }}
-      ],
-      "indexes": [
-        {{
-          "name": "idx_users_email",
-          "columns": ["email"],
-          "unique": true,
-          "description": "Fast lookup for email uniqueness check and authentication"
-        }}
-      ],
-      "constraints": [
-        "CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{{2,}}$')"
-      ],
-      "relationships": []
-    }}
-  ],
-  "components": [
-    {{
-      "component_id": "COMP-001",
-      "semantic_unit_id": "SU-001",
-      "name": "UserService",
-      "type": "Service",
-      "description": "Handles user registration with secure password hashing",
-      "responsibilities": [
-        "User registration",
-        "Password hashing (ADDRESSES ISSUE-001)",
-        "Email validation",
-        "Duplicate email detection"
-      ],
-      "dependencies": ["UserRepository", "PasswordHasher"],
-      "public_interface": [
-        {{
-          "method": "register_user",
-          "parameters": [
-            {{"name": "email", "type": "str", "validation": "EmailStr from pydantic"}},
-            {{"name": "password", "type": "str", "validation": "8-128 characters"}}
-          ],
-          "returns": {{"type": "User", "properties": ["user_id", "email", "created_at"]}},
-          "raises": ["ValidationError", "DuplicateEmailError"]
-        }}
-      ],
-      "implementation_notes": "ADDRESSES ISSUE-001: Use bcrypt.hashpw() with cost factor 12 (bcrypt.gensalt(rounds=12)). NEVER store plaintext password. ADDRESSES ISSUE-004: Validate email with pydantic EmailStr before hashing. Check email uniqueness before insert to return proper 409 error."
-    }},
-    {{
-      "component_id": "COMP-002",
-      "semantic_unit_id": "SU-001",
-      "name": "PasswordHasher",
-      "type": "Utility",
-      "description": "Secure password hashing utility using bcrypt",
-      "responsibilities": ["Password hashing", "Password verification"],
-      "dependencies": ["bcrypt"],
-      "public_interface": [
-        {{
-          "method": "hash_password",
-          "parameters": [{{"name": "password", "type": "str"}}],
-          "returns": {{"type": "str", "description": "Bcrypt hash"}},
-          "raises": []
-        }},
-        {{
-          "method": "verify_password",
-          "parameters": [
-            {{"name": "password", "type": "str"}},
-            {{"name": "password_hash", "type": "str"}}
-          ],
-          "returns": {{"type": "bool"}},
-          "raises": []
-        }}
-      ],
-      "implementation_notes": "ADDRESSES ISSUE-001 (CRITICAL FIX): Use bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(rounds=12)). Cost factor 12 provides strong security with acceptable performance (~200ms per hash)."
-    }}
-  ],
-  "design_review_checklist": [
-    "ISSUE-001 RESOLVED: All passwords are hashed with bcrypt, never stored in plaintext",
-    "ISSUE-002 RESOLVED: users table has PRIMARY KEY constraint",
-    "ISSUE-003 RESOLVED: users.email has UNIQUE constraint",
-    "ISSUE-004 RESOLVED: Request schema includes email format and password length validation",
-    "ISSUE-005 RESOLVED: Error responses include 400, 409, 422 cases",
-    "All database queries use parameterized statements (SQLAlchemy ORM)",
-    "Email validation uses pydantic EmailStr",
-    "Rate limiting specified for registration endpoint"
-  ],
-  "assumptions": [
-    "PostgreSQL 16 with gen_random_uuid() available",
-    "bcrypt library version 4.0+",
-    "System will handle <10,000 users initially",
-    "Registration endpoint public (no authentication), all other endpoints require JWT"
-  ]
-}}
-```
-
-## Changes Made to Address Feedback
-
-**ISSUE-001 (Critical - Plaintext Passwords):**
-- Changed `password` column to `password_hash`
-- Added PasswordHasher component with bcrypt cost factor 12
-- Updated UserService implementation notes to specify hashing before storage
-- Added to design review checklist
-
-**ISSUE-002 (High - Missing Primary Key):**
-- Changed users.id to users.user_id with UUID PRIMARY KEY constraint
-- Added DEFAULT gen_random_uuid() for auto-generation
-
-**ISSUE-003 (High - Missing UNIQUE on Email):**
-- Added UNIQUE constraint to users.email column
-- Added unique index idx_users_email for performance
-- Updated UserService to check uniqueness before insert
-
-**ISSUE-004 (Medium - Missing Input Validation):**
-- Added email format validation (format: "email", maxLength: 255)
-- Added password length validation (minLength: 8, maxLength: 128)
-- Specified pydantic EmailStr in implementation notes
-
-**ISSUE-005 (Medium - Missing Error Responses):**
-- Added 400 (validation), 409 (duplicate), 422 (validation) error responses
-- Updated implementation notes to specify when to return each error code
+1. **api_contracts[].endpoint**: Use "endpoint" NOT "path"
+2. **api_contracts[].error_responses**: Must be a LIST of objects, NOT a dictionary
+3. **component_logic**: REQUIRED field - must have at least one component
+4. **component_logic[].semantic_unit_id**: Must match pattern "SU-XXX" (e.g., "SU-001")
+5. **design_review_checklist**: Must be LIST of OBJECTS with category, description, validation_criteria, severity
+6. **design_review_checklist**: Must have at least 5 items, with at least one Critical or High severity
+7. **technology_stack**: Simple key-value string pairs only (no nested objects)
+8. **severity values**: Must be exactly "Critical", "High", "Medium", or "Low"
 
 ---
 
@@ -459,5 +217,6 @@ Impact: Client cannot handle validation or duplicate email errors properly
 4. Preserve valid parts of the original design
 5. Maintain traceability to semantic units
 6. Include clear notes showing how feedback was addressed (use "ADDRESSES ISSUE-XXX" in implementation_notes)
+7. Follow the EXACT schema structure shown above
 
-Begin revised design specification:
+Begin revised design specification (return ONLY valid JSON matching the schema above):
