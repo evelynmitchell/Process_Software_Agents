@@ -1,12 +1,12 @@
 """
 Initial database schema migration for Hello World API
 
-Creates the foundational database tables, indexes, and constraints.
-This is a placeholder migration as the Hello World API doesn't require a database.
+Creates the foundational database tables for user management and task tracking
+with proper indexes, constraints, and relationships.
 
 Revision ID: 001
 Revises: 
-Create Date: 2025-11-21 17:46:28.707525
+Create Date: 2024-01-01 00:00:00.000000
 
 Component ID: COMP-011
 Semantic Unit: SU-011
@@ -17,7 +17,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = '001'
@@ -28,37 +28,36 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """
-    Upgrade database schema to revision 001.
+    Create initial database schema with users and tasks tables.
     
-    Creates initial database tables for the Hello World API.
-    Note: The Hello World API doesn't actually require database tables,
-    but this migration serves as a template for future schema changes.
+    Creates:
+    - users table with authentication and profile fields
+    - tasks table with task management fields
+    - Indexes for performance optimization
+    - Foreign key constraints for data integrity
     """
-    # Create users table for potential future authentication
+    # Create users table
     op.create_table(
         'users',
         sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('email', sa.String(length=255), nullable=False),
         sa.Column('username', sa.String(length=50), nullable=False),
-        sa.Column('email', sa.String(length=100), nullable=False),
         sa.Column('password_hash', sa.String(length=255), nullable=False),
+        sa.Column('first_name', sa.String(length=100), nullable=True),
+        sa.Column('last_name', sa.String(length=100), nullable=True),
         sa.Column('is_active', sa.Boolean(), nullable=False, default=True),
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('CURRENT_TIMESTAMP')),
-        sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.text('CURRENT_TIMESTAMP')),
+        sa.Column('is_verified', sa.Boolean(), nullable=False, default=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, 
+                 server_default=sa.text('CURRENT_TIMESTAMP')),
+        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False,
+                 server_default=sa.text('CURRENT_TIMESTAMP')),
+        sa.Column('last_login_at', sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('username'),
-        sa.UniqueConstraint('email')
+        sa.UniqueConstraint('email'),
+        sa.UniqueConstraint('username')
     )
     
-    # Create index on username for faster lookups
-    op.create_index('idx_users_username', 'users', ['username'])
-    
-    # Create index on email for faster lookups
-    op.create_index('idx_users_email', 'users', ['email'])
-    
-    # Create index on created_at for chronological queries
-    op.create_index('idx_users_created_at', 'users', ['created_at'])
-    
-    # Create tasks table for potential future task management
+    # Create tasks table
     op.create_table(
         'tasks',
         sa.Column('id', sa.Integer(), nullable=False),
@@ -67,57 +66,88 @@ def upgrade() -> None:
         sa.Column('description', sa.Text(), nullable=True),
         sa.Column('status', sa.String(length=20), nullable=False, default='pending'),
         sa.Column('priority', sa.String(length=10), nullable=False, default='medium'),
-        sa.Column('due_date', sa.DateTime(), nullable=True),
-        sa.Column('completed_at', sa.DateTime(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('CURRENT_TIMESTAMP')),
-        sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.text('CURRENT_TIMESTAMP')),
+        sa.Column('due_date', sa.DateTime(timezone=True), nullable=True),
+        sa.Column('completed_at', sa.DateTime(timezone=True), nullable=True),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False,
+                 server_default=sa.text('CURRENT_TIMESTAMP')),
+        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False,
+                 server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
-        sa.CheckConstraint("status IN ('pending', 'in_progress', 'completed', 'cancelled')", name='check_task_status'),
-        sa.CheckConstraint("priority IN ('low', 'medium', 'high', 'urgent')", name='check_task_priority')
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE')
     )
     
-    # Create index on user_id for faster user task lookups
+    # Create indexes for performance optimization
+    
+    # Users table indexes
+    op.create_index('idx_users_email', 'users', ['email'])
+    op.create_index('idx_users_username', 'users', ['username'])
+    op.create_index('idx_users_is_active', 'users', ['is_active'])
+    op.create_index('idx_users_created_at', 'users', ['created_at'])
+    
+    # Tasks table indexes
     op.create_index('idx_tasks_user_id', 'tasks', ['user_id'])
-    
-    # Create index on status for filtering tasks by status
     op.create_index('idx_tasks_status', 'tasks', ['status'])
-    
-    # Create index on priority for filtering tasks by priority
     op.create_index('idx_tasks_priority', 'tasks', ['priority'])
-    
-    # Create index on due_date for chronological queries
     op.create_index('idx_tasks_due_date', 'tasks', ['due_date'])
-    
-    # Create composite index on user_id and status for common queries
+    op.create_index('idx_tasks_created_at', 'tasks', ['created_at'])
     op.create_index('idx_tasks_user_status', 'tasks', ['user_id', 'status'])
+    op.create_index('idx_tasks_user_priority', 'tasks', ['user_id', 'priority'])
     
-    # Create composite index on user_id and created_at for user task history
-    op.create_index('idx_tasks_user_created', 'tasks', ['user_id', 'created_at'])
+    # Add check constraints for data validation
+    op.create_check_constraint(
+        'ck_users_email_format',
+        'users',
+        sa.text("email ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'")
+    )
+    
+    op.create_check_constraint(
+        'ck_users_username_length',
+        'users',
+        sa.text("length(username) >= 3")
+    )
+    
+    op.create_check_constraint(
+        'ck_tasks_status_valid',
+        'tasks',
+        sa.text("status IN ('pending', 'in_progress', 'completed', 'cancelled')")
+    )
+    
+    op.create_check_constraint(
+        'ck_tasks_priority_valid',
+        'tasks',
+        sa.text("priority IN ('low', 'medium', 'high', 'urgent')")
+    )
+    
+    op.create_check_constraint(
+        'ck_tasks_title_length',
+        'tasks',
+        sa.text("length(trim(title)) > 0")
+    )
 
 
 def downgrade() -> None:
     """
-    Downgrade database schema from revision 001.
+    Drop all tables and indexes created in upgrade.
     
-    Drops all tables and indexes created in the upgrade function.
-    This will permanently delete all data in these tables.
+    Removes:
+    - All indexes
+    - tasks table (with foreign key constraints)
+    - users table
     """
-    # Drop indexes first (foreign key indexes are dropped automatically)
-    op.drop_index('idx_tasks_user_created', table_name='tasks')
+    # Drop indexes first
+    op.drop_index('idx_tasks_user_priority', table_name='tasks')
     op.drop_index('idx_tasks_user_status', table_name='tasks')
+    op.drop_index('idx_tasks_created_at', table_name='tasks')
     op.drop_index('idx_tasks_due_date', table_name='tasks')
     op.drop_index('idx_tasks_priority', table_name='tasks')
     op.drop_index('idx_tasks_status', table_name='tasks')
     op.drop_index('idx_tasks_user_id', table_name='tasks')
     
-    # Drop tasks table (foreign key constraints are dropped automatically)
-    op.drop_table('tasks')
-    
-    # Drop user indexes
     op.drop_index('idx_users_created_at', table_name='users')
-    op.drop_index('idx_users_email', table_name='users')
+    op.drop_index('idx_users_is_active', table_name='users')
     op.drop_index('idx_users_username', table_name='users')
+    op.drop_index('idx_users_email', table_name='users')
     
-    # Drop users table
+    # Drop tables (tasks first due to foreign key dependency)
+    op.drop_table('tasks')
     op.drop_table('users')

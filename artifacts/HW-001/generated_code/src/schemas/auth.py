@@ -2,7 +2,7 @@
 Pydantic schemas for authentication request/response validation.
 
 This module defines data validation schemas for authentication endpoints including
-login, registration, token management, and user profile operations.
+login, registration, and token models using Pydantic for request/response validation.
 
 Component ID: COMP-006
 Semantic Unit: SU-006
@@ -17,32 +17,55 @@ import re
 
 
 class UserRegistrationRequest(BaseModel):
-    """Schema for user registration request validation."""
+    """
+    Schema for user registration request validation.
     
+    Validates email format, password strength, and username requirements.
+    """
+    username: str = Field(
+        ...,
+        min_length=3,
+        max_length=50,
+        description="Username must be 3-50 characters, alphanumeric and underscores only"
+    )
     email: EmailStr = Field(
         ...,
-        description="User email address",
-        example="user@example.com"
+        description="Valid email address"
     )
     password: str = Field(
         ...,
         min_length=8,
         max_length=128,
-        description="User password (8-128 characters)",
-        example="SecurePassword123!"
+        description="Password must be 8-128 characters with at least one uppercase, lowercase, digit, and special character"
     )
-    full_name: str = Field(
-        ...,
-        min_length=1,
+    full_name: Optional[str] = Field(
+        None,
         max_length=100,
-        description="User full name",
-        example="John Doe"
+        description="Full name, maximum 100 characters"
     )
-    
+
+    @validator('username')
+    def validate_username(cls, v: str) -> str:
+        """
+        Validate username contains only alphanumeric characters and underscores.
+        
+        Args:
+            v: Username string to validate
+            
+        Returns:
+            str: Validated username
+            
+        Raises:
+            ValueError: If username contains invalid characters
+        """
+        if not re.match(r'^[a-zA-Z0-9_]+$', v):
+            raise ValueError('Username must contain only alphanumeric characters and underscores')
+        return v.lower()
+
     @validator('password')
     def validate_password_strength(cls, v: str) -> str:
         """
-        Validate password meets security requirements.
+        Validate password meets strength requirements.
         
         Args:
             v: Password string to validate
@@ -51,7 +74,7 @@ class UserRegistrationRequest(BaseModel):
             str: Validated password
             
         Raises:
-            ValueError: If password doesn't meet requirements
+            ValueError: If password doesn't meet strength requirements
         """
         if not re.search(r'[A-Z]', v):
             raise ValueError('Password must contain at least one uppercase letter')
@@ -62,209 +85,193 @@ class UserRegistrationRequest(BaseModel):
         if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
             raise ValueError('Password must contain at least one special character')
         return v
-    
+
     @validator('full_name')
-    def validate_full_name(cls, v: str) -> str:
+    def validate_full_name(cls, v: Optional[str]) -> Optional[str]:
         """
-        Validate full name contains only allowed characters.
+        Validate full name contains only letters, spaces, hyphens, and apostrophes.
         
         Args:
             v: Full name string to validate
             
         Returns:
-            str: Validated and cleaned full name
+            Optional[str]: Validated full name or None
             
         Raises:
-            ValueError: If name contains invalid characters
+            ValueError: If full name contains invalid characters
         """
-        # Allow letters, spaces, hyphens, and apostrophes
-        if not re.match(r"^[a-zA-Z\s\-']+$", v.strip()):
-            raise ValueError('Full name can only contain letters, spaces, hyphens, and apostrophes')
-        return v.strip()
+        if v is not None:
+            if not re.match(r"^[a-zA-Z\s\-']+$", v.strip()):
+                raise ValueError('Full name must contain only letters, spaces, hyphens, and apostrophes')
+            return v.strip()
+        return v
 
 
 class UserLoginRequest(BaseModel):
-    """Schema for user login request validation."""
+    """
+    Schema for user login request validation.
     
-    email: EmailStr = Field(
+    Validates login credentials using either username or email.
+    """
+    username_or_email: str = Field(
         ...,
-        description="User email address",
-        example="user@example.com"
+        min_length=3,
+        max_length=255,
+        description="Username or email address"
     )
     password: str = Field(
         ...,
         min_length=1,
         max_length=128,
-        description="User password",
-        example="SecurePassword123!"
+        description="User password"
     )
+
+    @validator('username_or_email')
+    def validate_username_or_email(cls, v: str) -> str:
+        """
+        Validate username or email format.
+        
+        Args:
+            v: Username or email string to validate
+            
+        Returns:
+            str: Validated username or email
+            
+        Raises:
+            ValueError: If format is invalid
+        """
+        v = v.strip().lower()
+        
+        # Check if it's an email format
+        if '@' in v:
+            email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+            if not re.match(email_pattern, v):
+                raise ValueError('Invalid email format')
+        else:
+            # Validate as username
+            if not re.match(r'^[a-zA-Z0-9_]+$', v):
+                raise ValueError('Username must contain only alphanumeric characters and underscores')
+        
+        return v
 
 
 class TokenResponse(BaseModel):
-    """Schema for authentication token response."""
+    """
+    Schema for authentication token response.
     
+    Contains access token, token type, expiration, and optional refresh token.
+    """
     access_token: str = Field(
         ...,
-        description="JWT access token",
-        example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-    )
-    refresh_token: str = Field(
-        ...,
-        description="JWT refresh token",
-        example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        description="JWT access token"
     )
     token_type: str = Field(
         default="bearer",
-        description="Token type",
-        example="bearer"
+        description="Token type, typically 'bearer'"
     )
     expires_in: int = Field(
         ...,
-        description="Access token expiration time in seconds",
-        example=3600
+        description="Token expiration time in seconds"
+    )
+    refresh_token: Optional[str] = Field(
+        None,
+        description="JWT refresh token for obtaining new access tokens"
+    )
+    scope: Optional[str] = Field(
+        None,
+        description="Token scope permissions"
     )
 
 
 class TokenRefreshRequest(BaseModel):
-    """Schema for token refresh request validation."""
+    """
+    Schema for token refresh request validation.
     
+    Validates refresh token format for obtaining new access tokens.
+    """
     refresh_token: str = Field(
         ...,
-        description="Valid refresh token",
-        example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        min_length=10,
+        description="Valid refresh token"
     )
 
 
-class UserProfile(BaseModel):
-    """Schema for user profile information."""
+class UserResponse(BaseModel):
+    """
+    Schema for user information response.
     
+    Contains safe user data without sensitive information like passwords.
+    """
     id: int = Field(
         ...,
-        description="User unique identifier",
-        example=1
+        description="Unique user identifier"
     )
-    email: EmailStr = Field(
+    username: str = Field(
         ...,
-        description="User email address",
-        example="user@example.com"
+        description="Username"
     )
-    full_name: str = Field(
+    email: str = Field(
         ...,
-        description="User full name",
-        example="John Doe"
+        description="Email address"
+    )
+    full_name: Optional[str] = Field(
+        None,
+        description="Full name"
     )
     is_active: bool = Field(
         default=True,
-        description="Whether user account is active",
-        example=True
+        description="Whether the user account is active"
+    )
+    is_verified: bool = Field(
+        default=False,
+        description="Whether the user email is verified"
     )
     created_at: datetime = Field(
         ...,
-        description="Account creation timestamp",
-        example="2023-01-01T00:00:00Z"
+        description="Account creation timestamp"
     )
     last_login: Optional[datetime] = Field(
         None,
-        description="Last login timestamp",
-        example="2023-01-01T12:00:00Z"
+        description="Last login timestamp"
     )
 
-
-class UserRegistrationResponse(BaseModel):
-    """Schema for user registration response."""
-    
-    user: UserProfile = Field(
-        ...,
-        description="Created user profile information"
-    )
-    tokens: TokenResponse = Field(
-        ...,
-        description="Authentication tokens for the new user"
-    )
+    class Config:
+        """Pydantic configuration for UserResponse."""
+        from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat() + 'Z' if v else None
+        }
 
 
 class PasswordChangeRequest(BaseModel):
-    """Schema for password change request validation."""
+    """
+    Schema for password change request validation.
     
+    Validates current password and new password requirements.
+    """
     current_password: str = Field(
         ...,
         min_length=1,
         max_length=128,
-        description="Current user password",
-        example="OldPassword123!"
+        description="Current password for verification"
     )
     new_password: str = Field(
         ...,
         min_length=8,
         max_length=128,
-        description="New password (8-128 characters)",
-        example="NewSecurePassword123!"
+        description="New password meeting strength requirements"
     )
-    
+
     @validator('new_password')
     def validate_new_password_strength(cls, v: str) -> str:
         """
-        Validate new password meets security requirements.
+        Validate new password meets strength requirements.
         
         Args:
             v: New password string to validate
             
         Returns:
-            str: Validated password
+            str: Validated new password
             
         Raises:
-            ValueError: If password doesn't meet requirements
-        """
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('New password must contain at least one uppercase letter')
-        if not re.search(r'[a-z]', v):
-            raise ValueError('New password must contain at least one lowercase letter')
-        if not re.search(r'\d', v):
-            raise ValueError('New password must contain at least one digit')
-        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
-            raise ValueError('New password must contain at least one special character')
-        return v
-
-
-class PasswordResetRequest(BaseModel):
-    """Schema for password reset request validation."""
-    
-    email: EmailStr = Field(
-        ...,
-        description="Email address for password reset",
-        example="user@example.com"
-    )
-
-
-class PasswordResetConfirm(BaseModel):
-    """Schema for password reset confirmation validation."""
-    
-    token: str = Field(
-        ...,
-        min_length=1,
-        description="Password reset token",
-        example="abc123def456"
-    )
-    new_password: str = Field(
-        ...,
-        min_length=8,
-        max_length=128,
-        description="New password (8-128 characters)",
-        example="NewSecurePassword123!"
-    )
-    
-    @validator('new_password')
-    def validate_reset_password_strength(cls, v: str) -> str:
-        """
-        Validate reset password meets security requirements.
-        
-        Args:
-            v: Reset password string to validate
-            
-        Returns:
-            str: Validated password
-            
-        Raises:
-            ValueError: If password doesn't meet requirements
-        """
-        if not re.search(r'[A-Z]',
+            ValueError: If password doesn't

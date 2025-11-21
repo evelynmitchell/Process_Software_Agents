@@ -26,8 +26,7 @@ from src.schemas.task import (
     TaskResponse,
     TaskUpdate,
     TaskListResponse,
-    TaskStatus,
-    TaskPriority
+    TaskStatus
 )
 from src.utils.jwt_utils import decode_jwt_token, get_current_user
 from src.database import get_db
@@ -40,198 +39,211 @@ router = APIRouter(prefix="/api/v1/tasks", tags=["tasks"])
 security = HTTPBearer()
 
 
-def validate_task_ownership(task: Task, current_user: User) -> None:
-    """
-    Validate that the current user owns the specified task.
+class TaskService:
+    """Service class for task-related business logic."""
     
-    Args:
-        task: Task instance to validate ownership for
-        current_user: Currently authenticated user
+    def __init__(self, db: Session):
+        """
+        Initialize TaskService with database session.
         
-    Raises:
-        HTTPException: If user doesn't own the task (403 Forbidden)
-    """
-    if task.user_id != current_user.id:
-        logger.warning(
-            f"User {current_user.id} attempted to access task {task.id} "
-            f"owned by user {task.user_id}"
-        )
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to access this task"
-        )
-
-
-def validate_task_data(task_data: TaskCreate) -> None:
-    """
-    Validate task creation data for business rules.
+        Args:
+            db: SQLAlchemy database session
+        """
+        self.db = db
     
-    Args:
-        task_data: Task creation data to validate
+    def create_task(self, task_data: TaskCreate, user_id: UUID) -> Task:
+        """
+        Create a new task for the authenticated user.
         
-    Raises:
-        HTTPException: If validation fails (400 Bad Request)
-    """
-    if not task_data.title or not task_data.title.strip():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Task title cannot be empty"
-        )
+        Args:
+            task_data: Task creation data
+            user_id: ID of the user creating the task
+            
+        Returns:
+            Task: Created task instance
+            
+        Raises:
+            HTTPException: If task creation fails
+        """
+        try:
+            task = Task(
+                title=task_data.title,
+                description=task_data.description,
+                status=task_data.status or TaskStatus.PENDING,
+                priority=task_data.priority,
+                due_date=task_data.due_date,
+                user_id=user_id,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            
+            self.db.add(task)
+            self.db.commit()
+            self.db.refresh(task)
+            
+            logger.info(f"Task created successfully: {task.id} for user: {user_id}")
+            return task
+            
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Failed to create task for user {user_id}: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create task"
+            )
     
-    if len(task_data.title.strip()) > 200:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Task title cannot exceed 200 characters"
-        )
+    def get_task_by_id(self, task_id: UUID, user_id: UUID) -> Task:
+        """
+        Retrieve a task by ID for the authenticated user.
+        
+        Args:
+            task_id: ID of the task to retrieve
+            user_id: ID of the authenticated user
+            
+        Returns:
+            Task: Retrieved task instance
+            
+        Raises:
+            HTTPException: If task not found or access denied
+        """
+        task = self.db.query(Task).filter(
+            Task.id == task_id,
+            Task.user_id == user_id,
+            Task.deleted_at.is_(None)
+        ).first()
+        
+        if not task:
+            logger.warning(f"Task not found or access denied: {task_id} for user: {user_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Task not found"
+            )
+        
+        return task
     
-    if task_data.description and len(task_data.description) > 2000:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Task description cannot exceed 2000 characters"
+    def get_user_tasks(
+        self,
+        user_id: UUID,
+        status_filter: Optional[TaskStatus] = None,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[Task]:
+        """
+        Retrieve tasks for the authenticated user with optional filtering.
+        
+        Args:
+            user_id: ID of the authenticated user
+            status_filter: Optional status filter
+            skip: Number of records to skip for pagination
+            limit: Maximum number of records to return
+            
+        Returns:
+            List[Task]: List of user's tasks
+        """
+        query = self.db.query(Task).filter(
+            Task.user_id == user_id,
+            Task.deleted_at.is_(None)
         )
+        
+        if status_filter:
+            query = query.filter(Task.status == status_filter)
+        
+        tasks = query.order_by(Task.created_at.desc()).offset(skip).limit(limit).all()
+        
+        logger.info(f"Retrieved {len(tasks)} tasks for user: {user_id}")
+        return tasks
     
-    if task_data.due_date and task_data.due_date < datetime.utcnow():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Due date cannot be in the past"
-        )
+    def update_task(self, task_id: UUID, task_data: TaskUpdate, user_id: UUID) -> Task:
+        """
+        Update an existing task for the authenticated user.
+        
+        Args:
+            task_id: ID of the task to update
+            task_data: Task update data
+            user_id: ID of the authenticated user
+            
+        Returns:
+            Task: Updated task instance
+            
+        Raises:
+            HTTPException: If task not found or update fails
+        """
+        task = self.get_task_by_id(task_id, user_id)
+        
+        try:
+            # Update only provided fields
+            update_data = task_data.dict(exclude_unset=True)
+            for field, value in update_data.items():
+                setattr(task, field, value)
+            
+            task.updated_at = datetime.utcnow()
+            
+            self.db.commit()
+            self.db.refresh(task)
+            
+            logger.info(f"Task updated successfully: {task_id} for user: {user_id}")
+            return task
+            
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Failed to update task {task_id} for user {user_id}: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update task"
+            )
+    
+    def delete_task(self, task_id: UUID, user_id: UUID) -> None:
+        """
+        Soft delete a task for the authenticated user.
+        
+        Args:
+            task_id: ID of the task to delete
+            user_id: ID of the authenticated user
+            
+        Raises:
+            HTTPException: If task not found or deletion fails
+        """
+        task = self.get_task_by_id(task_id, user_id)
+        
+        try:
+            task.deleted_at = datetime.utcnow()
+            task.updated_at = datetime.utcnow()
+            
+            self.db.commit()
+            
+            logger.info(f"Task deleted successfully: {task_id} for user: {user_id}")
+            
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Failed to delete task {task_id} for user {user_id}: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete task"
+            )
 
 
-def sanitize_task_input(task_data: TaskCreate) -> TaskCreate:
+def get_task_service(db: Session = Depends(get_db)) -> TaskService:
     """
-    Sanitize and clean task input data.
+    Dependency to get TaskService instance.
     
     Args:
-        task_data: Raw task creation data
+        db: Database session dependency
         
     Returns:
-        TaskCreate: Sanitized task data
+        TaskService: Task service instance
     """
-    # Strip whitespace from title and description
-    title = task_data.title.strip() if task_data.title else ""
-    description = task_data.description.strip() if task_data.description else None
-    
-    return TaskCreate(
-        title=title,
-        description=description,
-        status=task_data.status or TaskStatus.TODO,
-        priority=task_data.priority or TaskPriority.MEDIUM,
-        due_date=task_data.due_date,
-        tags=task_data.tags or []
-    )
-
-
-def build_task_filters(
-    status: Optional[TaskStatus] = None,
-    priority: Optional[TaskPriority] = None,
-    tag: Optional[str] = None,
-    due_before: Optional[datetime] = None,
-    due_after: Optional[datetime] = None
-) -> dict:
-    """
-    Build filter dictionary for task queries.
-    
-    Args:
-        status: Filter by task status
-        priority: Filter by task priority
-        tag: Filter by tag (partial match)
-        due_before: Filter tasks due before this date
-        due_after: Filter tasks due after this date
-        
-    Returns:
-        dict: Filter conditions for database query
-    """
-    filters = {}
-    
-    if status:
-        filters['status'] = status
-    if priority:
-        filters['priority'] = priority
-    if tag:
-        filters['tag'] = tag
-    if due_before:
-        filters['due_before'] = due_before
-    if due_after:
-        filters['due_after'] = due_after
-        
-    return filters
+    return TaskService(db)
 
 
 @router.post("/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
-def create_task(
+async def create_task(
     task_data: TaskCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    task_service: TaskService = Depends(get_task_service)
 ) -> TaskResponse:
     """
     Create a new task for the authenticated user.
     
     Args:
         task_data: Task creation data
-        db: Database session
-        current_user: Currently authenticated user
-        
-    Returns:
-        TaskResponse: Created task data
-        
-    Raises:
-        HTTPException: If validation fails or creation error occurs
-    """
-    try:
-        # Validate and sanitize input
-        validate_task_data(task_data)
-        sanitized_data = sanitize_task_input(task_data)
-        
-        # Create new task
-        new_task = Task(
-            title=sanitized_data.title,
-            description=sanitized_data.description,
-            status=sanitized_data.status,
-            priority=sanitized_data.priority,
-            due_date=sanitized_data.due_date,
-            tags=sanitized_data.tags,
-            user_id=current_user.id,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
-        )
-        
-        db.add(new_task)
-        db.commit()
-        db.refresh(new_task)
-        
-        logger.info(f"Task {new_task.id} created by user {current_user.id}")
-        
-        return TaskResponse.from_orm(new_task)
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error creating task for user {current_user.id}: {str(e)}")
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create task"
-        )
-
-
-@router.get("/", response_model=TaskListResponse)
-def get_tasks(
-    skip: int = Query(0, ge=0, description="Number of tasks to skip"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum number of tasks to return"),
-    status_filter: Optional[TaskStatus] = Query(None, alias="status"),
-    priority_filter: Optional[TaskPriority] = Query(None, alias="priority"),
-    tag_filter: Optional[str] = Query(None, alias="tag", max_length=50),
-    due_before: Optional[datetime] = Query(None),
-    due_after: Optional[datetime] = Query(None),
-    search: Optional[str] = Query(None, max_length=200, description="Search in title and description"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-) -> TaskListResponse:
-    """
-    Retrieve tasks for the authenticated user with filtering and pagination.
-    
-    Args:
-        skip: Number of tasks to skip for pagination
-        limit: Maximum number of tasks to return
-        status_filter: Filter by task status
-        priority_filter:
+        current_

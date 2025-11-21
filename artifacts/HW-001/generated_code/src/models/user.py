@@ -84,12 +84,12 @@ class User(Base):
         Initialize a new User instance.
         
         Args:
-            username: Unique username for the user
-            email: User's email address
+            username: Unique username (3-50 chars, alphanumeric and underscores)
+            email: Valid email address
             password: Plain text password (will be hashed)
-            first_name: User's first name
-            last_name: User's last name
-            bio: Optional biography text
+            first_name: User's first name (1-100 chars)
+            last_name: User's last name (1-100 chars)
+            bio: Optional biography (max 1000 chars)
             
         Raises:
             ValueError: If any validation fails
@@ -104,128 +104,136 @@ class User(Base):
         self.is_verified = False
     
     def __repr__(self) -> str:
-        """Return string representation of User."""
+        """String representation of User instance."""
         return f"<User(id={self.id}, username='{self.username}', email='{self.email}')>"
     
     def __str__(self) -> str:
-        """Return human-readable string representation of User."""
+        """Human-readable string representation."""
         return f"{self.first_name} {self.last_name} ({self.username})"
-    
-    def set_password(self, password: str) -> None:
-        """
-        Set the user's password by hashing it.
-        
-        Args:
-            password: Plain text password to hash and store
-            
-        Raises:
-            ValueError: If password doesn't meet requirements
-        """
-        validated_password = self._validate_password(password)
-        self.password_hash = generate_password_hash(validated_password)
-    
-    def check_password(self, password: str) -> bool:
-        """
-        Check if provided password matches the stored hash.
-        
-        Args:
-            password: Plain text password to verify
-            
-        Returns:
-            bool: True if password matches, False otherwise
-        """
-        if not password or not self.password_hash:
-            return False
-        return check_password_hash(self.password_hash, password)
-    
-    def update_last_login(self) -> None:
-        """Update the last_login timestamp to current time."""
-        self.last_login = datetime.utcnow()
-    
-    def get_full_name(self) -> str:
-        """
-        Get the user's full name.
-        
-        Returns:
-            str: First name and last name combined
-        """
-        return f"{self.first_name} {self.last_name}"
-    
-    def activate(self) -> None:
-        """Activate the user account."""
-        self.is_active = True
-    
-    def deactivate(self) -> None:
-        """Deactivate the user account."""
-        self.is_active = False
-    
-    def verify_email(self) -> None:
-        """Mark the user's email as verified."""
-        self.is_verified = True
-    
-    def update_profile(
-        self,
-        first_name: Optional[str] = None,
-        last_name: Optional[str] = None,
-        bio: Optional[str] = None
-    ) -> None:
-        """
-        Update user profile information.
-        
-        Args:
-            first_name: New first name (optional)
-            last_name: New last name (optional)
-            bio: New biography (optional)
-            
-        Raises:
-            ValueError: If any validation fails
-        """
-        if first_name is not None:
-            self.first_name = self._validate_name(first_name, "first_name")
-        
-        if last_name is not None:
-            self.last_name = self._validate_name(last_name, "last_name")
-        
-        if bio is not None:
-            self.bio = self._validate_bio(bio) if bio.strip() else None
-    
-    def to_dict(self, include_sensitive: bool = False) -> dict:
-        """
-        Convert user to dictionary representation.
-        
-        Args:
-            include_sensitive: Whether to include sensitive fields
-            
-        Returns:
-            dict: User data as dictionary
-        """
-        data = {
-            "id": self.id,
-            "username": self.username,
-            "email": self.email,
-            "first_name": self.first_name,
-            "last_name": self.last_name,
-            "full_name": self.get_full_name(),
-            "bio": self.bio,
-            "is_active": self.is_active,
-            "is_verified": self.is_verified,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "last_login": self.last_login.isoformat() if self.last_login else None,
-        }
-        
-        if include_sensitive:
-            data["password_hash"] = self.password_hash
-        
-        return data
     
     @staticmethod
     def _validate_username(username: str) -> str:
         """
-        Validate username format and requirements.
+        Validate username format and constraints.
         
         Args:
             username: Username to validate
             
         Returns:
-            str:
+            str: Validated username
+            
+        Raises:
+            ValueError: If username is invalid
+        """
+        if not username or not isinstance(username, str):
+            raise ValueError("Username is required and must be a string")
+        
+        username = username.strip()
+        
+        if len(username) < 3:
+            raise ValueError("Username must be at least 3 characters long")
+        
+        if len(username) > 50:
+            raise ValueError("Username must not exceed 50 characters")
+        
+        if not re.match(r'^[a-zA-Z0-9_]+$', username):
+            raise ValueError("Username can only contain letters, numbers, and underscores")
+        
+        return username
+    
+    @staticmethod
+    def _validate_email(email: str) -> str:
+        """
+        Validate email format.
+        
+        Args:
+            email: Email address to validate
+            
+        Returns:
+            str: Validated email address
+            
+        Raises:
+            ValueError: If email is invalid
+        """
+        if not email or not isinstance(email, str):
+            raise ValueError("Email is required and must be a string")
+        
+        email = email.strip().lower()
+        
+        if len(email) > 255:
+            raise ValueError("Email must not exceed 255 characters")
+        
+        # Basic email validation regex
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            raise ValueError("Invalid email format")
+        
+        return email
+    
+    @staticmethod
+    def _validate_name(name: str, field_name: str) -> str:
+        """
+        Validate first name or last name.
+        
+        Args:
+            name: Name to validate
+            field_name: Field name for error messages
+            
+        Returns:
+            str: Validated name
+            
+        Raises:
+            ValueError: If name is invalid
+        """
+        if not name or not isinstance(name, str):
+            raise ValueError(f"{field_name} is required and must be a string")
+        
+        name = name.strip()
+        
+        if len(name) < 1:
+            raise ValueError(f"{field_name} cannot be empty")
+        
+        if len(name) > 100:
+            raise ValueError(f"{field_name} must not exceed 100 characters")
+        
+        # Allow letters, spaces, hyphens, and apostrophes
+        if not re.match(r"^[a-zA-Z\s\-']+$", name):
+            raise ValueError(f"{field_name} can only contain letters, spaces, hyphens, and apostrophes")
+        
+        return name
+    
+    @staticmethod
+    def _validate_bio(bio: str) -> str:
+        """
+        Validate user biography.
+        
+        Args:
+            bio: Biography to validate
+            
+        Returns:
+            str: Validated biography
+            
+        Raises:
+            ValueError: If bio is invalid
+        """
+        if not isinstance(bio, str):
+            raise ValueError("Bio must be a string")
+        
+        bio = bio.strip()
+        
+        if len(bio) > 1000:
+            raise ValueError("Bio must not exceed 1000 characters")
+        
+        return bio if bio else None
+    
+    def set_password(self, password: str) -> None:
+        """
+        Set user password with hashing.
+        
+        Args:
+            password: Plain text password
+            
+        Raises:
+            ValueError: If password doesn't meet requirements
+        """
+        if not password or not isinstance(

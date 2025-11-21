@@ -12,14 +12,19 @@ from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
 from datetime import datetime
 from typing import Generator, Dict, Any
+import sys
+import os
 
-from src.main import app
+# Add src directory to Python path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+from main import app
 
 
 @pytest.fixture(scope="session")
 def test_client() -> TestClient:
     """
-    Create a test client for the FastAPI application.
+    Create FastAPI test client for the entire test session.
     
     Returns:
         TestClient: Configured test client for making HTTP requests
@@ -28,21 +33,37 @@ def test_client() -> TestClient:
 
 
 @pytest.fixture(scope="function")
+def client(test_client: TestClient) -> Generator[TestClient, None, None]:
+    """
+    Provide test client for individual test functions.
+    
+    Args:
+        test_client: Session-scoped test client
+        
+    Yields:
+        TestClient: Test client instance for making requests
+    """
+    yield test_client
+
+
+@pytest.fixture(scope="function")
 def mock_datetime() -> Generator[MagicMock, None, None]:
     """
     Mock datetime.utcnow() for consistent timestamp testing.
     
     Yields:
-        MagicMock: Mocked datetime object with fixed timestamp
+        MagicMock: Mocked datetime with fixed timestamp
     """
     fixed_datetime = datetime(2023, 12, 25, 10, 30, 45)
-    with patch('src.main.datetime') as mock_dt:
+    
+    with patch('main.datetime') as mock_dt:
         mock_dt.utcnow.return_value = fixed_datetime
+        mock_dt.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
         yield mock_dt
 
 
 @pytest.fixture(scope="function")
-def valid_names() -> list[str]:
+def sample_valid_names() -> list[str]:
     """
     Provide list of valid name parameters for testing.
     
@@ -55,18 +76,16 @@ def valid_names() -> list[str]:
         "Alice123",
         "Bob Smith Jr",
         "Test User 42",
-        "a",
+        "a",  # Single character
         "A" * 100,  # Maximum length
-        "123",
-        "User With Spaces",
-        "CamelCase",
-        "lowercase",
-        "UPPERCASE"
+        "User 123 Test",
+        "Simple Name",
+        "Name With Spaces"
     ]
 
 
 @pytest.fixture(scope="function")
-def invalid_names() -> list[str]:
+def sample_invalid_names() -> list[str]:
     """
     Provide list of invalid name parameters for testing.
     
@@ -77,167 +96,162 @@ def invalid_names() -> list[str]:
         "John@Doe",  # Special character
         "Jane-Smith",  # Hyphen
         "User!",  # Exclamation mark
-        "Test<script>",  # HTML/XSS attempt
-        "Name with\nnewline",  # Newline character
-        "User\t",  # Tab character
+        "Test#User",  # Hash symbol
+        "Name$",  # Dollar sign
+        "User%Test",  # Percent sign
+        "Test&User",  # Ampersand
+        "Name*",  # Asterisk
+        "User+Test",  # Plus sign
+        "Test=User",  # Equals sign
+        "Name[Test]",  # Brackets
+        "User{Test}",  # Braces
+        "Test|User",  # Pipe
+        "Name\\Test",  # Backslash
+        "User/Test",  # Forward slash
+        "Test:User",  # Colon
+        "Name;Test",  # Semicolon
+        "User<Test>",  # Angle brackets
+        "Test?User",  # Question mark
+        "Name.Test",  # Period
+        "User,Test",  # Comma
+        "Test'User",  # Apostrophe
+        'Name"Test',  # Quote
         "A" * 101,  # Exceeds maximum length
-        "José",  # Non-ASCII character
-        "User#123",  # Hash symbol
-        "Test$User",  # Dollar sign
-        "Name%20",  # URL encoding
-        "User&Co",  # Ampersand
-        "",  # Empty string (handled separately)
-        "   ",  # Only whitespace
+        "",  # Empty string (handled as None)
+        "   ",  # Only spaces
+        "\n",  # Newline
+        "\t",  # Tab
+        "User\nTest",  # Contains newline
+        "Test\tUser",  # Contains tab
     ]
 
 
 @pytest.fixture(scope="function")
-def expected_hello_responses() -> Dict[str, str]:
+def expected_error_response() -> Dict[str, Any]:
     """
-    Provide expected responses for hello endpoint with different names.
+    Provide expected error response structure.
     
     Returns:
-        Dict[str, str]: Mapping of input names to expected response messages
+        Dict[str, Any]: Expected error response format
     """
     return {
-        "John": "Hello, John!",
-        "jane doe": "Hello, Jane Doe!",
-        "alice123": "Hello, Alice123!",
-        "bob smith jr": "Hello, Bob Smith Jr!",
-        "test user 42": "Hello, Test User 42!",
-        "a": "Hello, A!",
-        "123": "Hello, 123!",
-        "user with spaces": "Hello, User With Spaces!",
-        "camelcase": "Hello, Camelcase!",
-        "lowercase": "Hello, Lowercase!",
-        "UPPERCASE": "Hello, Uppercase!",
-        "  padded  ": "Hello, Padded!",
+        "error": "INVALID_NAME",
+        "message": "Name parameter contains invalid characters or exceeds 100 characters"
     }
 
 
 @pytest.fixture(scope="function")
-def error_response_schemas() -> Dict[str, Dict[str, Any]]:
+def expected_health_response() -> Dict[str, str]:
     """
-    Provide expected error response schemas for validation.
+    Provide expected health endpoint response structure.
     
     Returns:
-        Dict[str, Dict[str, Any]]: Error response schema definitions
+        Dict[str, str]: Expected health response format
     """
     return {
-        "validation_error": {
-            "required_fields": ["code", "message"],
-            "code_value": "INVALID_NAME",
-            "status_code": 400
-        },
-        "internal_error": {
-            "required_fields": ["code", "message"],
-            "code_value": "INTERNAL_ERROR",
-            "status_code": 500
-        }
+        "status": "ok",
+        "timestamp": "2023-12-25T10:30:45Z"
     }
 
 
 @pytest.fixture(scope="function")
-def health_response_schema() -> Dict[str, Any]:
+def mock_exception_logging() -> Generator[MagicMock, None, None]:
     """
-    Provide expected health endpoint response schema.
+    Mock logging for exception handler testing.
     
-    Returns:
-        Dict[str, Any]: Health response schema definition
+    Yields:
+        MagicMock: Mocked logger for verifying error logging
     """
-    return {
-        "required_fields": ["status", "timestamp"],
-        "status_value": "ok",
-        "timestamp_format": r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$"
-    }
-
-
-@pytest.fixture(scope="function")
-def hello_response_schema() -> Dict[str, Any]:
-    """
-    Provide expected hello endpoint response schema.
-    
-    Returns:
-        Dict[str, Any]: Hello response schema definition
-    """
-    return {
-        "required_fields": ["message"],
-        "message_format": r"^Hello, .+!$|^Hello, World!$"
-    }
+    with patch('main.logger') as mock_logger:
+        yield mock_logger
 
 
 @pytest.fixture(autouse=True)
-def reset_app_state():
+def reset_app_state() -> Generator[None, None, None]:
     """
     Reset application state before each test.
     
     This fixture runs automatically before each test to ensure
     clean state and prevent test interference.
+    
+    Yields:
+        None: No return value, just ensures clean state
     """
     # Clear any cached data or state if needed
-    # For this simple app, no state reset is required
     yield
     # Cleanup after test if needed
 
 
 @pytest.fixture(scope="function")
-def mock_exception() -> Generator[MagicMock, None, None]:
+def hello_endpoint_test_cases() -> list[Dict[str, Any]]:
     """
-    Mock for testing exception handling scenarios.
-    
-    Yields:
-        MagicMock: Mock object that can be configured to raise exceptions
-    """
-    with patch('src.main.datetime') as mock_dt:
-        mock_dt.utcnow.side_effect = Exception("Simulated internal error")
-        yield mock_dt
-
-
-@pytest.fixture(scope="session")
-def test_config() -> Dict[str, Any]:
-    """
-    Provide test configuration settings.
+    Provide comprehensive test cases for hello endpoint.
     
     Returns:
-        Dict[str, Any]: Test configuration parameters
+        list[Dict[str, Any]]: Test cases with inputs and expected outputs
     """
-    return {
-        "timeout": 30,
-        "max_retries": 3,
-        "test_name_max_length": 100,
-        "expected_content_type": "application/json",
-        "cors_origins": ["*"],
-        "api_version": "1.0.0",
-        "api_title": "Hello World API"
-    }
+    return [
+        {
+            "name": "no_name_parameter",
+            "input": None,
+            "expected_message": "Hello, World!",
+            "expected_status": 200
+        },
+        {
+            "name": "empty_name_parameter",
+            "input": "",
+            "expected_message": "Hello, World!",
+            "expected_status": 200
+        },
+        {
+            "name": "simple_name",
+            "input": "John",
+            "expected_message": "Hello, John!",
+            "expected_status": 200
+        },
+        {
+            "name": "name_with_spaces",
+            "input": "Jane Doe",
+            "expected_message": "Hello, Jane Doe!",
+            "expected_status": 200
+        },
+        {
+            "name": "name_with_numbers",
+            "input": "User123",
+            "expected_message": "Hello, User123!",
+            "expected_status": 200
+        },
+        {
+            "name": "maximum_length_name",
+            "input": "A" * 100,
+            "expected_message": f"Hello, {'A' * 100}!",
+            "expected_status": 200
+        }
+    ]
 
 
-# Pytest configuration
-def pytest_configure(config):
-    """Configure pytest with custom markers and settings."""
-    config.addinivalue_line(
-        "markers", "unit: mark test as a unit test"
-    )
-    config.addinivalue_line(
-        "markers", "integration: mark test as an integration test"
-    )
-    config.addinivalue_line(
-        "markers", "error_handling: mark test as error handling test"
-    )
-    config.addinivalue_line(
-        "markers", "validation: mark test as input validation test"
-    )
-
-
-def pytest_collection_modifyitems(config, items):
-    """Modify test collection to add markers based on test names."""
-    for item in items:
-        # Add markers based on test function names
-        if "error" in item.name or "exception" in item.name:
-            item.add_marker(pytest.mark.error_handling)
-        if "validation" in item.name or "invalid" in item.name:
-            item.add_marker(pytest.mark.validation)
-        if "integration" in item.name or "endpoint" in item.name:
-            item.add_marker(pytest.mark.integration)
-        else:
-            item.add_marker(pytest.mark.unit)
+@pytest.fixture(scope="function")
+def error_test_cases() -> list[Dict[str, Any]]:
+    """
+    Provide test cases for error scenarios.
+    
+    Returns:
+        list[Dict[str, Any]]: Error test cases with inputs and expected responses
+    """
+    return [
+        {
+            "name": "name_too_long",
+            "input": "A" * 101,
+            "expected_status": 400,
+            "expected_error": "INVALID_NAME"
+        },
+        {
+            "name": "name_with_special_chars",
+            "input": "John@Doe",
+            "expected_status": 400,
+            "expected_error": "INVALID_NAME"
+        },
+        {
+            "name": "name_with_symbols",
+            "input": "User!",
+            "expected_status": 400,

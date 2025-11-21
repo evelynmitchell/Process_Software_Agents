@@ -7,14 +7,15 @@ Covers all endpoints with various scenarios including edge cases and error condi
 Component ID: COMP-003
 Semantic Unit: SU-003
 
-Author: ASP Code Generator
+Author: ASP Code Agent
 """
 
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import Mock, patch
+import json
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from typing import Dict, Any, Optional
 
 from src.api.tasks import app
 from tests.conftest import (
@@ -32,177 +33,188 @@ class TestTasksAPI:
     def setup_and_teardown(self):
         """Setup and teardown for each test."""
         self.client = TestClient(app)
-        self.test_users = []
-        self.test_tasks = []
+        self.test_user_id = None
+        self.test_task_ids = []
         yield
         # Cleanup after each test
-        cleanup_test_data(self.test_users, self.test_tasks)
+        cleanup_test_data(self.test_user_id, self.test_task_ids)
+
+    def _create_authenticated_user(self) -> Dict[str, Any]:
+        """Create a test user and return user data with auth headers."""
+        user_data = create_test_user()
+        self.test_user_id = user_data["id"]
+        return user_data
+
+    def _create_test_task(self, user_id: int, **kwargs) -> Dict[str, Any]:
+        """Create a test task and track for cleanup."""
+        task_data = create_test_task(user_id, **kwargs)
+        self.test_task_ids.append(task_data["id"])
+        return task_data
+
+
+class TestCreateTask(TestTasksAPI):
+    """Tests for POST /tasks endpoint."""
 
     def test_create_task_success(self):
         """Test successful task creation with valid data."""
-        user = create_test_user("testuser", "test@example.com")
-        self.test_users.append(user)
-        headers = get_auth_headers(user["id"])
+        user = self._create_authenticated_user()
+        headers = get_auth_headers(user["token"])
         
         task_data = {
             "title": "Test Task",
-            "description": "This is a test task",
+            "description": "Test task description",
             "priority": "medium",
             "due_date": "2024-12-31T23:59:59Z"
         }
         
-        response = self.client.post("/api/tasks", json=task_data, headers=headers)
+        response = self.client.post("/tasks", json=task_data, headers=headers)
         
         assert response.status_code == 201
         data = response.json()
         assert data["title"] == task_data["title"]
         assert data["description"] == task_data["description"]
         assert data["priority"] == task_data["priority"]
+        assert data["due_date"] == task_data["due_date"]
         assert data["status"] == "pending"
         assert data["user_id"] == user["id"]
         assert "id" in data
         assert "created_at" in data
         assert "updated_at" in data
         
-        self.test_tasks.append(data)
+        self.test_task_ids.append(data["id"])
 
-    def test_create_task_missing_title(self):
-        """Test task creation fails with missing title."""
-        user = create_test_user("testuser", "test@example.com")
-        self.test_users.append(user)
-        headers = get_auth_headers(user["id"])
+    def test_create_task_minimal_data(self):
+        """Test task creation with only required fields."""
+        user = self._create_authenticated_user()
+        headers = get_auth_headers(user["token"])
         
         task_data = {
-            "description": "This is a test task",
-            "priority": "medium"
+            "title": "Minimal Task"
         }
         
-        response = self.client.post("/api/tasks", json=task_data, headers=headers)
+        response = self.client.post("/tasks", json=task_data, headers=headers)
+        
+        assert response.status_code == 201
+        data = response.json()
+        assert data["title"] == task_data["title"]
+        assert data["description"] is None
+        assert data["priority"] == "medium"  # default value
+        assert data["due_date"] is None
+        assert data["status"] == "pending"
+        
+        self.test_task_ids.append(data["id"])
+
+    def test_create_task_invalid_title_empty(self):
+        """Test task creation fails with empty title."""
+        user = self._create_authenticated_user()
+        headers = get_auth_headers(user["token"])
+        
+        task_data = {
+            "title": ""
+        }
+        
+        response = self.client.post("/tasks", json=task_data, headers=headers)
         
         assert response.status_code == 400
         data = response.json()
-        assert data["code"] == "VALIDATION_ERROR"
+        assert data["error"] == "VALIDATION_ERROR"
+        assert "title" in data["message"].lower()
+
+    def test_create_task_invalid_title_too_long(self):
+        """Test task creation fails with title exceeding 200 characters."""
+        user = self._create_authenticated_user()
+        headers = get_auth_headers(user["token"])
+        
+        task_data = {
+            "title": "x" * 201
+        }
+        
+        response = self.client.post("/tasks", json=task_data, headers=headers)
+        
+        assert response.status_code == 400
+        data = response.json()
+        assert data["error"] == "VALIDATION_ERROR"
         assert "title" in data["message"].lower()
 
     def test_create_task_invalid_priority(self):
-        """Test task creation fails with invalid priority."""
-        user = create_test_user("testuser", "test@example.com")
-        self.test_users.append(user)
-        headers = get_auth_headers(user["id"])
+        """Test task creation fails with invalid priority value."""
+        user = self._create_authenticated_user()
+        headers = get_auth_headers(user["token"])
         
         task_data = {
             "title": "Test Task",
-            "description": "This is a test task",
-            "priority": "invalid_priority"
+            "priority": "invalid"
         }
         
-        response = self.client.post("/api/tasks", json=task_data, headers=headers)
+        response = self.client.post("/tasks", json=task_data, headers=headers)
         
         assert response.status_code == 400
         data = response.json()
-        assert data["code"] == "VALIDATION_ERROR"
+        assert data["error"] == "VALIDATION_ERROR"
         assert "priority" in data["message"].lower()
 
-    def test_create_task_invalid_due_date(self):
+    def test_create_task_invalid_due_date_format(self):
         """Test task creation fails with invalid due date format."""
-        user = create_test_user("testuser", "test@example.com")
-        self.test_users.append(user)
-        headers = get_auth_headers(user["id"])
+        user = self._create_authenticated_user()
+        headers = get_auth_headers(user["token"])
         
         task_data = {
             "title": "Test Task",
-            "description": "This is a test task",
-            "priority": "medium",
             "due_date": "invalid-date"
         }
         
-        response = self.client.post("/api/tasks", json=task_data, headers=headers)
+        response = self.client.post("/tasks", json=task_data, headers=headers)
         
         assert response.status_code == 400
         data = response.json()
-        assert data["code"] == "VALIDATION_ERROR"
+        assert data["error"] == "VALIDATION_ERROR"
         assert "due_date" in data["message"].lower()
 
-    def test_create_task_unauthorized(self):
-        """Test task creation fails without authentication."""
+    def test_create_task_due_date_in_past(self):
+        """Test task creation fails with due date in the past."""
+        user = self._create_authenticated_user()
+        headers = get_auth_headers(user["token"])
+        
+        past_date = (datetime.utcnow() - timedelta(days=1)).isoformat() + "Z"
         task_data = {
             "title": "Test Task",
-            "description": "This is a test task",
-            "priority": "medium"
+            "due_date": past_date
         }
         
-        response = self.client.post("/api/tasks", json=task_data)
+        response = self.client.post("/tasks", json=task_data, headers=headers)
+        
+        assert response.status_code == 400
+        data = response.json()
+        assert data["error"] == "INVALID_DUE_DATE"
+        assert "past" in data["message"].lower()
+
+    def test_create_task_no_authentication(self):
+        """Test task creation fails without authentication."""
+        task_data = {
+            "title": "Test Task"
+        }
+        
+        response = self.client.post("/tasks", json=task_data)
         
         assert response.status_code == 401
         data = response.json()
-        assert data["code"] == "UNAUTHORIZED"
+        assert data["error"] == "AUTHENTICATION_REQUIRED"
 
     def test_create_task_invalid_token(self):
         """Test task creation fails with invalid authentication token."""
-        headers = {"Authorization": "Bearer invalid_token"}
-        
+        headers = {"Authorization": "Bearer invalid-token"}
         task_data = {
-            "title": "Test Task",
-            "description": "This is a test task",
-            "priority": "medium"
+            "title": "Test Task"
         }
         
-        response = self.client.post("/api/tasks", json=task_data, headers=headers)
+        response = self.client.post("/tasks", json=task_data, headers=headers)
         
         assert response.status_code == 401
         data = response.json()
-        assert data["code"] == "INVALID_TOKEN"
+        assert data["error"] == "INVALID_TOKEN"
 
-    def test_get_tasks_success(self):
-        """Test successful retrieval of user's tasks."""
-        user = create_test_user("testuser", "test@example.com")
-        self.test_users.append(user)
-        headers = get_auth_headers(user["id"])
-        
-        # Create test tasks
-        task1 = create_test_task(user["id"], "Task 1", "high")
-        task2 = create_test_task(user["id"], "Task 2", "low")
-        self.test_tasks.extend([task1, task2])
-        
-        response = self.client.get("/api/tasks", headers=headers)
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert "tasks" in data
-        assert "total" in data
-        assert "page" in data
-        assert "per_page" in data
-        assert len(data["tasks"]) == 2
-        assert data["total"] == 2
 
-    def test_get_tasks_with_pagination(self):
-        """Test task retrieval with pagination parameters."""
-        user = create_test_user("testuser", "test@example.com")
-        self.test_users.append(user)
-        headers = get_auth_headers(user["id"])
-        
-        # Create multiple test tasks
-        tasks = []
-        for i in range(5):
-            task = create_test_task(user["id"], f"Task {i+1}", "medium")
-            tasks.append(task)
-        self.test_tasks.extend(tasks)
-        
-        response = self.client.get("/api/tasks?page=1&per_page=2", headers=headers)
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data["tasks"]) == 2
-        assert data["total"] == 5
-        assert data["page"] == 1
-        assert data["per_page"] == 2
+class TestGetTasks(TestTasksAPI):
+    """Tests for GET /tasks endpoint."""
 
-    def test_get_tasks_with_status_filter(self):
-        """Test task retrieval with status filter."""
-        user = create_test_user("testuser", "test@example.com")
-        self.test_users.append(user)
-        headers = get_auth_headers(user["id"])
-        
-        # Create tasks with different statuses
-        task1 = create_test_task(user["id"], "Pending Task", "medium", status="pending")
-        task2 = create_test_task(user["id"], "Completed Task", "medium
+    def test_get_tasks_empty_

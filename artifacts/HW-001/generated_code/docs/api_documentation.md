@@ -1,31 +1,24 @@
 # Hello World API Documentation
 
-Complete API reference for the Hello World REST API built with FastAPI.
+Complete API documentation for the Hello World REST API built with FastAPI.
 
-## Base URL
+## Overview
 
-- **Development**: `http://localhost:8000`
-- **Production**: Configure based on deployment
+The Hello World API is a simple REST service that provides greeting functionality and health monitoring. It features two main endpoints for generating personalized greetings and checking application health status.
 
-## API Overview
+**Base URL:** `http://localhost:8000`
 
-The Hello World API provides two simple endpoints:
-- `/hello` - Returns personalized or default greeting messages
-- `/health` - Returns application health status and timestamp
+**API Version:** 1.0.0
 
-All responses are in JSON format with appropriate HTTP status codes.
+**Content Type:** `application/json`
 
 ## Authentication
 
-No authentication is required for any endpoints in this API.
+This API does not require authentication. All endpoints are publicly accessible.
 
 ## Rate Limiting
 
-No rate limiting is currently implemented.
-
-## Content Type
-
-All API responses return `application/json` content type.
+No rate limiting is currently implemented on any endpoints.
 
 ## Error Response Format
 
@@ -33,10 +26,17 @@ All error responses follow a consistent JSON structure:
 
 ```json
 {
-  "code": "ERROR_CODE",
+  "error": "ERROR_CODE",
   "message": "Human-readable error description"
 }
 ```
+
+## Global Error Codes
+
+| Status Code | Error Code | Description |
+|-------------|------------|-------------|
+| 400 | VALIDATION_ERROR | Request validation failed |
+| 500 | INTERNAL_ERROR | Internal server error |
 
 ## Endpoints
 
@@ -44,311 +44,297 @@ All error responses follow a consistent JSON structure:
 
 Returns a greeting message with optional personalization.
 
-#### Request
+**Description:** Generates a greeting message. If a name parameter is provided, the greeting will be personalized. The name parameter is validated to ensure it contains only alphanumeric characters and spaces, with a maximum length of 100 characters.
 
-**URL**: `/hello`  
-**Method**: `GET`  
-**Authentication**: None required
+**Parameters:**
 
-#### Query Parameters
+| Parameter | Type | Required | Location | Description | Constraints |
+|-----------|------|----------|----------|-------------|-------------|
+| name | string | No | Query | Name to personalize the greeting | Max 100 chars, alphanumeric and spaces only |
 
-| Parameter | Type | Required | Description | Validation |
-|-----------|------|----------|-------------|------------|
-| `name` | string | No | Name to personalize greeting | Max 100 characters, alphanumeric and spaces only |
+**Request Examples:**
 
-#### Request Examples
-
-**Basic greeting (no parameters):**
+Basic greeting request:
 ```http
 GET /hello HTTP/1.1
 Host: localhost:8000
 ```
 
-**Personalized greeting:**
+Personalized greeting request:
 ```http
 GET /hello?name=John HTTP/1.1
 Host: localhost:8000
 ```
 
-**Personalized greeting with spaces:**
+Personalized greeting with spaces:
 ```http
 GET /hello?name=John%20Doe HTTP/1.1
 Host: localhost:8000
 ```
 
-#### Response
+**Response Schema:**
 
-**Success Response (200 OK)**
+```json
+{
+  "message": "string"
+}
+```
 
+**Response Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| message | string | The greeting message |
+
+**Success Response Examples:**
+
+Default greeting (no name parameter):
 ```json
 {
   "message": "Hello, World!"
 }
 ```
 
-**Success Response with name parameter (200 OK)**
-
+Personalized greeting:
 ```json
 {
   "message": "Hello, John!"
 }
 ```
 
-#### Response Schema
+Personalized greeting with full name:
+```json
+{
+  "message": "Hello, John Doe!"
+}
+```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `message` | string | Greeting message, either default or personalized |
+**Error Responses:**
 
-#### Error Responses
+**400 Bad Request - Invalid Name Parameter:**
 
-**400 Bad Request - Invalid Name Parameter**
-
-Returned when the name parameter contains invalid characters or exceeds length limit.
+Occurs when the name parameter contains invalid characters or exceeds 100 characters.
 
 ```json
 {
-  "code": "INVALID_NAME",
+  "error": "INVALID_NAME",
   "message": "Name parameter contains invalid characters or exceeds 100 characters"
 }
 ```
 
-**Triggers:**
-- Name contains characters other than letters, numbers, and spaces
-- Name exceeds 100 characters
-- Name contains special characters or symbols
+Example invalid requests:
+- `GET /hello?name=John@Doe` (contains special character @)
+- `GET /hello?name=John123!` (contains special character !)
+- `GET /hello?name=` followed by a string longer than 100 characters
 
-**500 Internal Server Error**
+**500 Internal Server Error:**
 
 ```json
 {
-  "code": "INTERNAL_ERROR",
+  "error": "INTERNAL_ERROR",
   "message": "Internal server error"
 }
 ```
 
-#### cURL Examples
+**cURL Examples:**
 
-**Basic greeting:**
 ```bash
+# Basic greeting
 curl -X GET "http://localhost:8000/hello"
-```
 
-**Personalized greeting:**
-```bash
+# Personalized greeting
 curl -X GET "http://localhost:8000/hello?name=Alice"
-```
 
-**Test invalid name (should return 400):**
-```bash
-curl -X GET "http://localhost:8000/hello?name=John@Doe"
+# Greeting with full name
+curl -X GET "http://localhost:8000/hello?name=Alice%20Smith"
 ```
 
 ### GET /health
 
-Returns application health status and current timestamp for monitoring purposes.
+Returns application health status and current timestamp.
 
-#### Request
+**Description:** Health check endpoint that provides the current status of the application along with a UTC timestamp. This endpoint is typically used by monitoring systems and load balancers to verify that the service is running correctly.
 
-**URL**: `/health`  
-**Method**: `GET`  
-**Authentication**: None required
+**Parameters:** None
 
-#### Query Parameters
-
-None
-
-#### Request Example
+**Request Example:**
 
 ```http
 GET /health HTTP/1.1
 Host: localhost:8000
 ```
 
-#### Response
+**Response Schema:**
 
-**Success Response (200 OK)**
+```json
+{
+  "status": "string",
+  "timestamp": "string"
+}
+```
+
+**Response Fields:**
+
+| Field | Type | Description | Format |
+|-------|------|-------------|---------|
+| status | string | Application health status (always "ok") | Fixed value: "ok" |
+| timestamp | string | Current UTC timestamp | ISO 8601 format with Z suffix |
+
+**Success Response Example:**
 
 ```json
 {
   "status": "ok",
-  "timestamp": "2024-01-15T10:30:45.123456Z"
+  "timestamp": "2024-01-15T14:30:45.123456Z"
 }
 ```
 
-#### Response Schema
+**Error Responses:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `status` | string | Always returns "ok" for this simple health check |
-| `timestamp` | string | Current UTC timestamp in ISO 8601 format with Z suffix |
-
-#### Error Responses
-
-**500 Internal Server Error**
+**500 Internal Server Error:**
 
 ```json
 {
-  "code": "INTERNAL_ERROR",
+  "error": "INTERNAL_ERROR",
   "message": "Internal server error"
 }
 ```
 
-#### cURL Example
+**cURL Example:**
 
 ```bash
 curl -X GET "http://localhost:8000/health"
 ```
 
-## Status Codes
-
-| Code | Description | Usage |
-|------|-------------|-------|
-| 200 | OK | Successful request |
-| 400 | Bad Request | Invalid input parameters |
-| 500 | Internal Server Error | Unexpected server error |
-
-## Input Validation Rules
-
-### Name Parameter Validation
-
-The `name` query parameter in the `/hello` endpoint follows these validation rules:
-
-1. **Character Set**: Only alphanumeric characters (a-z, A-Z, 0-9) and spaces are allowed
-2. **Length Limit**: Maximum 100 characters
-3. **Processing**: Leading/trailing whitespace is automatically trimmed
-4. **Case Handling**: Name is converted to title case (first letter of each word capitalized)
-
-**Valid Examples:**
-- `John`
-- `John Doe`
-- `Alice123`
-- `Bob Smith Jr`
-
-**Invalid Examples:**
-- `John@Doe` (contains special character @)
-- `Alice-Bob` (contains hyphen)
-- `John_Doe` (contains underscore)
-- Names longer than 100 characters
-
-## Error Handling
-
-The API implements comprehensive error handling with consistent JSON responses:
-
-### Validation Errors (400)
-
-Triggered by invalid input parameters. The API validates all inputs and returns descriptive error messages.
-
-### HTTP Exceptions
-
-The API properly handles and formats HTTP exceptions while preserving the original status codes.
-
-### Internal Errors (500)
-
-Unexpected server errors are caught and logged, returning a generic error message to prevent information disclosure.
-
 ## Interactive Documentation
 
 FastAPI automatically generates interactive API documentation:
 
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
-- **OpenAPI Schema**: `http://localhost:8000/openapi.json`
+- **Swagger UI:** `http://localhost:8000/docs`
+- **ReDoc:** `http://localhost:8000/redoc`
+- **OpenAPI Schema:** `http://localhost:8000/openapi.json`
 
-## CORS Configuration
+## Request/Response Examples
 
-The API is configured with CORS (Cross-Origin Resource Sharing) enabled for all origins in development mode:
+### Complete Request/Response Flows
 
-- **Allowed Origins**: `*` (all origins)
-- **Allowed Methods**: `GET` (only GET methods are implemented)
-- **Allowed Headers**: Standard headers
+#### Scenario 1: Basic Hello Request
 
-## Response Times
-
-Expected response times for each endpoint:
-
-- `/hello`: < 10ms (simple string processing)
-- `/health`: < 5ms (timestamp generation only)
-
-## Monitoring and Observability
-
-### Health Checks
-
-Use the `/health` endpoint for:
-- Load balancer health checks
-- Container orchestration health probes
-- Monitoring system status verification
-
-The endpoint returns:
-- Consistent "ok" status
-- Current UTC timestamp for request tracking
-- 200 status code for successful health checks
-
-### Logging
-
-The application logs the following events:
-- Request validation errors (400 responses)
-- Internal server errors (500 responses)
-- Application startup and shutdown events
-
-## Development and Testing
-
-### Testing the API
-
-**Test successful greeting:**
-```bash
-# Should return: {"message": "Hello, World!"}
-curl "http://localhost:8000/hello"
+**Request:**
+```http
+GET /hello HTTP/1.1
+Host: localhost:8000
+Accept: application/json
 ```
 
-**Test personalized greeting:**
-```bash
-# Should return: {"message": "Hello, Alice!"}
-curl "http://localhost:8000/hello?name=Alice"
+**Response:**
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 26
+
+{
+  "message": "Hello, World!"
+}
 ```
 
-**Test input validation:**
-```bash
-# Should return 400 error
-curl "http://localhost:8000/hello?name=Invalid@Name"
+#### Scenario 2: Personalized Hello Request
+
+**Request:**
+```http
+GET /hello?name=Developer HTTP/1.1
+Host: localhost:8000
+Accept: application/json
 ```
 
-**Test health endpoint:**
-```bash
-# Should return status and timestamp
-curl "http://localhost:8000/health"
+**Response:**
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 29
+
+{
+  "message": "Hello, Developer!"
+}
 ```
 
-### Common Integration Patterns
+#### Scenario 3: Invalid Name Parameter
 
-**JavaScript/Frontend Integration:**
-```javascript
-// Fetch greeting
-const response = await fetch('/hello?name=User');
-const data = await response.json();
-console.log(data.message); // "Hello, User!"
-
-// Health check
-const health = await fetch('/health');
-const healthData = await health.json();
-console.log(healthData.status); // "ok"
+**Request:**
+```http
+GET /hello?name=User@Domain.com HTTP/1.1
+Host: localhost:8000
+Accept: application/json
 ```
 
-**Python Client Integration:**
-```python
-import requests
+**Response:**
+```http
+HTTP/1.1 400 Bad Request
+Content-Type: application/json
+Content-Length: 108
 
-# Get greeting
-response = requests.get('http://localhost:8000/hello', params={'name': 'Python'})
-print(response.json()['message'])  # "Hello, Python!"
-
-# Health check
-health = requests.get('http://localhost:8000/health')
-print(health.json()['status'])  # "ok"
+{
+  "error": "INVALID_NAME",
+  "message": "Name parameter contains invalid characters or exceeds 100 characters"
+}
 ```
 
-## Troubleshooting
+#### Scenario 4: Health Check Request
 
-### Common Issues
+**Request:**
+```http
+GET /health HTTP/1.1
+Host: localhost:8000
+Accept: application/json
+```
 
-**Issue**:
+**Response:**
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 65
+
+{
+  "status": "ok",
+  "timestamp": "2024-01-15T14:30:45.123456Z"
+}
+```
+
+## Validation Rules
+
+### Name Parameter Validation
+
+The `name` parameter in the `/hello` endpoint is subject to the following validation rules:
+
+1. **Character Set:** Only alphanumeric characters (a-z, A-Z, 0-9) and spaces are allowed
+2. **Length:** Maximum 100 characters
+3. **Pattern:** Must match regex pattern `^[a-zA-Z0-9 ]+$`
+4. **Optional:** Parameter is not required; endpoint works without it
+
+**Valid Examples:**
+- `Alice`
+- `John Doe`
+- `User123`
+- `Test User 456`
+
+**Invalid Examples:**
+- `user@domain.com` (contains @ symbol)
+- `John-Doe` (contains hyphen)
+- `User!` (contains exclamation mark)
+- `José` (contains accented character)
+- A string with 101+ characters
+
+## HTTP Status Codes
+
+| Status Code | Description | When It Occurs |
+|-------------|-------------|----------------|
+| 200 | OK | Successful request |
+| 400 | Bad Request | Invalid name parameter in /hello endpoint |
+| 404 | Not Found | Endpoint does not exist |
+| 405 | Method Not Allowed | Using wrong HTTP method (e.g., POST on GET endpoint) |
+| 422 | Unprocessable Entity | Request validation error |
+| 500 | Internal Server Error | Unexpected server error |
+
+## Client Integration Examples
+
+###

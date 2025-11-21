@@ -1,15 +1,15 @@
 # Hello World API
 
-A simple FastAPI REST API that returns personalized greeting messages with comprehensive error handling and health monitoring.
+A simple FastAPI REST API that returns greeting messages with optional personalization and health status monitoring.
 
 ## Features
 
 - **Personalized Greetings**: `/hello` endpoint with optional name parameter
 - **Health Monitoring**: `/health` endpoint with status and timestamp
-- **Input Validation**: Secure name parameter validation with alphanumeric and space characters only
-- **Error Handling**: Comprehensive JSON error responses with consistent format
-- **CORS Support**: Cross-origin requests enabled for development
-- **Interactive Documentation**: Auto-generated API docs with Swagger UI and ReDoc
+- **Input Validation**: Secure name parameter validation with character restrictions
+- **Error Handling**: Comprehensive error responses with proper HTTP status codes
+- **Interactive Documentation**: Auto-generated Swagger UI and ReDoc interfaces
+- **Type Safety**: Full type hints and Pydantic validation
 
 ## Prerequisites
 
@@ -25,17 +25,25 @@ A simple FastAPI REST API that returns personalized greeting messages with compr
    pip install -r requirements.txt
    ```
 
+## Configuration
+
+No configuration files are required for basic operation. The API runs with default settings:
+
+- **Host**: localhost (127.0.0.1)
+- **Port**: 8000
+- **Environment**: development (with auto-reload)
+
 ## Running the Application
 
 ### Development Mode
 
-Start the development server with auto-reload:
+Start the development server with auto-reload enabled:
 
 ```bash
 uvicorn main:app --reload
 ```
 
-The API will be available at http://localhost:8000
+The API will be available at: http://localhost:8000
 
 ### Production Mode
 
@@ -47,7 +55,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 
 ### Custom Port
 
-If port 8000 is already in use:
+To run on a different port:
 
 ```bash
 uvicorn main:app --port 8001
@@ -55,81 +63,7 @@ uvicorn main:app --port 8001
 
 ## API Documentation
 
-### GET /hello
-
-Returns a personalized greeting message.
-
-**Parameters:**
-- `name` (optional, query parameter): Name to include in greeting
-  - Type: string
-  - Max length: 100 characters
-  - Allowed characters: alphanumeric and spaces only
-  - Example: `?name=John Doe`
-
-**Success Response (200 OK):**
-```json
-{
-  "message": "Hello, World!"
-}
-```
-
-**Success Response with Name (200 OK):**
-```json
-{
-  "message": "Hello, John Doe!"
-}
-```
-
-**Error Response - Invalid Name (400 Bad Request):**
-```json
-{
-  "code": "INVALID_NAME",
-  "message": "Name parameter contains invalid characters or exceeds 100 characters"
-}
-```
-
-**Examples:**
-```bash
-# Basic greeting
-curl http://localhost:8000/hello
-
-# Personalized greeting
-curl "http://localhost:8000/hello?name=Alice"
-
-# Invalid characters (returns 400 error)
-curl "http://localhost:8000/hello?name=Alice@123"
-```
-
-### GET /health
-
-Health check endpoint that returns application status and current timestamp.
-
-**Success Response (200 OK):**
-```json
-{
-  "status": "ok",
-  "timestamp": "2024-01-15T10:30:45.123456Z"
-}
-```
-
-**Example:**
-```bash
-curl http://localhost:8000/health
-```
-
-### Error Responses
-
-All endpoints may return the following error response:
-
-**Internal Server Error (500):**
-```json
-{
-  "code": "INTERNAL_ERROR",
-  "message": "Internal server error"
-}
-```
-
-## Interactive API Documentation
+### Interactive Documentation
 
 FastAPI automatically generates interactive API documentation:
 
@@ -137,44 +71,139 @@ FastAPI automatically generates interactive API documentation:
 - **ReDoc**: http://localhost:8000/redoc
 - **OpenAPI Schema**: http://localhost:8000/openapi.json
 
-## Input Validation
+### Endpoints
 
-The API implements strict input validation for security:
+#### GET /hello
 
-### Name Parameter Rules
+Returns a greeting message with optional personalization.
 
-- **Maximum length**: 100 characters
-- **Allowed characters**: Letters (a-z, A-Z), numbers (0-9), and spaces
-- **Automatic formatting**: Names are trimmed and title-cased
-- **Invalid examples**: 
-  - `Alice@domain.com` (contains @ symbol)
-  - `John<script>` (contains < and > symbols)
-  - Names longer than 100 characters
+**Parameters:**
+- `name` (optional, query parameter): Name to personalize the greeting
+  - Type: string
+  - Max length: 100 characters
+  - Allowed characters: alphanumeric and spaces only
+  - Pattern: `^[a-zA-Z0-9 ]+$`
+
+**Example Requests:**
+
+```bash
+# Basic greeting
+curl http://localhost:8000/hello
+
+# Personalized greeting
+curl "http://localhost:8000/hello?name=Alice"
+
+# Greeting with spaces in name
+curl "http://localhost:8000/hello?name=John%20Doe"
+```
+
+**Success Response (200 OK):**
+
+```json
+{
+  "message": "Hello, World!"
+}
+```
+
+```json
+{
+  "message": "Hello, Alice!"
+}
+```
+
+**Error Responses:**
+
+- **400 Bad Request** - Invalid name parameter:
+  ```json
+  {
+    "error": "INVALID_NAME",
+    "message": "Name parameter contains invalid characters or exceeds 100 characters"
+  }
+  ```
+
+- **500 Internal Server Error** - Server error:
+  ```json
+  {
+    "error": "INTERNAL_ERROR",
+    "message": "Internal server error"
+  }
+  ```
+
+#### GET /health
+
+Returns application health status and current timestamp for monitoring purposes.
+
+**Parameters:** None
+
+**Example Request:**
+
+```bash
+curl http://localhost:8000/health
+```
+
+**Success Response (200 OK):**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2024-01-15T10:30:45.123456Z"
+}
+```
+
+**Error Responses:**
+
+- **500 Internal Server Error** - Server error:
+  ```json
+  {
+    "error": "INTERNAL_ERROR",
+    "message": "Internal server error"
+  }
+  ```
 
 ## Testing
 
-### Run All Tests
+### Running Tests
+
+Run the complete test suite:
 
 ```bash
 pytest tests/ -v
 ```
 
-### Run Tests with Coverage
+Run tests with coverage report:
 
 ```bash
 pytest tests/ --cov=. --cov-report=html
 ```
 
-View coverage report by opening `htmlcov/index.html` in your browser.
-
-### Run Specific Test Categories
+View coverage report:
 
 ```bash
-# Unit tests only
+open htmlcov/index.html  # macOS
+xdg-open htmlcov/index.html  # Linux
+```
+
+### Test Categories
+
+The test suite includes:
+
+- **Unit Tests**: Individual function testing
+- **Integration Tests**: Full endpoint testing
+- **Validation Tests**: Input parameter validation
+- **Error Handling Tests**: Exception and error response testing
+- **Edge Case Tests**: Boundary conditions and special inputs
+
+### Example Test Commands
+
+```bash
+# Run specific test file
 pytest tests/test_main.py -v
 
-# Integration tests only
-pytest tests/test_integration.py -v
+# Run tests matching pattern
+pytest tests/ -k "test_hello" -v
+
+# Run tests with detailed output
+pytest tests/ -v -s
 ```
 
 ## Development
@@ -182,33 +211,65 @@ pytest tests/test_integration.py -v
 ### Project Structure
 
 ```
-.
-├── main.py              # FastAPI application
+hello-world-api/
+├── main.py              # FastAPI application and endpoints
 ├── requirements.txt     # Python dependencies
-├── tests/
-│   ├── test_main.py    # Unit tests
-│   └── test_integration.py  # Integration tests
-└── README.md           # This file
+├── README.md           # This documentation
+└── tests/
+    └── test_main.py    # Test suite
 ```
 
 ### Code Quality
 
-The project follows Python best practices:
+The project follows these standards:
 
 - **PEP 8**: Python style guide compliance
-- **Type hints**: Full type annotation coverage
-- **Docstrings**: Comprehensive documentation
-- **Error handling**: Robust exception management
-- **Input validation**: Security-focused validation
-- **Testing**: High test coverage with unit and integration tests
+- **Type Hints**: Full type annotation coverage
+- **Docstrings**: Comprehensive function documentation
+- **Error Handling**: Proper exception management
+- **Input Validation**: Secure parameter validation
 
-### Adding New Endpoints
+### Adding New Features
 
-1. Define the endpoint function in `main.py`
-2. Add appropriate type hints and docstrings
-3. Implement input validation if needed
-4. Add error handling with consistent JSON responses
-5. Write comprehensive tests in `tests/`
+1. **Add endpoint logic** to `main.py`
+2. **Update API contracts** in docstrings
+3. **Add comprehensive tests** in `tests/test_main.py`
+4. **Update documentation** in this README
+5. **Test thoroughly** before deployment
+
+## Deployment
+
+### Docker Deployment
+
+Create a `Dockerfile`:
+
+```dockerfile
+FROM python:3.12-slim
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY main.py .
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+Build and run:
+
+```bash
+docker build -t hello-world-api .
+docker run -p 8000:8000 hello-world-api
+```
+
+### Production Considerations
+
+- **Process Manager**: Use Gunicorn with Uvicorn workers
+- **Reverse Proxy**: Deploy behind Nginx or similar
+- **Environment Variables**: Configure host, port, and other settings
+- **Logging**: Implement structured logging for production
+- **Monitoring**: Set up health check monitoring
+- **Security**: Add HTTPS, rate limiting, and security headers
 
 ## Troubleshooting
 
@@ -218,8 +279,16 @@ The project follows Python best practices:
 
 **Error**: `OSError: [Errno 48] Address already in use`
 
-**Solution**: Use a different port:
+**Solution**: Use a different port or kill the process using port 8000
+
 ```bash
+# Find process using port 8000
+lsof -i :8000
+
+# Kill the process (replace PID with actual process ID)
+kill -9 <PID>
+
+# Or use a different port
 uvicorn main:app --port 8001
 ```
 
@@ -227,91 +296,58 @@ uvicorn main:app --port 8001
 
 **Error**: `ModuleNotFoundError: No module named 'fastapi'`
 
-**Solution**: Install dependencies:
+**Solution**: Install dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-#### Permission Denied (Production)
+#### Permission Errors
 
 **Error**: `PermissionError: [Errno 13] Permission denied`
 
-**Solution**: Use a port above 1024 or run with appropriate permissions:
-```bash
-uvicorn main:app --port 8080
-```
-
-#### CORS Issues in Browser
-
-**Error**: Cross-origin request blocked
-
-**Solution**: The API includes CORS middleware for development. For production, configure specific origins in `main.py`:
-```python
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://yourdomain.com"],
-    allow_credentials=True,
-    allow_methods=["GET"],
-    allow_headers=["*"],
-)
-```
-
-### Debugging
-
-#### Enable Debug Logging
-
-Add logging configuration to see detailed request information:
+**Solution**: Check file permissions or use virtual environment
 
 ```bash
-uvicorn main:app --log-level debug
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+# or
+venv\Scripts\activate  # Windows
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-#### Test API Endpoints
+#### Invalid Name Parameter
 
-Use curl or httpie to test endpoints:
+**Error**: 400 Bad Request when testing `/hello` endpoint
+
+**Solution**: Ensure name parameter contains only alphanumeric characters and spaces
 
 ```bash
-# Test basic functionality
-curl -v http://localhost:8000/hello
+# Valid examples
+curl "http://localhost:8000/hello?name=Alice"
+curl "http://localhost:8000/hello?name=John%20Doe"
+curl "http://localhost:8000/hello?name=User123"
 
-# Test with parameters
-curl -v "http://localhost:8000/hello?name=Test User"
-
-# Test health endpoint
-curl -v http://localhost:8000/health
+# Invalid examples (will return 400 error)
+curl "http://localhost:8000/hello?name=user@domain.com"  # Contains @
+curl "http://localhost:8000/hello?name=user-name"       # Contains -
 ```
 
-#### Validate JSON Responses
+### Performance Issues
 
-Use jq to format JSON responses:
+#### Slow Response Times
 
-```bash
-curl -s http://localhost:8000/hello | jq .
-```
+**Symptoms**: API responses taking longer than expected
 
-### Performance Considerations
+**Solutions**:
+- Check system resources (CPU, memory)
+- Monitor for blocking operations
+- Use async/await for I/O operations
+- Consider connection pooling for databases
 
-- The API is designed for high concurrency with FastAPI's async capabilities
-- No blocking operations in endpoint handlers
-- Minimal memory footprint with no external dependencies
-- Suitable for containerization with Docker
+#### High Memory Usage
 
-### Security Notes
-
-- Input validation prevents injection attacks
-- No sensitive data stored or transmitted
-- CORS configured for development (restrict for production)
-- Error messages don't expose internal system details
-- No authentication required (add as needed for production use)
-
-## Contributing
-
-1. Follow PEP 8 style guidelines
-2. Add type hints to all functions
-3. Write comprehensive tests for new features
-4. Update documentation for API changes
-5. Ensure all tests pass before submitting changes
-
-## License
-
-This project is provided as-is for educational and development purposes.
+**

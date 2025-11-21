@@ -45,35 +45,31 @@ class JWTSignatureError(JWTError):
 
 class JWTUtils:
     """
-    JWT token utilities for secure token generation, validation, and decoding.
+    JWT token utilities for generation, validation, and decoding.
     
-    Provides methods for creating JWT tokens with expiration, validating tokens,
-    and extracting payload data with proper security checks.
+    Provides secure JWT token management with HMAC-SHA256 signing,
+    expiration handling, and comprehensive validation.
     """
     
-    def __init__(self, secret_key: str, algorithm: str = "HS256", default_expiry_hours: int = 24):
+    def __init__(self, secret_key: str, default_expiry_hours: int = 24) -> None:
         """
-        Initialize JWT utilities with secret key and configuration.
+        Initialize JWT utilities with secret key and default expiry.
         
         Args:
-            secret_key: Secret key for signing tokens (minimum 32 characters recommended)
-            algorithm: Signing algorithm (currently supports HS256)
-            default_expiry_hours: Default token expiration time in hours
+            secret_key: Secret key for signing tokens (minimum 32 characters)
+            default_expiry_hours: Default token expiry time in hours
             
         Raises:
-            ValueError: If secret key is too short or algorithm is unsupported
+            ValueError: If secret key is too short or invalid
         """
-        if len(secret_key) < 32:
-            raise ValueError("Secret key must be at least 32 characters long for security")
-        
-        if algorithm != "HS256":
-            raise ValueError("Only HS256 algorithm is currently supported")
+        if not secret_key or len(secret_key) < 32:
+            raise ValueError("Secret key must be at least 32 characters long")
         
         self.secret_key = secret_key.encode('utf-8')
-        self.algorithm = algorithm
         self.default_expiry_hours = default_expiry_hours
+        self.algorithm = 'HS256'
         
-        logger.info(f"JWT utilities initialized with algorithm {algorithm}")
+        logger.info("JWT utilities initialized with %d hour default expiry", default_expiry_hours)
     
     def generate_token(
         self, 
@@ -82,144 +78,151 @@ class JWTUtils:
         include_jti: bool = True
     ) -> str:
         """
-        Generate a JWT token with the given payload and expiration time.
+        Generate a JWT token with the given payload.
         
         Args:
-            payload: Dictionary containing token claims/data
-            expiry_hours: Token expiration time in hours (uses default if None)
+            payload: Dictionary containing token claims
+            expiry_hours: Token expiry time in hours (uses default if None)
             include_jti: Whether to include a unique token ID (jti claim)
             
         Returns:
-            str: Base64-encoded JWT token
+            str: Encoded JWT token
             
         Raises:
-            ValueError: If payload contains reserved claims or invalid data
+            ValueError: If payload is invalid
             JWTError: If token generation fails
         """
+        if not isinstance(payload, dict):
+            raise ValueError("Payload must be a dictionary")
+        
         try:
-            # Validate payload doesn't contain reserved claims
-            reserved_claims = {'iat', 'exp', 'jti'}
-            if any(claim in payload for claim in reserved_claims):
-                raise ValueError(f"Payload cannot contain reserved claims: {reserved_claims}")
-            
             # Create header
             header = {
-                "alg": self.algorithm,
-                "typ": "JWT"
+                'typ': 'JWT',
+                'alg': self.algorithm
             }
             
             # Create payload with standard claims
-            current_time = datetime.now(timezone.utc)
-            expiry_time = current_time + timedelta(hours=expiry_hours or self.default_expiry_hours)
+            now = datetime.now(timezone.utc)
+            expiry_time = expiry_hours or self.default_expiry_hours
+            exp_time = now + timedelta(hours=expiry_time)
             
             token_payload = payload.copy()
             token_payload.update({
-                "iat": int(current_time.timestamp()),
-                "exp": int(expiry_time.timestamp())
+                'iat': int(now.timestamp()),  # Issued at
+                'exp': int(exp_time.timestamp()),  # Expiration time
+                'nbf': int(now.timestamp())  # Not before
             })
             
             # Add unique token ID if requested
             if include_jti:
-                token_payload["jti"] = self._generate_token_id()
+                token_payload['jti'] = self._generate_jti()
             
             # Encode header and payload
-            encoded_header = self._base64_url_encode(json.dumps(header, separators=(',', ':')))
-            encoded_payload = self._base64_url_encode(json.dumps(token_payload, separators=(',', ':')))
+            encoded_header = self._base64url_encode(json.dumps(header, separators=(',', ':')))
+            encoded_payload = self._base64url_encode(json.dumps(token_payload, separators=(',', ':')))
             
             # Create signature
             message = f"{encoded_header}.{encoded_payload}"
             signature = self._create_signature(message)
-            encoded_signature = self._base64_url_encode(signature)
+            encoded_signature = self._base64url_encode(signature)
             
-            # Combine parts
-            token = f"{encoded_header}.{encoded_payload}.{encoded_signature}"
+            token = f"{message}.{encoded_signature}"
             
-            logger.info(f"JWT token generated successfully, expires at {expiry_time.isoformat()}")
+            logger.debug("Generated JWT token with expiry: %s", exp_time.isoformat())
             return token
             
         except Exception as e:
-            logger.error(f"Failed to generate JWT token: {str(e)}")
+            logger.error("Failed to generate JWT token: %s", str(e))
             raise JWTError(f"Token generation failed: {str(e)}") from e
     
-    def validate_token(self, token: str, verify_expiration: bool = True) -> bool:
+    def validate_token(self, token: str, verify_expiry: bool = True) -> Dict[str, Any]:
         """
-        Validate a JWT token's signature and expiration.
+        Validate and decode a JWT token.
         
         Args:
             token: JWT token string to validate
-            verify_expiration: Whether to check if token has expired
+            verify_expiry: Whether to check token expiration
             
         Returns:
-            bool: True if token is valid, False otherwise
-            
-        Raises:
-            JWTInvalidError: If token format is invalid
-            JWTSignatureError: If signature verification fails
-            JWTExpiredError: If token has expired (when verify_expiration=True)
-        """
-        try:
-            # Parse token parts
-            parts = token.split('.')
-            if len(parts) != 3:
-                raise JWTInvalidError("Invalid token format: must have 3 parts separated by dots")
-            
-            encoded_header, encoded_payload, encoded_signature = parts
-            
-            # Verify signature
-            message = f"{encoded_header}.{encoded_payload}"
-            expected_signature = self._create_signature(message)
-            provided_signature = self._base64_url_decode(encoded_signature)
-            
-            if not hmac.compare_digest(expected_signature, provided_signature):
-                raise JWTSignatureError("Token signature verification failed")
-            
-            # Decode and validate payload
-            payload = self._decode_payload(encoded_payload)
-            
-            # Check expiration if requested
-            if verify_expiration and 'exp' in payload:
-                current_timestamp = int(time.time())
-                if current_timestamp >= payload['exp']:
-                    raise JWTExpiredError("Token has expired")
-            
-            logger.debug("JWT token validation successful")
-            return True
-            
-        except (JWTInvalidError, JWTSignatureError, JWTExpiredError):
-            raise
-        except Exception as e:
-            logger.error(f"Token validation error: {str(e)}")
-            raise JWTInvalidError(f"Token validation failed: {str(e)}") from e
-    
-    def decode_token(self, token: str, verify_signature: bool = True, verify_expiration: bool = True) -> Dict[str, Any]:
-        """
-        Decode a JWT token and return its payload.
-        
-        Args:
-            token: JWT token string to decode
-            verify_signature: Whether to verify token signature
-            verify_expiration: Whether to check if token has expired
-            
-        Returns:
-            Dict[str, Any]: Token payload data
+            Dict[str, Any]: Decoded token payload
             
         Raises:
             JWTInvalidError: If token format is invalid
             JWTSignatureError: If signature verification fails
             JWTExpiredError: If token has expired
         """
+        if not token or not isinstance(token, str):
+            raise JWTInvalidError("Token must be a non-empty string")
+        
         try:
-            # Parse token parts
+            # Split token into parts
             parts = token.split('.')
             if len(parts) != 3:
-                raise JWTInvalidError("Invalid token format: must have 3 parts separated by dots")
+                raise JWTInvalidError("Token must have exactly 3 parts separated by dots")
             
             encoded_header, encoded_payload, encoded_signature = parts
             
-            # Verify signature if requested
-            if verify_signature:
-                message = f"{encoded_header}.{encoded_payload}"
-                expected_signature = self._create_signature(message)
-                provided_signature = self._base64_url_decode(encoded_signature)
-                
-                if
+            # Verify signature
+            message = f"{encoded_header}.{encoded_payload}"
+            if not self._verify_signature(message, encoded_signature):
+                raise JWTSignatureError("Token signature verification failed")
+            
+            # Decode header and payload
+            header = json.loads(self._base64url_decode(encoded_header))
+            payload = json.loads(self._base64url_decode(encoded_payload))
+            
+            # Verify header
+            if header.get('typ') != 'JWT' or header.get('alg') != self.algorithm:
+                raise JWTInvalidError("Invalid token header")
+            
+            # Verify expiration if requested
+            if verify_expiry:
+                self._verify_expiration(payload)
+            
+            # Verify not-before claim
+            self._verify_not_before(payload)
+            
+            logger.debug("Successfully validated JWT token")
+            return payload
+            
+        except (JWTError, json.JSONDecodeError) as e:
+            logger.warning("JWT validation failed: %s", str(e))
+            raise
+        except Exception as e:
+            logger.error("Unexpected error during JWT validation: %s", str(e))
+            raise JWTInvalidError(f"Token validation failed: {str(e)}") from e
+    
+    def decode_token_unsafe(self, token: str) -> Dict[str, Any]:
+        """
+        Decode a JWT token without validation (for debugging/inspection only).
+        
+        WARNING: This method does not verify the token signature or expiration.
+        Only use for debugging or when you need to inspect an expired token.
+        
+        Args:
+            token: JWT token string to decode
+            
+        Returns:
+            Dict[str, Any]: Decoded token payload
+            
+        Raises:
+            JWTInvalidError: If token format is invalid
+        """
+        if not token or not isinstance(token, str):
+            raise JWTInvalidError("Token must be a non-empty string")
+        
+        try:
+            parts = token.split('.')
+            if len(parts) != 3:
+                raise JWTInvalidError("Token must have exactly 3 parts separated by dots")
+            
+            encoded_payload = parts[1]
+            payload = json.loads(self._base64url_decode(encoded_payload))
+            
+            logger.debug("Decoded JWT token payload (unsafe)")
+            return payload
+            
+        except (json.JSONDecodeError, Exception) as e:
+            logger.error("Failed to decode JWT token: %s", str(e))
+            raise JWTInvalidError(f"Token decoding faile

@@ -1,7 +1,7 @@
 """
 Unit tests for JWT utilities
 
-Tests JWT token generation, validation, expiration, and security edge cases.
+Tests JWT token generation, validation, expiration handling, and error scenarios.
 
 Component ID: COMP-008
 Semantic Unit: SU-008
@@ -16,184 +16,180 @@ import jwt
 from freezegun import freeze_time
 
 from src.utils.jwt_utils import (
-    generate_token,
-    validate_token,
-    decode_token,
-    is_token_expired,
-    refresh_token,
-    revoke_token,
-    get_token_claims,
-    JWTError,
+    JWTUtils,
     TokenExpiredError,
     InvalidTokenError,
-    RevokedTokenError
+    TokenDecodeError
 )
 
 
-class TestGenerateToken:
-    """Test cases for JWT token generation."""
+class TestJWTUtils:
+    """Test suite for JWTUtils class."""
 
-    def test_generate_token_with_valid_payload(self):
-        """Test that generate_token creates valid JWT with correct payload."""
-        payload = {"user_id": 123, "username": "testuser"}
-        token = generate_token(payload)
-        
-        assert isinstance(token, str)
-        assert len(token.split('.')) == 3  # JWT has 3 parts
-        
-        # Decode without verification to check payload
-        decoded = jwt.decode(token, options={"verify_signature": False})
-        assert decoded["user_id"] == 123
-        assert decoded["username"] == "testuser"
-        assert "exp" in decoded
-        assert "iat" in decoded
-        assert "jti" in decoded
+    @pytest.fixture
+    def jwt_utils(self):
+        """Create JWTUtils instance with test configuration."""
+        return JWTUtils(
+            secret_key="test_secret_key_12345",
+            algorithm="HS256",
+            access_token_expire_minutes=30,
+            refresh_token_expire_days=7
+        )
 
-    def test_generate_token_with_custom_expiration(self):
-        """Test that generate_token respects custom expiration time."""
-        payload = {"user_id": 123}
-        expires_in = timedelta(hours=2)
+    @pytest.fixture
+    def sample_payload(self):
+        """Sample payload for token generation."""
+        return {
+            "user_id": "123",
+            "username": "testuser",
+            "email": "test@example.com"
+        }
+
+    def test_init_with_default_values(self):
+        """Test JWTUtils initialization with default values."""
+        jwt_utils = JWTUtils(secret_key="test_key")
+        
+        assert jwt_utils.secret_key == "test_key"
+        assert jwt_utils.algorithm == "HS256"
+        assert jwt_utils.access_token_expire_minutes == 15
+        assert jwt_utils.refresh_token_expire_days == 30
+
+    def test_init_with_custom_values(self, jwt_utils):
+        """Test JWTUtils initialization with custom values."""
+        assert jwt_utils.secret_key == "test_secret_key_12345"
+        assert jwt_utils.algorithm == "HS256"
+        assert jwt_utils.access_token_expire_minutes == 30
+        assert jwt_utils.refresh_token_expire_days == 7
+
+    def test_init_with_empty_secret_key_raises_error(self):
+        """Test that empty secret key raises ValueError."""
+        with pytest.raises(ValueError, match="Secret key cannot be empty"):
+            JWTUtils(secret_key="")
+
+    def test_init_with_none_secret_key_raises_error(self):
+        """Test that None secret key raises ValueError."""
+        with pytest.raises(ValueError, match="Secret key cannot be empty"):
+            JWTUtils(secret_key=None)
+
+    def test_init_with_invalid_algorithm_raises_error(self):
+        """Test that invalid algorithm raises ValueError."""
+        with pytest.raises(ValueError, match="Unsupported algorithm"):
+            JWTUtils(secret_key="test", algorithm="INVALID")
+
+    def test_generate_access_token_success(self, jwt_utils, sample_payload):
+        """Test successful access token generation."""
+        with freeze_time("2023-01-01 12:00:00"):
+            token = jwt_utils.generate_access_token(sample_payload)
+            
+            assert isinstance(token, str)
+            assert len(token) > 0
+            
+            # Decode token to verify payload
+            decoded = jwt.decode(
+                token,
+                jwt_utils.secret_key,
+                algorithms=[jwt_utils.algorithm]
+            )
+            
+            assert decoded["user_id"] == "123"
+            assert decoded["username"] == "testuser"
+            assert decoded["email"] == "test@example.com"
+            assert decoded["type"] == "access"
+            assert "exp" in decoded
+            assert "iat" in decoded
+
+    def test_generate_access_token_with_custom_expiry(self, jwt_utils, sample_payload):
+        """Test access token generation with custom expiry time."""
+        custom_expiry = 60  # 60 minutes
         
         with freeze_time("2023-01-01 12:00:00"):
-            token = generate_token(payload, expires_in=expires_in)
-            decoded = jwt.decode(token, options={"verify_signature": False})
+            token = jwt_utils.generate_access_token(sample_payload, expires_delta=custom_expiry)
             
-            expected_exp = datetime(2023, 1, 1, 14, 0, 0, tzinfo=timezone.utc).timestamp()
+            decoded = jwt.decode(
+                token,
+                jwt_utils.secret_key,
+                algorithms=[jwt_utils.algorithm]
+            )
+            
+            expected_exp = datetime(2023, 1, 1, 13, 0, 0, tzinfo=timezone.utc).timestamp()
             assert decoded["exp"] == expected_exp
 
-    def test_generate_token_with_empty_payload(self):
-        """Test that generate_token works with empty payload."""
-        payload = {}
-        token = generate_token(payload)
-        
-        assert isinstance(token, str)
-        decoded = jwt.decode(token, options={"verify_signature": False})
-        assert "exp" in decoded
-        assert "iat" in decoded
-        assert "jti" in decoded
-
-    def test_generate_token_includes_required_claims(self):
-        """Test that generate_token includes all required JWT claims."""
-        payload = {"user_id": 123}
-        
+    def test_generate_refresh_token_success(self, jwt_utils, sample_payload):
+        """Test successful refresh token generation."""
         with freeze_time("2023-01-01 12:00:00"):
-            token = generate_token(payload)
-            decoded = jwt.decode(token, options={"verify_signature": False})
+            token = jwt_utils.generate_refresh_token(sample_payload)
             
-            # Check required claims
-            assert decoded["iat"] == datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc).timestamp()
+            assert isinstance(token, str)
+            assert len(token) > 0
+            
+            # Decode token to verify payload
+            decoded = jwt.decode(
+                token,
+                jwt_utils.secret_key,
+                algorithms=[jwt_utils.algorithm]
+            )
+            
+            assert decoded["user_id"] == "123"
+            assert decoded["username"] == "testuser"
+            assert decoded["email"] == "test@example.com"
+            assert decoded["type"] == "refresh"
             assert "exp" in decoded
-            assert "jti" in decoded
-            assert len(decoded["jti"]) > 0
+            assert "iat" in decoded
 
-    def test_generate_token_with_none_payload_raises_error(self):
-        """Test that generate_token raises error with None payload."""
-        with pytest.raises(ValueError, match="Payload cannot be None"):
-            generate_token(None)
-
-    def test_generate_token_with_invalid_expiration_raises_error(self):
-        """Test that generate_token raises error with negative expiration."""
-        payload = {"user_id": 123}
-        expires_in = timedelta(hours=-1)
-        
-        with pytest.raises(ValueError, match="Expiration time must be positive"):
-            generate_token(payload, expires_in=expires_in)
-
-
-class TestValidateToken:
-    """Test cases for JWT token validation."""
-
-    def test_validate_token_with_valid_token_returns_true(self):
-        """Test that validate_token returns True for valid token."""
-        payload = {"user_id": 123}
-        token = generate_token(payload)
-        
-        assert validate_token(token) is True
-
-    def test_validate_token_with_expired_token_returns_false(self):
-        """Test that validate_token returns False for expired token."""
-        payload = {"user_id": 123}
-        expires_in = timedelta(seconds=1)
+    def test_generate_refresh_token_with_custom_expiry(self, jwt_utils, sample_payload):
+        """Test refresh token generation with custom expiry time."""
+        custom_expiry = 14  # 14 days
         
         with freeze_time("2023-01-01 12:00:00"):
-            token = generate_token(payload, expires_in=expires_in)
-        
-        with freeze_time("2023-01-01 12:00:02"):
-            assert validate_token(token) is False
+            token = jwt_utils.generate_refresh_token(sample_payload, expires_delta=custom_expiry)
+            
+            decoded = jwt.decode(
+                token,
+                jwt_utils.secret_key,
+                algorithms=[jwt_utils.algorithm]
+            )
+            
+            expected_exp = datetime(2023, 1, 15, 12, 0, 0, tzinfo=timezone.utc).timestamp()
+            assert decoded["exp"] == expected_exp
 
-    def test_validate_token_with_invalid_signature_returns_false(self):
-        """Test that validate_token returns False for token with invalid signature."""
-        payload = {"user_id": 123}
-        token = generate_token(payload)
-        
-        # Tamper with token
-        parts = token.split('.')
-        tampered_token = parts[0] + '.' + parts[1] + '.invalid_signature'
-        
-        assert validate_token(tampered_token) is False
-
-    def test_validate_token_with_malformed_token_returns_false(self):
-        """Test that validate_token returns False for malformed token."""
-        malformed_tokens = [
-            "not.a.jwt",
-            "invalid_token",
-            "",
-            "a.b",  # Missing part
-            "a.b.c.d"  # Too many parts
-        ]
-        
-        for token in malformed_tokens:
-            assert validate_token(token) is False
-
-    def test_validate_token_with_none_token_returns_false(self):
-        """Test that validate_token returns False for None token."""
-        assert validate_token(None) is False
-
-    @patch('src.utils.jwt_utils.is_token_revoked')
-    def test_validate_token_with_revoked_token_returns_false(self, mock_is_revoked):
-        """Test that validate_token returns False for revoked token."""
-        mock_is_revoked.return_value = True
-        
-        payload = {"user_id": 123}
-        token = generate_token(payload)
-        
-        assert validate_token(token) is False
-
-
-class TestDecodeToken:
-    """Test cases for JWT token decoding."""
-
-    def test_decode_token_with_valid_token_returns_payload(self):
-        """Test that decode_token returns correct payload for valid token."""
-        payload = {"user_id": 123, "username": "testuser"}
-        token = generate_token(payload)
-        
-        decoded = decode_token(token)
-        assert decoded["user_id"] == 123
-        assert decoded["username"] == "testuser"
-
-    def test_decode_token_with_expired_token_raises_error(self):
-        """Test that decode_token raises TokenExpiredError for expired token."""
-        payload = {"user_id": 123}
-        expires_in = timedelta(seconds=1)
-        
+    def test_validate_token_success(self, jwt_utils, sample_payload):
+        """Test successful token validation."""
         with freeze_time("2023-01-01 12:00:00"):
-            token = generate_token(payload, expires_in=expires_in)
+            token = jwt_utils.generate_access_token(sample_payload)
+            
+            # Validate immediately after generation
+            decoded_payload = jwt_utils.validate_token(token)
+            
+            assert decoded_payload["user_id"] == "123"
+            assert decoded_payload["username"] == "testuser"
+            assert decoded_payload["email"] == "test@example.com"
+            assert decoded_payload["type"] == "access"
+
+    def test_validate_token_expired_raises_error(self, jwt_utils, sample_payload):
+        """Test that expired token raises TokenExpiredError."""
+        with freeze_time("2023-01-01 12:00:00"):
+            token = jwt_utils.generate_access_token(sample_payload)
         
-        with freeze_time("2023-01-01 12:00:02"):
+        # Move time forward past expiration
+        with freeze_time("2023-01-01 13:00:00"):
             with pytest.raises(TokenExpiredError, match="Token has expired"):
-                decode_token(token)
+                jwt_utils.validate_token(token)
 
-    def test_decode_token_with_invalid_signature_raises_error(self):
-        """Test that decode_token raises InvalidTokenError for invalid signature."""
-        payload = {"user_id": 123}
-        token = generate_token(payload)
+    def test_validate_token_invalid_signature_raises_error(self, jwt_utils, sample_payload):
+        """Test that token with invalid signature raises InvalidTokenError."""
+        token = jwt_utils.generate_access_token(sample_payload)
         
-        # Tamper with token
-        parts = token.split('.')
-        tampered_token = parts[0] + '.' + parts[1] + '.invalid_signature'
+        # Create JWTUtils with different secret key
+        different_jwt_utils = JWTUtils(secret_key="different_secret")
         
         with pytest.raises(InvalidTokenError, match="Invalid token signature"):
-            decode_token(tampered_token)
+            different_jwt_utils.validate_token(token)
 
-    def test_decode_token_with_malformed_token_raises
+    def test_validate_token_malformed_raises_error(self, jwt_utils):
+        """Test that malformed token raises TokenDecodeError."""
+        malformed_token = "invalid.token.format"
+        
+        with pytest.raises(TokenDecodeError, match="Failed to decode token"):
+            jwt_utils.validate_token(malformed_token)
+
+    def test_validate

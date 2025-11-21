@@ -43,11 +43,11 @@ class TestTaskModel:
         assert isinstance(task.updated_at, datetime)
 
     def test_task_creation_with_all_fields(self, db_session: Session, sample_user: User):
-        """Test that Task can be created with all fields populated."""
+        """Test that Task can be created with all fields specified."""
         due_date = datetime.utcnow() + timedelta(days=7)
         task = Task(
             title="Complete Task",
-            description="This is a test task with full details",
+            description="This is a test task with all fields",
             status=TaskStatus.IN_PROGRESS,
             priority=TaskPriority.HIGH,
             due_date=due_date,
@@ -57,7 +57,7 @@ class TestTaskModel:
         db_session.commit()
         
         assert task.title == "Complete Task"
-        assert task.description == "This is a test task with full details"
+        assert task.description == "This is a test task with all fields"
         assert task.status == TaskStatus.IN_PROGRESS
         assert task.priority == TaskPriority.HIGH
         assert task.due_date == due_date
@@ -109,7 +109,7 @@ class TestTaskModel:
         
         assert task.description == long_description
 
-    def test_task_timestamps_auto_populated(self, db_session: Session, sample_user: User):
+    def test_task_timestamps_auto_generated(self, db_session: Session, sample_user: User):
         """Test that created_at and updated_at are automatically set."""
         before_creation = datetime.utcnow()
         task = Task(title="Test Task", user_id=sample_user.id)
@@ -182,9 +182,7 @@ class TestTaskStatusTransitions:
         
         assert task.status == TaskStatus.CANCELLED
 
-    def test_task_status_enum_values(self):
-        """Test that TaskStatus enum has expected values."""
-        assert TaskStatus.PENDING.value == "pending"
-        assert TaskStatus.IN_PROGRESS.value == "in_progress"
-        assert TaskStatus.COMPLETED.value == "completed"
-        assert TaskStatus.CANCELLED.value == "cancelled"
+    def test_task_status_transition_from_pending_to_in_progress(self, db_session: Session, sample_user: User):
+        """Test valid status transition from PENDING to IN_PROGRESS."""
+        task = Task(title="Test Task", user_id=sample_user.id, status=TaskStatus.PENDING)
+        db_session.add(task

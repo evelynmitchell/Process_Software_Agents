@@ -1,8 +1,8 @@
 """
 Pydantic schemas for task request/response validation.
 
-This module defines the data models used for task-related API operations
-including creation, updates, and response formatting.
+This module defines the data models used for task-related API endpoints,
+including create, update, and response schemas with proper validation.
 
 Component ID: COMP-007
 Semantic Unit: SU-007
@@ -26,7 +26,7 @@ class TaskStatus(str, Enum):
 
 
 class TaskPriority(str, Enum):
-    """Enumeration of task priority levels."""
+    """Enumeration of possible task priorities."""
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -62,9 +62,9 @@ class TaskCreateRequest(BaseModel):
 
     @validator('title')
     def validate_title(cls, v: str) -> str:
-        """Validate and clean task title."""
-        if not v or not v.strip():
-            raise ValueError('Title cannot be empty or whitespace only')
+        """Validate task title is not empty after stripping whitespace."""
+        if not v.strip():
+            raise ValueError('Title cannot be empty or only whitespace')
         return v.strip()
 
     @validator('description')
@@ -87,15 +87,18 @@ class TaskCreateRequest(BaseModel):
     def validate_tags(cls, v: Optional[list[str]]) -> Optional[list[str]]:
         """Validate and clean task tags."""
         if v is not None:
-            # Remove empty tags and duplicates
+            # Remove empty tags and duplicates while preserving order
             cleaned_tags = []
             seen = set()
             for tag in v:
-                if isinstance(tag, str):
-                    tag = tag.strip().lower()
-                    if tag and tag not in seen and len(tag) <= 50:
-                        cleaned_tags.append(tag)
-                        seen.add(tag)
+                tag = tag.strip().lower()
+                if tag and tag not in seen:
+                    if len(tag) > 50:
+                        raise ValueError('Tag length cannot exceed 50 characters')
+                    if not tag.replace('-', '').replace('_', '').isalnum():
+                        raise ValueError('Tags can only contain alphanumeric characters, hyphens, and underscores')
+                    cleaned_tags.append(tag)
+                    seen.add(tag)
             return cleaned_tags if cleaned_tags else None
         return v
 
@@ -103,6 +106,15 @@ class TaskCreateRequest(BaseModel):
         """Pydantic model configuration."""
         json_encoders = {
             datetime: lambda v: v.isoformat() + 'Z' if v else None
+        }
+        schema_extra = {
+            "example": {
+                "title": "Complete project documentation",
+                "description": "Write comprehensive documentation for the new API endpoints",
+                "priority": "high",
+                "due_date": "2024-01-15T10:00:00Z",
+                "tags": ["documentation", "api", "urgent"]
+            }
         }
 
 
@@ -139,11 +151,11 @@ class TaskUpdateRequest(BaseModel):
 
     @validator('title')
     def validate_title(cls, v: Optional[str]) -> Optional[str]:
-        """Validate and clean task title."""
+        """Validate task title is not empty after stripping whitespace."""
         if v is not None:
-            if not v or not v.strip():
-                raise ValueError('Title cannot be empty or whitespace only')
-            return v.strip()
+            v = v.strip()
+            if not v:
+                raise ValueError('Title cannot be empty or only whitespace')
         return v
 
     @validator('description')
@@ -166,15 +178,18 @@ class TaskUpdateRequest(BaseModel):
     def validate_tags(cls, v: Optional[list[str]]) -> Optional[list[str]]:
         """Validate and clean task tags."""
         if v is not None:
-            # Remove empty tags and duplicates
+            # Remove empty tags and duplicates while preserving order
             cleaned_tags = []
             seen = set()
             for tag in v:
-                if isinstance(tag, str):
-                    tag = tag.strip().lower()
-                    if tag and tag not in seen and len(tag) <= 50:
-                        cleaned_tags.append(tag)
-                        seen.add(tag)
+                tag = tag.strip().lower()
+                if tag and tag not in seen:
+                    if len(tag) > 50:
+                        raise ValueError('Tag length cannot exceed 50 characters')
+                    if not tag.replace('-', '').replace('_', '').isalnum():
+                        raise ValueError('Tags can only contain alphanumeric characters, hyphens, and underscores')
+                    cleaned_tags.append(tag)
+                    seen.add(tag)
             return cleaned_tags if cleaned_tags else None
         return v
 
@@ -183,50 +198,58 @@ class TaskUpdateRequest(BaseModel):
         json_encoders = {
             datetime: lambda v: v.isoformat() + 'Z' if v else None
         }
+        schema_extra = {
+            "example": {
+                "title": "Complete project documentation - Updated",
+                "status": "in_progress",
+                "priority": "urgent"
+            }
+        }
 
 
 class TaskResponse(BaseModel):
     """Schema for task response data."""
     
-    id: int = Field(..., description="Unique task identifier")
-    title: str = Field(..., description="Task title")
-    description: Optional[str] = Field(None, description="Task description")
-    status: TaskStatus = Field(..., description="Current task status")
-    priority: TaskPriority = Field(..., description="Task priority level")
-    due_date: Optional[datetime] = Field(None, description="Task due date")
-    tags: Optional[list[str]] = Field(None, description="Task tags")
-    created_at: datetime = Field(..., description="Task creation timestamp")
-    updated_at: datetime = Field(..., description="Last update timestamp")
+    id: int = Field(
+        ...,
+        description="Unique task identifier"
+    )
+    title: str = Field(
+        ...,
+        description="Task title"
+    )
+    description: Optional[str] = Field(
+        None,
+        description="Task description"
+    )
+    status: TaskStatus = Field(
+        ...,
+        description="Current task status"
+    )
+    priority: TaskPriority = Field(
+        ...,
+        description="Task priority level"
+    )
+    created_at: datetime = Field(
+        ...,
+        description="Task creation timestamp"
+    )
+    updated_at: datetime = Field(
+        ...,
+        description="Task last update timestamp"
+    )
+    due_date: Optional[datetime] = Field(
+        None,
+        description="Task due date"
+    )
+    completed_at: Optional[datetime] = Field(
+        None,
+        description="Task completion timestamp"
+    )
+    tags: Optional[list[str]] = Field(
+        None,
+        description="List of task tags"
+    )
 
     class Config:
         """Pydantic model configuration."""
-        json_encoders = {
-            datetime: lambda v: v.isoformat() + 'Z' if v else None
-        }
-        orm_mode = True
-
-
-class TaskListResponse(BaseModel):
-    """Schema for paginated task list response."""
-    
-    tasks: list[TaskResponse] = Field(..., description="List of tasks")
-    total: int = Field(..., ge=0, description="Total number of tasks")
-    page: int = Field(..., ge=1, description="Current page number")
-    per_page: int = Field(..., ge=1, le=100, description="Items per page")
-    pages: int = Field(..., ge=0, description="Total number of pages")
-
-    class Config:
-        """Pydantic model configuration."""
-        json_encoders = {
-            datetime: lambda v: v.isoformat() + 'Z' if v else None
-        }
-
-
-class TaskStatusUpdateRequest(BaseModel):
-    """Schema for updating only task status."""
-    
-    status: TaskStatus = Field(..., description="New task status")
-
-    class Config:
-        """Pydantic model configuration."""
-        use_enum_values = True

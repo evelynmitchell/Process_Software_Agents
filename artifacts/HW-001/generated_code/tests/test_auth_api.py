@@ -1,8 +1,8 @@
 """
 Comprehensive integration tests for authentication endpoints
 
-Tests authentication API endpoints including edge cases, error scenarios,
-and security validation for the Hello World API.
+Tests authentication API endpoints including success cases, validation errors,
+and security scenarios for user registration, login, and token validation.
 
 Component ID: COMP-002
 Semantic Unit: SU-002
@@ -12,167 +12,222 @@ Author: ASP Code Agent
 
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
-from datetime import datetime
+from unittest.mock import Mock, patch
 import json
-import re
+from datetime import datetime, timedelta
+import jwt
+from passlib.context import CryptContext
 
-from src.api.auth import app
+from src.api.auth import app, get_password_hash, verify_password, create_access_token, verify_token
 
 
 @pytest.fixture
 def client():
-    """Create test client for FastAPI application."""
+    """Create test client for FastAPI authentication application."""
     return TestClient(app)
 
 
-class TestHelloEndpoint:
-    """Test suite for /hello endpoint functionality."""
+@pytest.fixture
+def mock_user_data():
+    """Mock user data for testing."""
+    return {
+        "username": "testuser",
+        "email": "test@example.com",
+        "password": "SecurePass123!"
+    }
 
-    def test_hello_endpoint_returns_200_without_name(self, client):
-        """Test that /hello endpoint returns 200 OK status without name parameter."""
-        response = client.get("/hello")
-        assert response.status_code == 200
 
-    def test_hello_endpoint_returns_200_with_valid_name(self, client):
-        """Test that /hello endpoint returns 200 OK status with valid name parameter."""
-        response = client.get("/hello?name=John")
-        assert response.status_code == 200
+@pytest.fixture
+def mock_login_data():
+    """Mock login data for testing."""
+    return {
+        "username": "testuser",
+        "password": "SecurePass123!"
+    }
 
-    def test_hello_endpoint_returns_json_content_type(self, client):
-        """Test that /hello endpoint returns JSON content type."""
-        response = client.get("/hello")
-        assert response.headers["content-type"] == "application/json"
 
-    def test_hello_endpoint_default_message_without_name(self, client):
-        """Test that /hello endpoint returns default message when no name provided."""
-        response = client.get("/hello")
-        data = response.json()
-        assert data["message"] == "Hello, World!"
+@pytest.fixture
+def mock_invalid_user_data():
+    """Mock invalid user data for testing validation."""
+    return {
+        "username": "ab",  # Too short
+        "email": "invalid-email",  # Invalid format
+        "password": "123"  # Too weak
+    }
 
-    def test_hello_endpoint_personalized_message_with_name(self, client):
-        """Test that /hello endpoint returns personalized message with name parameter."""
-        response = client.get("/hello?name=Alice")
-        data = response.json()
-        assert data["message"] == "Hello, Alice!"
 
-    def test_hello_endpoint_response_schema_structure(self, client):
-        """Test that /hello endpoint response matches expected schema structure."""
-        response = client.get("/hello")
-        data = response.json()
-        assert isinstance(data, dict)
-        assert "message" in data
-        assert isinstance(data["message"], str)
-        assert len(data) == 1
+@pytest.fixture
+def mock_database():
+    """Mock database for testing."""
+    return {
+        "users": {
+            "testuser": {
+                "username": "testuser",
+                "email": "test@example.com",
+                "hashed_password": get_password_hash("SecurePass123!"),
+                "created_at": datetime.utcnow().isoformat()
+            }
+        }
+    }
 
-    def test_hello_endpoint_name_with_spaces(self, client):
-        """Test that /hello endpoint handles names with spaces correctly."""
-        response = client.get("/hello?name=John Doe")
-        data = response.json()
-        assert data["message"] == "Hello, John Doe!"
 
-    def test_hello_endpoint_name_with_numbers(self, client):
-        """Test that /hello endpoint handles names with numbers correctly."""
-        response = client.get("/hello?name=User123")
-        data = response.json()
-        assert data["message"] == "Hello, User123!"
+@pytest.fixture
+def valid_token():
+    """Create a valid JWT token for testing."""
+    return create_access_token(data={"sub": "testuser"})
 
-    def test_hello_endpoint_name_case_sensitivity(self, client):
-        """Test that /hello endpoint preserves name case correctly."""
-        response = client.get("/hello?name=mIxEdCaSe")
-        data = response.json()
-        assert data["message"] == "Hello, Mixedcase!"
 
-    def test_hello_endpoint_name_with_leading_trailing_spaces(self, client):
-        """Test that /hello endpoint trims leading and trailing spaces from name."""
-        response = client.get("/hello?name=  John  ")
-        data = response.json()
-        assert data["message"] == "Hello, John!"
+@pytest.fixture
+def expired_token():
+    """Create an expired JWT token for testing."""
+    return create_access_token(
+        data={"sub": "testuser"}, 
+        expires_delta=timedelta(minutes=-1)
+    )
 
-    def test_hello_endpoint_empty_name_parameter(self, client):
-        """Test that /hello endpoint handles empty name parameter."""
-        response = client.get("/hello?name=")
+
+class TestUserRegistration:
+    """Test cases for user registration endpoint."""
+
+    def test_register_user_success(self, client, mock_user_data):
+        """Test successful user registration returns 201 and user data."""
+        with patch('src.api.auth.save_user_to_database') as mock_save:
+            mock_save.return_value = True
+            
+            response = client.post("/auth/register", json=mock_user_data)
+            
+            assert response.status_code == 201
+            data = response.json()
+            assert "user_id" in data
+            assert data["username"] == mock_user_data["username"]
+            assert data["email"] == mock_user_data["email"]
+            assert "password" not in data
+            assert "hashed_password" not in data
+            assert "created_at" in data
+
+    def test_register_user_duplicate_username(self, client, mock_user_data):
+        """Test registration with duplicate username returns 409 conflict."""
+        with patch('src.api.auth.user_exists') as mock_exists:
+            mock_exists.return_value = True
+            
+            response = client.post("/auth/register", json=mock_user_data)
+            
+            assert response.status_code == 409
+            data = response.json()
+            assert data["error"] == "USER_EXISTS"
+            assert "already exists" in data["message"].lower()
+
+    def test_register_user_invalid_username_too_short(self, client):
+        """Test registration with username too short returns 400."""
+        user_data = {
+            "username": "ab",
+            "email": "test@example.com",
+            "password": "SecurePass123!"
+        }
+        
+        response = client.post("/auth/register", json=user_data)
+        
         assert response.status_code == 400
         data = response.json()
-        assert data["code"] == "INVALID_NAME"
+        assert data["error"] == "VALIDATION_ERROR"
+        assert "username" in data["message"].lower()
 
-    def test_hello_endpoint_name_with_special_characters_returns_400(self, client):
-        """Test that /hello endpoint returns 400 for name with special characters."""
-        response = client.get("/hello?name=John@Doe")
+    def test_register_user_invalid_username_too_long(self, client):
+        """Test registration with username too long returns 400."""
+        user_data = {
+            "username": "a" * 51,  # 51 characters
+            "email": "test@example.com",
+            "password": "SecurePass123!"
+        }
+        
+        response = client.post("/auth/register", json=user_data)
+        
         assert response.status_code == 400
         data = response.json()
-        assert data["code"] == "INVALID_NAME"
-        assert "invalid characters" in data["message"]
+        assert data["error"] == "VALIDATION_ERROR"
+        assert "username" in data["message"].lower()
 
-    def test_hello_endpoint_name_with_symbols_returns_400(self, client):
-        """Test that /hello endpoint returns 400 for name with symbols."""
-        response = client.get("/hello?name=John$Smith")
+    def test_register_user_invalid_username_special_chars(self, client):
+        """Test registration with invalid username characters returns 400."""
+        user_data = {
+            "username": "test@user",
+            "email": "test@example.com",
+            "password": "SecurePass123!"
+        }
+        
+        response = client.post("/auth/register", json=user_data)
+        
         assert response.status_code == 400
         data = response.json()
-        assert data["code"] == "INVALID_NAME"
+        assert data["error"] == "VALIDATION_ERROR"
+        assert "username" in data["message"].lower()
 
-    def test_hello_endpoint_name_with_punctuation_returns_400(self, client):
-        """Test that /hello endpoint returns 400 for name with punctuation."""
-        response = client.get("/hello?name=John.Doe")
+    def test_register_user_invalid_email_format(self, client):
+        """Test registration with invalid email format returns 400."""
+        user_data = {
+            "username": "testuser",
+            "email": "invalid-email",
+            "password": "SecurePass123!"
+        }
+        
+        response = client.post("/auth/register", json=user_data)
+        
         assert response.status_code == 400
         data = response.json()
-        assert data["code"] == "INVALID_NAME"
+        assert data["error"] == "VALIDATION_ERROR"
+        assert "email" in data["message"].lower()
 
-    def test_hello_endpoint_name_exceeding_max_length_returns_400(self, client):
-        """Test that /hello endpoint returns 400 for name exceeding 100 characters."""
-        long_name = "a" * 101
-        response = client.get(f"/hello?name={long_name}")
+    def test_register_user_invalid_password_too_short(self, client):
+        """Test registration with password too short returns 400."""
+        user_data = {
+            "username": "testuser",
+            "email": "test@example.com",
+            "password": "123"
+        }
+        
+        response = client.post("/auth/register", json=user_data)
+        
         assert response.status_code == 400
         data = response.json()
-        assert data["code"] == "INVALID_NAME"
-        assert "exceeds 100 characters" in data["message"]
+        assert data["error"] == "VALIDATION_ERROR"
+        assert "password" in data["message"].lower()
 
-    def test_hello_endpoint_name_exactly_100_characters(self, client):
-        """Test that /hello endpoint accepts name with exactly 100 characters."""
-        name_100_chars = "a" * 100
-        response = client.get(f"/hello?name={name_100_chars}")
-        assert response.status_code == 200
-        data = response.json()
-        expected_name = name_100_chars.title()
-        assert data["message"] == f"Hello, {expected_name}!"
-
-    def test_hello_endpoint_name_with_unicode_characters_returns_400(self, client):
-        """Test that /hello endpoint returns 400 for name with unicode characters."""
-        response = client.get("/hello?name=José")
+    def test_register_user_invalid_password_no_uppercase(self, client):
+        """Test registration with password missing uppercase returns 400."""
+        user_data = {
+            "username": "testuser",
+            "email": "test@example.com",
+            "password": "securepass123!"
+        }
+        
+        response = client.post("/auth/register", json=user_data)
+        
         assert response.status_code == 400
         data = response.json()
-        assert data["code"] == "INVALID_NAME"
+        assert data["error"] == "VALIDATION_ERROR"
+        assert "password" in data["message"].lower()
 
-    def test_hello_endpoint_name_with_newlines_returns_400(self, client):
-        """Test that /hello endpoint returns 400 for name with newline characters."""
-        response = client.get("/hello?name=John\nDoe")
+    def test_register_user_invalid_password_no_lowercase(self, client):
+        """Test registration with password missing lowercase returns 400."""
+        user_data = {
+            "username": "testuser",
+            "email": "test@example.com",
+            "password": "SECUREPASS123!"
+        }
+        
+        response = client.post("/auth/register", json=user_data)
+        
         assert response.status_code == 400
         data = response.json()
-        assert data["code"] == "INVALID_NAME"
+        assert data["error"] == "VALIDATION_ERROR"
+        assert "password" in data["message"].lower()
 
-    def test_hello_endpoint_name_with_tabs_returns_400(self, client):
-        """Test that /hello endpoint returns 400 for name with tab characters."""
-        response = client.get("/hello?name=John\tDoe")
-        assert response.status_code == 400
-        data = response.json()
-        assert data["code"] == "INVALID_NAME"
-
-    def test_hello_endpoint_multiple_name_parameters(self, client):
-        """Test that /hello endpoint handles multiple name parameters correctly."""
-        response = client.get("/hello?name=John&name=Jane")
-        # FastAPI takes the last parameter value
-        assert response.status_code == 200
-        data = response.json()
-        assert data["message"] == "Hello, Jane!"
-
-    def test_hello_endpoint_sql_injection_attempt_returns_400(self, client):
-        """Test that /hello endpoint rejects SQL injection attempts."""
-        response = client.get("/hello?name='; DROP TABLE users; --")
-        assert response.status_code == 400
-        data = response.json()
-        assert data["code"] == "INVALID_NAME"
-
-    def test_hello_endpoint_xss_attempt_returns_400(self, client):
-        """Test that /hello endpoint rejects XSS attempts."""
-        response = client.get("/hello?name=<script>alert('xss')</script>")
-        assert
+    def test_register_user_invalid_password_no_digit(self, client):
+        """Test registration with password missing digit returns 400."""
+        user_data = {
+            "username": "testuser",
+            "email": "test@example.com",
+            "password": "SecurePass!"
+        }
+        
+        response = client.post("/auth/register", json=user_data)

@@ -1,13 +1,13 @@
 """
 Task SQLAlchemy model with CRUD operations, status management, and user relationship.
 
-This module defines the Task model with comprehensive CRUD operations, status transitions,
-and relationship management with User model.
+This module defines the Task model with comprehensive CRUD operations,
+status management functionality, and relationships to the User model.
 
 Component ID: COMP-005
 Semantic Unit: SU-005
 
-Author: ASP Code Agent
+Author: ASP Code Generator
 """
 
 from datetime import datetime
@@ -42,14 +42,14 @@ class TaskPriority(str, Enum):
 
 class Task(Base):
     """
-    Task model representing a user task with status management and CRUD operations.
+    Task model representing a user task with status management.
     
     This model provides comprehensive task management functionality including
-    status transitions, priority levels, and user relationships.
+    CRUD operations, status transitions, and user relationships.
     
     Attributes:
         id: Primary key identifier
-        title: Task title (required, max 200 chars)
+        title: Task title (required, max 200 characters)
         description: Detailed task description (optional)
         status: Current task status (TaskStatus enum)
         priority: Task priority level (TaskPriority enum)
@@ -108,17 +108,17 @@ class Task(Base):
             Dict[str, Any]: Dictionary containing all task attributes
         """
         return {
-            "id": self.id,
-            "title": self.title,
-            "description": self.description,
-            "status": self.status,
-            "priority": self.priority,
-            "user_id": self.user_id,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "due_date": self.due_date.isoformat() if self.due_date else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
-            "is_active": self.is_active
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'status': self.status,
+            'priority': self.priority,
+            'user_id': self.user_id,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'due_date': self.due_date.isoformat() if self.due_date else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'is_active': self.is_active
         }
     
     def update_status(self, new_status: TaskStatus) -> bool:
@@ -134,41 +134,33 @@ class Task(Base):
         Raises:
             ValueError: If status transition is invalid
         """
-        if not self._is_valid_status_transition(self.status, new_status.value):
-            raise ValueError(f"Invalid status transition from {self.status} to {new_status.value}")
+        if not isinstance(new_status, TaskStatus):
+            raise ValueError(f"Invalid status type: {type(new_status)}")
         
-        old_status = self.status
+        # Validate status transitions
+        valid_transitions = {
+            TaskStatus.PENDING: [TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED],
+            TaskStatus.IN_PROGRESS: [TaskStatus.COMPLETED, TaskStatus.CANCELLED, TaskStatus.PENDING],
+            TaskStatus.COMPLETED: [TaskStatus.IN_PROGRESS],  # Allow reopening completed tasks
+            TaskStatus.CANCELLED: [TaskStatus.PENDING, TaskStatus.IN_PROGRESS]  # Allow reactivating cancelled tasks
+        }
+        
+        current_status = TaskStatus(self.status)
+        if new_status not in valid_transitions.get(current_status, []):
+            raise ValueError(f"Invalid status transition from {current_status.value} to {new_status.value}")
+        
+        # Update status and related timestamps
         self.status = new_status.value
         self.updated_at = datetime.utcnow()
         
-        # Set completion timestamp when task is completed
-        if new_status == TaskStatus.COMPLETED and old_status != TaskStatus.COMPLETED.value:
+        if new_status == TaskStatus.COMPLETED:
             self.completed_at = datetime.utcnow()
-        elif new_status != TaskStatus.COMPLETED and self.completed_at:
+        elif current_status == TaskStatus.COMPLETED and new_status != TaskStatus.COMPLETED:
+            # Clear completed_at when moving away from completed status
             self.completed_at = None
-            
-        logger.info(f"Task {self.id} status updated from {old_status} to {new_status.value}")
+        
+        logger.info(f"Task {self.id} status updated from {current_status.value} to {new_status.value}")
         return True
-    
-    def _is_valid_status_transition(self, current_status: str, new_status: str) -> bool:
-        """
-        Validate if status transition is allowed.
-        
-        Args:
-            current_status: Current task status
-            new_status: Proposed new status
-            
-        Returns:
-            bool: True if transition is valid, False otherwise
-        """
-        valid_transitions = {
-            TaskStatus.PENDING.value: [TaskStatus.IN_PROGRESS.value, TaskStatus.CANCELLED.value],
-            TaskStatus.IN_PROGRESS.value: [TaskStatus.COMPLETED.value, TaskStatus.PENDING.value, TaskStatus.CANCELLED.value],
-            TaskStatus.COMPLETED.value: [TaskStatus.IN_PROGRESS.value],
-            TaskStatus.CANCELLED.value: [TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value]
-        }
-        
-        return new_status in valid_transitions.get(current_status, [])
     
     def is_overdue(self) -> bool:
         """
@@ -179,25 +171,32 @@ class Task(Base):
         """
         if not self.due_date or self.status == TaskStatus.COMPLETED.value:
             return False
+        
         return datetime.utcnow() > self.due_date
+    
+    def days_until_due(self) -> Optional[int]:
+        """
+        Calculate days until task is due.
+        
+        Returns:
+            Optional[int]: Number of days until due date, None if no due date set
+        """
+        if not self.due_date:
+            return None
+        
+        delta = self.due_date - datetime.utcnow()
+        return delta.days
     
     @classmethod
     def create(cls, db: Session, title: str, user_id: int, description: Optional[str] = None,
-               priority: TaskPriority = TaskPriority.MEDIUM, due_date: Optional[datetime] = None) -> "Task":
+               priority: TaskPriority = TaskPriority.MEDIUM, due_date: Optional[datetime] = None) -> 'Task':
         """
         Create a new task with validation.
         
         Args:
             db: Database session
-            title: Task title (required, max 200 chars)
+            title: Task title (required, max 200 characters)
             user_id: ID of the user who owns the task
             description: Optional task description
             priority: Task priority level
             due_date: Optional due date
-            
-        Returns:
-            Task: Created task instance
-            
-        Raises:
-            ValueError: If validation fails
-            SQL

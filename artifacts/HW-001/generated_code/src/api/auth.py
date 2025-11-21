@@ -46,57 +46,56 @@ class AuthenticationError(Exception):
 
 
 class AuthService:
-    """Service class handling authentication business logic."""
+    """Service class for authentication operations."""
     
     def __init__(self, db: Session):
         """
         Initialize authentication service.
         
         Args:
-            db: Database session for user operations
+            db: Database session
         """
         self.db = db
     
     def register_user(self, registration_data: UserRegistrationRequest) -> User:
         """
-        Register a new user with email and password.
+        Register a new user with email and password validation.
         
         Args:
             registration_data: User registration information
             
         Returns:
-            User: Created user instance
+            User: Created user object
             
         Raises:
-            AuthenticationError: If email already exists or validation fails
+            HTTPException: If email already exists or validation fails
         """
         try:
-            # Validate email format
-            if not self._is_valid_email(registration_data.email):
-                raise AuthenticationError("Invalid email format")
-            
             # Check if user already exists
             existing_user = self.db.query(User).filter(
                 User.email == registration_data.email.lower()
             ).first()
             
             if existing_user:
-                raise AuthenticationError("Email already registered")
-            
-            # Validate password strength
-            if not self._is_valid_password(registration_data.password):
-                raise AuthenticationError(
-                    "Password must be at least 8 characters with uppercase, lowercase, and number"
+                logger.warning(f"Registration attempt with existing email: {registration_data.email}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email already registered"
                 )
             
-            # Create new user
+            # Hash password
             hashed_password = hash_password(registration_data.password)
+            
+            # Create new user
             new_user = User(
-                email=registration_data.email.lower().strip(),
-                full_name=registration_data.full_name.strip(),
-                hashed_password=hashed_password,
+                email=registration_data.email.lower(),
+                username=registration_data.username,
+                password_hash=hashed_password,
+                first_name=registration_data.first_name,
+                last_name=registration_data.last_name,
                 is_active=True,
-                created_at=datetime.utcnow()
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
             )
             
             self.db.add(new_user)
@@ -106,13 +105,20 @@ class AuthService:
             logger.info(f"User registered successfully: {new_user.email}")
             return new_user
             
-        except IntegrityError:
+        except IntegrityError as e:
             self.db.rollback()
-            raise AuthenticationError("Email already registered")
+            logger.error(f"Database integrity error during registration: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email or username already exists"
+            )
         except Exception as e:
             self.db.rollback()
-            logger.error(f"User registration failed: {str(e)}")
-            raise AuthenticationError("Registration failed")
+            logger.error(f"Unexpected error during registration: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Registration failed"
+            )
     
     def authenticate_user(self, login_data: UserLoginRequest) -> User:
         """
@@ -122,10 +128,10 @@ class AuthService:
             login_data: User login credentials
             
         Returns:
-            User: Authenticated user instance
+            User: Authenticated user object
             
         Raises:
-            AuthenticationError: If credentials are invalid
+            HTTPException: If authentication fails
         """
         try:
             # Find user by email
@@ -134,38 +140,54 @@ class AuthService:
             ).first()
             
             if not user:
-                raise AuthenticationError("Invalid email or password")
+                logger.warning(f"Login attempt with non-existent email: {login_data.email}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid email or password"
+                )
             
             # Check if user is active
             if not user.is_active:
-                raise AuthenticationError("Account is deactivated")
+                logger.warning(f"Login attempt with inactive account: {user.email}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Account is disabled"
+                )
             
             # Verify password
-            if not verify_password(login_data.password, user.hashed_password):
-                raise AuthenticationError("Invalid email or password")
+            if not verify_password(login_data.password, user.password_hash):
+                logger.warning(f"Failed login attempt for user: {user.email}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid email or password"
+                )
             
-            # Update last login
+            # Update last login timestamp
             user.last_login = datetime.utcnow()
+            user.updated_at = datetime.utcnow()
             self.db.commit()
             
             logger.info(f"User authenticated successfully: {user.email}")
             return user
             
-        except AuthenticationError:
+        except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Authentication failed: {str(e)}")
-            raise AuthenticationError("Authentication failed")
+            logger.error(f"Unexpected error during authentication: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Authentication failed"
+            )
     
     def get_user_by_id(self, user_id: int) -> Optional[User]:
         """
         Retrieve user by ID.
         
         Args:
-            user_id: User's unique identifier
+            user_id: User ID
             
         Returns:
-            User: User instance if found, None otherwise
+            User object if found, None otherwise
         """
         try:
             return self.db.query(User).filter(
@@ -173,41 +195,8 @@ class AuthService:
                 User.is_active == True
             ).first()
         except Exception as e:
-            logger.error(f"Failed to retrieve user {user_id}: {str(e)}")
+            logger.error(f"Error retrieving user by ID {user_id}: {str(e)}")
             return None
-    
-    def _is_valid_email(self, email: str) -> bool:
-        """
-        Validate email format.
-        
-        Args:
-            email: Email address to validate
-            
-        Returns:
-            bool: True if email format is valid
-        """
-        import re
-        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        return bool(re.match(pattern, email))
-    
-    def _is_valid_password(self, password: str) -> bool:
-        """
-        Validate password strength.
-        
-        Args:
-            password: Password to validate
-            
-        Returns:
-            bool: True if password meets requirements
-        """
-        if len(password) < 8:
-            return False
-        
-        has_upper = any(c.isupper() for c in password)
-        has_lower = any(c.islower() for c in password)
-        has_digit = any(c.isdigit() for c in password)
-        
-        return has_upper and has_lower and has_digit
 
 
 def get_current_user(
@@ -215,10 +204,10 @@ def get_current_user(
     db: Session = Depends(get_db)
 ) -> User:
     """
-    Dependency to get current authenticated user from JWT token.
+    Get current authenticated user from JWT token.
     
     Args:
-        credentials: HTTP Bearer token credentials
+        credentials: HTTP authorization credentials
         db: Database session
         
     Returns:
@@ -262,4 +251,12 @@ def get_current_user(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Token validation failed: {str(e)}")
+        logger.error(f"Error getting current user: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token validation failed",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+
+@router.post("/register", response
