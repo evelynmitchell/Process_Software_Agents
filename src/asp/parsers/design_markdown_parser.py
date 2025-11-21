@@ -208,7 +208,7 @@ class DesignMarkdownParser:
             request_schema = self._parse_json_block(endpoint_content, "Request Body:")
 
             # Parse response schema
-            response_schema = self._parse_json_block(endpoint_content, "Response \\(Success\\):")
+            response_schema = self._parse_json_block(endpoint_content, "Response (Success):")
 
             # Parse error responses
             error_responses = self._parse_error_responses(endpoint_content)
@@ -393,7 +393,9 @@ class DesignMarkdownParser:
     def _parse_json_block(self, content: str, header: str) -> Optional[dict[str, Any]]:
         """Parse JSON from code block after header."""
         # Pattern: header followed by ```json ... ```
-        pattern = rf'{re.escape(header)}\s*```json\s*\n(.+?)\n```'
+        # Header may be surrounded by ** for bold
+        # Make newlines optional to handle different formatting
+        pattern = rf'\*\*{re.escape(header)}\*\*\s*```json\s*\n?(.+?)\n?```'
         match = re.search(pattern, content, re.DOTALL)
 
         if match:
