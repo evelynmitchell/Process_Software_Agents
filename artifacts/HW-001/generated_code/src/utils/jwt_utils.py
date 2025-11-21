@@ -1,8 +1,8 @@
 """
-JWT token utilities for authentication and authorization.
+JWT token generation, validation, decoding utilities with expiration handling and security features.
 
-Provides functions for generating, validating, decoding, and refreshing JWT tokens
-using the python-jose library with RS256 algorithm.
+This module provides comprehensive JWT token management including secure token generation,
+validation with expiration checking, and decoding with proper error handling.
 
 Component ID: COMP-008
 Semantic Unit: SU-008
@@ -10,154 +10,231 @@ Semantic Unit: SU-008
 Author: ASP Code Agent
 """
 
-import os
+import hashlib
+import hmac
+import json
 import logging
+import secrets
+import time
+from base64 import urlsafe_b64decode, urlsafe_b64encode
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any, Union
-
-from jose import JWTError, jwt
-from jose.constants import ALGORITHMS
-
+from typing import Any, Dict, Optional, Union
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# JWT Configuration
-JWT_ALGORITHM = ALGORITHMS.RS256
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 30
-JWT_REFRESH_TOKEN_EXPIRE_DAYS = 7
-JWT_ISSUER = "hello-world-api"
-JWT_AUDIENCE = "hello-world-users"
-
-# Default RSA keys (in production, these should be loaded from environment variables)
-DEFAULT_PRIVATE_KEY = """-----BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEA4f5wg5l2hKsTeNem/V41fGnJm6gOdrj8ym3rFkEjWT2btNjcIBFu5d2gcfQQWd0JurplakZfFNNmvl/Y8ZtaD5S/TQYhqvNHSBRiley5OEXEgdtAjmDcYnRr6nK4hpDdGFKoInkRiHxpK7iosKI2v2MqQQhJNADEpd7L7jdqGYsFRN6bzRQi6/+4wjd4ptVAh6kapbptu5Mxc6+rkgJNrxXHd2qN5PUFjYjVvQaaqBdHFNehwgiw5SIkpX/rJ3/AgMBAAECggEBAJGRw/3AqT7hOdNqBPnM3a9EX8xMZpqbaN4fWeLjwpHtK9kTjnFHRgbhTrfB5inQiLlOWM2HLrQ8UVdSZcGy2HNUVZ2lxWw2D8MA8EqaAiQqfxgB7jfT1LN+cozadoABuKdVrfD6ki4n2h5+8P5Io1rI4ZHdgRdOjHdNlNNjuQWiEiKvMXZnxtK/wJlyfD8MldVEz4PqD5PaHMXcMU5YQxSN8EMwjVcaEeD0xhzbNz6Y5rnqiMeGmB1+24JdGVQBpw==
------END RSA PRIVATE KEY-----"""
-
-DEFAULT_PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4f5wg5l2hKsTeNem/V41fGnJm6gOdrj8ym3rFkEjWT2btNjcIBFu5d2gcfQQWd0JurplakZfFNNmvl/Y8ZtaD5S/TQYhqvNHSBRiley5OEXEgdtAjmDcYnRr6nK4hpDdGFKoInkRiHxpK7iosKI2v2MqQQhJNADEpd7L7jdqGYsFRN6bzRQi6/+4wjd4ptVAh6kapbptu5Mxc6+rkgJNrxXHd2qN5PUFjYjVvQaaqBdHFNehwgiw5SIkpX/rJ3/AgMBAAE=
------END PUBLIC KEY-----"""
-
 
 class JWTError(Exception):
-    """Custom JWT error for token-related exceptions."""
+    """Base exception for JWT-related errors."""
     pass
 
 
-class TokenExpiredError(JWTError):
-    """Raised when a JWT token has expired."""
+class JWTExpiredError(JWTError):
+    """Exception raised when JWT token has expired."""
     pass
 
 
-class TokenInvalidError(JWTError):
-    """Raised when a JWT token is invalid or malformed."""
+class JWTInvalidError(JWTError):
+    """Exception raised when JWT token is invalid or malformed."""
     pass
 
 
-def get_private_key() -> str:
-    """
-    Get the RSA private key for signing JWT tokens.
-    
-    Returns:
-        str: RSA private key in PEM format
-        
-    Raises:
-        JWTError: If private key is not available or invalid
-    """
-    try:
-        private_key = os.getenv("JWT_PRIVATE_KEY", DEFAULT_PRIVATE_KEY)
-        if not private_key or not private_key.strip():
-            raise JWTError("JWT private key is not configured")
-        return private_key.strip()
-    except Exception as e:
-        logger.error(f"Failed to load JWT private key: {e}")
-        raise JWTError(f"Failed to load JWT private key: {e}")
+class JWTSignatureError(JWTError):
+    """Exception raised when JWT signature verification fails."""
+    pass
 
 
-def get_public_key() -> str:
+class JWTUtils:
     """
-    Get the RSA public key for verifying JWT tokens.
+    JWT token utilities for generation, validation, and decoding.
     
-    Returns:
-        str: RSA public key in PEM format
-        
-    Raises:
-        JWTError: If public key is not available or invalid
+    Provides secure JWT token management with HMAC-SHA256 signing,
+    expiration handling, and comprehensive validation.
     """
-    try:
-        public_key = os.getenv("JWT_PUBLIC_KEY", DEFAULT_PUBLIC_KEY)
-        if not public_key or not public_key.strip():
-            raise JWTError("JWT public key is not configured")
-        return public_key.strip()
-    except Exception as e:
-        logger.error(f"Failed to load JWT public key: {e}")
-        raise JWTError(f"Failed to load JWT public key: {e}")
-
-
-def get_current_timestamp() -> datetime:
-    """
-    Get the current UTC timestamp.
     
-    Returns:
-        datetime: Current UTC timestamp
-    """
-    return datetime.now(timezone.utc)
-
-
-def generate_access_token(
-    user_id: str,
-    email: str,
-    roles: Optional[list[str]] = None,
-    expires_delta: Optional[timedelta] = None
-) -> str:
-    """
-    Generate a JWT access token for user authentication.
+    def __init__(self, secret_key: str, default_expiry_hours: int = 24) -> None:
+        """
+        Initialize JWT utilities with secret key and default expiry.
+        
+        Args:
+            secret_key: Secret key for signing tokens (minimum 32 characters)
+            default_expiry_hours: Default token expiry in hours
+            
+        Raises:
+            ValueError: If secret key is too short or invalid
+        """
+        if not secret_key or len(secret_key) < 32:
+            raise ValueError("Secret key must be at least 32 characters long")
+        
+        self.secret_key = secret_key.encode('utf-8')
+        self.default_expiry_hours = default_expiry_hours
+        self.algorithm = 'HS256'
+        
+        logger.info("JWT utilities initialized with %d hour default expiry", default_expiry_hours)
     
-    Args:
-        user_id: Unique user identifier
-        email: User email address
-        roles: List of user roles/permissions
-        expires_delta: Custom expiration time (defaults to 30 minutes)
+    def generate_token(
+        self,
+        payload: Dict[str, Any],
+        expiry_hours: Optional[int] = None,
+        include_jti: bool = True
+    ) -> str:
+        """
+        Generate a JWT token with the given payload.
         
-    Returns:
-        str: Encoded JWT access token
+        Args:
+            payload: Token payload data
+            expiry_hours: Token expiry in hours (uses default if None)
+            include_jti: Whether to include unique token ID (jti claim)
+            
+        Returns:
+            str: Encoded JWT token
+            
+        Raises:
+            ValueError: If payload is invalid
+            JWTError: If token generation fails
+        """
+        if not isinstance(payload, dict):
+            raise ValueError("Payload must be a dictionary")
         
-    Raises:
-        JWTError: If token generation fails
-        ValueError: If required parameters are invalid
-    """
-    if not user_id or not isinstance(user_id, str):
-        raise ValueError("user_id must be a non-empty string")
+        try:
+            # Create header
+            header = {
+                'typ': 'JWT',
+                'alg': self.algorithm
+            }
+            
+            # Create payload with standard claims
+            now = datetime.now(timezone.utc)
+            expiry_time = now + timedelta(hours=expiry_hours or self.default_expiry_hours)
+            
+            token_payload = payload.copy()
+            token_payload.update({
+                'iat': int(now.timestamp()),  # Issued at
+                'exp': int(expiry_time.timestamp()),  # Expiration time
+                'nbf': int(now.timestamp())  # Not before
+            })
+            
+            # Add unique token ID if requested
+            if include_jti:
+                token_payload['jti'] = self._generate_jti()
+            
+            # Encode header and payload
+            encoded_header = self._base64url_encode(json.dumps(header, separators=(',', ':')))
+            encoded_payload = self._base64url_encode(json.dumps(token_payload, separators=(',', ':')))
+            
+            # Create signature
+            message = f"{encoded_header}.{encoded_payload}"
+            signature = self._create_signature(message)
+            
+            # Combine all parts
+            token = f"{message}.{signature}"
+            
+            logger.debug("Generated JWT token with expiry: %s", expiry_time.isoformat())
+            return token
+            
+        except Exception as e:
+            logger.error("Failed to generate JWT token: %s", str(e))
+            raise JWTError(f"Token generation failed: {str(e)}") from e
     
-    if not email or not isinstance(email, str):
-        raise ValueError("email must be a non-empty string")
+    def validate_token(self, token: str, verify_expiry: bool = True) -> bool:
+        """
+        Validate a JWT token without decoding the payload.
+        
+        Args:
+            token: JWT token to validate
+            verify_expiry: Whether to check token expiration
+            
+        Returns:
+            bool: True if token is valid, False otherwise
+        """
+        try:
+            self.decode_token(token, verify_expiry=verify_expiry)
+            return True
+        except JWTError:
+            return False
     
-    if roles is None:
-        roles = []
+    def decode_token(
+        self,
+        token: str,
+        verify_expiry: bool = True,
+        verify_signature: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Decode and validate a JWT token.
+        
+        Args:
+            token: JWT token to decode
+            verify_expiry: Whether to check token expiration
+            verify_signature: Whether to verify token signature
+            
+        Returns:
+            dict: Decoded token payload
+            
+        Raises:
+            JWTInvalidError: If token format is invalid
+            JWTSignatureError: If signature verification fails
+            JWTExpiredError: If token has expired
+        """
+        if not token or not isinstance(token, str):
+            raise JWTInvalidError("Token must be a non-empty string")
+        
+        try:
+            # Split token into parts
+            parts = token.split('.')
+            if len(parts) != 3:
+                raise JWTInvalidError("Token must have exactly 3 parts separated by dots")
+            
+            encoded_header, encoded_payload, encoded_signature = parts
+            
+            # Decode header
+            header = self._decode_json_part(encoded_header, "header")
+            
+            # Validate header
+            if header.get('typ') != 'JWT':
+                raise JWTInvalidError("Invalid token type in header")
+            
+            if header.get('alg') != self.algorithm:
+                raise JWTInvalidError(f"Unsupported algorithm: {header.get('alg')}")
+            
+            # Verify signature if requested
+            if verify_signature:
+                message = f"{encoded_header}.{encoded_payload}"
+                expected_signature = self._create_signature(message)
+                
+                if not self._constant_time_compare(encoded_signature, expected_signature):
+                    raise JWTSignatureError("Token signature verification failed")
+            
+            # Decode payload
+            payload = self._decode_json_part(encoded_payload, "payload")
+            
+            # Verify expiration if requested
+            if verify_expiry:
+                self._verify_token_expiry(payload)
+            
+            # Verify not-before claim
+            self._verify_not_before(payload)
+            
+            logger.debug("Successfully decoded JWT token")
+            return payload
+            
+        except JWTError:
+            raise
+        except Exception as e:
+            logger.error("Failed to decode JWT token: %s", str(e))
+            raise JWTInvalidError(f"Token decoding failed: {str(e)}") from e
     
-    if not isinstance(roles, list):
-        raise ValueError("roles must be a list")
-    
-    try:
-        now = get_current_timestamp()
+    def refresh_token(self, token: str, new_expiry_hours: Optional[int] = None) -> str:
+        """
+        Refresh a JWT token with new expiration time.
         
-        if expires_delta is None:
-            expires_delta = timedelta(minutes=JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
-        
-        expire = now + expires_delta
-        
-        payload = {
-            "sub": user_id,
-            "email": email,
-            "roles": roles,
-            "type": "access",
-            "iat": int(now.timestamp()),
-            "exp": int(expire.timestamp()),
-            "iss": JWT_ISSUER,
-            "aud": JWT_AUDIENCE,
-        }
-        
-        private_key = get_private_key()
-        token = jwt.encode(payload, private_key, algorithm=JWT_ALGORITHM)
-        
-        logger.info(f"Generated access token for user
+        Args:
+            token: Original JWT token
+            new_expiry_hours: New expiry in hours (uses default if None)
+            
+        Returns:
+            str: New JWT token with updated expiration
+            
+        Raises:
+            JWTError: If original token is invalid or refresh fails
+        """
+        try:

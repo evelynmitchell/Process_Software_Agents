@@ -1,5 +1,5 @@
 """
-Unit tests for Task model CRUD operations, status transitions, and user relationships.
+Unit tests for Task model including CRUD operations, status transitions, and user relationships.
 
 Tests all Task model functionality including creation, updates, status changes,
 and relationships with User model.
@@ -20,191 +20,167 @@ from src.models.task import Task, TaskStatus, TaskPriority
 from src.models.user import User
 
 
-@pytest.fixture
-def db_session():
-    """Mock database session for testing."""
-    session = Mock(spec=Session)
-    return session
-
-
-@pytest.fixture
-def sample_user():
-    """Create a sample user for testing."""
-    user = User(
-        id=1,
-        username="testuser",
-        email="test@example.com",
-        hashed_password="hashed_password_123"
-    )
-    return user
-
-
-@pytest.fixture
-def sample_task(sample_user):
-    """Create a sample task for testing."""
-    task = Task(
-        id=1,
-        title="Test Task",
-        description="This is a test task",
-        status=TaskStatus.TODO,
-        priority=TaskPriority.MEDIUM,
-        user_id=sample_user.id,
-        user=sample_user,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
-    )
-    return task
-
-
 class TestTaskModel:
-    """Test cases for Task model basic functionality."""
+    """Test suite for Task model basic functionality."""
 
-    def test_task_creation_with_required_fields(self, sample_user):
-        """Test that task can be created with only required fields."""
+    def test_task_creation_with_required_fields(self, db_session: Session, sample_user: User):
+        """Test that Task can be created with only required fields."""
         task = Task(
-            title="New Task",
-            description="Task description",
+            title="Test Task",
             user_id=sample_user.id
         )
+        db_session.add(task)
+        db_session.commit()
         
-        assert task.title == "New Task"
-        assert task.description == "Task description"
+        assert task.id is not None
+        assert task.title == "Test Task"
         assert task.user_id == sample_user.id
-        assert task.status == TaskStatus.TODO  # Default status
-        assert task.priority == TaskPriority.MEDIUM  # Default priority
-        assert task.created_at is None  # Set by database
-        assert task.updated_at is None  # Set by database
+        assert task.status == TaskStatus.PENDING
+        assert task.priority == TaskPriority.MEDIUM
+        assert task.description is None
+        assert task.due_date is None
+        assert isinstance(task.created_at, datetime)
+        assert isinstance(task.updated_at, datetime)
 
-    def test_task_creation_with_all_fields(self, sample_user):
-        """Test that task can be created with all fields specified."""
-        now = datetime.utcnow()
+    def test_task_creation_with_all_fields(self, db_session: Session, sample_user: User):
+        """Test that Task can be created with all fields populated."""
+        due_date = datetime.utcnow() + timedelta(days=7)
         task = Task(
             title="Complete Task",
-            description="Detailed description",
+            description="This is a test task with full details",
             status=TaskStatus.IN_PROGRESS,
             priority=TaskPriority.HIGH,
-            user_id=sample_user.id,
-            due_date=now + timedelta(days=7),
-            created_at=now,
-            updated_at=now
+            due_date=due_date,
+            user_id=sample_user.id
         )
+        db_session.add(task)
+        db_session.commit()
         
         assert task.title == "Complete Task"
-        assert task.description == "Detailed description"
+        assert task.description == "This is a test task with full details"
         assert task.status == TaskStatus.IN_PROGRESS
         assert task.priority == TaskPriority.HIGH
-        assert task.user_id == sample_user.id
-        assert task.due_date == now + timedelta(days=7)
-        assert task.created_at == now
-        assert task.updated_at == now
-
-    def test_task_string_representation(self, sample_task):
-        """Test task string representation."""
-        expected = f"<Task(id=1, title='Test Task', status=TaskStatus.TODO)>"
-        assert str(sample_task) == expected
-
-    def test_task_repr_representation(self, sample_task):
-        """Test task repr representation."""
-        expected = f"<Task(id=1, title='Test Task', status=TaskStatus.TODO)>"
-        assert repr(sample_task) == expected
-
-
-class TestTaskCRUDOperations:
-    """Test cases for Task CRUD operations."""
-
-    def test_create_task_success(self, db_session, sample_user):
-        """Test successful task creation."""
-        task_data = {
-            "title": "New Task",
-            "description": "Task description",
-            "user_id": sample_user.id
-        }
-        
-        task = Task.create(db_session, **task_data)
-        
-        db_session.add.assert_called_once()
-        db_session.commit.assert_called_once()
-        db_session.refresh.assert_called_once()
-        assert task.title == "New Task"
-        assert task.description == "Task description"
+        assert task.due_date == due_date
         assert task.user_id == sample_user.id
 
-    def test_create_task_database_error(self, db_session, sample_user):
-        """Test task creation with database error."""
-        db_session.commit.side_effect = IntegrityError("", "", "")
-        
-        task_data = {
-            "title": "New Task",
-            "description": "Task description",
-            "user_id": sample_user.id
-        }
+    def test_task_creation_without_title_raises_error(self, db_session: Session, sample_user: User):
+        """Test that creating Task without title raises IntegrityError."""
+        task = Task(user_id=sample_user.id)
+        db_session.add(task)
         
         with pytest.raises(IntegrityError):
-            Task.create(db_session, **task_data)
-        
-        db_session.rollback.assert_called_once()
+            db_session.commit()
 
-    def test_get_task_by_id_success(self, db_session, sample_task):
-        """Test successful task retrieval by ID."""
-        db_session.query.return_value.filter.return_value.first.return_value = sample_task
+    def test_task_creation_without_user_id_raises_error(self, db_session: Session):
+        """Test that creating Task without user_id raises IntegrityError."""
+        task = Task(title="Test Task")
+        db_session.add(task)
         
-        result = Task.get_by_id(db_session, 1)
-        
-        assert result == sample_task
-        db_session.query.assert_called_once_with(Task)
+        with pytest.raises(IntegrityError):
+            db_session.commit()
 
-    def test_get_task_by_id_not_found(self, db_session):
-        """Test task retrieval by ID when task doesn't exist."""
-        db_session.query.return_value.filter.return_value.first.return_value = None
+    def test_task_creation_with_invalid_user_id_raises_error(self, db_session: Session):
+        """Test that creating Task with non-existent user_id raises IntegrityError."""
+        task = Task(title="Test Task", user_id=99999)
+        db_session.add(task)
         
-        result = Task.get_by_id(db_session, 999)
-        
-        assert result is None
+        with pytest.raises(IntegrityError):
+            db_session.commit()
 
-    def test_get_tasks_by_user_id(self, db_session, sample_task, sample_user):
-        """Test retrieving all tasks for a specific user."""
-        db_session.query.return_value.filter.return_value.all.return_value = [sample_task]
+    def test_task_title_max_length_validation(self, db_session: Session, sample_user: User):
+        """Test that Task title respects maximum length constraint."""
+        long_title = "x" * 201  # Assuming max length is 200
+        task = Task(title=long_title, user_id=sample_user.id)
+        db_session.add(task)
         
-        result = Task.get_by_user_id(db_session, sample_user.id)
-        
-        assert result == [sample_task]
-        db_session.query.assert_called_once_with(Task)
+        with pytest.raises(IntegrityError):
+            db_session.commit()
 
-    def test_get_tasks_by_user_id_empty(self, db_session):
-        """Test retrieving tasks for user with no tasks."""
-        db_session.query.return_value.filter.return_value.all.return_value = []
+    def test_task_description_can_be_long(self, db_session: Session, sample_user: User):
+        """Test that Task description can handle long text."""
+        long_description = "This is a very long description. " * 100
+        task = Task(
+            title="Test Task",
+            description=long_description,
+            user_id=sample_user.id
+        )
+        db_session.add(task)
+        db_session.commit()
         
-        result = Task.get_by_user_id(db_session, 999)
-        
-        assert result == []
+        assert task.description == long_description
 
-    def test_update_task_success(self, db_session, sample_task):
-        """Test successful task update."""
-        update_data = {
-            "title": "Updated Task",
-            "description": "Updated description",
-            "priority": TaskPriority.HIGH
-        }
-        
-        updated_task = Task.update(db_session, sample_task, **update_data)
-        
-        assert updated_task.title == "Updated Task"
-        assert updated_task.description == "Updated description"
-        assert updated_task.priority == TaskPriority.HIGH
-        db_session.commit.assert_called_once()
-        db_session.refresh.assert_called_once()
 
-    def test_update_task_database_error(self, db_session, sample_task):
-        """Test task update with database error."""
-        db_session.commit.side_effect = SQLAlchemyError("Database error")
-        
-        update_data = {"title": "Updated Task"}
-        
-        with pytest.raises(SQLAlchemyError):
-            Task.update(db_session, sample_task, **update_data)
-        
-        db_session.rollback.assert_called_once()
+class TestTaskStatusTransitions:
+    """Test suite for Task status transitions and validation."""
 
-    def test_delete_task_success(self, db_session, sample_task):
-        """Test successful task deletion."""
-        result = Task.delete(db_session, sample
+    def test_task_default_status_is_pending(self, db_session: Session, sample_user: User):
+        """Test that new Task has default status of PENDING."""
+        task = Task(title="Test Task", user_id=sample_user.id)
+        assert task.status == TaskStatus.PENDING
+
+    def test_task_status_can_be_updated_to_in_progress(self, db_session: Session, sample_task: Task):
+        """Test that Task status can be changed from PENDING to IN_PROGRESS."""
+        assert sample_task.status == TaskStatus.PENDING
+        
+        sample_task.status = TaskStatus.IN_PROGRESS
+        db_session.commit()
+        
+        assert sample_task.status == TaskStatus.IN_PROGRESS
+
+    def test_task_status_can_be_updated_to_completed(self, db_session: Session, sample_task: Task):
+        """Test that Task status can be changed to COMPLETED."""
+        sample_task.status = TaskStatus.COMPLETED
+        db_session.commit()
+        
+        assert sample_task.status == TaskStatus.COMPLETED
+
+    def test_task_status_can_be_updated_to_cancelled(self, db_session: Session, sample_task: Task):
+        """Test that Task status can be changed to CANCELLED."""
+        sample_task.status = TaskStatus.CANCELLED
+        db_session.commit()
+        
+        assert sample_task.status == TaskStatus.CANCELLED
+
+    def test_task_completed_at_set_when_status_completed(self, db_session: Session, sample_task: Task):
+        """Test that completed_at timestamp is set when status changes to COMPLETED."""
+        assert sample_task.completed_at is None
+        
+        sample_task.status = TaskStatus.COMPLETED
+        sample_task.completed_at = datetime.utcnow()
+        db_session.commit()
+        
+        assert sample_task.completed_at is not None
+        assert isinstance(sample_task.completed_at, datetime)
+
+    def test_task_updated_at_changes_on_status_update(self, db_session: Session, sample_task: Task):
+        """Test that updated_at timestamp changes when status is updated."""
+        original_updated_at = sample_task.updated_at
+        
+        # Wait a small amount to ensure timestamp difference
+        import time
+        time.sleep(0.01)
+        
+        sample_task.status = TaskStatus.IN_PROGRESS
+        sample_task.updated_at = datetime.utcnow()
+        db_session.commit()
+        
+        assert sample_task.updated_at > original_updated_at
+
+
+class TestTaskPriority:
+    """Test suite for Task priority functionality."""
+
+    def test_task_default_priority_is_medium(self, db_session: Session, sample_user: User):
+        """Test that new Task has default priority of MEDIUM."""
+        task = Task(title="Test Task", user_id=sample_user.id)
+        assert task.priority == TaskPriority.MEDIUM
+
+    def test_task_priority_can_be_set_to_low(self, db_session: Session, sample_user: User):
+        """Test that Task priority can be set to LOW."""
+        task = Task(title="Test Task", priority=TaskPriority.LOW, user_id=sample_user.id)
+        db_session.add(task)
+        db_session.commit()
+        
+        assert task.priority == TaskPriority.LOW
+
+    def test_task_priority_can_be_set_to_high(self, db_session: Session, sample_

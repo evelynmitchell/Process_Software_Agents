@@ -1,270 +1,261 @@
 """
 Pytest configuration and fixtures for Hello World API tests.
 
-Provides test database setup, user and task fixtures, and cleanup utilities
-for comprehensive testing of the API endpoints.
+Provides test client setup, fixtures, and configuration for comprehensive testing
+of the FastAPI application endpoints and error handling.
 
 Author: ASP Code Agent
 """
 
-import asyncio
-import os
-import tempfile
-from datetime import datetime, timezone
-from typing import AsyncGenerator, Generator
-from unittest.mock import Mock, patch
-
 import pytest
-import pytest_asyncio
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
-from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
-
-# Mock imports since actual files don't exist yet
-from unittest.mock import MagicMock
-
-# Mock the database and model imports
-sys_modules_mock = {
-    'src': MagicMock(),
-    'src.database': MagicMock(),
-    'src.database.connection': MagicMock(),
-    'src.models': MagicMock(),
-    'src.models.user': MagicMock(),
-    'src.models.task': MagicMock(),
-}
-
+from unittest.mock import Mock, patch
+from datetime import datetime
+from typing import Generator, Dict, Any
+import logging
 import sys
-for module_name, mock_module in sys_modules_mock.items():
-    sys.modules[module_name] = mock_module
+import os
 
-# Mock database connection components
-class MockDatabase:
-    """Mock database class for testing."""
-    
-    def __init__(self, url: str):
-        self.url = url
-        self.engine = None
-        self.session_factory = None
-    
-    def connect(self) -> None:
-        """Mock database connection."""
-        pass
-    
-    def disconnect(self) -> None:
-        """Mock database disconnection."""
-        pass
-    
-    def get_session(self) -> Session:
-        """Mock session creation."""
-        return Mock(spec=Session)
+# Add src directory to Python path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-# Mock user model
-class MockUser:
-    """Mock user model for testing."""
-    
-    def __init__(self, id: int = None, username: str = None, email: str = None, 
-                 password_hash: str = None, created_at: datetime = None):
-        self.id = id
-        self.username = username
-        self.email = email
-        self.password_hash = password_hash
-        self.created_at = created_at or datetime.now(timezone.utc)
-    
-    def to_dict(self) -> dict:
-        """Convert user to dictionary."""
-        return {
-            'id': self.id,
-            'username': self.username,
-            'email': self.email,
-            'created_at': self.created_at.isoformat()
-        }
-
-# Mock task model
-class MockTask:
-    """Mock task model for testing."""
-    
-    def __init__(self, id: int = None, title: str = None, description: str = None,
-                 completed: bool = False, user_id: int = None, 
-                 created_at: datetime = None, updated_at: datetime = None):
-        self.id = id
-        self.title = title
-        self.description = description
-        self.completed = completed
-        self.user_id = user_id
-        self.created_at = created_at or datetime.now(timezone.utc)
-        self.updated_at = updated_at or datetime.now(timezone.utc)
-    
-    def to_dict(self) -> dict:
-        """Convert task to dictionary."""
-        return {
-            'id': self.id,
-            'title': self.title,
-            'description': self.description,
-            'completed': self.completed,
-            'user_id': self.user_id,
-            'created_at': self.created_at.isoformat(),
-            'updated_at': self.updated_at.isoformat()
-        }
+from main import app
 
 
-# Test configuration
-TEST_DATABASE_URL = "sqlite:///:memory:"
-TEST_DATA_DIR = "tests/data"
+# Configure logging for tests
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope="session")
-def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
+def test_client() -> TestClient:
     """
-    Create an instance of the default event loop for the test session.
-    
-    Yields:
-        asyncio.AbstractEventLoop: Event loop for async tests
-    """
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest.fixture(scope="session")
-def test_database_url() -> str:
-    """
-    Provide test database URL for in-memory SQLite database.
+    Create FastAPI test client for the entire test session.
     
     Returns:
-        str: Database URL for testing
+        TestClient: Configured test client for making HTTP requests
     """
-    return TEST_DATABASE_URL
+    return TestClient(app)
 
 
-@pytest.fixture(scope="session")
-def test_engine(test_database_url: str) -> Generator[Engine, None, None]:
+@pytest.fixture(scope="function")
+def client(test_client: TestClient) -> Generator[TestClient, None, None]:
     """
-    Create SQLAlchemy engine for testing with in-memory SQLite database.
+    Provide test client for individual test functions.
     
     Args:
-        test_database_url: Database URL for testing
+        test_client: Session-scoped test client
         
     Yields:
-        Engine: SQLAlchemy engine instance
+        TestClient: Test client instance for the test function
     """
-    engine = create_engine(
-        test_database_url,
-        connect_args={
-            "check_same_thread": False,
+    yield test_client
+
+
+@pytest.fixture(scope="function")
+def mock_datetime() -> Generator[Mock, None, None]:
+    """
+    Mock datetime.utcnow() for consistent timestamp testing.
+    
+    Yields:
+        Mock: Mocked datetime object with fixed timestamp
+    """
+    fixed_datetime = datetime(2023, 12, 25, 10, 30, 45)
+    with patch('main.datetime') as mock_dt:
+        mock_dt.utcnow.return_value = fixed_datetime
+        mock_dt.side_effect = lambda *args, **kw: datetime(*args, **kw)
+        yield mock_dt
+
+
+@pytest.fixture(scope="function")
+def sample_valid_names() -> list[str]:
+    """
+    Provide list of valid name parameters for testing.
+    
+    Returns:
+        list[str]: Valid name strings for testing
+    """
+    return [
+        "John",
+        "Jane Doe",
+        "Alice123",
+        "Bob Smith Jr",
+        "Test User 42",
+        "a",  # Single character
+        "A" * 100,  # Maximum length
+        "User 123 Test",
+        "Mary Jane Watson",
+        "X Æ A 12"  # Contains special characters that should be invalid
+    ]
+
+
+@pytest.fixture(scope="function")
+def sample_invalid_names() -> list[str]:
+    """
+    Provide list of invalid name parameters for testing.
+    
+    Returns:
+        list[str]: Invalid name strings for testing
+    """
+    return [
+        "John@Doe",  # Contains @
+        "Jane-Smith",  # Contains hyphen
+        "User!",  # Contains exclamation
+        "Test#User",  # Contains hash
+        "Name$",  # Contains dollar sign
+        "User%",  # Contains percent
+        "Test^User",  # Contains caret
+        "Name&Co",  # Contains ampersand
+        "User*",  # Contains asterisk
+        "Test(User)",  # Contains parentheses
+        "Name+",  # Contains plus
+        "User=Test",  # Contains equals
+        "Name[Test]",  # Contains brackets
+        "User{Test}",  # Contains braces
+        "Name|Test",  # Contains pipe
+        "User\\Test",  # Contains backslash
+        "Name:Test",  # Contains colon
+        "User;Test",  # Contains semicolon
+        "Name\"Test\"",  # Contains quotes
+        "User'Test'",  # Contains apostrophes
+        "Name<Test>",  # Contains angle brackets
+        "User,Test",  # Contains comma
+        "Name.Test",  # Contains period
+        "User?Test",  # Contains question mark
+        "Name/Test",  # Contains slash
+        "User~Test",  # Contains tilde
+        "Name`Test`",  # Contains backticks
+        "A" * 101,  # Exceeds maximum length
+        "",  # Empty string (should be handled as None)
+        "   ",  # Only spaces
+        "\n",  # Newline character
+        "\t",  # Tab character
+        "\r",  # Carriage return
+        "Test\nUser",  # Contains newline
+        "Test\tUser",  # Contains tab
+    ]
+
+
+@pytest.fixture(scope="function")
+def expected_error_responses() -> Dict[str, Dict[str, Any]]:
+    """
+    Provide expected error response formats for testing.
+    
+    Returns:
+        Dict[str, Dict[str, Any]]: Expected error response structures
+    """
+    return {
+        "invalid_name": {
+            "status_code": 400,
+            "response_format": {
+                "error": {
+                    "code": "INVALID_NAME",
+                    "message": "Name parameter contains invalid characters or exceeds 100 characters"
+                }
+            }
         },
-        poolclass=StaticPool,
-        echo=False  # Set to True for SQL debugging
-    )
-    
-    # Enable foreign key constraints for SQLite
-    @event.listens_for(engine, "connect")
-    def set_sqlite_pragma(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-    
-    yield engine
-    engine.dispose()
+        "internal_error": {
+            "status_code": 500,
+            "response_format": {
+                "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Internal server error"
+                }
+            }
+        }
+    }
 
 
-@pytest.fixture(scope="session")
-def test_session_factory(test_engine: Engine) -> sessionmaker:
+@pytest.fixture(scope="function")
+def expected_success_responses() -> Dict[str, Dict[str, Any]]:
     """
-    Create session factory for test database.
+    Provide expected success response formats for testing.
     
-    Args:
-        test_engine: SQLAlchemy engine for testing
-        
     Returns:
-        sessionmaker: Session factory for creating database sessions
+        Dict[str, Dict[str, Any]]: Expected success response structures
     """
-    return sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+    return {
+        "hello_default": {
+            "status_code": 200,
+            "response_format": {
+                "message": "Hello, World!"
+            }
+        },
+        "hello_personalized": {
+            "status_code": 200,
+            "response_format": {
+                "message": "Hello, {name}!"
+            }
+        },
+        "health": {
+            "status_code": 200,
+            "response_format": {
+                "status": "ok",
+                "timestamp": "2023-12-25T10:30:45Z"
+            }
+        }
+    }
 
 
-@pytest.fixture
-def db_session(test_session_factory: sessionmaker) -> Generator[Session, None, None]:
+@pytest.fixture(scope="function")
+def mock_logger() -> Generator[Mock, None, None]:
     """
-    Create database session for individual tests with automatic rollback.
+    Mock logger for testing error handling and logging behavior.
     
-    Args:
-        test_session_factory: Session factory for creating sessions
-        
     Yields:
-        Session: Database session for testing
+        Mock: Mocked logger instance
     """
-    session = test_session_factory()
-    try:
-        yield session
-    finally:
-        session.rollback()
-        session.close()
+    with patch('main.logger') as mock_log:
+        yield mock_log
 
 
-@pytest.fixture
-def mock_database(test_database_url: str) -> MockDatabase:
+@pytest.fixture(scope="function")
+def mock_exception_handler() -> Generator[Mock, None, None]:
     """
-    Create mock database instance for testing.
+    Mock exception handler for testing error handling behavior.
     
-    Args:
-        test_database_url: Database URL for testing
-        
-    Returns:
-        MockDatabase: Mock database instance
+    Yields:
+        Mock: Mocked exception handler
     """
-    return MockDatabase(test_database_url)
+    with patch('main.handle_general_exception') as mock_handler:
+        mock_handler.return_value = {
+            "error": {
+                "code": "INTERNAL_ERROR",
+                "message": "Internal server error"
+            }
+        }
+        yield mock_handler
 
 
-@pytest.fixture
-def sample_user_data() -> dict:
+@pytest.fixture(autouse=True)
+def reset_app_state():
     """
-    Provide sample user data for testing.
+    Reset application state before each test to ensure test isolation.
+    
+    This fixture runs automatically before each test function.
+    """
+    # Clear any cached data or state if needed
+    # For this simple API, no state reset is required
+    yield
+    # Cleanup after test if needed
+
+
+@pytest.fixture(scope="function")
+def performance_threshold() -> Dict[str, float]:
+    """
+    Provide performance thresholds for endpoint response time testing.
     
     Returns:
-        dict: Sample user data
+        Dict[str, float]: Performance thresholds in seconds
     """
     return {
-        "username": "testuser",
-        "email": "test@example.com",
-        "password": "securepassword123",
-        "password_hash": "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6ukx2.O5K2"
+        "hello_endpoint": 0.01,  # 10ms
+        "health_endpoint": 0.01,  # 10ms
+        "error_response": 0.01,  # 10ms
     }
 
 
-@pytest.fixture
-def sample_task_data() -> dict:
+@pytest.fixture(scope="function")
+def content_type_headers() -> Dict[str, str]:
     """
-    Provide sample task data for testing.
-    
-    Returns:
-        dict: Sample task data
-    """
-    return {
-        "title": "Test Task",
-        "description": "This is a test task for unit testing",
-        "completed": False
-    }
-
-
-@pytest.fixture
-def test_user(sample_user_data: dict) -> MockUser:
-    """
-    Create test user instance.
-    
-    Args:
-        sample_user_data: Sample user data dictionary
-        
-    Returns:
-        MockUser: Test user instance
-    """
-    return MockUser(
-        id=1,
-        username=sample_user_data["username"],
-        email=sample_user_data["email"],
-        password_hash=sample_user_data["password_hash"]
-    )
-
-
-@pytest.fixture
-def
+    Provide

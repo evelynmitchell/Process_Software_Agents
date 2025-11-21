@@ -7,7 +7,7 @@ profile information, and relationships to other entities.
 Component ID: COMP-004
 Semantic Unit: SU-004
 
-Author: ASP Code Generator
+Author: ASP Code Agent
 """
 
 from datetime import datetime
@@ -26,8 +26,7 @@ class User(Base):
     User model for authentication and profile management.
     
     This model handles user authentication, profile data, and relationships
-    to other entities in the system. Includes password hashing, email validation,
-    and timestamp tracking.
+    to other entities in the system like tasks.
     
     Attributes:
         id: Primary key identifier
@@ -38,10 +37,10 @@ class User(Base):
         last_name: User's last name
         is_active: Whether the user account is active
         is_verified: Whether the user's email is verified
+        bio: Optional user biography
         created_at: Timestamp when user was created
         updated_at: Timestamp when user was last updated
-        last_login: Timestamp of last successful login
-        bio: Optional user biography
+        last_login: Timestamp of last login
         tasks: Relationship to user's tasks
     """
     
@@ -79,9 +78,7 @@ class User(Base):
         password: str,
         first_name: str,
         last_name: str,
-        bio: Optional[str] = None,
-        is_active: bool = True,
-        is_verified: bool = False
+        bio: Optional[str] = None
     ) -> None:
         """
         Initialize a new User instance.
@@ -93,20 +90,18 @@ class User(Base):
             first_name: User's first name
             last_name: User's last name
             bio: Optional biography text
-            is_active: Whether the account is active
-            is_verified: Whether the email is verified
             
         Raises:
-            ValueError: If username, email, or password validation fails
+            ValueError: If any validation fails
         """
         self.username = self._validate_username(username)
         self.email = self._validate_email(email)
         self.set_password(password)
         self.first_name = self._validate_name(first_name, "first_name")
         self.last_name = self._validate_name(last_name, "last_name")
-        self.bio = bio
-        self.is_active = is_active
-        self.is_verified = is_verified
+        self.bio = self._validate_bio(bio) if bio else None
+        self.is_active = True
+        self.is_verified = False
     
     def set_password(self, password: str) -> None:
         """
@@ -118,13 +113,8 @@ class User(Base):
         Raises:
             ValueError: If password doesn't meet requirements
         """
-        if not self._validate_password(password):
-            raise ValueError(
-                "Password must be at least 8 characters long and contain "
-                "at least one uppercase letter, one lowercase letter, and one digit"
-            )
-        
-        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+        validated_password = self._validate_password(password)
+        self.password_hash = generate_password_hash(validated_password)
     
     def check_password(self, password: str) -> bool:
         """
@@ -138,21 +128,69 @@ class User(Base):
         """
         if not password or not self.password_hash:
             return False
-        
         return check_password_hash(self.password_hash, password)
     
     def update_last_login(self) -> None:
         """Update the last_login timestamp to current time."""
         self.last_login = datetime.utcnow()
     
-    def get_full_name(self) -> str:
+    def deactivate(self) -> None:
+        """Deactivate the user account."""
+        self.is_active = False
+    
+    def activate(self) -> None:
+        """Activate the user account."""
+        self.is_active = True
+    
+    def verify_email(self) -> None:
+        """Mark the user's email as verified."""
+        self.is_verified = True
+    
+    def update_profile(
+        self,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
+        bio: Optional[str] = None
+    ) -> None:
+        """
+        Update user profile information.
+        
+        Args:
+            first_name: New first name (optional)
+            last_name: New last name (optional)
+            bio: New biography (optional)
+            
+        Raises:
+            ValueError: If any validation fails
+        """
+        if first_name is not None:
+            self.first_name = self._validate_name(first_name, "first_name")
+        if last_name is not None:
+            self.last_name = self._validate_name(last_name, "last_name")
+        if bio is not None:
+            self.bio = self._validate_bio(bio) if bio.strip() else None
+    
+    @property
+    def full_name(self) -> str:
         """
         Get the user's full name.
         
         Returns:
-            str: Formatted full name (first_name last_name)
+            str: Concatenated first and last name
         """
-        return f"{self.first_name} {self.last_name}".strip()
+        return f"{self.first_name} {self.last_name}"
+    
+    @property
+    def display_name(self) -> str:
+        """
+        Get the user's display name (full name or username).
+        
+        Returns:
+            str: Full name if available, otherwise username
+        """
+        if self.first_name and self.last_name:
+            return self.full_name
+        return self.username
     
     def to_dict(self, include_sensitive: bool = False) -> dict:
         """
@@ -164,13 +202,13 @@ class User(Base):
         Returns:
             dict: User data as dictionary
         """
-        user_dict = {
+        data = {
             "id": self.id,
             "username": self.username,
             "email": self.email,
             "first_name": self.first_name,
             "last_name": self.last_name,
-            "full_name": self.get_full_name(),
+            "full_name": self.full_name,
             "bio": self.bio,
             "is_active": self.is_active,
             "is_verified": self.is_verified,
@@ -180,14 +218,13 @@ class User(Base):
         }
         
         if include_sensitive:
-            user_dict["password_hash"] = self.password_hash
-        
-        return user_dict
+            data["password_hash"] = self.password_hash
+            
+        return data
     
-    @staticmethod
-    def _validate_username(username: str) -> str:
+    def _validate_username(self, username: str) -> str:
         """
-        Validate username format and requirements.
+        Validate username format and length.
         
         Args:
             username: Username to validate
@@ -197,38 +234,3 @@ class User(Base):
             
         Raises:
             ValueError: If username is invalid
-        """
-        if not username or not isinstance(username, str):
-            raise ValueError("Username is required and must be a string")
-        
-        username = username.strip()
-        
-        if len(username) < 3 or len(username) > 50:
-            raise ValueError("Username must be between 3 and 50 characters")
-        
-        if not re.match(r'^[a-zA-Z0-9_-]+$', username):
-            raise ValueError("Username can only contain letters, numbers, underscores, and hyphens")
-        
-        return username
-    
-    @staticmethod
-    def _validate_email(email: str) -> str:
-        """
-        Validate email format.
-        
-        Args:
-            email: Email address to validate
-            
-        Returns:
-            str: Validated email address
-            
-        Raises:
-            ValueError: If email is invalid
-        """
-        if not email or not isinstance(email, str):
-            raise ValueError("Email is required and must be a string")
-        
-        email = email.strip().lower()
-        
-        if len(email) > 255:
-            raise ValueError("Email address is too long (maximum

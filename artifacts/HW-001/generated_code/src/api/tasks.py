@@ -1,8 +1,8 @@
 """
-Task management API endpoints for CRUD operations with authentication middleware and user-specific filtering.
+Task management API endpoints for CRUD operations with authentication middleware and user authorization.
 
 This module provides REST API endpoints for managing tasks including creation, retrieval,
-updating, and deletion with proper authentication and user-specific data filtering.
+updating, and deletion with proper user authentication and authorization.
 
 Component ID: COMP-003
 Semantic Unit: SU-003
@@ -17,14 +17,20 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPBearer
-from pydantic import BaseModel, Field, validator
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from src.database.connection import get_db_session
-from src.models.task import Task, TaskStatus, TaskPriority
+from src.models.task import Task
 from src.models.user import User
+from src.schemas.task import (
+    TaskCreate,
+    TaskResponse,
+    TaskUpdate,
+    TaskListResponse,
+    TaskStatus,
+    TaskPriority
+)
 from src.utils.jwt_utils import decode_jwt_token, get_current_user
+from src.database import get_db
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -34,195 +40,212 @@ router = APIRouter(prefix="/api/v1/tasks", tags=["tasks"])
 security = HTTPBearer()
 
 
-class TaskCreateRequest(BaseModel):
-    """Request model for creating a new task."""
+class TaskService:
+    """Service class for task-related business logic."""
     
-    title: str = Field(..., min_length=1, max_length=200, description="Task title")
-    description: Optional[str] = Field(None, max_length=1000, description="Task description")
-    priority: TaskPriority = Field(TaskPriority.MEDIUM, description="Task priority level")
-    due_date: Optional[datetime] = Field(None, description="Task due date")
-    
-    @validator('title')
-    def validate_title(cls, v: str) -> str:
-        """Validate and sanitize task title."""
-        if not v or not v.strip():
-            raise ValueError("Title cannot be empty or whitespace only")
-        return v.strip()
-    
-    @validator('description')
-    def validate_description(cls, v: Optional[str]) -> Optional[str]:
-        """Validate and sanitize task description."""
-        if v is not None:
-            return v.strip() if v.strip() else None
-        return v
-    
-    @validator('due_date')
-    def validate_due_date(cls, v: Optional[datetime]) -> Optional[datetime]:
-        """Validate due date is not in the past."""
-        if v is not None and v < datetime.utcnow():
-            raise ValueError("Due date cannot be in the past")
-        return v
-
-
-class TaskUpdateRequest(BaseModel):
-    """Request model for updating an existing task."""
-    
-    title: Optional[str] = Field(None, min_length=1, max_length=200, description="Task title")
-    description: Optional[str] = Field(None, max_length=1000, description="Task description")
-    status: Optional[TaskStatus] = Field(None, description="Task status")
-    priority: Optional[TaskPriority] = Field(None, description="Task priority level")
-    due_date: Optional[datetime] = Field(None, description="Task due date")
-    
-    @validator('title')
-    def validate_title(cls, v: Optional[str]) -> Optional[str]:
-        """Validate and sanitize task title."""
-        if v is not None:
-            if not v or not v.strip():
-                raise ValueError("Title cannot be empty or whitespace only")
-            return v.strip()
-        return v
-    
-    @validator('description')
-    def validate_description(cls, v: Optional[str]) -> Optional[str]:
-        """Validate and sanitize task description."""
-        if v is not None:
-            return v.strip() if v.strip() else None
-        return v
-    
-    @validator('due_date')
-    def validate_due_date(cls, v: Optional[datetime]) -> Optional[datetime]:
-        """Validate due date is not in the past."""
-        if v is not None and v < datetime.utcnow():
-            raise ValueError("Due date cannot be in the past")
-        return v
-
-
-class TaskResponse(BaseModel):
-    """Response model for task data."""
-    
-    id: UUID
-    title: str
-    description: Optional[str]
-    status: TaskStatus
-    priority: TaskPriority
-    due_date: Optional[datetime]
-    created_at: datetime
-    updated_at: datetime
-    user_id: UUID
-    
-    class Config:
-        from_attributes = True
-
-
-class TaskListResponse(BaseModel):
-    """Response model for task list with pagination metadata."""
-    
-    tasks: List[TaskResponse]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
-
-
-def validate_task_ownership(task: Task, user: User) -> None:
-    """
-    Validate that the current user owns the specified task.
-    
-    Args:
-        task: Task instance to validate
-        user: Current authenticated user
+    def __init__(self, db: Session):
+        """
+        Initialize TaskService with database session.
         
-    Raises:
-        HTTPException: If user doesn't own the task
-    """
-    if task.user_id != user.id:
-        logger.warning(f"User {user.id} attempted to access task {task.id} owned by {task.user_id}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied: You can only access your own tasks"
-        )
-
-
-def get_task_by_id(task_id: UUID, db: Session, user: User) -> Task:
-    """
-    Retrieve a task by ID and validate ownership.
+        Args:
+            db: SQLAlchemy database session
+        """
+        self.db = db
     
-    Args:
-        task_id: UUID of the task to retrieve
-        db: Database session
-        user: Current authenticated user
+    def create_task(self, task_data: TaskCreate, user_id: UUID) -> Task:
+        """
+        Create a new task for the authenticated user.
         
-    Returns:
-        Task: The requested task
+        Args:
+            task_data: Task creation data
+            user_id: ID of the user creating the task
+            
+        Returns:
+            Task: Created task instance
+            
+        Raises:
+            HTTPException: If task creation fails
+        """
+        try:
+            task = Task(
+                title=task_data.title,
+                description=task_data.description,
+                status=task_data.status or TaskStatus.TODO,
+                priority=task_data.priority or TaskPriority.MEDIUM,
+                due_date=task_data.due_date,
+                user_id=user_id,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            
+            self.db.add(task)
+            self.db.commit()
+            self.db.refresh(task)
+            
+            logger.info(f"Task created successfully: {task.id} for user: {user_id}")
+            return task
+            
+        except Exception as e:
+            logger.error(f"Failed to create task for user {user_id}: {str(e)}")
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create task"
+            )
+    
+    def get_task_by_id(self, task_id: UUID, user_id: UUID) -> Task:
+        """
+        Retrieve a task by ID for the authenticated user.
         
-    Raises:
-        HTTPException: If task not found or access denied
-    """
-    try:
-        task = db.query(Task).filter(Task.id == task_id).first()
+        Args:
+            task_id: ID of the task to retrieve
+            user_id: ID of the authenticated user
+            
+        Returns:
+            Task: Retrieved task instance
+            
+        Raises:
+            HTTPException: If task not found or access denied
+        """
+        task = self.db.query(Task).filter(
+            Task.id == task_id,
+            Task.user_id == user_id,
+            Task.deleted_at.is_(None)
+        ).first()
+        
         if not task:
+            logger.warning(f"Task not found or access denied: {task_id} for user: {user_id}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Task with ID {task_id} not found"
+                detail="Task not found"
             )
         
-        validate_task_ownership(task, user)
         return task
+    
+    def get_user_tasks(
+        self,
+        user_id: UUID,
+        status_filter: Optional[TaskStatus] = None,
+        priority_filter: Optional[TaskPriority] = None,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[Task]:
+        """
+        Retrieve tasks for the authenticated user with optional filtering.
         
-    except SQLAlchemyError as e:
-        logger.error(f"Database error retrieving task {task_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database error occurred while retrieving task"
+        Args:
+            user_id: ID of the authenticated user
+            status_filter: Optional status filter
+            priority_filter: Optional priority filter
+            skip: Number of records to skip for pagination
+            limit: Maximum number of records to return
+            
+        Returns:
+            List[Task]: List of user's tasks
+        """
+        query = self.db.query(Task).filter(
+            Task.user_id == user_id,
+            Task.deleted_at.is_(None)
         )
+        
+        if status_filter:
+            query = query.filter(Task.status == status_filter)
+        
+        if priority_filter:
+            query = query.filter(Task.priority == priority_filter)
+        
+        tasks = query.order_by(Task.created_at.desc()).offset(skip).limit(limit).all()
+        
+        logger.info(f"Retrieved {len(tasks)} tasks for user: {user_id}")
+        return tasks
+    
+    def update_task(self, task_id: UUID, task_data: TaskUpdate, user_id: UUID) -> Task:
+        """
+        Update an existing task for the authenticated user.
+        
+        Args:
+            task_id: ID of the task to update
+            task_data: Task update data
+            user_id: ID of the authenticated user
+            
+        Returns:
+            Task: Updated task instance
+            
+        Raises:
+            HTTPException: If task not found or update fails
+        """
+        task = self.get_task_by_id(task_id, user_id)
+        
+        try:
+            # Update only provided fields
+            update_data = task_data.dict(exclude_unset=True)
+            for field, value in update_data.items():
+                setattr(task, field, value)
+            
+            task.updated_at = datetime.utcnow()
+            
+            self.db.commit()
+            self.db.refresh(task)
+            
+            logger.info(f"Task updated successfully: {task_id} for user: {user_id}")
+            return task
+            
+        except Exception as e:
+            logger.error(f"Failed to update task {task_id} for user {user_id}: {str(e)}")
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update task"
+            )
+    
+    def delete_task(self, task_id: UUID, user_id: UUID) -> None:
+        """
+        Soft delete a task for the authenticated user.
+        
+        Args:
+            task_id: ID of the task to delete
+            user_id: ID of the authenticated user
+            
+        Raises:
+            HTTPException: If task not found or deletion fails
+        """
+        task = self.get_task_by_id(task_id, user_id)
+        
+        try:
+            task.deleted_at = datetime.utcnow()
+            task.updated_at = datetime.utcnow()
+            
+            self.db.commit()
+            
+            logger.info(f"Task deleted successfully: {task_id} for user: {user_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to delete task {task_id} for user {user_id}: {str(e)}")
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete task"
+            )
 
 
-@router.post("/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
-def create_task(
-    task_data: TaskCreateRequest,
-    db: Session = Depends(get_db_session),
-    current_user: User = Depends(get_current_user)
-) -> TaskResponse:
+def get_task_service(db: Session = Depends(get_db)) -> TaskService:
     """
-    Create a new task for the authenticated user.
+    Dependency to get TaskService instance.
     
     Args:
-        task_data: Task creation data
-        db: Database session
-        current_user: Authenticated user
+        db: Database session dependency
         
     Returns:
-        TaskResponse: Created task data
+        TaskService: Task service instance
+    """
+    return TaskService(db)
+
+
+def validate_task_data(task_data: TaskCreate) -> None:
+    """
+    Validate task creation data.
+    
+    Args:
+        task_data: Task data to validate
         
     Raises:
-        HTTPException: If task creation fails
-    """
-    try:
-        logger.info(f"Creating new task for user {current_user.id}")
-        
-        # Create new task instance
-        new_task = Task(
-            title=task_data.title,
-            description=task_data.description,
-            priority=task_data.priority,
-            due_date=task_data.due_date,
-            status=TaskStatus.TODO,
-            user_id=current_user.id,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
-        )
-        
-        # Save to database
-        db.add(new_task)
-        db.commit()
-        db.refresh(new_task)
-        
-        logger.info(f"Successfully created task {new_task.id} for user {current_user.id}")
-        return TaskResponse.from_orm(new_task)
-        
-    except SQLAlchemyError as e:
-        logger.error(f"Database error creating task: {str(e)}")
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database error occurred while creating task

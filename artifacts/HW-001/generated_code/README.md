@@ -6,10 +6,10 @@ A simple FastAPI REST API that returns greeting messages with optional personali
 
 - **Personalized Greetings**: `/hello` endpoint with optional name parameter
 - **Health Monitoring**: `/health` endpoint with status and timestamp
-- **Input Validation**: Secure parameter validation and sanitization
+- **Input Validation**: Secure name parameter validation with length and character restrictions
 - **Error Handling**: Comprehensive error responses with proper HTTP status codes
-- **Interactive Documentation**: Auto-generated API docs with Swagger UI and ReDoc
-- **Production Ready**: ASGI server support with uvicorn
+- **Auto Documentation**: FastAPI automatic OpenAPI documentation
+- **Production Ready**: Proper logging, exception handling, and security practices
 
 ## Prerequisites
 
@@ -18,12 +18,46 @@ A simple FastAPI REST API that returns greeting messages with optional personali
 
 ## Installation
 
-1. **Clone or download the project files**
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd hello-world-api
+   ```
 
-2. **Install dependencies:**
+2. Create a virtual environment (recommended):
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
+
+## Configuration
+
+No configuration files are required for basic operation. The application uses sensible defaults:
+
+- **Host**: 127.0.0.1 (localhost)
+- **Port**: 8000
+- **Log Level**: INFO
+- **Timezone**: UTC
+
+### Environment Variables (Optional)
+
+You can customize the application behavior using environment variables:
+
+```bash
+# Server configuration
+HOST=0.0.0.0
+PORT=8000
+LOG_LEVEL=INFO
+
+# Application settings
+APP_TITLE="Hello World API"
+APP_VERSION="1.0.0"
+```
 
 ## Running the Application
 
@@ -42,13 +76,16 @@ The API will be available at http://localhost:8000
 Start the production server:
 
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 8000
+uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
-For production deployment with multiple workers:
+### Using Docker (Optional)
+
+If you have a Dockerfile:
 
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+docker build -t hello-world-api .
+docker run -p 8000:8000 hello-world-api
 ```
 
 ## API Documentation
@@ -58,7 +95,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
 Returns a greeting message with optional personalization.
 
 **Parameters:**
-- `name` (optional, query parameter): Name to personalize greeting
+- `name` (optional, query parameter): Name to personalize the greeting
   - Type: string
   - Max length: 100 characters
   - Allowed characters: alphanumeric and spaces only
@@ -71,7 +108,7 @@ Returns a greeting message with optional personalization.
 }
 ```
 
-**Success Response with name (200 OK):**
+**Personalized Response (200 OK):**
 ```json
 {
   "message": "Hello, John Doe!"
@@ -81,8 +118,10 @@ Returns a greeting message with optional personalization.
 **Error Response (400 Bad Request):**
 ```json
 {
-  "code": "INVALID_NAME",
-  "message": "Name parameter contains invalid characters or exceeds 100 characters"
+  "error": {
+    "code": "INVALID_NAME",
+    "message": "Name parameter contains invalid characters or exceeds 100 characters"
+  }
 }
 ```
 
@@ -100,7 +139,9 @@ curl "http://localhost:8000/hello?name=Alice@123"
 
 ### GET /health
 
-Returns application health status and current timestamp for monitoring purposes.
+Health check endpoint for monitoring and load balancer health checks.
+
+**Parameters:** None
 
 **Success Response (200 OK):**
 ```json
@@ -110,21 +151,20 @@ Returns application health status and current timestamp for monitoring purposes.
 }
 ```
 
-**Example:**
-```bash
-curl http://localhost:8000/health
-```
-
-### Error Responses
-
-All endpoints may return the following error response:
-
-**Internal Server Error (500):**
+**Error Response (500 Internal Server Error):**
 ```json
 {
-  "code": "INTERNAL_ERROR",
-  "message": "Internal server error"
+  "error": {
+    "code": "INTERNAL_ERROR",
+    "message": "Internal server error"
+  }
 }
+```
+
+**Examples:**
+```bash
+# Health check
+curl http://localhost:8000/health
 ```
 
 ## Interactive API Documentation
@@ -148,95 +188,83 @@ pytest tests/ -v
 Run tests with coverage report:
 
 ```bash
-pytest tests/ --cov=. --cov-report=html
+pytest tests/ --cov=. --cov-report=html --cov-report=term
 ```
 
-View coverage report:
+View HTML coverage report:
+
 ```bash
-open htmlcov/index.html  # macOS
-xdg-open htmlcov/index.html  # Linux
+open htmlcov/index.html  # On macOS
+# or
+start htmlcov/index.html  # On Windows
 ```
 
 ### Test Categories
 
-The test suite includes:
+- **Unit Tests**: Test individual functions and components
+- **Integration Tests**: Test API endpoints end-to-end
+- **Validation Tests**: Test input validation and error handling
+- **Edge Case Tests**: Test boundary conditions and error scenarios
 
-- **Unit Tests**: Individual function testing
-- **Integration Tests**: API endpoint testing
-- **Edge Case Tests**: Boundary conditions and invalid inputs
-- **Error Handling Tests**: Exception scenarios
+### Manual Testing
 
-## Configuration
-
-### Environment Variables
-
-The application supports the following optional environment variables:
+Test the API manually using curl or any HTTP client:
 
 ```bash
-# Server configuration
-HOST=0.0.0.0
-PORT=8000
-WORKERS=1
+# Test basic hello endpoint
+curl -X GET "http://localhost:8000/hello" -H "accept: application/json"
 
-# Logging level
-LOG_LEVEL=info
+# Test personalized greeting
+curl -X GET "http://localhost:8000/hello?name=TestUser" -H "accept: application/json"
+
+# Test health endpoint
+curl -X GET "http://localhost:8000/health" -H "accept: application/json"
+
+# Test error handling (invalid name)
+curl -X GET "http://localhost:8000/hello?name=Invalid@Name!" -H "accept: application/json"
 ```
 
-Create a `.env` file in the project root:
-
-```bash
-# .env file example
-HOST=localhost
-PORT=8000
-LOG_LEVEL=debug
-```
-
-### CORS Configuration
-
-For cross-origin requests, you can enable CORS by modifying the FastAPI application:
-
-```python
-from fastapi.middleware.cors import CORSMiddleware
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-```
-
-## Architecture
-
-The application follows a three-layer architecture:
-
-1. **Application Layer** (`FastAPIApplication`): Handles initialization and configuration
-2. **Endpoint Layer** (`HelloEndpoint`, `HealthEndpoint`): Implements business logic
-3. **Error Handling Layer** (`ErrorHandler`): Provides centralized exception management
-
-### Key Components
-
-- **Input Validation**: Name parameter validation using regex `^[a-zA-Z0-9\s]*$`
-- **Sanitization**: Automatic whitespace trimming and title-case formatting
-- **Timezone Handling**: All timestamps in UTC using ISO 8601 format
-- **Error Consistency**: Standardized error response format with codes and messages
-
-## Security
+## Security Considerations
 
 ### Input Validation
 
-- Name parameter limited to 100 characters
-- Only alphanumeric characters and spaces allowed
-- Automatic sanitization prevents injection attacks
-- No direct string interpolation without validation
+- **Name Parameter**: Restricted to alphanumeric characters and spaces only
+- **Length Limits**: Maximum 100 characters for name parameter
+- **Regex Validation**: Uses `^[a-zA-Z0-9 ]+$` pattern to prevent injection attacks
+
+### Error Handling
+
+- **No Information Disclosure**: Error messages don't expose internal system details
+- **Consistent Error Format**: All errors follow the same JSON structure
+- **Proper HTTP Status Codes**: 400 for client errors, 500 for server errors
 
 ### Best Practices
 
-- No sensitive data in logs
-- Proper HTTP status codes
-- Input length restrictions
-- Character set validation
+- **No Sensitive Data**: No authentication tokens or sensitive information in logs
+- **Input Sanitization**: All user inputs are validated before processing
+- **Exception Handling**: Unhandled exceptions are caught and logged securely
+
+## Monitoring and Logging
+
+### Health Checks
+
+Use the `/health` endpoint for:
+- Load balancer health checks
+- Container orchestration health probes
+- Monitoring system status checks
+
+### Logging
+
+The application logs important events:
+- Request processing errors
+- Validation failures
+- Unhandled exceptions
+- Application startup/shutdown
+
+Log levels:
+- **INFO**: Normal operation events
+- **WARNING**: Validation errors and client mistakes
+- **ERROR**: Server errors and exceptions
 
 ## Troubleshooting
 
@@ -244,112 +272,72 @@ The application follows a three-layer architecture:
 
 #### Port Already in Use
 
-If port 8000 is already in use:
+**Error**: `OSError: [Errno 48] Address already in use`
 
+**Solution**: Use a different port:
 ```bash
-# Use a different port
 uvicorn main:app --port 8001
-
-# Or find and kill the process using port 8000
-lsof -ti:8000 | xargs kill -9  # macOS/Linux
 ```
 
 #### Import Errors
 
-Ensure all dependencies are installed:
+**Error**: `ModuleNotFoundError: No module named 'fastapi'`
 
+**Solution**: Install dependencies:
 ```bash
 pip install -r requirements.txt
-
-# Or reinstall specific packages
-pip install fastapi uvicorn
 ```
 
-#### Module Not Found
+#### Permission Denied (Port 80/443)
 
-Make sure you're in the correct directory:
+**Error**: `PermissionError: [Errno 13] Permission denied`
 
+**Solution**: Use a port above 1024 or run with sudo (not recommended):
 ```bash
-# Should contain main.py
-ls -la main.py
-
-# Run from the project root directory
-uvicorn main:app --reload
-```
-
-#### Permission Errors
-
-On some systems, you might need to use a different port:
-
-```bash
-# Use port > 1024 for non-root users
 uvicorn main:app --port 8080
 ```
 
-### Debugging
+#### Virtual Environment Issues
 
-Enable debug logging:
+**Error**: Dependencies not found despite installation
 
+**Solution**: Ensure virtual environment is activated:
 ```bash
-# Set log level to debug
-uvicorn main:app --log-level debug
-
-# Or use environment variable
-LOG_LEVEL=debug uvicorn main:app
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip list  # Verify packages are installed
 ```
-
-Check application logs for detailed error information.
 
 ### Performance Issues
 
-For high-traffic scenarios:
+#### Slow Response Times
 
+1. Check system resources (CPU, memory)
+2. Verify no blocking operations in endpoints
+3. Consider using multiple workers:
+   ```bash
+   uvicorn main:app --workers 4
+   ```
+
+#### High Memory Usage
+
+1. Monitor for memory leaks
+2. Check log file sizes
+3. Restart the application periodically if needed
+
+### Debugging
+
+#### Enable Debug Mode
+
+For development debugging:
 ```bash
-# Use multiple workers
-uvicorn main:app --workers 4
-
-# Or use gunicorn with uvicorn workers
-gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker
+uvicorn main:app --reload --log-level debug
 ```
 
-### Health Check Monitoring
+#### Check Application Logs
 
-Use the `/health` endpoint for monitoring:
-
+Monitor application output for errors:
 ```bash
-# Simple health check script
-while true; do
-  curl -f http://localhost:8000/health || echo "Health check failed"
-  sleep 30
-done
+uvicorn main:app 2>&1 | tee app.log
 ```
 
-## Development
-
-### Code Style
-
-The project follows PEP 8 style guidelines:
-
-- Line length: 88 characters (Black formatter)
-- Type hints for all functions
-- Docstrings for modules, classes, and functions
-- Consistent naming conventions
-
-### Adding New Endpoints
-
-1. Create endpoint function with proper type hints
-2. Add input validation and error handling
-3. Update API documentation
-4. Write comprehensive tests
-5. Update this README with new endpoint details
-
-### Contributing
-
-1. Follow existing code style and patterns
-2. Add tests for new functionality
-3. Update documentation
-4. Ensure all tests pass before submitting changes
-
-## License
-
-This project is provided as-is for educational and demonstration purposes.
+#### Validate API Responses

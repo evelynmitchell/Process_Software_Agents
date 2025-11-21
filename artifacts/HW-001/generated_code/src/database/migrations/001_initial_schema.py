@@ -1,12 +1,12 @@
 """
 Initial database schema migration for Hello World API
 
-Creates the initial database tables, indexes, and constraints.
-This is a placeholder migration as the Hello World API doesn't require a database.
+Creates the foundational database tables, indexes, and constraints.
+This migration establishes the core data structure for the application.
 
 Revision ID: 001
 Revises: 
-Create Date: 2025-11-21 02:21:40.723332
+Create Date: 2024-01-01 00:00:00.000000
 
 Component ID: COMP-011
 Semantic Unit: SU-011
@@ -17,7 +17,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = '001'
@@ -28,177 +28,114 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """
-    Upgrade database schema to revision 001.
+    Create initial database schema with users and tasks tables.
     
-    Creates initial database tables for the Hello World API.
-    Note: The Hello World API is stateless and doesn't require database tables,
-    but this migration is included for completeness and future extensibility.
-    
-    Tables created:
-    - api_metadata: Stores API version and configuration metadata
-    - request_logs: Optional table for request logging (disabled by default)
+    This migration creates:
+    - users table with authentication and profile information
+    - tasks table with task management functionality
+    - Appropriate indexes for query performance
+    - Foreign key constraints for data integrity
+    - Check constraints for data validation
     """
-    # Create api_metadata table for storing API configuration
+    # Create users table
     op.create_table(
-        'api_metadata',
+        'users',
         sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
-        sa.Column('key', sa.String(100), nullable=False, unique=True),
-        sa.Column('value', sa.Text(), nullable=True),
-        sa.Column('description', sa.String(255), nullable=True),
+        sa.Column('username', sa.String(length=50), nullable=False),
+        sa.Column('email', sa.String(length=255), nullable=False),
+        sa.Column('password_hash', sa.String(length=255), nullable=False),
+        sa.Column('first_name', sa.String(length=100), nullable=True),
+        sa.Column('last_name', sa.String(length=100), nullable=True),
+        sa.Column('is_active', sa.Boolean(), nullable=False, default=True),
+        sa.Column('is_verified', sa.Boolean(), nullable=False, default=False),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, 
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
+        sa.Column('last_login_at', sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('key', name='uq_api_metadata_key')
+        sa.UniqueConstraint('username', name='uq_users_username'),
+        sa.UniqueConstraint('email', name='uq_users_email'),
+        sa.CheckConstraint('length(username) >= 3', name='ck_users_username_length'),
+        sa.CheckConstraint('length(email) >= 5', name='ck_users_email_length'),
+        sa.CheckConstraint('email LIKE \'%@%\'', name='ck_users_email_format')
     )
     
-    # Create index on key column for fast lookups
-    op.create_index(
-        'ix_api_metadata_key',
-        'api_metadata',
-        ['key'],
-        unique=True
-    )
-    
-    # Create index on created_at for time-based queries
-    op.create_index(
-        'ix_api_metadata_created_at',
-        'api_metadata',
-        ['created_at']
-    )
-    
-    # Create request_logs table for optional request logging
-    # This table is not used by the current Hello World API but provides
-    # foundation for future logging requirements
+    # Create tasks table
     op.create_table(
-        'request_logs',
-        sa.Column('id', sa.BigInteger(), nullable=False, primary_key=True),
-        sa.Column('request_id', sa.String(36), nullable=False, unique=True),
-        sa.Column('method', sa.String(10), nullable=False),
-        sa.Column('path', sa.String(255), nullable=False),
-        sa.Column('query_params', sa.Text(), nullable=True),
-        sa.Column('user_agent', sa.String(500), nullable=True),
-        sa.Column('ip_address', sa.String(45), nullable=True),  # IPv6 compatible
-        sa.Column('status_code', sa.Integer(), nullable=True),
-        sa.Column('response_time_ms', sa.Integer(), nullable=True),
-        sa.Column('error_code', sa.String(50), nullable=True),
-        sa.Column('error_message', sa.Text(), nullable=True),
+        'tasks',
+        sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
+        sa.Column('user_id', sa.Integer(), nullable=False),
+        sa.Column('title', sa.String(length=200), nullable=False),
+        sa.Column('description', sa.Text(), nullable=True),
+        sa.Column('status', sa.String(length=20), nullable=False, default='pending'),
+        sa.Column('priority', sa.String(length=10), nullable=False, default='medium'),
+        sa.Column('due_date', sa.DateTime(timezone=True), nullable=True),
+        sa.Column('completed_at', sa.DateTime(timezone=True), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
+        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False,
+                 server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('request_id', name='uq_request_logs_request_id')
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'], 
+                               name='fk_tasks_user_id', ondelete='CASCADE'),
+        sa.CheckConstraint('length(title) >= 1', name='ck_tasks_title_length'),
+        sa.CheckConstraint('status IN (\'pending\', \'in_progress\', \'completed\', \'cancelled\')', 
+                          name='ck_tasks_status_values'),
+        sa.CheckConstraint('priority IN (\'low\', \'medium\', \'high\', \'urgent\')', 
+                          name='ck_tasks_priority_values'),
+        sa.CheckConstraint('(status = \'completed\' AND completed_at IS NOT NULL) OR '
+                          '(status != \'completed\' AND completed_at IS NULL)',
+                          name='ck_tasks_completed_consistency')
     )
     
-    # Create indexes for request_logs table
-    op.create_index(
-        'ix_request_logs_request_id',
-        'request_logs',
-        ['request_id'],
-        unique=True
-    )
+    # Create indexes for users table
+    op.create_index('ix_users_username', 'users', ['username'])
+    op.create_index('ix_users_email', 'users', ['email'])
+    op.create_index('ix_users_created_at', 'users', ['created_at'])
+    op.create_index('ix_users_is_active', 'users', ['is_active'])
+    op.create_index('ix_users_last_login_at', 'users', ['last_login_at'])
     
-    op.create_index(
-        'ix_request_logs_created_at',
-        'request_logs',
-        ['created_at']
-    )
+    # Create indexes for tasks table
+    op.create_index('ix_tasks_user_id', 'tasks', ['user_id'])
+    op.create_index('ix_tasks_status', 'tasks', ['status'])
+    op.create_index('ix_tasks_priority', 'tasks', ['priority'])
+    op.create_index('ix_tasks_due_date', 'tasks', ['due_date'])
+    op.create_index('ix_tasks_created_at', 'tasks', ['created_at'])
+    op.create_index('ix_tasks_completed_at', 'tasks', ['completed_at'])
     
-    op.create_index(
-        'ix_request_logs_method_path',
-        'request_logs',
-        ['method', 'path']
-    )
-    
-    op.create_index(
-        'ix_request_logs_status_code',
-        'request_logs',
-        ['status_code']
-    )
-    
-    op.create_index(
-        'ix_request_logs_ip_address',
-        'request_logs',
-        ['ip_address']
-    )
-    
-    # Insert initial API metadata
-    op.execute(
-        sa.text("""
-        INSERT INTO api_metadata (key, value, description) VALUES
-        ('api_version', '1.0.0', 'Current API version'),
-        ('api_title', 'Hello World API', 'API title'),
-        ('api_description', 'Simple REST API that returns greeting messages', 'API description'),
-        ('schema_version', '001', 'Current database schema version'),
-        ('created_date', :created_date, 'Date when API was first deployed'),
-        ('logging_enabled', 'false', 'Whether request logging is enabled'),
-        ('max_name_length', '100', 'Maximum allowed length for name parameter'),
-        ('allowed_name_pattern', '^[a-zA-Z0-9\\s]*$', 'Regex pattern for valid name characters')
-        """),
-        created_date='2025-11-21T02:21:40.723332Z'
-    )
+    # Create composite indexes for common query patterns
+    op.create_index('ix_tasks_user_status', 'tasks', ['user_id', 'status'])
+    op.create_index('ix_tasks_user_priority', 'tasks', ['user_id', 'priority'])
+    op.create_index('ix_tasks_status_due_date', 'tasks', ['status', 'due_date'])
+    op.create_index('ix_users_active_created', 'users', ['is_active', 'created_at'])
 
 
 def downgrade() -> None:
     """
-    Downgrade database schema from revision 001.
+    Drop all tables and indexes created in the upgrade.
     
-    Drops all tables and indexes created in the upgrade() function.
-    This will permanently delete all data in these tables.
-    """
-    # Drop indexes first (foreign key constraints would be dropped here if they existed)
-    op.drop_index('ix_request_logs_ip_address', table_name='request_logs')
-    op.drop_index('ix_request_logs_status_code', table_name='request_logs')
-    op.drop_index('ix_request_logs_method_path', table_name='request_logs')
-    op.drop_index('ix_request_logs_created_at', table_name='request_logs')
-    op.drop_index('ix_request_logs_request_id', table_name='request_logs')
+    This will completely remove the initial schema, including:
+    - All indexes (dropped automatically with tables)
+    - tasks table (with foreign key constraints)
+    - users table
     
-    op.drop_index('ix_api_metadata_created_at', table_name='api_metadata')
-    op.drop_index('ix_api_metadata_key', table_name='api_metadata')
+    Warning: This will permanently delete all data in these tables.
+    """
+    # Drop composite indexes first (if they exist independently)
+    op.drop_index('ix_users_active_created', table_name='users')
+    op.drop_index('ix_tasks_status_due_date', table_name='tasks')
+    op.drop_index('ix_tasks_user_priority', table_name='tasks')
+    op.drop_index('ix_tasks_user_status', table_name='tasks')
     
-    # Drop tables
-    op.drop_table('request_logs')
-    op.drop_table('api_metadata')
-
-
-def get_current_schema_version() -> str:
-    """
-    Get the current schema version from this migration.
+    # Drop tasks table indexes
+    op.drop_index('ix_tasks_completed_at', table_name='tasks')
+    op.drop_index('ix_tasks_created_at', table_name='tasks')
+    op.drop_index('ix_tasks_due_date', table_name='tasks')
+    op.drop_index('ix_tasks_priority', table_name='tasks')
+    op.drop_index('ix_tasks_status', table_name='tasks')
+    op.drop_index('ix_tasks_user_id', table_name='tasks')
     
-    Returns:
-        str: The revision identifier for this migration
-        
-    Note:
-        This is a utility function that can be used by the application
-        to verify the current database schema version.
-    """
-    return revision
-
-
-def validate_schema_compatibility() -> bool:
-    """
-    Validate that the current schema is compatible with the API requirements.
-    
-    Returns:
-        bool: True if schema is compatible, False otherwise
-        
-    Note:
-        This function can be extended to perform more complex validation
-        as the API evolves and requires additional database features.
-    """
-    # For the Hello World API, any schema version is compatible
-    # since the API doesn't actually use the database tables
-    return True
-
-
-def get_migration_description() -> str:
-    """
-    Get a human-readable description of what this migration does.
-    
-    Returns:
-        str: Description of the migration changes
-    """
-    return (
-        "Initial schema migration for Hello World API. "
-        "Creates api_metadata table for configuration storage and "
-        "request_
+    # Drop users table indexes
+    op.drop_index('ix_users_last_login_at', table_name='users')
+    op.drop_index('ix_users_is_active', table_name='

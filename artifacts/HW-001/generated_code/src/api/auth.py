@@ -1,8 +1,8 @@
 """
-Authentication API endpoints for user registration, login, token refresh, and logout.
+Authentication API endpoints for user registration, login, token validation, and logout functionality.
 
-This module provides JWT-based authentication endpoints with secure password handling
-and token management for user authentication and authorization.
+This module provides secure authentication endpoints with JWT token management,
+password hashing, and comprehensive input validation.
 
 Component ID: COMP-002
 Semantic Unit: SU-002
@@ -16,22 +16,21 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from src.database.connection import get_db_session
 from src.models.user import User
-from src.utils.jwt_utils import (
-    create_access_token,
-    create_refresh_token,
-    verify_token,
-    decode_token,
-    blacklist_token,
-    is_token_blacklisted
-)
+from src.utils.jwt_utils import create_access_token, verify_token, decode_token
 from src.utils.password import hash_password, verify_password
-
+from src.schemas.auth import (
+    UserRegistrationRequest,
+    UserLoginRequest,
+    AuthResponse,
+    TokenValidationResponse,
+    UserResponse,
+    LogoutResponse
+)
+from src.database import get_db
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -41,203 +40,217 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 security = HTTPBearer()
 
 
-# Request/Response Models
-class UserRegistrationRequest(BaseModel):
-    """Request model for user registration."""
-    email: EmailStr = Field(..., description="User email address")
-    password: str = Field(..., min_length=8, max_length=128, description="User password")
-    first_name: str = Field(..., min_length=1, max_length=50, description="User first name")
-    last_name: str = Field(..., min_length=1, max_length=50, description="User last name")
+class AuthenticationError(Exception):
+    """Custom exception for authentication-related errors."""
+    pass
 
 
-class UserLoginRequest(BaseModel):
-    """Request model for user login."""
-    email: EmailStr = Field(..., description="User email address")
-    password: str = Field(..., description="User password")
-
-
-class TokenRefreshRequest(BaseModel):
-    """Request model for token refresh."""
-    refresh_token: str = Field(..., description="Valid refresh token")
-
-
-class AuthResponse(BaseModel):
-    """Response model for authentication endpoints."""
-    access_token: str = Field(..., description="JWT access token")
-    refresh_token: str = Field(..., description="JWT refresh token")
-    token_type: str = Field(default="bearer", description="Token type")
-    expires_in: int = Field(..., description="Token expiration time in seconds")
-
-
-class UserResponse(BaseModel):
-    """Response model for user information."""
-    id: int = Field(..., description="User ID")
-    email: str = Field(..., description="User email address")
-    first_name: str = Field(..., description="User first name")
-    last_name: str = Field(..., description="User last name")
-    created_at: datetime = Field(..., description="User creation timestamp")
-    is_active: bool = Field(..., description="User active status")
-
-
-class MessageResponse(BaseModel):
-    """Response model for simple messages."""
-    message: str = Field(..., description="Response message")
-
-
-# Dependency functions
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db_session)
-) -> User:
-    """
-    Get current authenticated user from JWT token.
+class AuthService:
+    """Service class handling authentication business logic."""
     
-    Args:
-        credentials: HTTP authorization credentials containing JWT token
-        db: Database session
+    def __init__(self, db: Session):
+        """
+        Initialize authentication service.
         
-    Returns:
-        User: Current authenticated user
-        
-    Raises:
-        HTTPException: If token is invalid, expired, or user not found
-    """
-    token = credentials.credentials
+        Args:
+            db: Database session for user operations
+        """
+        self.db = db
     
-    # Check if token is blacklisted
-    if is_token_blacklisted(token):
-        logger.warning("Attempt to use blacklisted token")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has been revoked",
-            headers={"WWW-Authenticate": "Bearer"},
+    def register_user(self, registration_data: UserRegistrationRequest) -> User:
+        """
+        Register a new user with validated input data.
+        
+        Args:
+            registration_data: User registration information
+            
+        Returns:
+            User: Created user instance
+            
+        Raises:
+            HTTPException: If email already exists or validation fails
+        """
+        # Check if user already exists
+        existing_user = self.db.query(User).filter(
+            User.email == registration_data.email.lower()
+        ).first()
+        
+        if existing_user:
+            logger.warning(f"Registration attempt with existing email: {registration_data.email}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "error": {
+                        "code": "EMAIL_ALREADY_EXISTS",
+                        "message": "A user with this email address already exists"
+                    }
+                }
+            )
+        
+        # Validate password strength
+        if not self._validate_password_strength(registration_data.password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "error": {
+                        "code": "WEAK_PASSWORD",
+                        "message": "Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character"
+                    }
+                }
+            )
+        
+        # Hash password and create user
+        hashed_password = hash_password(registration_data.password)
+        
+        new_user = User(
+            email=registration_data.email.lower(),
+            username=registration_data.username,
+            full_name=registration_data.full_name,
+            hashed_password=hashed_password,
+            is_active=True,
+            created_at=datetime.utcnow()
         )
+        
+        try:
+            self.db.add(new_user)
+            self.db.commit()
+            self.db.refresh(new_user)
+            logger.info(f"User registered successfully: {new_user.email}")
+            return new_user
+        except IntegrityError as e:
+            self.db.rollback()
+            logger.error(f"Database error during user registration: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={
+                    "error": {
+                        "code": "REGISTRATION_FAILED",
+                        "message": "Failed to create user account"
+                    }
+                }
+            )
     
-    # Verify and decode token
-    try:
-        payload = verify_token(token)
-        user_id = payload.get("sub")
-        if user_id is None:
+    def authenticate_user(self, login_data: UserLoginRequest) -> User:
+        """
+        Authenticate user with email and password.
+        
+        Args:
+            login_data: User login credentials
+            
+        Returns:
+            User: Authenticated user instance
+            
+        Raises:
+            HTTPException: If credentials are invalid
+        """
+        user = self.db.query(User).filter(
+            User.email == login_data.email.lower()
+        ).first()
+        
+        if not user or not verify_password(login_data.password, user.hashed_password):
+            logger.warning(f"Failed login attempt for email: {login_data.email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token payload",
-                headers={"WWW-Authenticate": "Bearer"},
+                detail={
+                    "error": {
+                        "code": "INVALID_CREDENTIALS",
+                        "message": "Invalid email or password"
+                    }
+                }
             )
-    except Exception as e:
-        logger.warning(f"Token verification failed: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    # Get user from database
-    user = db.query(User).filter(User.id == int(user_id)).first()
-    if user is None:
-        logger.warning(f"User not found for token: {user_id}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    if not user.is_active:
-        logger.warning(f"Inactive user attempted access: {user.email}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User account is inactive",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    return user
-
-
-def validate_password_strength(password: str) -> None:
-    """
-    Validate password meets security requirements.
-    
-    Args:
-        password: Password to validate
         
-    Raises:
-        HTTPException: If password doesn't meet requirements
-    """
-    if len(password) < 8:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must be at least 8 characters long"
-        )
-    
-    if len(password) > 128:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must be no more than 128 characters long"
-        )
-    
-    # Check for at least one uppercase letter
-    if not any(c.isupper() for c in password):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must contain at least one uppercase letter"
-        )
-    
-    # Check for at least one lowercase letter
-    if not any(c.islower() for c in password):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must contain at least one lowercase letter"
-        )
-    
-    # Check for at least one digit
-    if not any(c.isdigit() for c in password):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must contain at least one digit"
-        )
-
-
-def sanitize_user_input(value: str) -> str:
-    """
-    Sanitize user input to prevent injection attacks.
-    
-    Args:
-        value: Input string to sanitize
+        if not user.is_active:
+            logger.warning(f"Login attempt for inactive user: {login_data.email}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={
+                    "error": {
+                        "code": "ACCOUNT_DISABLED",
+                        "message": "User account is disabled"
+                    }
+                }
+            )
         
-    Returns:
-        str: Sanitized string
-    """
-    if not isinstance(value, str):
-        return str(value)
+        # Update last login timestamp
+        user.last_login = datetime.utcnow()
+        self.db.commit()
+        
+        logger.info(f"User authenticated successfully: {user.email}")
+        return user
     
-    # Strip whitespace and limit length
-    sanitized = value.strip()[:255]
+    def validate_token(self, token: str) -> User:
+        """
+        Validate JWT token and return associated user.
+        
+        Args:
+            token: JWT token string
+            
+        Returns:
+            User: User associated with the token
+            
+        Raises:
+            HTTPException: If token is invalid or expired
+        """
+        try:
+            if not verify_token(token):
+                raise AuthenticationError("Invalid token")
+            
+            payload = decode_token(token)
+            user_id = payload.get("sub")
+            
+            if not user_id:
+                raise AuthenticationError("Token missing user ID")
+            
+            user = self.db.query(User).filter(User.id == int(user_id)).first()
+            
+            if not user or not user.is_active:
+                raise AuthenticationError("User not found or inactive")
+            
+            return user
+            
+        except AuthenticationError as e:
+            logger.warning(f"Token validation failed: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={
+                    "error": {
+                        "code": "INVALID_TOKEN",
+                        "message": "Invalid or expired token"
+                    }
+                }
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error during token validation: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={
+                    "error": {
+                        "code": "TOKEN_VALIDATION_ERROR",
+                        "message": "Failed to validate token"
+                    }
+                }
+            )
     
-    # Remove null bytes and control characters
-    sanitized = ''.join(char for char in sanitized if ord(char) >= 32 or char in '\t\n\r')
-    
-    return sanitized
+    def _validate_password_strength(self, password: str) -> bool:
+        """
+        Validate password meets security requirements.
+        
+        Args:
+            password: Password to validate
+            
+        Returns:
+            bool: True if password meets requirements
+        """
+        if len(password) < 8:
+            return False
+        
+        has_upper = any(c.isupper() for c in password)
+        has_lower = any(c.islower() for c in password)
+        has_digit = any(c.isdigit() for c in password)
+        has_special = any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in password)
+        
+        return has_upper and has_lower and has_digit and has_special
 
 
-# Authentication endpoints
-@router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-def register_user(
-    user_data: UserRegistrationRequest,
-    db: Session = Depends(get_db_session)
-) -> AuthResponse:
-    """
-    Register a new user account.
-    
-    Args:
-        user_data: User registration data
-        db: Database session
-        
-    Returns:
-        AuthResponse: JWT tokens and user information
-        
-    Raises:
-        HTTPException: If email already exists or validation fails
-    """
-    logger.info(f"User registration attempt for email: {user_data.email}")
-    
-    # Validate password strength
-    validate_password_strength(user_
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(
