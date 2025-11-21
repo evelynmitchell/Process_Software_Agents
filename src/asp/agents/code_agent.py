@@ -160,11 +160,15 @@ class CodeAgent(BaseAgent):
                 logger.debug(f"Wrote code manifest Markdown: {md_path}")
                 artifact_files.append(str(md_path))
 
-                # Write each generated file to src/, tests/, etc.
+                # Write each generated file to artifacts/{task_id}/generated_code/
+                from pathlib import Path
+                generated_code_base = Path("artifacts") / generated_code.task_id / "generated_code"
+
                 for file in generated_code.files:
                     file_path = write_generated_file(
                         task_id=generated_code.task_id,
                         file=file,
+                        base_path=str(generated_code_base),
                     )
                     logger.debug(f"Wrote generated file: {file_path}")
                     artifact_files.append(str(file_path))
@@ -614,8 +618,9 @@ class CodeAgent(BaseAgent):
                     temperature=0.0,  # Deterministic for code generation
                 )
 
-                # Extract content
-                content = response.get("content")
+                # Extract content - use raw_content to avoid JSON parsing
+                # The LLM client auto-parses JSON, but we want RAW code content
+                content = response.get("raw_content") or response.get("content")
 
                 if not isinstance(content, str):
                     raise AgentExecutionError(
