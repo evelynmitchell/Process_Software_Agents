@@ -263,3 +263,19 @@ def close_database() -> None:
 def health_check() -> bool:
     """
     Check database connectivity.
+
+    Returns:
+        True if database is accessible, False otherwise
+    """
+    try:
+        db = next(get_db_session())
+        db.execute("SELECT 1")
+        db.close()
+        return True
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+        return False
+
+
+# Alias for compatibility with test fixtures
+get_db = get_db_session
