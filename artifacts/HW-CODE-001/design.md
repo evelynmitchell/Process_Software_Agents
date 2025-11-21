@@ -4,40 +4,62 @@
 
 ## Architecture Overview
 
-Simple single-endpoint REST API with minimal architecture. HelloWorldHandler component processes GET requests to /hello endpoint and returns static greeting with dynamic timestamp. No database or external dependencies required. FastAPI framework provides HTTP server capabilities and automatic JSON serialization.
+Simple 3-tier architecture for HTTP API: HTTPServerFramework initializes and configures the FastAPI application with routing infrastructure (SU-001). HelloRouteHandler implements the GET /hello endpoint that returns a greeting message (SU-002). ResponseFormatter handles response serialization and error formatting with proper HTTP status codes (SU-003). The framework automatically serializes Python dictionaries to JSON. Exception handling middleware catches all unhandled exceptions and returns appropriate error responses. No database, authentication, or complex business logic required.
 
 ## Technology Stack
 
-{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'datetime_handling': 'Python datetime module (stdlib)', 'json_serialization': 'FastAPI automatic JSON response', 'http_server': 'Uvicorn ASGI server'}
+{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'asgi_server': 'uvicorn 0.24+', 'json_serialization': 'FastAPI built-in (pydantic v2+)', 'logging': 'Python logging module (stdlib)', 'http_client_testing': 'httpx 0.25+ (for testing)'}
 
 ## Assumptions
 
-['No authentication or authorization required for hello endpoint', 'Response format includes timestamp for request tracking', 'UTC timezone used for all timestamps', 'No rate limiting required for simple hello endpoint', 'No logging requirements specified beyond error handling']
+['Server runs on localhost:8000 by default (host=0.0.0.0, port=8000)', 'Single-process deployment (workers=1) is acceptable', 'No authentication or authorization required for /hello endpoint', 'No database or persistent storage needed', 'Response content-type is application/json', 'HTTP/1.1 protocol is sufficient (no HTTP/2 required)', 'No rate limiting or request throttling needed', 'CORS is not required or can be configured at infrastructure level', 'Synchronous request handling is acceptable (no async/await needed)', 'All exceptions should return 500 status code with error response']
 
 ## API Contracts
 
 ### GET /hello
 
-- **Description:** Returns a simple Hello World greeting message
+- **Description:** Returns a simple greeting message with HTTP 200 status code
 - **Authentication:** False
 - **Response Schema:**
 ```json
-{'message': "string (exactly 'Hello World')", 'timestamp': 'string (ISO 8601 timestamp)', 'status': "string (exactly 'success')"}
+{'message': "string (value: 'Hello World')"}
 ```
 - **Error Responses:** N/A
 
 ## Component Logic
 
-### HelloWorldHandler
+### HTTPServerFramework
 
-- **Responsibility:** Handles GET /hello requests and returns Hello World response with timestamp
+- **Responsibility:** Initializes and configures the HTTP server framework with routing infrastructure
 - **Semantic Unit:** SU-001
 - **Dependencies:** None
-- **Implementation Notes:** Use datetime.utcnow().isoformat() + 'Z' for ISO 8601 UTC timestamp. Return exactly 'Hello World' as message. Include status field set to 'success'. Handle any exceptions and return 500 error. Use FastAPI route decorator @app.get('/hello').
+- **Implementation Notes:** Use FastAPI 0.104+ framework for HTTP server. Initialize app with title='Hello World API' and version='1.0.0'. Configure CORS if needed (allow all origins for development). Use uvicorn as ASGI server with workers=1 for single-process deployment. Default host='0.0.0.0' and port=8000. Implement graceful shutdown handling.
 - **Interfaces:**
-  - `get_hello`
+  - `initialize_app`
+  - `configure_routes`
+  - `start_server`
+
+### HelloRouteHandler
+
+- **Responsibility:** Handles GET /hello requests and returns formatted response
+- **Semantic Unit:** SU-002
+- **Dependencies:** HTTPServerFramework
+- **Implementation Notes:** Implement as FastAPI route handler decorated with @app.get('/hello'). Return dictionary with key 'message' and value 'Hello World'. Use FastAPI's automatic JSON serialization. Handler should be synchronous (no async needed for simple operation). Response status code defaults to 200 OK. No request body or query parameters required.
+- **Interfaces:**
+  - `hello`
   - `format_response`
+
+### ResponseFormatter
+
+- **Responsibility:** Formats HTTP responses with proper status codes and error handling
+- **Semantic Unit:** SU-003
+- **Dependencies:** None
+- **Implementation Notes:** Use FastAPI JSONResponse for explicit response control. Success responses return status_code=200 with data payload. Error responses include error_code and message fields. Implement exception handler middleware to catch unhandled exceptions and return 500 INTERNAL_SERVER_ERROR with code='INTERNAL_SERVER_ERROR'. Log all errors with Python logging module at ERROR level. Ensure all responses are valid JSON.
+- **Interfaces:**
+  - `format_success_response`
+  - `format_error_response`
+  - `handle_exception`
 
 ---
 
-*Generated by Design Agent on 2025-11-20 23:44:43*
+*Generated by Design Agent on 2025-11-21 20:12:48*
