@@ -8,8 +8,8 @@ A simple FastAPI REST API that returns greeting messages with optional personali
 - **Health Monitoring**: `/health` endpoint with status and timestamp
 - **Input Validation**: Secure name parameter validation with length and character restrictions
 - **Error Handling**: Comprehensive error responses with proper HTTP status codes
-- **Auto Documentation**: FastAPI automatic OpenAPI documentation
-- **Production Ready**: Proper logging, exception handling, and security practices
+- **Interactive Documentation**: Automatic OpenAPI/Swagger documentation
+- **Production Ready**: Proper logging, error handling, and CORS support
 
 ## Prerequisites
 
@@ -18,45 +18,30 @@ A simple FastAPI REST API that returns greeting messages with optional personali
 
 ## Installation
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd hello-world-api
-   ```
+1. **Clone or download the project files**
 
-2. Create a virtual environment (recommended):
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. Install dependencies:
+2. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
 ## Configuration
 
-No configuration files are required for basic operation. The application uses sensible defaults:
-
-- **Host**: 127.0.0.1 (localhost)
-- **Port**: 8000
-- **Log Level**: INFO
-- **Timezone**: UTC
+No additional configuration is required for basic usage. The application runs with default settings suitable for development and production.
 
 ### Environment Variables (Optional)
 
-You can customize the application behavior using environment variables:
+You can customize the application behavior using these environment variables:
 
+- `HOST`: Server host address (default: `127.0.0.1`)
+- `PORT`: Server port number (default: `8000`)
+- `LOG_LEVEL`: Logging level (default: `INFO`)
+
+Create a `.env` file in the project root:
 ```bash
-# Server configuration
 HOST=0.0.0.0
 PORT=8000
 LOG_LEVEL=INFO
-
-# Application settings
-APP_TITLE="Hello World API"
-APP_VERSION="1.0.0"
 ```
 
 ## Running the Application
@@ -81,10 +66,13 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
 
 ### Using Docker (Optional)
 
-If you have a Dockerfile:
+If you have Docker installed:
 
 ```bash
+# Build the image
 docker build -t hello-world-api .
+
+# Run the container
 docker run -p 8000:8000 hello-world-api
 ```
 
@@ -139,9 +127,7 @@ curl "http://localhost:8000/hello?name=Alice@123"
 
 ### GET /health
 
-Health check endpoint for monitoring and load balancer health checks.
-
-**Parameters:** None
+Health check endpoint that returns application status and current timestamp.
 
 **Success Response (200 OK):**
 ```json
@@ -151,7 +137,16 @@ Health check endpoint for monitoring and load balancer health checks.
 }
 ```
 
-**Error Response (500 Internal Server Error):**
+**Example:**
+```bash
+curl http://localhost:8000/health
+```
+
+### Error Responses
+
+All endpoints may return these error responses:
+
+**500 Internal Server Error:**
 ```json
 {
   "error": {
@@ -161,12 +156,6 @@ Health check endpoint for monitoring and load balancer health checks.
 }
 ```
 
-**Examples:**
-```bash
-# Health check
-curl http://localhost:8000/health
-```
-
 ## Interactive API Documentation
 
 FastAPI automatically generates interactive API documentation:
@@ -174,6 +163,12 @@ FastAPI automatically generates interactive API documentation:
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 - **OpenAPI Schema**: http://localhost:8000/openapi.json
+
+These interfaces allow you to:
+- View all available endpoints
+- Test API calls directly in the browser
+- See request/response schemas
+- Download the OpenAPI specification
 
 ## Testing
 
@@ -188,40 +183,40 @@ pytest tests/ -v
 Run tests with coverage report:
 
 ```bash
-pytest tests/ --cov=. --cov-report=html --cov-report=term
+pytest tests/ --cov=. --cov-report=html
 ```
 
-View HTML coverage report:
-
+View the coverage report:
 ```bash
-open htmlcov/index.html  # On macOS
-# or
-start htmlcov/index.html  # On Windows
+open htmlcov/index.html  # macOS
+xdg-open htmlcov/index.html  # Linux
 ```
 
 ### Test Categories
 
-- **Unit Tests**: Test individual functions and components
-- **Integration Tests**: Test API endpoints end-to-end
-- **Validation Tests**: Test input validation and error handling
-- **Edge Case Tests**: Test boundary conditions and error scenarios
+The test suite includes:
+
+- **Unit Tests**: Individual function testing
+- **Integration Tests**: API endpoint testing
+- **Edge Case Tests**: Boundary conditions and invalid inputs
+- **Error Handling Tests**: Exception scenarios
 
 ### Manual Testing
 
-Test the API manually using curl or any HTTP client:
+Test the endpoints manually:
 
 ```bash
 # Test basic hello endpoint
-curl -X GET "http://localhost:8000/hello" -H "accept: application/json"
+curl -X GET http://localhost:8000/hello
 
 # Test personalized greeting
-curl -X GET "http://localhost:8000/hello?name=TestUser" -H "accept: application/json"
+curl -X GET "http://localhost:8000/hello?name=TestUser"
 
 # Test health endpoint
-curl -X GET "http://localhost:8000/health" -H "accept: application/json"
+curl -X GET http://localhost:8000/health
 
-# Test error handling (invalid name)
-curl -X GET "http://localhost:8000/hello?name=Invalid@Name!" -H "accept: application/json"
+# Test invalid name parameter
+curl -X GET "http://localhost:8000/hello?name=Invalid@Name"
 ```
 
 ## Security Considerations
@@ -230,19 +225,21 @@ curl -X GET "http://localhost:8000/hello?name=Invalid@Name!" -H "accept: applica
 
 - **Name Parameter**: Restricted to alphanumeric characters and spaces only
 - **Length Limits**: Maximum 100 characters for name parameter
-- **Regex Validation**: Uses `^[a-zA-Z0-9 ]+$` pattern to prevent injection attacks
+- **Sanitization**: Input is automatically trimmed and formatted
 
 ### Error Handling
 
-- **No Information Disclosure**: Error messages don't expose internal system details
-- **Consistent Error Format**: All errors follow the same JSON structure
-- **Proper HTTP Status Codes**: 400 for client errors, 500 for server errors
+- **No Information Leakage**: Error responses don't expose internal details
+- **Consistent Format**: All errors follow the same JSON structure
+- **Proper HTTP Status Codes**: Appropriate status codes for different error types
 
-### Best Practices
+### Best Practices Implemented
 
-- **No Sensitive Data**: No authentication tokens or sensitive information in logs
-- **Input Sanitization**: All user inputs are validated before processing
-- **Exception Handling**: Unhandled exceptions are caught and logged securely
+- Input validation using regex patterns
+- Parameterized responses (no string injection)
+- Proper HTTP status codes
+- Comprehensive error handling
+- Request/response logging
 
 ## Monitoring and Logging
 
@@ -255,16 +252,12 @@ Use the `/health` endpoint for:
 
 ### Logging
 
-The application logs important events:
-- Request processing errors
-- Validation failures
-- Unhandled exceptions
-- Application startup/shutdown
+The application logs:
+- Request information (INFO level)
+- Validation errors (WARNING level)
+- Internal errors (ERROR level)
 
-Log levels:
-- **INFO**: Normal operation events
-- **WARNING**: Validation errors and client mistakes
-- **ERROR**: Server errors and exceptions
+Log format includes timestamp, level, and message details.
 
 ## Troubleshooting
 
@@ -297,32 +290,31 @@ pip install -r requirements.txt
 uvicorn main:app --port 8080
 ```
 
-#### Virtual Environment Issues
+#### Invalid Name Parameter
 
-**Error**: Dependencies not found despite installation
+**Error**: 400 Bad Request with INVALID_NAME code
 
-**Solution**: Ensure virtual environment is activated:
-```bash
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip list  # Verify packages are installed
-```
+**Solution**: Ensure name parameter:
+- Contains only letters, numbers, and spaces
+- Is 100 characters or less
+- Example: `name=John Doe` ✓, `name=John@Doe` ✗
 
 ### Performance Issues
 
 #### Slow Response Times
 
-1. Check system resources (CPU, memory)
-2. Verify no blocking operations in endpoints
-3. Consider using multiple workers:
+1. **Check system resources**: CPU and memory usage
+2. **Monitor logs**: Look for error patterns
+3. **Use production server**: Run with multiple workers:
    ```bash
    uvicorn main:app --workers 4
    ```
 
 #### High Memory Usage
 
-1. Monitor for memory leaks
-2. Check log file sizes
-3. Restart the application periodically if needed
+1. **Update dependencies**: Ensure latest versions
+2. **Monitor for memory leaks**: Use memory profiling tools
+3. **Restart application**: Temporary solution for memory issues
 
 ### Debugging
 
@@ -335,9 +327,22 @@ uvicorn main:app --reload --log-level debug
 
 #### Check Application Logs
 
-Monitor application output for errors:
-```bash
-uvicorn main:app 2>&1 | tee app.log
-```
+View detailed request/response information in the console output.
 
 #### Validate API Responses
+
+Use the interactive documentation at `/docs` to test endpoints and validate responses.
+
+## Development
+
+### Project Structure
+
+```
+hello-world-api/
+├── main.py              # FastAPI application and endpoints
+├── requirements.txt     # Python dependencies
+├── tests/              # Test files
+│   ├── __init__.py
+│   ├── test_main.py    # Unit and integration tests
+│   └── conftest.py     # Test configuration
+├── README

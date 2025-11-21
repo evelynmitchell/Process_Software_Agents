@@ -1,8 +1,8 @@
 """
-Task SQLAlchemy model with CRUD operations, status management, and user relationship.
+Task SQLAlchemy model with CRUD operations, status management, and foreign key relationship to users.
 
-This module defines the Task model with comprehensive CRUD operations,
-status management functionality, and relationships to the User model.
+This module defines the Task model with comprehensive CRUD operations, status transitions,
+and proper relationship management with the User model.
 
 Component ID: COMP-005
 Semantic Unit: SU-005
@@ -42,32 +42,16 @@ class TaskPriority(str, Enum):
 
 class Task(Base):
     """
-    Task model representing a user task with status management.
+    Task model representing a user task with status management and CRUD operations.
     
-    This model provides comprehensive task management functionality including
-    CRUD operations, status transitions, and user relationships.
-    
-    Attributes:
-        id: Primary key identifier
-        title: Task title (required, max 200 chars)
-        description: Detailed task description (optional)
-        status: Current task status (TaskStatus enum)
-        priority: Task priority level (TaskPriority enum)
-        user_id: Foreign key to User model
-        created_at: Timestamp when task was created
-        updated_at: Timestamp when task was last modified
-        due_date: Optional due date for task completion
-        completed_at: Timestamp when task was completed
-        is_active: Soft delete flag
-        
-    Relationships:
-        user: Many-to-one relationship with User model
+    This model handles task creation, updates, status transitions, and provides
+    comprehensive querying capabilities with proper foreign key relationships.
     """
     
     __tablename__ = "tasks"
     
     # Primary key
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     
     # Task details
     title = Column(String(200), nullable=False, index=True)
@@ -75,9 +59,8 @@ class Task(Base):
     status = Column(String(20), nullable=False, default=TaskStatus.PENDING.value, index=True)
     priority = Column(String(10), nullable=False, default=TaskPriority.MEDIUM.value, index=True)
     
-    # User relationship
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    user = relationship("User", back_populates="tasks")
+    # Foreign key relationship
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     
     # Timestamps
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
@@ -85,82 +68,44 @@ class Task(Base):
     due_date = Column(DateTime, nullable=True, index=True)
     completed_at = Column(DateTime, nullable=True)
     
-    # Soft delete
-    is_active = Column(Boolean, nullable=False, default=True, index=True)
+    # Soft delete flag
+    is_deleted = Column(Boolean, nullable=False, default=False, index=True)
     
-    # Composite indexes for common queries
+    # Relationship
+    user = relationship("User", back_populates="tasks")
+    
+    # Indexes for performance
     __table_args__ = (
-        Index('idx_user_status', 'user_id', 'status'),
-        Index('idx_user_priority', 'user_id', 'priority'),
-        Index('idx_status_due_date', 'status', 'due_date'),
-        Index('idx_user_active', 'user_id', 'is_active'),
+        Index("idx_user_status", "user_id", "status"),
+        Index("idx_user_priority", "user_id", "priority"),
+        Index("idx_status_due_date", "status", "due_date"),
+        Index("idx_user_created", "user_id", "created_at"),
     )
     
     def __repr__(self) -> str:
-        """String representation of Task instance."""
+        """String representation of the Task model."""
         return f"<Task(id={self.id}, title='{self.title}', status='{self.status}', user_id={self.user_id})>"
     
     def to_dict(self) -> Dict[str, Any]:
         """
-        Convert Task instance to dictionary representation.
+        Convert task instance to dictionary representation.
         
         Returns:
-            Dict[str, Any]: Dictionary containing all task attributes
+            Dict[str, Any]: Dictionary containing all task fields
         """
         return {
-            'id': self.id,
-            'title': self.title,
-            'description': self.description,
-            'status': self.status,
-            'priority': self.priority,
-            'user_id': self.user_id,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'due_date': self.due_date.isoformat() if self.due_date else None,
-            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
-            'is_active': self.is_active
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "status": self.status,
+            "priority": self.priority,
+            "user_id": self.user_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "due_date": self.due_date.isoformat() if self.due_date else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "is_deleted": self.is_deleted
         }
-    
-    def update_status(self, new_status: TaskStatus) -> bool:
-        """
-        Update task status with validation and automatic timestamp handling.
-        
-        Args:
-            new_status: New status to set for the task
-            
-        Returns:
-            bool: True if status was updated successfully, False otherwise
-            
-        Raises:
-            ValueError: If status transition is invalid
-        """
-        if not isinstance(new_status, TaskStatus):
-            raise ValueError(f"Invalid status type: {type(new_status)}")
-        
-        # Validate status transitions
-        valid_transitions = {
-            TaskStatus.PENDING: [TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED],
-            TaskStatus.IN_PROGRESS: [TaskStatus.COMPLETED, TaskStatus.CANCELLED, TaskStatus.PENDING],
-            TaskStatus.COMPLETED: [TaskStatus.IN_PROGRESS],  # Allow reopening completed tasks
-            TaskStatus.CANCELLED: [TaskStatus.PENDING, TaskStatus.IN_PROGRESS]  # Allow reactivating cancelled tasks
-        }
-        
-        current_status = TaskStatus(self.status)
-        if new_status not in valid_transitions.get(current_status, []):
-            raise ValueError(f"Invalid status transition from {current_status.value} to {new_status.value}")
-        
-        # Update status and related timestamps
-        self.status = new_status.value
-        self.updated_at = datetime.utcnow()
-        
-        if new_status == TaskStatus.COMPLETED:
-            self.completed_at = datetime.utcnow()
-        elif current_status == TaskStatus.COMPLETED and new_status != TaskStatus.COMPLETED:
-            # Clear completed_at when moving away from completed status
-            self.completed_at = None
-        
-        logger.info(f"Task {self.id} status updated from {current_status.value} to {new_status.value}")
-        return True
     
     def is_overdue(self) -> bool:
         """
@@ -171,32 +116,98 @@ class Task(Base):
         """
         if not self.due_date or self.status == TaskStatus.COMPLETED.value:
             return False
-        
         return datetime.utcnow() > self.due_date
     
-    def days_until_due(self) -> Optional[int]:
+    def can_transition_to(self, new_status: str) -> bool:
         """
-        Calculate days until task is due.
-        
-        Returns:
-            Optional[int]: Number of days until due date, None if no due date set
-        """
-        if not self.due_date:
-            return None
-        
-        delta = self.due_date - datetime.utcnow()
-        return delta.days
-    
-    @classmethod
-    def create(cls, db: Session, title: str, user_id: int, description: Optional[str] = None,
-               priority: TaskPriority = TaskPriority.MEDIUM, due_date: Optional[datetime] = None) -> 'Task':
-        """
-        Create a new task with validation.
+        Check if task can transition to the specified status.
         
         Args:
-            db: Database session
-            title: Task title (required, max 200 chars)
-            user_id: ID of the user who owns the task
-            description: Optional task description
-            priority: Task priority level
-            due_date: Optional due date
+            new_status (str): Target status to transition to
+            
+        Returns:
+            bool: True if transition is allowed, False otherwise
+        """
+        valid_transitions = {
+            TaskStatus.PENDING.value: [TaskStatus.IN_PROGRESS.value, TaskStatus.CANCELLED.value],
+            TaskStatus.IN_PROGRESS.value: [TaskStatus.COMPLETED.value, TaskStatus.PENDING.value, TaskStatus.CANCELLED.value],
+            TaskStatus.COMPLETED.value: [TaskStatus.IN_PROGRESS.value],
+            TaskStatus.CANCELLED.value: [TaskStatus.PENDING.value]
+        }
+        
+        return new_status in valid_transitions.get(self.status, [])
+    
+    def update_status(self, new_status: str) -> bool:
+        """
+        Update task status with validation and timestamp management.
+        
+        Args:
+            new_status (str): New status to set
+            
+        Returns:
+            bool: True if status was updated successfully, False otherwise
+            
+        Raises:
+            ValueError: If status transition is not allowed
+        """
+        if not self.can_transition_to(new_status):
+            raise ValueError(f"Cannot transition from {self.status} to {new_status}")
+        
+        old_status = self.status
+        self.status = new_status
+        self.updated_at = datetime.utcnow()
+        
+        # Set completion timestamp
+        if new_status == TaskStatus.COMPLETED.value:
+            self.completed_at = datetime.utcnow()
+        elif old_status == TaskStatus.COMPLETED.value:
+            self.completed_at = None
+            
+        logger.info(f"Task {self.id} status updated from {old_status} to {new_status}")
+        return True
+
+
+class TaskCRUD:
+    """
+    CRUD operations for Task model with comprehensive querying and management capabilities.
+    """
+    
+    @staticmethod
+    def create(
+        db: Session,
+        title: str,
+        user_id: int,
+        description: Optional[str] = None,
+        priority: str = TaskPriority.MEDIUM.value,
+        due_date: Optional[datetime] = None
+    ) -> Task:
+        """
+        Create a new task.
+        
+        Args:
+            db (Session): Database session
+            title (str): Task title (max 200 characters)
+            user_id (int): ID of the user who owns the task
+            description (Optional[str]): Task description
+            priority (str): Task priority level
+            due_date (Optional[datetime]): Task due date
+            
+        Returns:
+            Task: Created task instance
+            
+        Raises:
+            ValueError: If validation fails
+            SQLAlchemyError: If database operation fails
+        """
+        # Validate inputs
+        if not title or len(title.strip()) == 0:
+            raise ValueError("Task title cannot be empty")
+        
+        if len(title) > 200:
+            raise ValueError("Task title cannot exceed 200 characters")
+        
+        if priority not in [p.value for p in TaskPriority]:
+            raise ValueError(f"Invalid priority: {priority}")
+        
+        # Verify user exists
+        user = db.query(User).filter(User.id == user_id, User.is_deleted == False).

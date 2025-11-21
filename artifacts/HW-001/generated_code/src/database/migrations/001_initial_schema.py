@@ -1,12 +1,12 @@
 """
 Initial database schema migration for Hello World API
 
-Creates the foundational database tables, indexes, and constraints.
-This migration establishes the core data structure for the application.
+Creates the foundational database tables for users and tasks with proper
+indexes, constraints, and relationships.
 
 Revision ID: 001
 Revises: 
-Create Date: 2024-01-01 00:00:00.000000
+Create Date: 2025-11-21 03:48:25.246374
 
 Component ID: COMP-011
 Semantic Unit: SU-011
@@ -33,109 +33,249 @@ def upgrade() -> None:
     This migration creates:
     - users table with authentication and profile information
     - tasks table with task management functionality
-    - Appropriate indexes for query performance
+    - Proper indexes for query performance
     - Foreign key constraints for data integrity
     - Check constraints for data validation
     """
     # Create users table
     op.create_table(
         'users',
-        sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
-        sa.Column('username', sa.String(length=50), nullable=False),
-        sa.Column('email', sa.String(length=255), nullable=False),
-        sa.Column('password_hash', sa.String(length=255), nullable=False),
-        sa.Column('first_name', sa.String(length=100), nullable=True),
-        sa.Column('last_name', sa.String(length=100), nullable=True),
-        sa.Column('is_active', sa.Boolean(), nullable=False, default=True),
-        sa.Column('is_verified', sa.Boolean(), nullable=False, default=False),
-        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, 
-                 server_default=sa.text('CURRENT_TIMESTAMP')),
-        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False,
-                 server_default=sa.text('CURRENT_TIMESTAMP')),
-        sa.Column('last_login_at', sa.DateTime(timezone=True), nullable=True),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('username', name='uq_users_username'),
-        sa.UniqueConstraint('email', name='uq_users_email'),
-        sa.CheckConstraint('length(username) >= 3', name='ck_users_username_length'),
-        sa.CheckConstraint('length(email) >= 5', name='ck_users_email_length'),
-        sa.CheckConstraint('email LIKE \'%@%\'', name='ck_users_email_format')
+        sa.Column(
+            'id',
+            sa.Integer(),
+            primary_key=True,
+            autoincrement=True,
+            nullable=False,
+            comment='Primary key for users table'
+        ),
+        sa.Column(
+            'email',
+            sa.String(255),
+            nullable=False,
+            comment='User email address, must be unique'
+        ),
+        sa.Column(
+            'username',
+            sa.String(50),
+            nullable=False,
+            comment='User display name, must be unique'
+        ),
+        sa.Column(
+            'password_hash',
+            sa.String(255),
+            nullable=False,
+            comment='Bcrypt hashed password'
+        ),
+        sa.Column(
+            'first_name',
+            sa.String(100),
+            nullable=True,
+            comment='User first name'
+        ),
+        sa.Column(
+            'last_name',
+            sa.String(100),
+            nullable=True,
+            comment='User last name'
+        ),
+        sa.Column(
+            'is_active',
+            sa.Boolean(),
+            nullable=False,
+            default=True,
+            comment='Whether user account is active'
+        ),
+        sa.Column(
+            'is_verified',
+            sa.Boolean(),
+            nullable=False,
+            default=False,
+            comment='Whether user email is verified'
+        ),
+        sa.Column(
+            'created_at',
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text('CURRENT_TIMESTAMP'),
+            comment='Timestamp when user was created'
+        ),
+        sa.Column(
+            'updated_at',
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text('CURRENT_TIMESTAMP'),
+            comment='Timestamp when user was last updated'
+        ),
+        sa.Column(
+            'last_login_at',
+            sa.DateTime(timezone=True),
+            nullable=True,
+            comment='Timestamp of last successful login'
+        ),
+        comment='User accounts and authentication information'
     )
-    
+
     # Create tasks table
     op.create_table(
         'tasks',
-        sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('title', sa.String(length=200), nullable=False),
-        sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('status', sa.String(length=20), nullable=False, default='pending'),
-        sa.Column('priority', sa.String(length=10), nullable=False, default='medium'),
-        sa.Column('due_date', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('completed_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False,
-                 server_default=sa.text('CURRENT_TIMESTAMP')),
-        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False,
-                 server_default=sa.text('CURRENT_TIMESTAMP')),
-        sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], 
-                               name='fk_tasks_user_id', ondelete='CASCADE'),
-        sa.CheckConstraint('length(title) >= 1', name='ck_tasks_title_length'),
-        sa.CheckConstraint('status IN (\'pending\', \'in_progress\', \'completed\', \'cancelled\')', 
-                          name='ck_tasks_status_values'),
-        sa.CheckConstraint('priority IN (\'low\', \'medium\', \'high\', \'urgent\')', 
-                          name='ck_tasks_priority_values'),
-        sa.CheckConstraint('(status = \'completed\' AND completed_at IS NOT NULL) OR '
-                          '(status != \'completed\' AND completed_at IS NULL)',
-                          name='ck_tasks_completed_consistency')
+        sa.Column(
+            'id',
+            sa.Integer(),
+            primary_key=True,
+            autoincrement=True,
+            nullable=False,
+            comment='Primary key for tasks table'
+        ),
+        sa.Column(
+            'user_id',
+            sa.Integer(),
+            sa.ForeignKey('users.id', ondelete='CASCADE'),
+            nullable=False,
+            comment='Foreign key reference to users table'
+        ),
+        sa.Column(
+            'title',
+            sa.String(200),
+            nullable=False,
+            comment='Task title or summary'
+        ),
+        sa.Column(
+            'description',
+            sa.Text(),
+            nullable=True,
+            comment='Detailed task description'
+        ),
+        sa.Column(
+            'status',
+            sa.Enum('pending', 'in_progress', 'completed', 'cancelled', name='task_status'),
+            nullable=False,
+            default='pending',
+            comment='Current status of the task'
+        ),
+        sa.Column(
+            'priority',
+            sa.Enum('low', 'medium', 'high', 'urgent', name='task_priority'),
+            nullable=False,
+            default='medium',
+            comment='Task priority level'
+        ),
+        sa.Column(
+            'due_date',
+            sa.DateTime(timezone=True),
+            nullable=True,
+            comment='Optional due date for task completion'
+        ),
+        sa.Column(
+            'completed_at',
+            sa.DateTime(timezone=True),
+            nullable=True,
+            comment='Timestamp when task was marked as completed'
+        ),
+        sa.Column(
+            'created_at',
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text('CURRENT_TIMESTAMP'),
+            comment='Timestamp when task was created'
+        ),
+        sa.Column(
+            'updated_at',
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text('CURRENT_TIMESTAMP'),
+            comment='Timestamp when task was last updated'
+        ),
+        comment='User tasks and todo items'
     )
-    
-    # Create indexes for users table
-    op.create_index('ix_users_username', 'users', ['username'])
-    op.create_index('ix_users_email', 'users', ['email'])
-    op.create_index('ix_users_created_at', 'users', ['created_at'])
-    op.create_index('ix_users_is_active', 'users', ['is_active'])
-    op.create_index('ix_users_last_login_at', 'users', ['last_login_at'])
-    
-    # Create indexes for tasks table
-    op.create_index('ix_tasks_user_id', 'tasks', ['user_id'])
-    op.create_index('ix_tasks_status', 'tasks', ['status'])
-    op.create_index('ix_tasks_priority', 'tasks', ['priority'])
-    op.create_index('ix_tasks_due_date', 'tasks', ['due_date'])
-    op.create_index('ix_tasks_created_at', 'tasks', ['created_at'])
-    op.create_index('ix_tasks_completed_at', 'tasks', ['completed_at'])
-    
-    # Create composite indexes for common query patterns
-    op.create_index('ix_tasks_user_status', 'tasks', ['user_id', 'status'])
-    op.create_index('ix_tasks_user_priority', 'tasks', ['user_id', 'priority'])
-    op.create_index('ix_tasks_status_due_date', 'tasks', ['status', 'due_date'])
-    op.create_index('ix_users_active_created', 'users', ['is_active', 'created_at'])
 
+    # Create unique constraints
+    op.create_unique_constraint('uq_users_email', 'users', ['email'])
+    op.create_unique_constraint('uq_users_username', 'users', ['username'])
 
-def downgrade() -> None:
-    """
-    Drop all tables and indexes created in the upgrade.
+    # Create indexes for performance optimization
     
-    This will completely remove the initial schema, including:
-    - All indexes (dropped automatically with tables)
-    - tasks table (with foreign key constraints)
-    - users table
-    
-    Warning: This will permanently delete all data in these tables.
-    """
-    # Drop composite indexes first (if they exist independently)
-    op.drop_index('ix_users_active_created', table_name='users')
-    op.drop_index('ix_tasks_status_due_date', table_name='tasks')
-    op.drop_index('ix_tasks_user_priority', table_name='tasks')
-    op.drop_index('ix_tasks_user_status', table_name='tasks')
-    
-    # Drop tasks table indexes
-    op.drop_index('ix_tasks_completed_at', table_name='tasks')
-    op.drop_index('ix_tasks_created_at', table_name='tasks')
-    op.drop_index('ix_tasks_due_date', table_name='tasks')
-    op.drop_index('ix_tasks_priority', table_name='tasks')
-    op.drop_index('ix_tasks_status', table_name='tasks')
-    op.drop_index('ix_tasks_user_id', table_name='tasks')
-    
-    # Drop users table indexes
-    op.drop_index('ix_users_last_login_at', table_name='users')
-    op.drop_index('ix_users_is_active', table_name='
+    # Users table indexes
+    op.create_index(
+        'ix_users_email',
+        'users',
+        ['email'],
+        unique=True,
+        postgresql_using='btree'
+    )
+    op.create_index(
+        'ix_users_username',
+        'users',
+        ['username'],
+        unique=True,
+        postgresql_using='btree'
+    )
+    op.create_index(
+        'ix_users_is_active',
+        'users',
+        ['is_active'],
+        postgresql_using='btree'
+    )
+    op.create_index(
+        'ix_users_created_at',
+        'users',
+        ['created_at'],
+        postgresql_using='btree'
+    )
+    op.create_index(
+        'ix_users_last_login_at',
+        'users',
+        ['last_login_at'],
+        postgresql_using='btree'
+    )
+
+    # Tasks table indexes
+    op.create_index(
+        'ix_tasks_user_id',
+        'tasks',
+        ['user_id'],
+        postgresql_using='btree'
+    )
+    op.create_index(
+        'ix_tasks_status',
+        'tasks',
+        ['status'],
+        postgresql_using='btree'
+    )
+    op.create_index(
+        'ix_tasks_priority',
+        'tasks',
+        ['priority'],
+        postgresql_using='btree'
+    )
+    op.create_index(
+        'ix_tasks_due_date',
+        'tasks',
+        ['due_date'],
+        postgresql_using='btree'
+    )
+    op.create_index(
+        'ix_tasks_created_at',
+        'tasks',
+        ['created_at'],
+        postgresql_using='btree'
+    )
+    op.create_index(
+        'ix_tasks_completed_at',
+        'tasks',
+        ['completed_at'],
+        postgresql_using='btree'
+    )
+
+    # Composite indexes for common query patterns
+    op.create_index(
+        'ix_tasks_user_status',
+        'tasks',
+        ['user_id', 'status'],
+        postgresql_using='btree'
+    )
+    op.create_index(
+        'ix_tasks_user_priority',
+        'tasks',
+        ['user_id', 'priority'],
+        postgresql_using='btree'
+    )

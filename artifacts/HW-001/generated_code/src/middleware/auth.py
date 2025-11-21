@@ -2,12 +2,12 @@
 FastAPI Authentication Middleware
 
 JWT token validation middleware that extracts and validates JWT tokens from requests,
-injects user context, and handles authentication errors.
+injects user context into request state, and handles authentication errors.
 
 Component ID: COMP-012
 Semantic Unit: SU-012
 
-Author: ASP Code Generator
+Author: ASP Code Agent
 """
 
 import logging
@@ -39,13 +39,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
     """
     JWT Authentication Middleware for FastAPI applications.
     
-    Validates JWT tokens from Authorization header, extracts user information,
-    and injects user context into request state for downstream handlers.
-    
-    Attributes:
-        jwt_utils: JWT utility instance for token operations
-        excluded_paths: List of paths that bypass authentication
-        optional_auth_paths: List of paths where auth is optional
+    This middleware validates JWT tokens from Authorization headers,
+    extracts user information, and injects user context into request state.
+    Handles token validation errors and provides proper HTTP responses.
     """
     
     def __init__(
@@ -53,30 +49,29 @@ class AuthMiddleware(BaseHTTPMiddleware):
         app: ASGIApp,
         jwt_utils: JWTUtils,
         excluded_paths: Optional[list[str]] = None,
-        optional_auth_paths: Optional[list[str]] = None
+        require_auth: bool = True
     ):
         """
         Initialize authentication middleware.
         
         Args:
             app: ASGI application instance
-            jwt_utils: JWT utility for token validation
-            excluded_paths: Paths that bypass authentication (default: ["/health", "/docs", "/openapi.json"])
-            optional_auth_paths: Paths where authentication is optional
+            jwt_utils: JWT utility instance for token operations
+            excluded_paths: List of paths that don't require authentication
+            require_auth: Whether authentication is required by default
         """
         super().__init__(app)
         self.jwt_utils = jwt_utils
-        self.excluded_paths = excluded_paths or ["/health", "/docs", "/openapi.json", "/redoc"]
-        self.optional_auth_paths = optional_auth_paths or []
+        self.excluded_paths = excluded_paths or ["/health", "/docs", "/redoc", "/openapi.json"]
+        self.require_auth = require_auth
         
         logger.info(
-            f"AuthMiddleware initialized with {len(self.excluded_paths)} excluded paths "
-            f"and {len(self.optional_auth_paths)} optional auth paths"
+            f"AuthMiddleware initialized with {len(self.excluded_paths)} excluded paths"
         )
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """
-        Process incoming request through authentication middleware.
+        Process incoming request and validate authentication.
         
         Args:
             request: Incoming HTTP request
@@ -87,55 +82,60 @@ class AuthMiddleware(BaseHTTPMiddleware):
         """
         try:
             # Check if path is excluded from authentication
-            if self._is_excluded_path(request.url.path):
+            if self._is_path_excluded(request.url.path):
                 logger.debug(f"Skipping auth for excluded path: {request.url.path}")
                 return await call_next(request)
             
-            # Extract and validate token
+            # Extract and validate JWT token
             token = self._extract_token(request)
-            user = None
             
-            if token:
-                try:
-                    user = await self._validate_token(token)
-                    logger.debug(f"Successfully authenticated user: {user.id}")
-                except AuthenticationError as e:
-                    if not self._is_optional_auth_path(request.url.path):
-                        logger.warning(f"Authentication failed for {request.url.path}: {e.message}")
-                        return self._create_error_response(e.message, e.status_code)
-                    logger.debug(f"Optional auth failed for {request.url.path}: {e.message}")
-            elif not self._is_optional_auth_path(request.url.path):
-                logger.warning(f"No token provided for protected path: {request.url.path}")
-                return self._create_error_response(
-                    "Authentication required", 
-                    status.HTTP_401_UNAUTHORIZED
-                )
+            if not token:
+                if self.require_auth:
+                    return self._create_error_response(
+                        "Missing authentication token",
+                        status.HTTP_401_UNAUTHORIZED,
+                        "MISSING_TOKEN"
+                    )
+                else:
+                    # Allow request without token if auth not required
+                    request.state.user = None
+                    request.state.authenticated = False
+                    return await call_next(request)
+            
+            # Validate token and extract user information
+            user = await self._validate_token_and_get_user(token)
             
             # Inject user context into request state
             request.state.user = user
-            request.state.authenticated = user is not None
-            request.state.auth_timestamp = datetime.utcnow()
+            request.state.authenticated = True
+            request.state.token = token
+            
+            logger.debug(f"Authenticated user {user.id} for path: {request.url.path}")
             
             # Continue to next handler
             response = await call_next(request)
             
             # Add authentication headers to response
-            if user:
-                response.headers["X-User-ID"] = str(user.id)
-                response.headers["X-Authenticated"] = "true"
-            else:
-                response.headers["X-Authenticated"] = "false"
+            self._add_auth_headers(response, user)
             
             return response
             
+        except AuthenticationError as e:
+            logger.warning(f"Authentication failed: {e.message}")
+            return self._create_error_response(
+                e.message,
+                e.status_code,
+                "AUTHENTICATION_FAILED"
+            )
         except Exception as e:
             logger.error(f"Unexpected error in auth middleware: {str(e)}", exc_info=True)
             return self._create_error_response(
                 "Internal authentication error",
-                status.HTTP_500_INTERNAL_SERVER_ERROR
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "INTERNAL_ERROR"
             )
     
-    def _is_excluded_path(self, path: str) -> bool:
+    def _is_path_excluded(self, path: str) -> bool:
         """
         Check if request path is excluded from authentication.
         
@@ -150,27 +150,13 @@ class AuthMiddleware(BaseHTTPMiddleware):
         
         for excluded_path in self.excluded_paths:
             normalized_excluded = excluded_path.rstrip('/')
-            if normalized_path == normalized_excluded or normalized_path.startswith(normalized_excluded + '/'):
-                return True
-        
-        return False
-    
-    def _is_optional_auth_path(self, path: str) -> bool:
-        """
-        Check if request path has optional authentication.
-        
-        Args:
-            path: Request URL path
             
-        Returns:
-            bool: True if authentication is optional for this path
-        """
-        # Normalize path by removing trailing slash
-        normalized_path = path.rstrip('/')
-        
-        for optional_path in self.optional_auth_paths:
-            normalized_optional = optional_path.rstrip('/')
-            if normalized_path == normalized_optional or normalized_path.startswith(normalized_optional + '/'):
+            # Exact match or prefix match for paths ending with /*
+            if normalized_excluded.endswith('/*'):
+                prefix = normalized_excluded[:-2]
+                if normalized_path.startswith(prefix):
+                    return True
+            elif normalized_path == normalized_excluded:
                 return True
         
         return False
@@ -193,25 +179,25 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if not auth_header:
             return None
         
-        # Validate Authorization header format
+        # Check for Bearer token format
         if not auth_header.startswith("Bearer "):
             raise AuthenticationError(
-                "Invalid Authorization header format. Expected 'Bearer <token>'",
+                "Invalid authorization header format. Expected 'Bearer <token>'",
                 status.HTTP_401_UNAUTHORIZED
             )
         
         # Extract token part
-        token = auth_header[7:]  # Remove "Bearer " prefix
+        token = auth_header[7:].strip()  # Remove "Bearer " prefix
         
-        if not token.strip():
+        if not token:
             raise AuthenticationError(
-                "Empty token in Authorization header",
+                "Empty token in authorization header",
                 status.HTTP_401_UNAUTHORIZED
             )
         
-        return token.strip()
+        return token
     
-    async def _validate_token(self, token: str) -> User:
+    async def _validate_token_and_get_user(self, token: str) -> User:
         """
         Validate JWT token and extract user information.
         
@@ -219,19 +205,20 @@ class AuthMiddleware(BaseHTTPMiddleware):
             token: JWT token string
             
         Returns:
-            User: Authenticated user object
+            User: User object with validated information
             
         Raises:
-            AuthenticationError: If token is invalid or expired
+            AuthenticationError: If token is invalid or user not found
         """
         try:
-            # Decode and validate token
+            # Decode and validate JWT token
             payload = self.jwt_utils.decode_token(token)
             
             # Extract user information from token payload
             user_id = payload.get("user_id")
-            email = payload.get("email")
             username = payload.get("username")
+            email = payload.get("email")
+            roles = payload.get("roles", [])
             
             if not user_id:
                 raise AuthenticationError(
@@ -241,3 +228,32 @@ class AuthMiddleware(BaseHTTPMiddleware):
             
             # Create user object from token payload
             user = User(
+                id=user_id,
+                username=username,
+                email=email,
+                roles=roles,
+                is_active=True,
+                last_login=datetime.utcnow()
+            )
+            
+            # Validate user is still active (could check database here)
+            if not self._is_user_active(user):
+                raise AuthenticationError(
+                    "User account is inactive",
+                    status.HTTP_401_UNAUTHORIZED
+                )
+            
+            return user
+            
+        except TokenExpiredError:
+            raise AuthenticationError(
+                "Token has expired",
+                status.HTTP_401_UNAUTHORIZED
+            )
+        except InvalidTokenError as e:
+            raise AuthenticationError(
+                f"Invalid token: {str(e)}",
+                status.HTTP_401_UNAUTHORIZED
+            )
+        except JWTError as e:
+            raise AuthenticationError(

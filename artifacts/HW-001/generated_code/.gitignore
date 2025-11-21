@@ -155,7 +155,7 @@ cython_debug/
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be added to the global gitignore or merged into this project gitignore.  For a PyCharm
-#  project, it is recommended to ignore the whole .idea directory.
+#  project, it is recommended to ignore the entire .idea directory.
 .idea/
 
 # VS Code
