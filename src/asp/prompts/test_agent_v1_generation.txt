@@ -123,7 +123,7 @@ def test_function_name_error_case_invalid_input():
    - Uncovered code sections
 
 **Output:**
-- `test_summary`: {{{{total_tests, passed, failed, skipped}}}}
+- `test_summary`: {{total_tests, passed, failed, skipped}}
 - `coverage_percentage`: Overall coverage percentage
 
 ## Phase 4: DEFECT LOGGING
@@ -214,7 +214,7 @@ def test_function_name_error_case_invalid_input():
 You MUST respond with **VALID JSON ONLY** matching this schema:
 
 ```json
-{{{{
+{{
   "task_id": "{task_id}",
   "test_status": "PASS" | "FAIL" | "BUILD_FAILED",
   "build_successful": true | false,
@@ -222,15 +222,15 @@ You MUST respond with **VALID JSON ONLY** matching this schema:
     "Error message 1",
     "Error message 2"
   ],
-  "test_summary": {{{{
+  "test_summary": {{
     "total_tests": 0,
     "passed": 0,
     "failed": 0,
     "skipped": 0
-  }}}},
+  }},
   "coverage_percentage": 85.5,
   "defects_found": [
-    {{{{
+    {{
       "defect_id": "TEST-DEFECT-001",
       "defect_type": "6_Conventional_Code_Bug",
       "severity": "High",
@@ -242,7 +242,7 @@ You MUST respond with **VALID JSON ONLY** matching this schema:
       "line_number": 45,
       "semantic_unit_id": "SU-001",
       "component_id": "AUTH-001"
-    }}}}
+    }}
   ],
   "total_tests_generated": 25,
   "test_files_created": [
@@ -252,7 +252,7 @@ You MUST respond with **VALID JSON ONLY** matching this schema:
   "agent_version": "1.0.0",
   "test_timestamp": "2025-11-19T12:00:00Z",
   "test_duration_seconds": 12.5
-}}}}
+}}
 ```
 
 # QUALITY GATES
@@ -290,17 +290,17 @@ You MUST respond with **VALID JSON ONLY** matching this schema:
 ## Example 1: All Tests Pass
 
 ```json
-{{{{
+{{
   "task_id": "AUTH-001",
   "test_status": "PASS",
   "build_successful": true,
   "build_errors": [],
-  "test_summary": {{{{
+  "test_summary": {{
     "total_tests": 20,
     "passed": 20,
     "failed": 0,
     "skipped": 0
-  }}}},
+  }},
   "coverage_percentage": 92.5,
   "defects_found": [],
   "total_tests_generated": 20,
@@ -308,13 +308,13 @@ You MUST respond with **VALID JSON ONLY** matching this schema:
   "agent_version": "1.0.0",
   "test_timestamp": "2025-11-19T12:00:00Z",
   "test_duration_seconds": 8.5
-}}}}
+}}
 ```
 
 ## Example 2: Build Failed
 
 ```json
-{{{{
+{{
   "task_id": "AUTH-001",
   "test_status": "BUILD_FAILED",
   "build_successful": false,
@@ -322,15 +322,15 @@ You MUST respond with **VALID JSON ONLY** matching this schema:
     "ModuleNotFoundError: No module named 'bcrypt'",
     "SyntaxError: invalid syntax (auth.py, line 45)"
   ],
-  "test_summary": {{{{
+  "test_summary": {{
     "total_tests": 0,
     "passed": 0,
     "failed": 0,
     "skipped": 0
-  }}}},
+  }},
   "coverage_percentage": null,
   "defects_found": [
-    {{{{
+    {{
       "defect_id": "TEST-DEFECT-001",
       "defect_type": "3_Tool_Use_Error",
       "severity": "Critical",
@@ -340,8 +340,8 @@ You MUST respond with **VALID JSON ONLY** matching this schema:
       "phase_removed": "Test",
       "file_path": "requirements.txt",
       "line_number": null
-    }}}},
-    {{{{
+    }},
+    {{
       "defect_id": "TEST-DEFECT-002",
       "defect_type": "6_Conventional_Code_Bug",
       "severity": "Critical",
@@ -351,33 +351,33 @@ You MUST respond with **VALID JSON ONLY** matching this schema:
       "phase_removed": "Test",
       "file_path": "src/api/auth.py",
       "line_number": 45
-    }}}}
+    }}
   ],
   "total_tests_generated": 0,
   "test_files_created": [],
   "agent_version": "1.0.0",
   "test_timestamp": "2025-11-19T12:00:00Z",
   "test_duration_seconds": 0.5
-}}}}
+}}
 ```
 
 ## Example 3: Tests Failed
 
 ```json
-{{{{
+{{
   "task_id": "AUTH-001",
   "test_status": "FAIL",
   "build_successful": true,
   "build_errors": [],
-  "test_summary": {{{{
+  "test_summary": {{
     "total_tests": 20,
     "passed": 18,
     "failed": 2,
     "skipped": 0
-  }}}},
+  }},
   "coverage_percentage": 85.0,
   "defects_found": [
-    {{{{
+    {{
       "defect_id": "TEST-DEFECT-001",
       "defect_type": "5_Security_Vulnerability",
       "severity": "Critical",
@@ -389,8 +389,8 @@ You MUST respond with **VALID JSON ONLY** matching this schema:
       "line_number": 67,
       "semantic_unit_id": "SU-002",
       "component_id": "AUTH-001"
-    }}}},
-    {{{{
+    }},
+    {{
       "defect_id": "TEST-DEFECT-002",
       "defect_type": "6_Conventional_Code_Bug",
       "severity": "High",
@@ -402,14 +402,14 @@ You MUST respond with **VALID JSON ONLY** matching this schema:
       "line_number": 89,
       "semantic_unit_id": "SU-001",
       "component_id": "AUTH-001"
-    }}}}
+    }}
   ],
   "total_tests_generated": 20,
   "test_files_created": ["tests/test_auth.py"],
   "agent_version": "1.0.0",
   "test_timestamp": "2025-11-19T12:00:00Z",
   "test_duration_seconds": 12.3
-}}}}
+}}
 ```
 
 # INPUT DATA

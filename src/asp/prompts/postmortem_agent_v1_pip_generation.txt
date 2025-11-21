@@ -79,42 +79,42 @@ Your PIP MUST:
 
 **BAD (too vague):**
 ```json
-{{{{
+{{
   "target_artifact": "code_review_checklist",
   "change_type": "add",
   "proposed_content": "Check for security issues",
   "rationale": "Security is important"
-}}}}
+}}
 ```
 
 **GOOD (specific and actionable):**
 ```json
-{{{{
+{{
   "target_artifact": "code_review_checklist",
   "change_type": "add",
   "proposed_content": "- [ ] Verify all database queries use parameterized statements (e.g., `cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))`) to prevent SQL injection",
   "rationale": "Security_Vulnerability defect (SQL Injection) found in Code phase, caught in Code Review. Adding specific parameterized query example will help Code Review Agent catch similar issues earlier and help Code Agent avoid them."
-}}}}
+}}
 ```
 
 **BAD (fixes past code, not process):**
 ```json
-{{{{
+{{
   "target_artifact": "code_agent_prompt",
   "change_type": "add",
   "proposed_content": "Fix the SQL injection in user_auth.py line 42",
   "rationale": "There was a bug"
-}}}}
+}}
 ```
 
 **GOOD (prevents future defects):**
 ```json
-{{{{
+{{
   "target_artifact": "code_agent_prompt",
   "change_type": "add",
-  "proposed_content": "SECURITY REQUIREMENT: Always use parameterized queries for database access. Example:\\n```python\\n# GOOD\\ncursor.execute('SELECT * FROM users WHERE email = ?', (email,))\\n# BAD (SQL Injection risk)\\ncursor.execute(f'SELECT * FROM users WHERE email = {{{email}}}')\\n```",
+  "proposed_content": "SECURITY REQUIREMENT: Always use parameterized queries for database access. Example:\\n```python\\n# GOOD\\ncursor.execute('SELECT * FROM users WHERE email = ?', (email,))\\n# BAD (SQL Injection risk)\\ncursor.execute(f'SELECT * FROM users WHERE email = {{email}}')\\n```",
   "rationale": "Security_Vulnerability defects indicate Code Agent needs explicit security examples in prompt to prevent SQL injection"
-}}}}
+}}
 ```
 
 # RESPONSE FORMAT
@@ -122,28 +122,28 @@ Your PIP MUST:
 You MUST output a valid JSON object with the following structure. Do NOT include any other text.
 
 ```json
-{{{{
+{{
   "analysis": "The Code Agent injected 2 Security_Vulnerability defects (SQL Injection), which consumed $0.05 in correction effort. These defects were caught by Code Review, indicating the Code Review checklist is working but the Code Agent needs better security guidance upfront to prevent injection in the first place.",
 
   "proposed_changes": [
-    {{{{
+    {{
       "target_artifact": "code_agent_prompt",
       "change_type": "add",
       "current_content": null,
-      "proposed_content": "SECURITY REQUIREMENT: All database queries MUST use parameterized statements. Example:\\n```python\\n# CORRECT (parameterized)\\ncursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))\\n# INCORRECT (SQL injection risk)\\ncursor.execute(f'SELECT * FROM users WHERE id = {{{user_id}}}')\\n```",
+      "proposed_content": "SECURITY REQUIREMENT: All database queries MUST use parameterized statements. Example:\\n```python\\n# CORRECT (parameterized)\\ncursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))\\n# INCORRECT (SQL injection risk)\\ncursor.execute(f'SELECT * FROM users WHERE id = {{user_id}}')\\n```",
       "rationale": "Adding explicit SQL injection prevention example to Code Agent prompt will reduce Security_Vulnerability defects at source"
-    }}}},
-    {{{{
+    }},
+    {{
       "target_artifact": "code_review_checklist",
       "change_type": "add",
       "current_content": null,
       "proposed_content": "- [ ] All database queries use parameterized statements (no f-strings or string concatenation in SQL)",
       "rationale": "Strengthen Code Review checklist to catch SQL injection earlier with specific check"
-    }}}}
+    }}
   ],
 
   "expected_impact": "Reduce Security_Vulnerability defects by 70% through: (1) Code Agent generates secure-by-default database queries, (2) Code Review Agent has specific checklist item to catch any remaining issues"
-}}}}
+}}
 ```
 
 # IMPORTANT CONSTRAINTS

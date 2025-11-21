@@ -43,9 +43,9 @@ For each issue, determine which phase introduced it:
 
 Return JSON with documentation-specific details:
 
-{{{{
+{{
   "issues_found": [
-    {{{{
+    {{
       "issue_id": "DOC-001",
       "category": "Documentation",
       "severity": "High",
@@ -56,10 +56,10 @@ Return JSON with documentation-specific details:
       "file_path": "src/api/auth.py",
       "line_number": 45,
       "code_snippet": "def authenticate_user(username: str, password: str):"
-    }}}}
+    }}
   ],
   "improvement_suggestions": [
-    {{{{
+    {{
       "suggestion_id": "DOC-IMP-001",
       "related_issue_id": "DOC-001",
       "category": "Documentation",
@@ -68,9 +68,9 @@ Return JSON with documentation-specific details:
       "implementation_notes": "Use Google-style docstring format. Document all parameters, return values, possible exceptions. Include usage example for common case.",
       "file_path": "src/api/auth.py",
       "suggested_code": "def authenticate_user(username: str, password: str) -> AuthToken:\n    \"\"\"Authenticate user and generate access token.\n    \n    Args:\n        username: User's login name\n        password: User's password (will be hashed)\n    \n    Returns:\n        AuthToken with access token and expiration\n    \n    Raises:\n        InvalidCredentialsError: If username/password invalid\n    \"\"\""
-    }}}}
+    }}
   ]
-}}}}
+}}
 
 Use IDs: DOC-001, DOC-002, etc. and DOC-IMP-001, DOC-IMP-002, etc.
 

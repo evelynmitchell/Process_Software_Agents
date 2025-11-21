@@ -47,9 +47,9 @@ For each issue, determine which phase introduced it:
 
 Return JSON with security-specific fields:
 
-{{{{
+{{
   "issues_found": [
-    {{{{
+    {{
       "issue_id": "SEC-001",
       "category": "Security",
       "severity": "Critical",
@@ -59,11 +59,11 @@ Return JSON with security-specific fields:
       "affected_phase": "Code",
       "file_path": "src/repositories/user_repo.py",
       "line_number": 45,
-      "code_snippet": "query = f\"SELECT * FROM users WHERE username = '{{{username}}}'\""
-    }}}}
+      "code_snippet": "query = f\"SELECT * FROM users WHERE username = '{{username}}'\""
+    }}
   ],
   "improvement_suggestions": [
-    {{{{
+    {{
       "suggestion_id": "SEC-IMP-001",
       "related_issue_id": "SEC-001",
       "category": "Security",
@@ -72,9 +72,9 @@ Return JSON with security-specific fields:
       "implementation_notes": "Replace raw string formatting with ORM query builder or parameterized statements. Use SQLAlchemy or Django ORM. Never concatenate user input into SQL.",
       "file_path": "src/repositories/user_repo.py",
       "suggested_code": "query = session.query(User).filter(User.username == username)"
-    }}}}
+    }}
   ]
-}}}}
+}}
 
 Use IDs: SEC-001, SEC-002, etc. and SEC-IMP-001, SEC-IMP-002, etc.
 

@@ -120,9 +120,9 @@ For each issue, determine which phase introduced it:
 Return a JSON object with this structure:
 
 ```json
-{{{{
+{{
   "issues_found": [
-    {{{{
+    {{
       "issue_id": "PERF-001",
       "category": "Performance",
       "severity": "Critical",
@@ -130,19 +130,19 @@ Return a JSON object with this structure:
       "evidence": "orders table has user_id foreign key but no index defined in indexes array",
       "impact": "Join queries between orders and users perform full table scan (O(n*m)). With 100K orders and 10K users, query takes minutes instead of milliseconds",
       "affected_phase": "Design"
-    }}}}
+    }}
   ],
   "improvement_suggestions": [
-    {{{{
+    {{
       "suggestion_id": "PERF-IMP-001",
       "related_issue_id": "PERF-001",
       "category": "Performance",
       "priority": "High",
       "description": "Add index on orders.user_id foreign key column",
-      "implementation_notes": "Add to orders table indexes: [{{{{'name': 'idx_orders_user_id', 'columns': ['user_id']}}}}]. For composite queries (user_id + created_at), consider composite index: [{{{{'name': 'idx_orders_user_created', 'columns': ['user_id', 'created_at']}}}}]."
-    }}}}
+      "implementation_notes": "Add to orders table indexes: [{{'name': 'idx_orders_user_id', 'columns': ['user_id']}}]. For composite queries (user_id + created_at), consider composite index: [{{'name': 'idx_orders_user_created', 'columns': ['user_id', 'created_at']}}]."
+    }}
   ]
-}}}}
+}}
 ```
 
 ## Important Guidelines
@@ -161,83 +161,83 @@ Return a JSON object with this structure:
 
 **Design Specification:**
 ```json
-{{{{
+{{
   "task_id": "ORDER-SYSTEM",
   "api_contracts": [
-    {{{{
+    {{
       "endpoint": "/api/v1/orders",
       "method": "GET",
       "description": "Get user orders with pagination",
-      "request_schema": {{{{"page": "int", "limit": "int (max 100)", "user_id": "uuid"}}}},
-      "response_schema": {{{{"orders": "array", "total": "int", "page": "int"}}}},
+      "request_schema": {{"page": "int", "limit": "int (max 100)", "user_id": "uuid"}},
+      "response_schema": {{"orders": "array", "total": "int", "page": "int"}},
       "authentication_required": true
-    }}}}
+    }}
   ],
   "data_schemas": [
-    {{{{
+    {{
       "table_name": "orders",
       "columns": [
-        {{{{"name": "order_id", "type": "UUID PRIMARY KEY"}}}},
-        {{{{"name": "user_id", "type": "UUID NOT NULL"}}}},
-        {{{{"name": "status", "type": "VARCHAR(20) NOT NULL"}}}},
-        {{{{"name": "total", "type": "DECIMAL(10,2)"}}}},
-        {{{{"name": "created_at", "type": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"}}}}
+        {{"name": "order_id", "type": "UUID PRIMARY KEY"}},
+        {{"name": "user_id", "type": "UUID NOT NULL"}},
+        {{"name": "status", "type": "VARCHAR(20) NOT NULL"}},
+        {{"name": "total", "type": "DECIMAL(10,2)"}},
+        {{"name": "created_at", "type": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"}}
       ],
       "indexes": [
-        {{{{"name": "idx_orders_user_id", "columns": ["user_id"]}}}},
-        {{{{"name": "idx_orders_status", "columns": ["status"]}}}},
-        {{{{"name": "idx_orders_created_at", "columns": ["created_at"]}}}},
-        {{{{"name": "idx_orders_user_created", "columns": ["user_id", "created_at"]}}}}
+        {{"name": "idx_orders_user_id", "columns": ["user_id"]}},
+        {{"name": "idx_orders_status", "columns": ["status"]}},
+        {{"name": "idx_orders_created_at", "columns": ["created_at"]}},
+        {{"name": "idx_orders_user_created", "columns": ["user_id", "created_at"]}}
       ],
       "relationships": ["FOREIGN KEY (user_id) REFERENCES users(user_id)"]
-    }}}}
+    }}
   ],
   "component_logic": [
-    {{{{
+    {{
       "component_name": "OrderService",
       "responsibility": "Retrieve user orders with pagination and caching",
       "interfaces": ["getOrders(userId, page, limit) -> OrderPage"],
       "dependencies": ["DatabaseService", "CacheService"],
       "implementation_notes": "Uses composite index (user_id, created_at) for efficient queries. Implements Redis caching with 5-minute TTL for order lists. Connection pool size=20."
-    }}}}
+    }}
   ],
   "architecture_overview": "Orders API with PostgreSQL database, Redis caching layer, and horizontal scaling support",
   "technology_stack": ["Python 3.12", "FastAPI 0.104+", "PostgreSQL 15+", "Redis 7+", "SQLAlchemy 2.0+"]
-}}}}
+}}
 ```
 
 **Expected Performance Review:**
 ```json
-{{{{
+{{
   "issues_found": [
-    {{{{
+    {{
       "issue_id": "PERF-001",
       "category": "Performance",
       "severity": "Low",
       "description": "Fixed cache TTL may lead to stale data",
       "evidence": "OrderService uses 5-minute TTL for order lists without cache invalidation on updates",
       "impact": "Users may see stale order data for up to 5 minutes after order status changes"
-    }}}}
+    }}
   ],
   "improvement_suggestions": [
-    {{{{
+    {{
       "suggestion_id": "PERF-IMP-001",
       "related_issue_id": "PERF-001",
       "category": "Performance",
       "priority": "Low",
       "description": "Implement cache invalidation on order updates",
       "implementation_notes": "1. Add CacheService.invalidate(key) method. 2. In OrderService.updateOrder(), call cacheService.invalidate('orders:userId'). 3. Alternatively, use Redis pub/sub for cache invalidation events. 4. Keep 5-minute TTL as fallback."
-    }}}},
-    {{{{
+    }},
+    {{
       "suggestion_id": "PERF-IMP-002",
       "related_issue_id": null,
       "category": "Performance",
       "priority": "Medium",
       "description": "Consider adding index on orders.status for admin dashboard queries",
       "implementation_notes": "If admin dashboard queries orders by status frequently (e.g., 'Get all pending orders'), composite index idx_orders_status_created (status, created_at) would optimize these queries. Already have idx_orders_status, so impact is minor."
-    }}}}
+    }}
   ]
-}}}}
+}}
 ```
 
 ---
@@ -246,156 +246,156 @@ Return a JSON object with this structure:
 
 **Design Specification:**
 ```json
-{{{{
+{{
   "task_id": "USER-ANALYTICS",
   "api_contracts": [
-    {{{{
+    {{
       "endpoint": "/api/analytics/dashboard",
       "method": "GET",
       "description": "Get user analytics dashboard",
-      "request_schema": {{{{}}}},
-      "response_schema": {{{{"users": "array", "total_orders": "int", "revenue": "float"}}}},
+      "request_schema": {{}},
+      "response_schema": {{"users": "array", "total_orders": "int", "revenue": "float"}},
       "authentication_required": true
-    }}}},
-    {{{{
+    }},
+    {{
       "endpoint": "/api/users",
       "method": "GET",
       "description": "Get all users",
-      "request_schema": {{{{}}}},
-      "response_schema": {{{{"users": "array"}}}},
+      "request_schema": {{}},
+      "response_schema": {{"users": "array"}},
       "authentication_required": true
-    }}}}
+    }}
   ],
   "data_schemas": [
-    {{{{
+    {{
       "table_name": "users",
       "columns": [
-        {{{{"name": "user_id", "type": "UUID PRIMARY KEY"}}}},
-        {{{{"name": "email", "type": "VARCHAR(255)"}}}},
-        {{{{"name": "created_at", "type": "TIMESTAMP"}}}}
+        {{"name": "user_id", "type": "UUID PRIMARY KEY"}},
+        {{"name": "email", "type": "VARCHAR(255)"}},
+        {{"name": "created_at", "type": "TIMESTAMP"}}
       ],
       "indexes": []
-    }}}},
-    {{{{
+    }},
+    {{
       "table_name": "orders",
       "columns": [
-        {{{{"name": "order_id", "type": "UUID PRIMARY KEY"}}}},
-        {{{{"name": "user_id", "type": "UUID"}}}},
-        {{{{"name": "total", "type": "DECIMAL(10,2)"}}}},
-        {{{{"name": "created_at", "type": "TIMESTAMP"}}}}
+        {{"name": "order_id", "type": "UUID PRIMARY KEY"}},
+        {{"name": "user_id", "type": "UUID"}},
+        {{"name": "total", "type": "DECIMAL(10,2)"}},
+        {{"name": "created_at", "type": "TIMESTAMP"}}
       ],
       "indexes": []
-    }}}}
+    }}
   ],
   "component_logic": [
-    {{{{
+    {{
       "component_name": "AnalyticsService",
       "responsibility": "Calculate user analytics",
       "interfaces": ["getDashboard() -> Dashboard"],
       "dependencies": ["DatabaseService"],
       "implementation_notes": "Query: SELECT * FROM users. For each user, query: SELECT SUM(total) FROM orders WHERE user_id=?"
-    }}}},
-    {{{{
+    }},
+    {{
       "component_name": "UserService",
       "responsibility": "Retrieve all users",
       "interfaces": ["getAllUsers() -> array"],
       "dependencies": ["DatabaseService"],
       "implementation_notes": "Query: SELECT * FROM users ORDER BY created_at DESC"
-    }}}}
+    }}
   ],
   "architecture_overview": "Simple REST API with PostgreSQL database",
   "technology_stack": ["Node.js 18", "Express 4.18", "PostgreSQL 14"]
-}}}}
+}}
 ```
 
 **Expected Performance Review:**
 ```json
-{{{{
+{{
   "issues_found": [
-    {{{{
+    {{
       "issue_id": "PERF-001",
       "category": "Performance",
       "severity": "Critical",
       "description": "N+1 query problem in analytics dashboard calculation",
       "evidence": "AnalyticsService queries 'SELECT * FROM users' then loops with 'SELECT SUM(total) FROM orders WHERE user_id=?' for each user",
       "impact": "With 10,000 users, executes 10,001 queries instead of 1. Dashboard load time: minutes instead of milliseconds. Database connection pool exhaustion under concurrent requests"
-    }}}},
-    {{{{
+    }},
+    {{
       "issue_id": "PERF-002",
       "category": "Performance",
       "severity": "Critical",
       "description": "Unbounded query returns all users without pagination",
       "evidence": "/api/users endpoint has no pagination parameters (page, limit) and UserService queries 'SELECT * FROM users'",
       "impact": "With 100,000 users, response payload is ~10MB, taking 30+ seconds to serialize and transfer. Server memory usage spikes. Client browser may freeze"
-    }}}},
-    {{{{
+    }},
+    {{
       "issue_id": "PERF-003",
       "category": "Performance",
       "severity": "Critical",
       "description": "Missing index on orders.user_id foreign key",
       "evidence": "orders table has user_id column (foreign key to users) but indexes array is empty",
       "impact": "Every analytics query performs full table scan of orders (O(n)). With 1M orders, each user lookup takes seconds instead of milliseconds"
-    }}}},
-    {{{{
+    }},
+    {{
       "issue_id": "PERF-004",
       "category": "Performance",
       "severity": "High",
       "description": "Missing index on users.created_at for ORDER BY query",
       "evidence": "UserService queries 'ORDER BY created_at DESC' but users table has no indexes",
       "impact": "Database performs full table scan and in-memory sort for every request. Query time grows O(n log n) with user count"
-    }}}},
-    {{{{
+    }},
+    {{
       "issue_id": "PERF-005",
       "category": "Performance",
       "severity": "High",
       "description": "No caching for expensive analytics calculations",
       "evidence": "AnalyticsService performs complex aggregations on every request without caching layer",
       "impact": "Dashboard loads slowly (multiple seconds) and generates heavy database load. Concurrent users multiply the load"
-    }}}}
+    }}
   ],
   "improvement_suggestions": [
-    {{{{
+    {{
       "suggestion_id": "PERF-IMP-001",
       "related_issue_id": "PERF-001",
       "category": "Performance",
       "priority": "High",
       "description": "Eliminate N+1 query with single JOIN and GROUP BY query",
       "implementation_notes": "Replace with: SELECT u.user_id, u.email, COALESCE(SUM(o.total), 0) as total_revenue FROM users u LEFT JOIN orders o ON u.user_id = o.user_id GROUP BY u.user_id, u.email. Single query replaces 10,001 queries. Add to implementation notes."
-    }}}},
-    {{{{
+    }},
+    {{
       "suggestion_id": "PERF-IMP-002",
       "related_issue_id": "PERF-002",
       "category": "Performance",
       "priority": "High",
       "description": "Add pagination to /api/users endpoint",
-      "implementation_notes": "1. Add request_schema: {{{{'page': 'int (default 1)', 'limit': 'int (default 50, max 100)'}}}}. 2. Update query: SELECT * FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?. 3. Return response_schema: {{{{'users': 'array', 'total': 'int', 'page': 'int', 'total_pages': 'int'}}}}."
-    }}}},
-    {{{{
+      "implementation_notes": "1. Add request_schema: {{'page': 'int (default 1)', 'limit': 'int (default 50, max 100)'}}. 2. Update query: SELECT * FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?. 3. Return response_schema: {{'users': 'array', 'total': 'int', 'page': 'int', 'total_pages': 'int'}}."
+    }},
+    {{
       "suggestion_id": "PERF-IMP-003",
       "related_issue_id": "PERF-003",
       "category": "Performance",
       "priority": "High",
       "description": "Add index on orders.user_id foreign key",
-      "implementation_notes": "Add to orders table indexes: [{{{{'name': 'idx_orders_user_id', 'columns': ['user_id']}}}}]. For analytics queries that also filter by date, consider composite index: [{{{{'name': 'idx_orders_user_created', 'columns': ['user_id', 'created_at']}}}}]."
-    }}}},
-    {{{{
+      "implementation_notes": "Add to orders table indexes: [{{'name': 'idx_orders_user_id', 'columns': ['user_id']}}]. For analytics queries that also filter by date, consider composite index: [{{'name': 'idx_orders_user_created', 'columns': ['user_id', 'created_at']}}]."
+    }},
+    {{
       "suggestion_id": "PERF-IMP-004",
       "related_issue_id": "PERF-004",
       "category": "Performance",
       "priority": "High",
       "description": "Add index on users.created_at for ORDER BY optimization",
-      "implementation_notes": "Add to users table indexes: [{{{{'name': 'idx_users_created_at', 'columns': ['created_at']}}}}]. If email searches are common, also add: [{{{{'name': 'idx_users_email', 'columns': ['email']}}}}]."
-    }}}},
-    {{{{
+      "implementation_notes": "Add to users table indexes: [{{'name': 'idx_users_created_at', 'columns': ['created_at']}}]. If email searches are common, also add: [{{'name': 'idx_users_email', 'columns': ['email']}}]."
+    }},
+    {{
       "suggestion_id": "PERF-IMP-005",
       "related_issue_id": "PERF-005",
       "category": "Performance",
       "priority": "High",
       "description": "Implement Redis caching for analytics dashboard",
       "implementation_notes": "1. Add Redis to technology stack. 2. Create CacheService with get/set/invalidate methods. 3. Cache dashboard data with 5-minute TTL: cacheService.get('dashboard:summary'). 4. Invalidate cache on order creation/update. 5. Add CacheService dependency to AnalyticsService."
-    }}}}
+    }}
   ]
-}}}}
+}}
 ```
 
 ---

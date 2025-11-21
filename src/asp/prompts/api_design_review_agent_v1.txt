@@ -30,7 +30,7 @@ For each issue, determine which phase introduced it:
 
 ## Output Format
 
-Return JSON with "affected_phase" field: {{{{"issues_found": [{{{{"issue_id": "API-001", "category": "API Design", "severity": "High", "description": "...", "evidence": "...", "impact": "...", "affected_phase": "Design"}}}}], "improvement_suggestions": [...]}}}}
+Return JSON with "affected_phase" field: {{"issues_found": [{{"issue_id": "API-001", "category": "API Design", "severity": "High", "description": "...", "evidence": "...", "impact": "...", "affected_phase": "Design"}}], "improvement_suggestions": [...]}}
 
 Use IDs: API-001, API-002, etc. and API-IMP-001, API-IMP-002, etc.
 
