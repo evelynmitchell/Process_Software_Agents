@@ -1,0 +1,262 @@
+openapi: 3.0.3
+info:
+  title: Hello World API
+  description: |
+    Simple REST API that returns greeting messages with optional personalization.
+    
+    This API provides two main endpoints:
+    - `/hello` - Returns personalized or default greeting messages
+    - `/health` - Returns application health status and timestamp
+    
+    The API is stateless and designed for high throughput with proper input validation
+    and centralized error handling.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+  - url: https://api.example.com
+    description: Production server
+
+paths:
+  /hello:
+    get:
+      summary: Get greeting message
+      description: |
+        Returns a greeting message with optional personalization via name parameter.
+        
+        If no name is provided, returns a default "Hello, World!" message.
+        If a name is provided, returns a personalized greeting like "Hello, John!".
+        
+        The name parameter is validated to ensure it contains only alphanumeric 
+        characters and spaces, and does not exceed 100 characters in length.
+      operationId: getHello
+      tags:
+        - Greetings
+      parameters:
+        - name: name
+          in: query
+          description: |
+            Optional name for personalized greeting. Must contain only alphanumeric 
+            characters and spaces. Maximum length is 100 characters.
+          required: false
+          schema:
+            type: string
+            maxLength: 100
+            pattern: '^[a-zA-Z0-9\s]*$'
+            example: "John Doe"
+          examples:
+            simple_name:
+              summary: Simple name
+              value: "Alice"
+            full_name:
+              summary: Full name with space
+              value: "John Smith"
+            with_numbers:
+              summary: Name with numbers
+              value: "User123"
+      responses:
+        '200':
+          description: Successful greeting response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HelloResponse'
+              examples:
+                default_greeting:
+                  summary: Default greeting (no name parameter)
+                  value:
+                    message: "Hello, World!"
+                personalized_greeting:
+                  summary: Personalized greeting
+                  value:
+                    message: "Hello, Alice!"
+                full_name_greeting:
+                  summary: Full name greeting
+                  value:
+                    message: "Hello, John Smith!"
+        '400':
+          description: Invalid name parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_characters:
+                  summary: Name contains invalid characters
+                  value:
+                    code: "INVALID_NAME"
+                    message: "Name parameter contains invalid characters or exceeds 100 characters"
+                too_long:
+                  summary: Name exceeds maximum length
+                  value:
+                    code: "INVALID_NAME"
+                    message: "Name parameter contains invalid characters or exceeds 100 characters"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "INTERNAL_ERROR"
+                message: "Internal server error"
+
+  /health:
+    get:
+      summary: Health check
+      description: |
+        Returns application health status and current timestamp.
+        
+        This endpoint is used for monitoring and health checks. It always returns
+        a status of "ok" along with the current UTC timestamp in ISO 8601 format.
+        
+        The timestamp can be used to verify the application is responding and
+        to check for clock synchronization issues.
+      operationId: getHealth
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Successful health check response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                health_check:
+                  summary: Typical health check response
+                  value:
+                    status: "ok"
+                    timestamp: "2023-12-01T10:30:45.123456Z"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "INTERNAL_ERROR"
+                message: "Internal server error"
+
+components:
+  schemas:
+    HelloResponse:
+      type: object
+      description: Response schema for the /hello endpoint
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: |
+            The greeting message. Will be "Hello, World!" if no name parameter
+            is provided, or "Hello, {name}!" if a valid name is provided.
+          example: "Hello, World!"
+          minLength: 1
+          maxLength: 120
+      example:
+        message: "Hello, Alice!"
+
+    HealthResponse:
+      type: object
+      description: Response schema for the /health endpoint
+      required:
+        - status
+        - timestamp
+      properties:
+        status:
+          type: string
+          description: Health status of the application
+          enum:
+            - "ok"
+          example: "ok"
+        timestamp:
+          type: string
+          description: |
+            Current UTC timestamp in ISO 8601 format with microseconds and 'Z' suffix.
+            Format: YYYY-MM-DDTHH:MM:SS.fffffZ
+          format: date-time
+          example: "2023-12-01T10:30:45.123456Z"
+          pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$'
+      example:
+        status: "ok"
+        timestamp: "2023-12-01T10:30:45.123456Z"
+
+    ErrorResponse:
+      type: object
+      description: Standard error response schema for all error conditions
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: |
+            Error code identifying the specific type of error.
+            Used for programmatic error handling.
+          enum:
+            - "INVALID_NAME"
+            - "INTERNAL_ERROR"
+          example: "INVALID_NAME"
+        message:
+          type: string
+          description: |
+            Human-readable error message describing what went wrong.
+            Should not contain sensitive information.
+          example: "Name parameter contains invalid characters or exceeds 100 characters"
+          minLength: 1
+          maxLength: 500
+      examples:
+        - code: "INVALID_NAME"
+          message: "Name parameter contains invalid characters or exceeds 100 characters"
+        - code: "INTERNAL_ERROR"
+          message: "Internal server error"
+
+  examples:
+    HelloWorldResponse:
+      summary: Default Hello World response
+      description: Response when no name parameter is provided
+      value:
+        message: "Hello, World!"
+
+    PersonalizedHelloResponse:
+      summary: Personalized greeting response
+      description: Response when a valid name parameter is provided
+      value:
+        message: "Hello, Alice!"
+
+    HealthCheckResponse:
+      summary: Health check response
+      description: Typical response from the health endpoint
+      value:
+        status: "ok"
+        timestamp: "2023-12-01T10:30:45.123456Z"
+
+    InvalidNameError:
+      summary: Invalid name parameter error
+      description: Error response when name parameter validation fails
+      value:
+        code: "INVALID_NAME"
+        message: "Name parameter contains invalid characters or exceeds 100 characters"
+
+    InternalServerError:
+      summary: Internal server error
+      description: Error response for unexpected server errors
+      value:
+        code: "INTERNAL_ERROR"
+        message: "Internal server error"
+
+tags:
+  - name: Greetings
+    description: |
+      Endpoints related to greeting functionality.
+      
+      These endpoints handle the core greeting logic of the application,
+      including
