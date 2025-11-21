@@ -4,15 +4,15 @@
 
 ## Architecture Overview
 
-Simple REST API built with FastAPI framework using a modular component design. Four main components: FastAPIApplication handles app initialization and configuration, HelloEndpoint manages the greeting functionality with input validation, HealthEndpoint provides system status, and ErrorHandler centralizes exception management. No database or external dependencies required. Follows REST principles with JSON responses and appropriate HTTP status codes.
+Simple REST API using FastAPI framework with clean separation of concerns. FastAPIApplication handles app initialization and global configuration. Individual endpoint components (HelloEndpoint, HealthEndpoint) handle business logic for their respective routes. Centralized ErrorHandler provides consistent error formatting and HTTP status code management across all endpoints. No database or external dependencies required - purely stateless API design.
 
 ## Technology Stack
 
-{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'asgi_server': 'uvicorn 0.24+', 'validation': 'pydantic (included with FastAPI)', 'datetime': 'Python datetime module (stdlib)', 'regex': 'Python re module (stdlib)', 'json': 'FastAPI JSONResponse (built-in)'}
+{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'asgi_server': 'uvicorn 0.24+', 'validation': 'pydantic (included with FastAPI)', 'datetime': 'Python datetime module (stdlib)', 'regex': 'Python re module (stdlib)'}
 
 ## Assumptions
 
-['Application runs in development mode with CORS enabled for all origins', 'No authentication or authorization required for any endpoints', 'Name parameter validation allows alphanumeric characters and spaces only', "Health endpoint always returns 'ok' status (no actual health checks)", 'UTC timezone used consistently for all timestamps', 'Maximum name length of 100 characters is sufficient for use cases', 'No rate limiting required for this minimal API', 'Error logging goes to stdout/stderr (no external logging service)']
+['API will be deployed with ASGI server like uvicorn', 'No authentication or authorization required for endpoints', 'No rate limiting needed for this minimal API', 'No database or persistent storage required', 'Name parameter validation allows alphanumeric characters and spaces only', "Health endpoint always returns 'ok' status (no actual health checks)", 'All responses use JSON format', 'UTC timezone used for all timestamps']
 
 ## API Contracts
 
@@ -40,31 +40,31 @@ Simple REST API built with FastAPI framework using a modular component design. F
 
 ### FastAPIApplication
 
-- **Responsibility:** Initializes and configures the FastAPI application with middleware and error handling
+- **Responsibility:** Initializes and configures the FastAPI application with middleware and error handlers
 - **Semantic Unit:** SU-001
 - **Dependencies:** None
-- **Implementation Notes:** Use FastAPI() constructor with title='Hello World API', version='1.0.0'. Add CORS middleware with allow_origins=['*'] for development. Configure global exception handler for 500 errors that returns JSON response. Set up request validation error handler for 400 errors.
+- **Implementation Notes:** Use FastAPI() constructor with title='Hello World API', version='1.0.0'. Add global exception handler for unhandled exceptions returning 500 status. Configure CORS middleware if needed. Set up JSON response formatting.
 - **Interfaces:**
   - `create_app`
   - `setup_error_handlers`
 
 ### HelloEndpoint
 
-- **Responsibility:** Handles the /hello endpoint with optional name parameter and greeting message generation
+- **Responsibility:** Handles GET /hello endpoint with optional name parameter validation and response formatting
 - **Semantic Unit:** SU-002
 - **Dependencies:** None
-- **Implementation Notes:** Use FastAPI Query parameter with default None for optional name. Validate name with regex pattern '^[a-zA-Z0-9 ]+$' and max length 100. Strip whitespace and title-case the name. Return {'message': f'Hello, {name}!'} or {'message': 'Hello, World!'} if no name. Raise HTTPException(400) for invalid names.
+- **Implementation Notes:** Use FastAPI Query parameter with default None. Validate name with regex pattern '^[a-zA-Z0-9 ]+$' and length <= 100. Return HTTPException(400) for invalid names. Default message is 'Hello, World!' when name is None or empty. Personalized message format: 'Hello, {name}!'
 - **Interfaces:**
   - `get_hello`
   - `validate_name`
-  - `sanitize_name`
+  - `format_greeting`
 
 ### HealthEndpoint
 
-- **Responsibility:** Handles the /health endpoint returning application status and current timestamp
+- **Responsibility:** Handles GET /health endpoint returning application status and current timestamp
 - **Semantic Unit:** SU-003
 - **Dependencies:** None
-- **Implementation Notes:** Use datetime.utcnow().isoformat() + 'Z' for timestamp generation. Always return status='ok' (this is a simple health check, not monitoring actual dependencies). Return {'status': 'ok', 'timestamp': timestamp_string}. Use UTC timezone consistently.
+- **Implementation Notes:** Always return status='ok'. Use datetime.utcnow().isoformat() + 'Z' for timestamp formatting. No validation needed as endpoint takes no parameters. Handle potential datetime errors gracefully.
 - **Interfaces:**
   - `get_health`
   - `get_current_timestamp`
@@ -74,7 +74,7 @@ Simple REST API built with FastAPI framework using a modular component design. F
 - **Responsibility:** Provides centralized error handling and HTTP status code management for all endpoints
 - **Semantic Unit:** SU-004
 - **Dependencies:** None
-- **Implementation Notes:** Register exception handlers using @app.exception_handler decorators. For RequestValidationError, extract field errors and return 400 with INVALID_NAME code. For HTTPException, preserve status code and return JSON format. For general Exception, log error details and return 500 with INTERNAL_ERROR code. All responses must be JSON format with 'code' and 'message' fields.
+- **Implementation Notes:** Use FastAPI exception_handler decorator. For validation errors, extract field name and return specific error message. For HTTP exceptions, preserve status code and message. For general exceptions, log error details but return generic 500 message. All error responses use JSON format with 'error' and 'message' fields.
 - **Interfaces:**
   - `handle_validation_error`
   - `handle_http_exception`
@@ -82,4 +82,4 @@ Simple REST API built with FastAPI framework using a modular component design. F
 
 ---
 
-*Generated by Design Agent on 2025-11-21 17:46:28*
+*Generated by Design Agent on 2025-11-21 18:05:48*
