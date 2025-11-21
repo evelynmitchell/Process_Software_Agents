@@ -4,15 +4,15 @@
 
 ## Architecture Overview
 
-Simple 3-tier architecture for HTTP API: HTTPServerFramework initializes and configures the FastAPI application with routing infrastructure (SU-001). HelloRouteHandler implements the GET /hello endpoint that returns a greeting message (SU-002). ResponseFormatter handles response serialization and error formatting with proper HTTP status codes (SU-003). The framework automatically serializes Python dictionaries to JSON. Exception handling middleware catches all unhandled exceptions and returns appropriate error responses. No database, authentication, or complex business logic required.
+Simple 3-tier architecture for a minimal HTTP API. HTTPServerFramework layer initializes and manages the FastAPI application with routing configuration. HelloRouteHandler layer implements the GET /hello endpoint that returns a JSON response with greeting message. ResponseFormatter layer handles response serialization and error formatting with proper HTTP status codes. The endpoint receives GET requests at /hello, processes them through HelloRouteHandler, formats the response through ResponseFormatter, and returns JSON with status 200 OK. Global exception handler catches any unhandled errors and returns 500 status with error message.
 
 ## Technology Stack
 
-{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'asgi_server': 'uvicorn 0.24+', 'json_serialization': 'FastAPI built-in (pydantic v2+)', 'logging': 'Python logging module (stdlib)', 'http_client_testing': 'httpx 0.25+ (for testing)'}
+{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'asgi_server': 'uvicorn 0.24+', 'json_serialization': 'FastAPI built-in (uses Pydantic)', 'logging': 'Python logging module (stdlib)', 'http_client_testing': 'httpx 0.25+ (for testing)'}
 
 ## Assumptions
 
-['Server runs on localhost:8000 by default (host=0.0.0.0, port=8000)', 'Single-process deployment (workers=1) is acceptable', 'No authentication or authorization required for /hello endpoint', 'No database or persistent storage needed', 'Response content-type is application/json', 'HTTP/1.1 protocol is sufficient (no HTTP/2 required)', 'No rate limiting or request throttling needed', 'CORS is not required or can be configured at infrastructure level', 'Synchronous request handling is acceptable (no async/await needed)', 'All exceptions should return 500 status code with error response']
+["Server runs on localhost:8000 by default (host='0.0.0.0', port=8000)", 'Single-process deployment (workers=1) is acceptable for this simple endpoint', 'HTTPS/TLS is handled at infrastructure level (reverse proxy or load balancer)', 'No authentication or authorization required for /hello endpoint', 'Response format is JSON with Content-Type: application/json', 'No database or external service dependencies required', 'Graceful shutdown on SIGTERM signal is implemented', 'Logging output goes to stdout/stderr for container environments']
 
 ## API Contracts
 
@@ -33,18 +33,18 @@ Simple 3-tier architecture for HTTP API: HTTPServerFramework initializes and con
 - **Responsibility:** Initializes and configures the HTTP server framework with routing infrastructure
 - **Semantic Unit:** SU-001
 - **Dependencies:** None
-- **Implementation Notes:** Use FastAPI 0.104+ framework for HTTP server. Initialize app with title='Hello World API' and version='1.0.0'. Configure CORS if needed (allow all origins for development). Use uvicorn as ASGI server with workers=1 for single-process deployment. Default host='0.0.0.0' and port=8000. Implement graceful shutdown handling.
+- **Implementation Notes:** Use FastAPI 0.104+ framework for HTTP server. Initialize with default settings (title='Hello World API', version='1.0.0'). Configure CORS if needed (allow all origins for development). Use uvicorn as ASGI server with workers=1 for single-process deployment. Default host='0.0.0.0', port=8000. Implement graceful shutdown handling.
 - **Interfaces:**
-  - `initialize_app`
+  - `initialize_server`
   - `configure_routes`
   - `start_server`
 
 ### HelloRouteHandler
 
-- **Responsibility:** Handles GET /hello requests and returns formatted response
+- **Responsibility:** Handles GET /hello requests and returns formatted response with proper serialization
 - **Semantic Unit:** SU-002
 - **Dependencies:** HTTPServerFramework
-- **Implementation Notes:** Implement as FastAPI route handler decorated with @app.get('/hello'). Return dictionary with key 'message' and value 'Hello World'. Use FastAPI's automatic JSON serialization. Handler should be synchronous (no async needed for simple operation). Response status code defaults to 200 OK. No request body or query parameters required.
+- **Implementation Notes:** Decorate hello() method with @app.get('/hello'). Return dict with key 'message' and value 'Hello World'. FastAPI automatically serializes dict to JSON with Content-Type: application/json. No input parameters required. Response status code defaults to 200 OK. Use Pydantic for response validation if needed (optional for this simple case).
 - **Interfaces:**
   - `hello`
   - `format_response`
@@ -54,7 +54,7 @@ Simple 3-tier architecture for HTTP API: HTTPServerFramework initializes and con
 - **Responsibility:** Formats HTTP responses with proper status codes and error handling
 - **Semantic Unit:** SU-003
 - **Dependencies:** None
-- **Implementation Notes:** Use FastAPI JSONResponse for explicit response control. Success responses return status_code=200 with data payload. Error responses include error_code and message fields. Implement exception handler middleware to catch unhandled exceptions and return 500 INTERNAL_SERVER_ERROR with code='INTERNAL_SERVER_ERROR'. Log all errors with Python logging module at ERROR level. Ensure all responses are valid JSON.
+- **Implementation Notes:** Use FastAPI JSONResponse for explicit response control. Success responses return status 200 with data payload. Error responses return appropriate HTTP status codes (500 for internal errors). Implement global exception handler using @app.exception_handler(Exception) to catch unhandled exceptions. Log all errors with Python logging module. Never expose internal error details to client (return generic 'Internal server error' message). Set Content-Type: application/json for all responses.
 - **Interfaces:**
   - `format_success_response`
   - `format_error_response`
@@ -62,4 +62,4 @@ Simple 3-tier architecture for HTTP API: HTTPServerFramework initializes and con
 
 ---
 
-*Generated by Design Agent on 2025-11-21 20:12:48*
+*Generated by Design Agent on 2025-11-21 20:34:17*
