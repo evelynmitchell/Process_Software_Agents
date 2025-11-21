@@ -109,6 +109,25 @@ Return a complete JSON design specification. IMPORTANT: Follow this EXACT schema
         {{"status": 409, "code": "USER_EXISTS", "message": "Email already registered"}}
       ],
       "rate_limit": "10 requests per minute per IP"
+    }},
+    {{
+      "endpoint": "/api/v1/users/{{user_id}}",
+      "method": "GET",
+      "description": "Get user details by ID (at least 10 characters)",
+      "authentication_required": true,
+      "request_schema": null,
+      "request_params": {{
+        "user_id": "string (UUID, path parameter, required)"
+      }},
+      "response_schema": {{
+        "user_id": "string (UUID)",
+        "email": "string",
+        "created_at": "string (ISO 8601 datetime)"
+      }},
+      "error_responses": [
+        {{"status": 404, "code": "USER_NOT_FOUND", "message": "User not found"}}
+      ],
+      "rate_limit": null
     }}
   ],
   "data_schemas": [
@@ -187,10 +206,13 @@ Return a complete JSON design specification. IMPORTANT: Follow this EXACT schema
 ## CRITICAL SCHEMA RULES
 
 1. **api_contracts[].endpoint**: Use "endpoint" NOT "path"
-2. **api_contracts[].request_params**: Must be a DICTIONARY (object) with string keys/values, NOT a list
+2. **api_contracts[].request_params**: Must be a SIMPLE DICTIONARY with STRING keys and STRING values
    - Correct: {{"user_id": "string (UUID, path parameter)", "limit": "integer (optional, default=10)"}}
+   - Correct: {{"name": "string (required, max_length=255)"}}
    - Correct: null (if no parameters)
-   - WRONG: [{{"name": "user_id", "type": "string"}}] (this is a list, not allowed!)
+   - WRONG: [{{"name": "user_id", "type": "string"}}] (list format - not allowed!)
+   - WRONG: {{"name": {{"type": "string", "required": true}}}} (nested object - not allowed!)
+   - IMPORTANT: Values must be PLAIN STRINGS describing the parameter, not nested objects!
 3. **api_contracts[].error_responses**: Must be a LIST of objects, NOT a dictionary
 4. **component_logic**: REQUIRED field - must have at least one component
 5. **component_logic[].semantic_unit_id**: Must match pattern "SU-XXX" (e.g., "SU-001")
