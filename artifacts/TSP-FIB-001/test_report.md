@@ -2,8 +2,8 @@
 
 **Test Status:** ❌ FAIL
 **Tested by:** Test Agent v1.0.0
-**Date:** 2025-11-22T03:25:47.123456Z
-**Duration:** 8.7s
+**Date:** 2025-11-22T03:25:14Z
+**Duration:** 8.3s
 
 ## Build Status
 
@@ -12,65 +12,112 @@
 ## Test Execution Summary
 
 - **Total Tests:** 89
-- **Passed:** 87 ✅
-- **Failed:** 2 ❌
+- **Passed:** 82 ✅
+- **Failed:** 7 ❌
 - **Skipped:** 0 ⏭️
-- **Coverage:** 95.2%
+- **Coverage:** 78.5%
 
 ## Test Generation
 
 - **Tests Generated:** 89
-- **Test Files Created:** 3
+- **Test Files Created:** 4
 
-  - `tests/test_fibonacci.py`
   - `tests/test_fibonacci_validator.py`
   - `tests/test_fibonacci_calculator.py`
+  - `tests/test_fibonacci.py`
+  - `tests/test_design_review.py`
 
 ## Defects Summary
 
-- **Total Defects:** 2
+- **Total Defects:** 7
 - **Critical:** 0 🔴
-- **High:** 2 🟠
-- **Medium:** 0 🟡
+- **High:** 5 🟠
+- **Medium:** 2 🟡
 - **Low:** 0 🟢
 
 ## High Priority Defects
 
-### TEST-DEFECT-001: FibonacciValidator instantiation error - validate_input is a static method but test attempts to instantiate class and call as instance method
+### TEST-DEFECT-001: FibonacciValidator instantiated as object in fibonacci.py but defined as static methods in fibonacci_validator.py
 
-**Type:** 6_Conventional_Code_Bug
+**Type:** 3_Tool_Use_Error
 **Phase Injected:** Code
-**File:** `tests/test_fibonacci_validator.py:18`
+**File:** `src/fibonacci.py:47`
 
 **Evidence:**
 ```
-Test failure in test_fibonacci_validator.py: TypeError: validate_input() takes 1 positional argument but 2 were given. Test code: validator = FibonacciValidator(); validator.validate_input(0). Expected: Static method call FibonacciValidator.validate_input(0). Actual: Instance method call validator.validate_input(0).
+File src/fibonacci.py line 47-48: validator = FibonacciValidator() followed by validator.validate_input(n). FibonacciValidator.validate_input is a @staticmethod, should be called as FibonacciValidator.validate_input(n) not instance method.
 ```
 
 ---
 
-### TEST-DEFECT-002: FibonacciValidator instantiation error - multiple test methods attempt to instantiate FibonacciValidator class and call static method as instance method
+### TEST-DEFECT-002: FibonacciCalculator instantiated as object in fibonacci.py but defined as static methods in fibonacci_calculator.py
 
-**Type:** 6_Conventional_Code_Bug
+**Type:** 3_Tool_Use_Error
 **Phase Injected:** Code
-**File:** `tests/test_fibonacci_validator.py:18`
+**File:** `src/fibonacci.py:50`
 
 **Evidence:**
 ```
-Test failures in test_fibonacci_validator.py lines 18-150: TypeError: validate_input() takes 1 positional argument but 2 were given. Pattern: validator = FibonacciValidator(); validator.validate_input(n). All 67 test methods in TestFibonacciValidatorValidateInput class fail with same error. Expected: FibonacciValidator.validate_input(n) as static method. Actual: validator.validate_input(n) as instance method.
+File src/fibonacci.py line 50-51: calculator = FibonacciCalculator() followed by calculator.calculate(n). FibonacciCalculator.calculate is a @staticmethod, should be called as FibonacciCalculator.calculate(n) not instance method.
 ```
 
 ---
+
+### TEST-DEFECT-003: Incomplete test file test_fibonacci_calculator.py - TestFibonacciSequenceCorrectness class definition is incomplete and truncated
+
+**Type:** 6_Conventional_Code_Bug
+**Phase Injected:** Code
+**File:** `tests/test_fibonacci_calculator.py:195`
+
+**Evidence:**
+```
+File tests/test_fibonacci_calculator.py ends abruptly at line 195 with incomplete class definition: 'class TestFibonacciSequenceCorrectness:' followed by docstring but no test methods. File appears truncated.
+```
+
+---
+
+### TEST-DEFECT-004: Incomplete test file test_fibonacci.py - TestFibonacciLargeValues class definition is incomplete and truncated
+
+**Type:** 6_Conventional_Code_Bug
+**Phase Injected:** Code
+**File:** `tests/test_fibonacci.py:195`
+
+**Evidence:**
+```
+File tests/test_fibonacci.py ends abruptly at line 195 with incomplete test method: 'def test_fibonacci_thirty_five(self) -> None:' with docstring but no implementation. File appears truncated.
+```
+
+---
+
+### TEST-DEFECT-006: fibonacci.py imports from src.fibonacci_validator and src.fibonacci_calculator but these modules also define FibonacciValidator and FibonacciCalculator classes, creating duplicate definitions
+
+**Type:** 2_Prompt_Misinterpretation
+**Phase Injected:** Code
+**File:** `src/fibonacci.py:8`
+
+**Evidence:**
+```
+src/fibonacci.py imports: 'from src.fibonacci_validator import FibonacciValidator' and 'from src.fibonacci_calculator import FibonacciCalculator'. However, src/fibonacci_validator.py also defines both FibonacciValidator and FibonacciCalculator classes. This creates duplicate class definitions and violates single responsibility principle.
+```
+
+---
+
+## Other Defects
+
+- **[Medium]** TEST-DEFECT-005: Incomplete test file test_design_review.py - TestPerformanceRequirements class definition is incomplete and truncated (6_Conventional_Code_Bug) - `tests/test_design_review.py`
+- **[Medium]** TEST-DEFECT-007: Test coverage below target threshold - 78.5% actual vs 80% target (6_Conventional_Code_Bug) - `tests/`
 
 ## Defect Analysis
 
 ### Defects by Phase Injected
 
-- **Code:** 2 defects
+- **Code:** 7 defects
 
 ### Defects by Type
 
-- **6_Conventional_Code_Bug:** 2 defects
+- **2_Prompt_Misinterpretation:** 1 defects
+- **3_Tool_Use_Error:** 2 defects
+- **6_Conventional_Code_Bug:** 4 defects
 
 ## Recommendations
 
