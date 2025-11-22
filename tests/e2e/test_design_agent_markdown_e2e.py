@@ -324,7 +324,7 @@ class TestDesignAgentMarkdownHaiku:
         """Test Hello World API with markdown mode using Haiku 4.5."""
         agent = DesignAgent(
             use_markdown=True,
-            model="claude-haiku-4-5-20250929"
+            model="claude-haiku-4-5"
         )
 
         requirements = """
@@ -371,7 +371,7 @@ class TestDesignAgentMarkdownHaiku:
         """Test user registration API with markdown mode using Haiku 4.5."""
         agent = DesignAgent(
             use_markdown=True,
-            model="claude-haiku-4-5-20250929"
+            model="claude-haiku-4-5"
         )
 
         requirements = """
@@ -526,7 +526,7 @@ class TestDesignAgentMarkdownComparison:
 
         agent_json = DesignAgent(
             use_markdown=False,
-            model="claude-haiku-4-5-20250929"
+            model="claude-haiku-4-5"
         )
 
         design_input_json = DesignInput(
@@ -547,7 +547,7 @@ class TestDesignAgentMarkdownComparison:
 
         agent_md = DesignAgent(
             use_markdown=True,
-            model="claude-haiku-4-5-20250929"
+            model="claude-haiku-4-5"
         )
 
         design_input_md = DesignInput(
