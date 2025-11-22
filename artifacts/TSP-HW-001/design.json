@@ -61,47 +61,47 @@
         }
       ],
       "dependencies": [],
-      "implementation_notes": "Use FastAPI 0.104+ with Uvicorn. Configure CORS middleware to allow all origins (or restrict as needed). Add standard HTTP headers (X-Content-Type-Options: nosniff, X-Frame-Options: DENY). Set up Python logging module with INFO level for application logs and DEBUG for development. Initialize app with title='Hello API', version='1.0.0'. Register exception handlers before adding routes.",
+      "implementation_notes": "Use FastAPI 0.104+ with Python 3.12. Create app with title='Hello World API' and version='1.0.0'. Configure CORS middleware to allow all origins (CORSMiddleware with allow_origins=['*']). Add response headers for security (X-Content-Type-Options: nosniff). Setup Python logging module with INFO level for application logs. Use lifespan context manager for startup/shutdown events if needed.",
       "complexity": 15
     },
     {
       "component_name": "HelloEndpoint",
       "semantic_unit_id": "SU-002",
-      "responsibility": "Implements the GET /hello endpoint that returns a greeting message with current server timestamp",
+      "responsibility": "Implements the GET /hello endpoint that returns a greeting message with current timestamp",
       "interfaces": [
         {
-          "method": "get_hello",
+          "method": "hello",
           "parameters": {},
           "returns": "dict[str, Any]",
-          "description": "Handle GET /hello request and return greeting with ISO 8601 timestamp"
+          "description": "Handle GET /hello request and return message with current ISO 8601 timestamp"
         }
       ],
       "dependencies": [
         "TimestampProvider"
       ],
-      "implementation_notes": "Use FastAPI @app.get('/hello') decorator. Call TimestampProvider.get_current_timestamp() to get current time in UTC. Return dict with keys 'message' (string value 'Hello, World!') and 'timestamp' (ISO 8601 string). Use datetime.datetime.utcnow().isoformat() + 'Z' for timestamp format. Ensure response is JSON serializable. No request validation needed (no parameters).",
+      "implementation_notes": "Use FastAPI @app.get('/hello') decorator. Return dict with 'message' key set to 'Hello, World!' (exact string). Get current timestamp from TimestampProvider.get_current_timestamp() which returns ISO 8601 string with UTC timezone. Return response as JSON with Content-Type: application/json. Response status code 200 (default). Ensure timestamp includes microseconds and Z suffix for UTC (e.g., '2024-01-15T10:30:45.123456Z').",
       "complexity": 21
     },
     {
       "component_name": "TimestampProvider",
       "semantic_unit_id": "SU-002",
-      "responsibility": "Provides current server timestamp in ISO 8601 format with UTC timezone",
+      "responsibility": "Provides current timestamp in ISO 8601 format with UTC timezone",
       "interfaces": [
         {
           "method": "get_current_timestamp",
           "parameters": {},
           "returns": "str",
-          "description": "Return current UTC timestamp in ISO 8601 format (e.g., '2024-01-15T10:30:45.123456Z')"
+          "description": "Return current UTC timestamp in ISO 8601 format with Z suffix"
         }
       ],
       "dependencies": [],
-      "implementation_notes": "Use Python datetime module. Call datetime.datetime.utcnow() to get current UTC time. Format as ISO 8601 string using .isoformat() method and append 'Z' suffix to indicate UTC timezone. Alternatively, use datetime.datetime.now(datetime.timezone.utc).isoformat(). Ensure microseconds are included in output.",
+      "implementation_notes": "Use Python datetime.datetime.now(datetime.timezone.utc) to get current UTC time. Format using isoformat() method which produces ISO 8601 format. Ensure output includes microseconds and ends with 'Z' for UTC (e.g., '2024-01-15T10:30:45.123456Z'). No external dependencies required, use stdlib only.",
       "complexity": 21
     },
     {
       "component_name": "GlobalExceptionHandler",
       "semantic_unit_id": "SU-003",
-      "responsibility": "Handles all unhandled exceptions and formats error responses consistently",
+      "responsibility": "Handles all exceptions globally and returns standardized error responses in JSON format",
       "interfaces": [
         {
           "method": "handle_exception",
@@ -110,7 +110,7 @@
             "exc": "Exception"
           },
           "returns": "JSONResponse",
-          "description": "Catch unhandled exceptions and return formatted error response"
+          "description": "Catch any unhandled exception and return standardized error response"
         },
         {
           "method": "handle_validation_error",
@@ -133,51 +133,37 @@
         }
       ],
       "dependencies": [],
-      "implementation_notes": "Register exception handlers using @app.exception_handler(Exception) and @app.exception_handler(RequestValidationError). For generic Exception: return 500 status with code 'INTERNAL_SERVER_ERROR' and generic message. For RequestValidationError: return 422 status with code 'VALIDATION_ERROR' and details. Log all exceptions with full traceback at ERROR level. Error response format: {\"error\": {\"code\": \"ERROR_CODE\", \"message\": \"error message\"}, \"timestamp\": \"ISO 8601 timestamp\"}. Never expose internal stack traces to client.",
+      "implementation_notes": "Register exception handlers using @app.exception_handler(Exception) and @app.exception_handler(RequestValidationError). For generic Exception: return 500 status with code 'INTERNAL_SERVER_ERROR' and generic message. For RequestValidationError: return 422 status with code 'VALIDATION_ERROR' and details. Error response format: {\"error\": {\"code\": \"ERROR_CODE\", \"message\": \"error message\"}, \"timestamp\": \"ISO 8601 timestamp\"}. Log all exceptions with traceback at ERROR level. Never expose internal exception details to client.",
       "complexity": 27
     },
     {
       "component_name": "ApplicationConfiguration",
       "semantic_unit_id": "SU-004",
-      "responsibility": "Configures application startup, logging, CORS, and REST best practices",
+      "responsibility": "Configures application settings including CORS, security headers, and REST best practices",
       "interfaces": [
         {
-          "method": "configure_cors",
+          "method": "get_cors_config",
+          "parameters": {},
+          "returns": "dict[str, Any]",
+          "description": "Return CORS configuration dictionary"
+        },
+        {
+          "method": "get_security_headers",
+          "parameters": {},
+          "returns": "dict[str, str]",
+          "description": "Return security headers to add to all responses"
+        },
+        {
+          "method": "configure_app",
           "parameters": {
             "app": "FastAPI"
           },
           "returns": "None",
-          "description": "Configure CORS middleware with appropriate allowed origins and methods"
-        },
-        {
-          "method": "configure_headers",
-          "parameters": {
-            "app": "FastAPI"
-          },
-          "returns": "None",
-          "description": "Add security and REST best practice headers to all responses"
-        },
-        {
-          "method": "configure_logging",
-          "parameters": {},
-          "returns": "None",
-          "description": "Set up application logging with appropriate format and level"
-        },
-        {
-          "method": "on_startup",
-          "parameters": {},
-          "returns": "None",
-          "description": "Execute startup tasks (logging initialization, health checks)"
-        },
-        {
-          "method": "on_shutdown",
-          "parameters": {},
-          "returns": "None",
-          "description": "Execute shutdown tasks (cleanup, logging)"
+          "description": "Apply all configuration to FastAPI application"
         }
       ],
       "dependencies": [],
-      "implementation_notes": "Use FastAPI CORSMiddleware from fastapi.middleware.cors. Allow origins=['*'] for development (restrict in production). Allow methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']. Allow headers=['*']. Add custom middleware or use add_middleware() for security headers: X-Content-Type-Options: nosniff, X-Frame-Options: DENY, X-XSS-Protection: 1; mode=block. Configure Python logging with format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'. Use @app.on_event('startup') and @app.on_event('shutdown') decorators. Log application start/stop events.",
+      "implementation_notes": "CORS config: allow_origins=['*'], allow_credentials=False, allow_methods=['GET', 'OPTIONS'], allow_headers=['*']. Security headers: X-Content-Type-Options='nosniff', X-Frame-Options='DENY', X-XSS-Protection='1; mode=block'. Add custom middleware using @app.middleware('http') to inject security headers into all responses. Configure app metadata: title='Hello World API', version='1.0.0', description='Simple REST API with GET /hello endpoint'. Set docs_url='/docs' and openapi_url='/openapi.json' for Swagger UI.",
       "complexity": 19
     }
   ],
@@ -185,61 +171,60 @@
     {
       "category": "Architecture",
       "description": "Verify application factory pattern is used for proper initialization",
-      "validation_criteria": "ApplicationFactory.create_app() must return configured FastAPI instance. All middleware, exception handlers, and routes must be registered before app is returned. No global state modifications outside factory.",
+      "validation_criteria": "ApplicationFactory.create_app() must return configured FastAPI instance. All middleware and exception handlers must be registered before returning app. Application must be testable by calling create_app().",
       "severity": "High"
     },
     {
       "category": "Error Handling",
-      "description": "Verify all exceptions are caught and formatted consistently",
-      "validation_criteria": "GlobalExceptionHandler must register handlers for Exception and RequestValidationError. All error responses must include status code, error code, and message. No stack traces exposed to client. All exceptions logged with full traceback.",
+      "description": "Verify all exceptions are caught and return standardized JSON error responses",
+      "validation_criteria": "GlobalExceptionHandler must register handlers for Exception and RequestValidationError. All error responses must include 'error' object with 'code' and 'message' fields. HTTP status codes must be correct (500 for internal errors, 422 for validation errors). No stack traces exposed to client.",
       "severity": "Critical"
     },
     {
       "category": "REST Best Practices",
       "description": "Verify CORS and security headers are properly configured",
-      "validation_criteria": "ApplicationConfiguration must configure CORSMiddleware with allowed origins and methods. Security headers must include X-Content-Type-Options, X-Frame-Options, X-XSS-Protection. All responses must include appropriate Content-Type header.",
+      "validation_criteria": "ApplicationConfiguration must configure CORS middleware with appropriate origins. Security headers (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection) must be added to all responses. Content-Type must be application/json for all responses.",
       "severity": "High"
     },
     {
       "category": "Performance",
-      "description": "Verify timestamp generation is efficient and doesn't block requests",
-      "validation_criteria": "TimestampProvider.get_current_timestamp() must use datetime.utcnow() or equivalent (no external calls). Timestamp generation must complete in < 1ms. No database or network calls in endpoint handler.",
+      "description": "Verify endpoint response time is minimal and timestamp is accurate",
+      "validation_criteria": "HelloEndpoint.hello() must execute in less than 10ms. Timestamp must be obtained at request time (not cached). Response must be valid JSON with exactly two fields: 'message' and 'timestamp'.",
       "severity": "Medium"
     },
     {
       "category": "Data Integrity",
-      "description": "Verify timestamp format is consistent and valid ISO 8601",
-      "validation_criteria": "Timestamp must be in format YYYY-MM-DDTHH:MM:SS.ffffffZ (with microseconds and Z suffix). Must be valid ISO 8601 format. Must represent UTC timezone. All timestamps must be generated from UTC time, not local time.",
+      "description": "Verify timestamp format is correct ISO 8601 with UTC timezone",
+      "validation_criteria": "TimestampProvider.get_current_timestamp() must return string matching pattern: YYYY-MM-DDTHH:MM:SS.ffffffZ (with microseconds and Z suffix). Example: '2024-01-15T10:30:45.123456Z'. Timestamp must always be in UTC, never local time.",
       "severity": "High"
     },
     {
       "category": "Logging",
-      "description": "Verify application logging is configured and operational",
-      "validation_criteria": "ApplicationConfiguration must configure Python logging module. Startup and shutdown events must be logged. All exceptions must be logged with ERROR level and full traceback. Endpoint requests should be logged (via Uvicorn or custom middleware).",
+      "description": "Verify application logging is configured for observability",
+      "validation_criteria": "ApplicationFactory.setup_logging() must configure Python logging module. All exceptions must be logged with ERROR level and full traceback. Application startup/shutdown must be logged at INFO level. Log format must include timestamp, level, and message.",
       "severity": "Medium"
     }
   ],
-  "architecture_overview": "Simple single-tier REST API architecture using FastAPI framework. Application is initialized via ApplicationFactory which configures middleware (CORS, security headers), exception handlers (global error handling), and logging. The HelloEndpoint handles GET /hello requests by delegating timestamp generation to TimestampProvider and returning a JSON response with message and timestamp. GlobalExceptionHandler catches all unhandled exceptions and formats them consistently. ApplicationConfiguration manages startup/shutdown lifecycle and REST best practices. No database, caching, or external dependencies required.",
+  "architecture_overview": "Simple single-tier REST API architecture using FastAPI framework. Application is initialized by ApplicationFactory which configures middleware (CORS, security headers), exception handlers (global error handling), and logging. HelloEndpoint handles GET /hello requests by delegating timestamp generation to TimestampProvider and returning standardized JSON response. GlobalExceptionHandler catches all exceptions and returns consistent error responses. ApplicationConfiguration centralizes all configuration settings for CORS, security headers, and REST best practices. No database or external services required.",
   "technology_stack": {
     "language": "Python 3.12",
     "framework": "FastAPI 0.104.1",
-    "server": "Uvicorn 0.24.0",
-    "datetime_handling": "Python datetime module (stdlib)",
-    "cors": "fastapi.middleware.cors.CORSMiddleware",
+    "web_server": "Uvicorn 0.24.0 (ASGI server)",
+    "http_client": "httpx (for testing, included with FastAPI)",
     "logging": "Python logging module (stdlib)",
-    "json_serialization": "FastAPI built-in (Pydantic v2)"
+    "datetime": "Python datetime module (stdlib)",
+    "cors": "fastapi.middleware.cors.CORSMiddleware (built-in)"
   },
   "assumptions": [
-    "Application runs on single server instance (no distributed deployment)",
-    "Server timezone is UTC or application uses UTC internally",
-    "No database or external service dependencies required",
-    "CORS is configured to allow all origins (can be restricted in production)",
-    "Logging output goes to stdout/stderr (suitable for containerized deployment)",
-    "Request/response bodies are JSON format",
+    "Application runs on localhost:8000 by default (configurable via environment)",
+    "All timestamps are in UTC timezone, never local time",
+    "CORS is configured to allow all origins for development (should be restricted in production)",
     "No authentication or authorization required for /hello endpoint",
-    "Application starts with Uvicorn server (e.g., uvicorn main:app --host 0.0.0.0 --port 8000)",
-    "Timestamp precision includes microseconds (6 decimal places)",
-    "All timestamps are in UTC timezone (indicated by Z suffix)"
+    "Application is stateless with no persistent storage",
+    "Timestamp is generated at request time, not cached",
+    "Response format is always JSON with Content-Type: application/json",
+    "Error responses follow standardized format with 'error' object containing 'code' and 'message'",
+    "Application uses Python 3.12+ with FastAPI 0.104+ and Uvicorn 0.24+"
   ],
-  "timestamp": "2025-11-22T02:43:30.278728"
+  "timestamp": "2025-11-22T02:44:29.539405"
 }

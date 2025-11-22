@@ -4,15 +4,15 @@
 
 ## Architecture Overview
 
-Simple single-tier REST API architecture using FastAPI framework. Application is initialized via ApplicationFactory which configures middleware (CORS, security headers), exception handlers (global error handling), and logging. The HelloEndpoint handles GET /hello requests by delegating timestamp generation to TimestampProvider and returning a JSON response with message and timestamp. GlobalExceptionHandler catches all unhandled exceptions and formats them consistently. ApplicationConfiguration manages startup/shutdown lifecycle and REST best practices. No database, caching, or external dependencies required.
+Simple single-tier REST API architecture using FastAPI framework. Application is initialized by ApplicationFactory which configures middleware (CORS, security headers), exception handlers (global error handling), and logging. HelloEndpoint handles GET /hello requests by delegating timestamp generation to TimestampProvider and returning standardized JSON response. GlobalExceptionHandler catches all exceptions and returns consistent error responses. ApplicationConfiguration centralizes all configuration settings for CORS, security headers, and REST best practices. No database or external services required.
 
 ## Technology Stack
 
-{'language': 'Python 3.12', 'framework': 'FastAPI 0.104.1', 'server': 'Uvicorn 0.24.0', 'datetime_handling': 'Python datetime module (stdlib)', 'cors': 'fastapi.middleware.cors.CORSMiddleware', 'logging': 'Python logging module (stdlib)', 'json_serialization': 'FastAPI built-in (Pydantic v2)'}
+{'language': 'Python 3.12', 'framework': 'FastAPI 0.104.1', 'web_server': 'Uvicorn 0.24.0 (ASGI server)', 'http_client': 'httpx (for testing, included with FastAPI)', 'logging': 'Python logging module (stdlib)', 'datetime': 'Python datetime module (stdlib)', 'cors': 'fastapi.middleware.cors.CORSMiddleware (built-in)'}
 
 ## Assumptions
 
-['Application runs on single server instance (no distributed deployment)', 'Server timezone is UTC or application uses UTC internally', 'No database or external service dependencies required', 'CORS is configured to allow all origins (can be restricted in production)', 'Logging output goes to stdout/stderr (suitable for containerized deployment)', 'Request/response bodies are JSON format', 'No authentication or authorization required for /hello endpoint', 'Application starts with Uvicorn server (e.g., uvicorn main:app --host 0.0.0.0 --port 8000)', 'Timestamp precision includes microseconds (6 decimal places)', 'All timestamps are in UTC timezone (indicated by Z suffix)']
+['Application runs on localhost:8000 by default (configurable via environment)', 'All timestamps are in UTC timezone, never local time', 'CORS is configured to allow all origins for development (should be restricted in production)', 'No authentication or authorization required for /hello endpoint', 'Application is stateless with no persistent storage', 'Timestamp is generated at request time, not cached', 'Response format is always JSON with Content-Type: application/json', "Error responses follow standardized format with 'error' object containing 'code' and 'message'", 'Application uses Python 3.12+ with FastAPI 0.104+ and Uvicorn 0.24+']
 
 ## API Contracts
 
@@ -33,7 +33,7 @@ Simple single-tier REST API architecture using FastAPI framework. Application is
 - **Responsibility:** Initializes and configures the FastAPI application with all middleware, exception handlers, and startup/shutdown logic
 - **Semantic Unit:** SU-001
 - **Dependencies:** None
-- **Implementation Notes:** Use FastAPI 0.104+ with Uvicorn. Configure CORS middleware to allow all origins (or restrict as needed). Add standard HTTP headers (X-Content-Type-Options: nosniff, X-Frame-Options: DENY). Set up Python logging module with INFO level for application logs and DEBUG for development. Initialize app with title='Hello API', version='1.0.0'. Register exception handlers before adding routes.
+- **Implementation Notes:** Use FastAPI 0.104+ with Python 3.12. Create app with title='Hello World API' and version='1.0.0'. Configure CORS middleware to allow all origins (CORSMiddleware with allow_origins=['*']). Add response headers for security (X-Content-Type-Options: nosniff). Setup Python logging module with INFO level for application logs. Use lifespan context manager for startup/shutdown events if needed.
 - **Interfaces:**
   - `create_app`
   - `setup_middleware`
@@ -42,28 +42,28 @@ Simple single-tier REST API architecture using FastAPI framework. Application is
 
 ### HelloEndpoint
 
-- **Responsibility:** Implements the GET /hello endpoint that returns a greeting message with current server timestamp
+- **Responsibility:** Implements the GET /hello endpoint that returns a greeting message with current timestamp
 - **Semantic Unit:** SU-002
 - **Dependencies:** TimestampProvider
-- **Implementation Notes:** Use FastAPI @app.get('/hello') decorator. Call TimestampProvider.get_current_timestamp() to get current time in UTC. Return dict with keys 'message' (string value 'Hello, World!') and 'timestamp' (ISO 8601 string). Use datetime.datetime.utcnow().isoformat() + 'Z' for timestamp format. Ensure response is JSON serializable. No request validation needed (no parameters).
+- **Implementation Notes:** Use FastAPI @app.get('/hello') decorator. Return dict with 'message' key set to 'Hello, World!' (exact string). Get current timestamp from TimestampProvider.get_current_timestamp() which returns ISO 8601 string with UTC timezone. Return response as JSON with Content-Type: application/json. Response status code 200 (default). Ensure timestamp includes microseconds and Z suffix for UTC (e.g., '2024-01-15T10:30:45.123456Z').
 - **Interfaces:**
-  - `get_hello`
+  - `hello`
 
 ### TimestampProvider
 
-- **Responsibility:** Provides current server timestamp in ISO 8601 format with UTC timezone
+- **Responsibility:** Provides current timestamp in ISO 8601 format with UTC timezone
 - **Semantic Unit:** SU-002
 - **Dependencies:** None
-- **Implementation Notes:** Use Python datetime module. Call datetime.datetime.utcnow() to get current UTC time. Format as ISO 8601 string using .isoformat() method and append 'Z' suffix to indicate UTC timezone. Alternatively, use datetime.datetime.now(datetime.timezone.utc).isoformat(). Ensure microseconds are included in output.
+- **Implementation Notes:** Use Python datetime.datetime.now(datetime.timezone.utc) to get current UTC time. Format using isoformat() method which produces ISO 8601 format. Ensure output includes microseconds and ends with 'Z' for UTC (e.g., '2024-01-15T10:30:45.123456Z'). No external dependencies required, use stdlib only.
 - **Interfaces:**
   - `get_current_timestamp`
 
 ### GlobalExceptionHandler
 
-- **Responsibility:** Handles all unhandled exceptions and formats error responses consistently
+- **Responsibility:** Handles all exceptions globally and returns standardized error responses in JSON format
 - **Semantic Unit:** SU-003
 - **Dependencies:** None
-- **Implementation Notes:** Register exception handlers using @app.exception_handler(Exception) and @app.exception_handler(RequestValidationError). For generic Exception: return 500 status with code 'INTERNAL_SERVER_ERROR' and generic message. For RequestValidationError: return 422 status with code 'VALIDATION_ERROR' and details. Log all exceptions with full traceback at ERROR level. Error response format: {"error": {"code": "ERROR_CODE", "message": "error message"}, "timestamp": "ISO 8601 timestamp"}. Never expose internal stack traces to client.
+- **Implementation Notes:** Register exception handlers using @app.exception_handler(Exception) and @app.exception_handler(RequestValidationError). For generic Exception: return 500 status with code 'INTERNAL_SERVER_ERROR' and generic message. For RequestValidationError: return 422 status with code 'VALIDATION_ERROR' and details. Error response format: {"error": {"code": "ERROR_CODE", "message": "error message"}, "timestamp": "ISO 8601 timestamp"}. Log all exceptions with traceback at ERROR level. Never expose internal exception details to client.
 - **Interfaces:**
   - `handle_exception`
   - `handle_validation_error`
@@ -71,17 +71,15 @@ Simple single-tier REST API architecture using FastAPI framework. Application is
 
 ### ApplicationConfiguration
 
-- **Responsibility:** Configures application startup, logging, CORS, and REST best practices
+- **Responsibility:** Configures application settings including CORS, security headers, and REST best practices
 - **Semantic Unit:** SU-004
 - **Dependencies:** None
-- **Implementation Notes:** Use FastAPI CORSMiddleware from fastapi.middleware.cors. Allow origins=['*'] for development (restrict in production). Allow methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']. Allow headers=['*']. Add custom middleware or use add_middleware() for security headers: X-Content-Type-Options: nosniff, X-Frame-Options: DENY, X-XSS-Protection: 1; mode=block. Configure Python logging with format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'. Use @app.on_event('startup') and @app.on_event('shutdown') decorators. Log application start/stop events.
+- **Implementation Notes:** CORS config: allow_origins=['*'], allow_credentials=False, allow_methods=['GET', 'OPTIONS'], allow_headers=['*']. Security headers: X-Content-Type-Options='nosniff', X-Frame-Options='DENY', X-XSS-Protection='1; mode=block'. Add custom middleware using @app.middleware('http') to inject security headers into all responses. Configure app metadata: title='Hello World API', version='1.0.0', description='Simple REST API with GET /hello endpoint'. Set docs_url='/docs' and openapi_url='/openapi.json' for Swagger UI.
 - **Interfaces:**
-  - `configure_cors`
-  - `configure_headers`
-  - `configure_logging`
-  - `on_startup`
-  - `on_shutdown`
+  - `get_cors_config`
+  - `get_security_headers`
+  - `configure_app`
 
 ---
 
-*Generated by Design Agent on 2025-11-22 02:43:30*
+*Generated by Design Agent on 2025-11-22 02:44:29*
