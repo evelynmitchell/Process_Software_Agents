@@ -4,15 +4,15 @@
 
 ## Architecture Overview
 
-Simple single-function architecture with three logical components: (1) FibonacciValidator handles input validation and type checking, raising ValueError for invalid inputs, (2) FibonacciCalculator implements the core iterative Fibonacci algorithm with O(n) time complexity and O(1) space complexity, (3) FibonacciFunction serves as the public API that orchestrates validation and calculation, includes comprehensive documentation with examples. No external dependencies, no database, no network calls. Pure computational function suitable for direct integration into larger systems.
+Simple single-function architecture with three logical components: (1) FibonacciValidator performs input validation and type checking, raising ValueError for negative or non-integer inputs; (2) FibonacciCalculator implements the core iterative Fibonacci algorithm with explicit handling of base cases (n=0, n=1) and iterative computation for n>=2; (3) FibonacciFunction serves as the public API that orchestrates validation and calculation, includes comprehensive docstring with examples. No external dependencies, no database, no API calls. Pure computational function with O(n) time complexity and O(1) space complexity.
 
 ## Technology Stack
 
-{'language': 'Python 3.12', 'implementation_approach': 'Pure Python standard library', 'algorithm': 'Iterative approach with two-variable state tracking', 'docstring_style': 'Google or NumPy style with triple-quoted strings'}
+{'language': 'Python 3.12', 'dependencies': 'None (pure Python standard library only)', 'type_checking': 'Python built-in type hints (typing module not required for basic int type)', 'documentation': 'Google-style docstring format'}
 
 ## Assumptions
 
-['Input n is always an integer type (not float or string)', 'Negative integers should raise ValueError, not be silently converted', 'Function should handle n=0 and n=1 as base cases returning 0 and 1 respectively', 'Iterative approach is preferred over recursive to avoid stack overflow for large n', 'No caching or memoization is required (function is stateless)', "Function will be called with reasonable values of n (no need to handle extremely large integers beyond Python's integer limits)", 'Docstring examples should demonstrate correct usage and edge cases']
+['Input n is always an integer type, not float or string representation of integer', 'Negative inputs should raise ValueError, not return special value or None', 'Function must handle n=0 and n=1 as base cases returning 0 and 1 respectively', 'Iterative approach is required for efficiency, recursive approach is not acceptable', 'No caching or memoization is required for this implementation', 'Function operates on single values, not sequences or arrays', 'No performance optimization for extremely large n values (e.g., n > 10^6) is required', 'Docstring examples should demonstrate correct usage and edge cases']
 
 ## Component Logic
 
@@ -21,29 +21,29 @@ Simple single-function architecture with three logical components: (1) Fibonacci
 - **Responsibility:** Validates input parameters and enforces type hints for the Fibonacci function
 - **Semantic Unit:** SU-001
 - **Dependencies:** None
-- **Implementation Notes:** Check if n < 0 and raise ValueError with message 'n must be a non-negative integer'. Use isinstance(n, int) to verify type. Do not accept float or other numeric types. This validation occurs before any calculation.
+- **Implementation Notes:** Check if n < 0 and raise ValueError with message 'n must be a non-negative integer'. Use isinstance(n, int) to verify type. Do not accept float or other numeric types. This validation occurs before any calculation to fail fast on invalid input.
 - **Interfaces:**
   - `validate_input`
 
 ### FibonacciCalculator
 
-- **Responsibility:** Implements iterative Fibonacci calculation with proper edge case handling
+- **Responsibility:** Implements iterative Fibonacci calculation with proper handling of edge cases
 - **Semantic Unit:** SU-002
 - **Dependencies:** None
-- **Implementation Notes:** Use iterative approach with two variables (prev, curr) initialized to (0, 1). For n=0, return 0 immediately. For n=1, return 1 immediately. For n>=2, iterate n-1 times, updating prev and curr: temp=curr, curr=prev+curr, prev=temp. Return curr after loop. This avoids recursion overhead and stack overflow for large n. Time complexity O(n), space complexity O(1).
+- **Implementation Notes:** For n=0, return 0 immediately. For n=1, return 1 immediately. For n>=2, use iterative approach with two variables (prev, curr) initialized to (0, 1). Loop from 2 to n (inclusive), updating prev and curr: temp = curr, curr = prev + curr, prev = temp. Return curr after loop completes. This approach uses O(1) space and O(n) time complexity. Avoid recursion entirely to prevent stack overflow on large n values.
 - **Interfaces:**
   - `calculate`
   - `handle_base_cases`
 
 ### FibonacciFunction
 
-- **Responsibility:** Public API function that orchestrates validation, calculation, and documentation
+- **Responsibility:** Public API function that orchestrates validation and calculation with comprehensive documentation
 - **Semantic Unit:** SU-003
 - **Dependencies:** FibonacciValidator, FibonacciCalculator
-- **Implementation Notes:** Function signature: def fibonacci(n: int) -> int. Include comprehensive docstring with: (1) One-line summary: 'Calculate the nth Fibonacci number using an iterative approach.', (2) Extended description explaining the Fibonacci sequence, (3) Args section documenting n parameter with type and constraints, (4) Returns section documenting return type and value, (5) Raises section documenting ValueError for negative inputs, (6) Examples section with at least 5 examples: fibonacci(0)=0, fibonacci(1)=1, fibonacci(2)=1, fibonacci(5)=5, fibonacci(10)=55. Use triple-quoted docstring (Google or NumPy style). Call FibonacciValidator.validate_input(n) first. Then call FibonacciCalculator.calculate(n). Return result.
+- **Implementation Notes:** Function signature: def fibonacci(n: int) -> int. Include comprehensive docstring with: (1) One-line summary describing the function purpose, (2) Extended description explaining Fibonacci sequence, (3) Args section documenting n parameter with type and constraints, (4) Returns section documenting return type and value, (5) Raises section documenting ValueError for negative inputs, (6) Examples section with at least 5 examples: fibonacci(0)=0, fibonacci(1)=1, fibonacci(2)=1, fibonacci(5)=5, fibonacci(10)=55. Use Google-style docstring format. Call FibonacciValidator.validate_input(n) first, then call FibonacciCalculator.calculate(n) and return result. Type hints must be present on function signature.
 - **Interfaces:**
   - `fibonacci`
 
 ---
 
-*Generated by Design Agent on 2025-11-22 03:17:11*
+*Generated by Design Agent on 2025-11-22 03:21:54*
