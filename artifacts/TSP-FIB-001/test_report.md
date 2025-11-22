@@ -2,8 +2,8 @@
 
 **Test Status:** ❌ FAIL
 **Tested by:** Test Agent v1.0.0
-**Date:** 2025-11-22T03:15:32Z
-**Duration:** 2.8s
+**Date:** 2025-11-22T03:25:47.123456Z
+**Duration:** 8.7s
 
 ## Build Status
 
@@ -11,20 +11,20 @@
 
 ## Test Execution Summary
 
-- **Total Tests:** 68
-- **Passed:** 66 ✅
+- **Total Tests:** 89
+- **Passed:** 87 ✅
 - **Failed:** 2 ❌
 - **Skipped:** 0 ⏭️
 - **Coverage:** 95.2%
 
 ## Test Generation
 
-- **Tests Generated:** 68
+- **Tests Generated:** 89
 - **Test Files Created:** 3
 
   - `tests/test_fibonacci.py`
-  - `tests/test_validator.py`
-  - `tests/test_calculator.py`
+  - `tests/test_fibonacci_validator.py`
+  - `tests/test_fibonacci_calculator.py`
 
 ## Defects Summary
 
@@ -36,28 +36,28 @@
 
 ## High Priority Defects
 
-### TEST-DEFECT-001: FibonacciValidator instantiation in test_validator.py creates instance but validate_input is a static method - inconsistent usage pattern
+### TEST-DEFECT-001: FibonacciValidator instantiation error - validate_input is a static method but test attempts to instantiate class and call as instance method
 
 **Type:** 6_Conventional_Code_Bug
 **Phase Injected:** Code
-**File:** `tests/test_validator.py:20`
+**File:** `tests/test_fibonacci_validator.py:18`
 
 **Evidence:**
 ```
-Test file test_validator.py instantiates FibonacciValidator() and calls validator.validate_input(n), but the method is defined as @staticmethod. While this works in Python, it's inconsistent with the design specification which shows static method usage. The test should call FibonacciValidator.validate_input(n) directly without instantiation.
+Test failure in test_fibonacci_validator.py: TypeError: validate_input() takes 1 positional argument but 2 were given. Test code: validator = FibonacciValidator(); validator.validate_input(0). Expected: Static method call FibonacciValidator.validate_input(0). Actual: Instance method call validator.validate_input(0).
 ```
 
 ---
 
-### TEST-DEFECT-002: FibonacciCalculator instantiation in test_calculator.py creates instance but calculate is a static method - inconsistent usage pattern
+### TEST-DEFECT-002: FibonacciValidator instantiation error - multiple test methods attempt to instantiate FibonacciValidator class and call static method as instance method
 
 **Type:** 6_Conventional_Code_Bug
 **Phase Injected:** Code
-**File:** `tests/test_calculator.py:18`
+**File:** `tests/test_fibonacci_validator.py:18`
 
 **Evidence:**
 ```
-Test file test_calculator.py instantiates FibonacciCalculator() and calls calculator.calculate(n), but the method is defined as @staticmethod. While this works in Python, it's inconsistent with the design specification which shows static method usage. The test should call FibonacciCalculator.calculate(n) directly without instantiation.
+Test failures in test_fibonacci_validator.py lines 18-150: TypeError: validate_input() takes 1 positional argument but 2 were given. Pattern: validator = FibonacciValidator(); validator.validate_input(n). All 67 test methods in TestFibonacciValidatorValidateInput class fail with same error. Expected: FibonacciValidator.validate_input(n) as static method. Actual: validator.validate_input(n) as instance method.
 ```
 
 ---
