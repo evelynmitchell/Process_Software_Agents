@@ -1,0 +1,228 @@
+{
+  "task_id": "DEBUG-001",
+  "api_contracts": [
+    {
+      "endpoint": "/hello",
+      "method": "GET",
+      "description": "Returns a greeting message with the current server timestamp in ISO 8601 format",
+      "request_schema": null,
+      "request_params": null,
+      "response_schema": {
+        "message": "string (fixed value: 'Hello, World!')",
+        "timestamp": "string (ISO 8601 format, e.g., '2024-01-15T10:30:45.123456Z')"
+      },
+      "error_responses": [
+        {
+          "status": 500,
+          "code": "INTERNAL_SERVER_ERROR",
+          "message": "An unexpected error occurred while processing the request"
+        }
+      ],
+      "authentication_required": false,
+      "rate_limit": null
+    }
+  ],
+  "data_schemas": [],
+  "component_logic": [
+    {
+      "component_name": "ApplicationFactory",
+      "semantic_unit_id": "SU-001",
+      "responsibility": "Initializes and configures the FastAPI application with all middleware, settings, and startup/shutdown handlers",
+      "interfaces": [
+        {
+          "method": "create_app",
+          "parameters": {},
+          "returns": "FastAPI",
+          "description": "Create and configure FastAPI application instance with all middleware and event handlers"
+        },
+        {
+          "method": "configure_middleware",
+          "parameters": {
+            "app": "FastAPI"
+          },
+          "returns": "None",
+          "description": "Add CORS, headers, and other middleware to the application"
+        },
+        {
+          "method": "configure_logging",
+          "parameters": {},
+          "returns": "None",
+          "description": "Configure Python logging with appropriate level and format"
+        }
+      ],
+      "dependencies": [],
+      "implementation_notes": "Use FastAPI(title='Hello API', version='1.0.0'). Configure CORS with CORSMiddleware allowing all origins for development. Add middleware for request/response logging. Set up logging to output to stdout with format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'. Configure startup event to log 'Application started'. Configure shutdown event to log 'Application shutting down'.",
+      "complexity": 15
+    },
+    {
+      "component_name": "HelloEndpoint",
+      "semantic_unit_id": "SU-002",
+      "responsibility": "Implements the GET /hello endpoint that returns a greeting message with current timestamp",
+      "interfaces": [
+        {
+          "method": "hello",
+          "parameters": {},
+          "returns": "dict[str, Any]",
+          "description": "Handle GET /hello request and return greeting with current timestamp"
+        },
+        {
+          "method": "get_current_timestamp",
+          "parameters": {},
+          "returns": "str",
+          "description": "Generate current timestamp in ISO 8601 format with UTC timezone"
+        }
+      ],
+      "dependencies": [],
+      "implementation_notes": "Use @app.get('/hello') decorator. Return dict with keys 'message' (string value 'Hello, World!') and 'timestamp' (ISO 8601 string). Use datetime.datetime.now(datetime.timezone.utc).isoformat() for timestamp generation. Ensure timestamp includes microseconds and 'Z' suffix for UTC. Response automatically serialized to JSON by FastAPI.",
+      "complexity": 21
+    },
+    {
+      "component_name": "ErrorHandler",
+      "semantic_unit_id": "SU-003",
+      "responsibility": "Implements global exception handling and error response formatting for the REST API",
+      "interfaces": [
+        {
+          "method": "register_exception_handlers",
+          "parameters": {
+            "app": "FastAPI"
+          },
+          "returns": "None",
+          "description": "Register all exception handlers with the FastAPI application"
+        },
+        {
+          "method": "handle_generic_exception",
+          "parameters": {
+            "request": "Request",
+            "exc": "Exception"
+          },
+          "returns": "JSONResponse",
+          "description": "Handle unexpected exceptions and return standardized error response"
+        },
+        {
+          "method": "handle_request_validation_error",
+          "parameters": {
+            "request": "Request",
+            "exc": "RequestValidationError"
+          },
+          "returns": "JSONResponse",
+          "description": "Handle FastAPI validation errors with detailed error information"
+        },
+        {
+          "method": "format_error_response",
+          "parameters": {
+            "status_code": "int",
+            "error_code": "str",
+            "message": "str",
+            "details": "Optional[dict]"
+          },
+          "returns": "dict[str, Any]",
+          "description": "Format error response with consistent structure"
+        }
+      ],
+      "dependencies": [],
+      "implementation_notes": "Register exception handler for Exception base class using @app.exception_handler(Exception). Register handler for RequestValidationError using @app.exception_handler(RequestValidationError). Generic exception handler should return JSONResponse with status 500, error_code 'INTERNAL_SERVER_ERROR', and generic message. Validation error handler should return status 400, error_code 'VALIDATION_ERROR', with details array containing field-level errors. Log all exceptions with full traceback using logging.exception(). Never expose internal error details to client.",
+      "complexity": 22
+    },
+    {
+      "component_name": "ApplicationConfiguration",
+      "semantic_unit_id": "SU-004",
+      "responsibility": "Configures application settings, startup/shutdown events, and REST best practices including CORS and security headers",
+      "interfaces": [
+        {
+          "method": "configure_cors",
+          "parameters": {
+            "app": "FastAPI"
+          },
+          "returns": "None",
+          "description": "Configure CORS middleware with appropriate allowed origins and methods"
+        },
+        {
+          "method": "configure_security_headers",
+          "parameters": {
+            "app": "FastAPI"
+          },
+          "returns": "None",
+          "description": "Add security headers middleware for X-Content-Type-Options and X-Frame-Options"
+        },
+        {
+          "method": "register_startup_event",
+          "parameters": {
+            "app": "FastAPI"
+          },
+          "returns": "None",
+          "description": "Register application startup event handler"
+        },
+        {
+          "method": "register_shutdown_event",
+          "parameters": {
+            "app": "FastAPI"
+          },
+          "returns": "None",
+          "description": "Register application shutdown event handler"
+        }
+      ],
+      "dependencies": [],
+      "implementation_notes": "Use CORSMiddleware with allow_origins=['*'] for development (restrict in production). Allow methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']. Allow headers=['*']. Add custom middleware using @app.middleware('http') to set security headers: 'X-Content-Type-Options: nosniff', 'X-Frame-Options: DENY'. Use @app.on_event('startup') to log startup message. Use @app.on_event('shutdown') to log shutdown message. Set response headers to include 'Content-Type: application/json' for all JSON responses.",
+      "complexity": 19
+    }
+  ],
+  "design_review_checklist": [
+    {
+      "category": "Architecture",
+      "description": "Verify application factory pattern is properly implemented for testability and modularity",
+      "validation_criteria": "ApplicationFactory.create_app() must return a fully configured FastAPI instance. All middleware and event handlers must be registered during app creation. No global state or side effects outside of create_app().",
+      "severity": "High"
+    },
+    {
+      "category": "Error Handling",
+      "description": "Verify all exceptions are caught and return proper JSON error responses",
+      "validation_criteria": "ErrorHandler must register handlers for Exception and RequestValidationError. All error responses must include status code, error_code, and message fields. No stack traces or internal details exposed to client. All exceptions must be logged with full traceback.",
+      "severity": "Critical"
+    },
+    {
+      "category": "REST Best Practices",
+      "description": "Verify CORS and security headers are properly configured",
+      "validation_criteria": "ApplicationConfiguration must configure CORS with CORSMiddleware. Security headers (X-Content-Type-Options, X-Frame-Options) must be set via middleware. All responses must include appropriate Content-Type header.",
+      "severity": "High"
+    },
+    {
+      "category": "Performance",
+      "description": "Verify endpoint response format and timestamp generation are efficient",
+      "validation_criteria": "HelloEndpoint.hello() must return dict with exactly two keys: 'message' and 'timestamp'. Timestamp must be generated using datetime.timezone.utc. Response must be JSON serializable without custom encoders.",
+      "severity": "Medium"
+    },
+    {
+      "category": "Logging",
+      "description": "Verify application logging is configured and used appropriately",
+      "validation_criteria": "ApplicationFactory.configure_logging() must set up Python logging with appropriate format and level. Startup and shutdown events must be logged. All exceptions must be logged with logging.exception(). Request/response logging should be implemented in middleware.",
+      "severity": "Medium"
+    },
+    {
+      "category": "Data Integrity",
+      "description": "Verify timestamp format is consistent and correct",
+      "validation_criteria": "HelloEndpoint.get_current_timestamp() must return ISO 8601 format string with UTC timezone indicator ('Z' suffix). Timestamp must include microseconds. Example valid format: '2024-01-15T10:30:45.123456Z'.",
+      "severity": "High"
+    }
+  ],
+  "architecture_overview": "The application follows a modular, layered architecture with clear separation of concerns. ApplicationFactory (SU-001) initializes the FastAPI application with all middleware and configuration. HelloEndpoint (SU-002) implements the single GET /hello route that returns a JSON response with a greeting message and current UTC timestamp. ErrorHandler (SU-003) provides global exception handling with standardized error response formatting. ApplicationConfiguration (SU-004) manages CORS, security headers, and startup/shutdown events. All components are loosely coupled and can be tested independently. The design follows FastAPI best practices including proper use of decorators, middleware, and event handlers.",
+  "technology_stack": {
+    "language": "Python 3.12",
+    "framework": "FastAPI 0.104.1",
+    "web_server": "Uvicorn 0.24.0",
+    "json_serialization": "Pydantic v2.5.0 (built into FastAPI)",
+    "cors_handling": "fastapi.middleware.cors.CORSMiddleware (built into FastAPI)",
+    "logging": "Python logging module (stdlib)",
+    "datetime_handling": "Python datetime module (stdlib)"
+  },
+  "assumptions": [
+    "The application runs on a single server instance (no distributed deployment)",
+    "CORS is configured to allow all origins for development (must be restricted in production)",
+    "Timestamps are always in UTC timezone",
+    "No database or external service dependencies are required",
+    "The /hello endpoint has no authentication or authorization requirements",
+    "Error responses follow a consistent JSON structure with status code, error_code, and message fields",
+    "The application uses Uvicorn as the ASGI server (standard for FastAPI)",
+    "Logging output goes to stdout for container/cloud deployment compatibility"
+  ],
+  "timestamp": "2025-11-22T02:56:21.146613"
+}
