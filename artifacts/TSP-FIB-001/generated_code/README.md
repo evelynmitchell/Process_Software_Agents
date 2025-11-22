@@ -1,47 +1,43 @@
-# Fibonacci Function Project
+# Fibonacci Calculator
 
-A simple, efficient Python implementation of the Fibonacci sequence calculator with comprehensive documentation and test coverage.
+A simple, efficient Python implementation of the Fibonacci sequence calculator with comprehensive input validation and documentation.
 
 ## Overview
 
-This project provides a production-ready implementation of the Fibonacci function that calculates the nth number in the Fibonacci sequence using an iterative approach. The implementation emphasizes correctness, performance, and maintainability through proper input validation, comprehensive documentation, and thorough test coverage.
+This project provides a pure Python implementation of the Fibonacci sequence calculator. The implementation uses an iterative approach to compute the nth Fibonacci number efficiently, with proper input validation and comprehensive error handling.
 
 ### Features
 
-- **Efficient Iterative Algorithm**: O(n) time complexity with O(1) space complexity
-- **Robust Input Validation**: Type checking and range validation with descriptive error messages
-- **Comprehensive Documentation**: Detailed docstrings with multiple usage examples
-- **Full Test Coverage**: Unit tests covering happy paths, edge cases, and error conditions
-- **Type Hints**: Complete type annotations for better code clarity and IDE support
-- **PEP 8 Compliant**: Follows Python style guidelines throughout
+- **Efficient Iterative Algorithm**: O(n) time complexity, O(1) space complexity
+- **Input Validation**: Type checking and range validation with clear error messages
+- **Comprehensive Documentation**: Google-style docstrings with multiple examples
+- **Type Hints**: Full type annotations for better code clarity and IDE support
+- **Error Handling**: Explicit validation of negative inputs with descriptive error messages
+- **Edge Case Handling**: Proper handling of base cases (n=0, n=1)
 
 ## Prerequisites
 
 - Python 3.12 or higher
-- pip package manager
-- pytest (for running tests)
+- pip package manager (for running tests)
 
 ## Installation
 
-### 1. Clone or Download the Project
+1. Clone or download the project:
+   ```bash
+   git clone <repository-url>
+   cd fibonacci-calculator
+   ```
 
-```bash
-git clone <repository-url>
-cd fibonacci-project
-```
+2. (Optional) Create a virtual environment:
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-### 2. Create a Virtual Environment (Recommended)
-
-```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-### 3. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
+3. Install development dependencies (for testing):
+   ```bash
+   pip install -r requirements.txt
+   ```
 
 ## Usage
 
@@ -63,57 +59,104 @@ result = fibonacci(1)
 print(result)  # Output: 1
 ```
 
-### Common Examples
-
-```python
-from fibonacci import fibonacci
-
-# Fibonacci sequence: 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, ...
-
-fibonacci(0)   # Returns: 0
-fibonacci(1)   # Returns: 1
-fibonacci(2)   # Returns: 1
-fibonacci(3)   # Returns: 2
-fibonacci(5)   # Returns: 5
-fibonacci(10)  # Returns: 55
-fibonacci(15)  # Returns: 610
-fibonacci(20)  # Returns: 6765
-```
-
 ### Error Handling
 
 ```python
 from fibonacci import fibonacci
 
-# Attempting to calculate Fibonacci for a negative number raises ValueError
+# Attempting to calculate Fibonacci for negative input
 try:
     result = fibonacci(-5)
 except ValueError as e:
     print(f"Error: {e}")  # Output: Error: n must be a non-negative integer
 
-# Attempting to use a non-integer type raises ValueError
+# Attempting to pass non-integer input
 try:
     result = fibonacci(5.5)
 except ValueError as e:
     print(f"Error: {e}")  # Output: Error: n must be a non-negative integer
-
-# Attempting to use a string raises ValueError
-try:
-    result = fibonacci("10")
-except ValueError as e:
-    print(f"Error: {e}")  # Output: Error: n must be a non-negative integer
 ```
 
-## Project Structure
+### Examples
 
+```python
+from fibonacci import fibonacci
+
+# Base cases
+fibonacci(0)   # Returns: 0
+fibonacci(1)   # Returns: 1
+
+# Small values
+fibonacci(2)   # Returns: 1
+fibonacci(3)   # Returns: 2
+fibonacci(4)   # Returns: 3
+fibonacci(5)   # Returns: 5
+
+# Larger values
+fibonacci(10)  # Returns: 55
+fibonacci(15)  # Returns: 610
+fibonacci(20)  # Returns: 6765
 ```
-fibonacci-project/
-├── fibonacci.py          # Main implementation with fibonacci() function
-├── tests/
-│   └── test_fibonacci.py # Comprehensive unit tests
-├── requirements.txt      # Python dependencies
-├── README.md            # This file
-└── .gitignore           # Git ignore rules
+
+## Architecture
+
+The implementation is organized into three logical components:
+
+### 1. FibonacciValidator (SU-001)
+
+**Responsibility**: Validates input parameters and enforces type constraints.
+
+**Key Features**:
+- Type checking: Ensures input is an integer, not float or string
+- Range validation: Ensures input is non-negative
+- Fast-fail approach: Validation occurs before any calculation
+
+**Method**: `validate_input(n: int) -> bool`
+- Raises `ValueError` if n is negative
+- Raises `ValueError` if n is not an integer type
+- Returns `True` if validation passes
+
+### 2. FibonacciCalculator (SU-002)
+
+**Responsibility**: Implements the core iterative Fibonacci calculation algorithm.
+
+**Key Features**:
+- Iterative approach: Uses two variables (prev, curr) to track state
+- Base case handling: Explicit handling of n=0 and n=1
+- Efficient computation: O(n) time complexity, O(1) space complexity
+- No recursion: Avoids stack overflow on large values
+
+**Methods**:
+- `calculate(n: int) -> int`: Computes the nth Fibonacci number
+- `handle_base_cases(n: int) -> int`: Returns Fibonacci value for n=0 or n=1
+
+**Algorithm**:
+```
+For n = 0: return 0
+For n = 1: return 1
+For n >= 2:
+    prev = 0, curr = 1
+    Loop from 2 to n:
+        temp = curr
+        curr = prev + curr
+        prev = temp
+    Return curr
+```
+
+### 3. FibonacciFunction (SU-003)
+
+**Responsibility**: Public API function that orchestrates validation and calculation.
+
+**Key Features**:
+- Input validation: Calls FibonacciValidator before calculation
+- Calculation orchestration: Delegates to FibonacciCalculator
+- Comprehensive documentation: Google-style docstring with examples
+- Type hints: Full type annotations on function signature
+
+**Function Signature**:
+```python
+def fibonacci(n: int) -> int:
+    """Calculate and return the nth Fibonacci number."""
 ```
 
 ## Running Tests
@@ -132,183 +175,113 @@ pytest tests/ --cov=. --cov-report=html
 
 This generates an HTML coverage report in the `htmlcov/` directory.
 
-### Run Specific Test
+### Run Specific Test File
 
 ```bash
-pytest tests/test_fibonacci.py::test_fibonacci_returns_zero_for_zero -v
+pytest tests/test_fibonacci.py -v
 ```
 
 ### Run Tests with Detailed Output
 
 ```bash
-pytest tests/ -vv --tb=short
+pytest tests/ -vv --tb=long
 ```
 
-## API Documentation
+## Test Coverage
 
-### fibonacci(n: int) -> int
+The test suite includes:
 
-Calculate the nth Fibonacci number using an iterative approach.
+- **Happy Path Tests**: Valid inputs returning correct Fibonacci values
+- **Edge Case Tests**: Base cases (n=0, n=1) and boundary conditions
+- **Error Case Tests**: Negative inputs, non-integer inputs, invalid types
+- **Type Validation Tests**: Ensuring type hints are respected
+- **Performance Tests**: Verifying iterative approach efficiency
 
-#### Parameters
+Target coverage: 80%+ of source code
 
-- **n** (int): The position in the Fibonacci sequence (0-indexed). Must be a non-negative integer.
+## Design Decisions
 
-#### Returns
+### Iterative vs. Recursive
 
-- (int): The nth Fibonacci number
+The implementation uses an **iterative approach** instead of recursion for the following reasons:
 
-#### Raises
+1. **Performance**: O(n) time complexity vs. O(2^n) for naive recursion
+2. **Memory Safety**: O(1) space complexity vs. O(n) stack depth for recursion
+3. **Scalability**: Can handle large n values without stack overflow
+4. **Simplicity**: Easier to understand and maintain
 
-- **ValueError**: If n is negative or not an integer type
+### Input Validation Strategy
 
-#### Examples
+Input validation follows a **fail-fast** approach:
 
-```python
->>> fibonacci(0)
-0
+1. Type checking occurs first (is it an integer?)
+2. Range checking occurs second (is it non-negative?)
+3. Calculation only proceeds if validation passes
+4. Clear error messages guide users to correct usage
 
->>> fibonacci(1)
-1
+### Error Handling
 
->>> fibonacci(5)
-5
+The implementation uses **explicit exceptions** rather than silent failures:
 
->>> fibonacci(10)
-55
+- `ValueError` is raised for invalid inputs
+- Error messages clearly describe the problem
+- No special return values (like -1 or None) for error cases
+- Callers must handle exceptions explicitly
 
->>> fibonacci(15)
-610
-```
+## Complexity Analysis
 
-#### Algorithm Details
+### Time Complexity: O(n)
 
-The function uses an iterative approach with two variables to track the previous and current Fibonacci numbers:
+The iterative algorithm performs exactly n-1 iterations for input n >= 2, resulting in linear time complexity.
 
-1. **Base Cases**: For n=0, return 0; for n=1, return 1
-2. **Iteration**: For n≥2, iterate n-1 times, updating the two variables
-3. **Return**: Return the final current value
+### Space Complexity: O(1)
 
-**Time Complexity**: O(n) - single pass through n iterations
-**Space Complexity**: O(1) - only two variables used regardless of input size
-
-#### Why Iterative Over Recursive?
-
-The iterative approach is preferred because:
-- Avoids stack overflow for large values of n
-- More efficient with no function call overhead
-- Constant space usage instead of O(n) recursion stack
-- Faster execution for practical use cases
-
-## Implementation Details
-
-### Component Architecture
-
-The implementation is organized into three logical components:
-
-#### 1. FibonacciValidator (SU-001)
-
-Validates input parameters and enforces type constraints:
-- Checks that input is an integer type (not float, string, etc.)
-- Verifies that n is non-negative
-- Raises ValueError with descriptive message for invalid inputs
-
-#### 2. FibonacciCalculator (SU-002)
-
-Implements the core iterative Fibonacci algorithm:
-- Handles base cases (n=0 returns 0, n=1 returns 1)
-- Uses two-variable state tracking for iteration
-- Achieves O(n) time complexity and O(1) space complexity
-
-#### 3. FibonacciFunction (SU-003)
-
-Public API that orchestrates validation and calculation:
-- Validates input using FibonacciValidator
-- Calculates result using FibonacciCalculator
-- Provides comprehensive documentation with examples
-
-## Testing Strategy
-
-The test suite provides comprehensive coverage including:
-
-### Happy Path Tests
-- Correct results for base cases (0, 1)
-- Correct results for small values (2-10)
-- Correct results for larger values (15, 20)
-
-### Edge Case Tests
-- Boundary values (0, 1)
-- Consecutive Fibonacci numbers
-- Sequence correctness verification
-
-### Error Case Tests
-- Negative integer inputs
-- Float inputs
-- String inputs
-- None inputs
-- Other invalid types
-
-### Test Coverage
-
-Target: 80%+ code coverage of the fibonacci module
-
-Run coverage analysis:
-```bash
-pytest tests/ --cov=fibonacci --cov-report=term-missing
-```
+Only two variables (prev, curr) are used regardless of input size, resulting in constant space complexity.
 
 ## Troubleshooting
 
-### ImportError: No module named 'fibonacci'
+### ValueError: n must be a non-negative integer
 
-**Solution**: Ensure you're running Python from the project root directory and the fibonacci.py file is in the same directory or in the Python path.
+**Cause**: Input is negative or not an integer type.
 
+**Solution**: Ensure input is a non-negative integer:
+```python
+# Incorrect
+fibonacci(-5)      # Negative input
+fibonacci(5.5)      # Float input
+fibonacci("5")      # String input
+
+# Correct
+fibonacci(5)        # Positive integer
+fibonacci(0)        # Zero is valid
+```
+
+### Import Error: No module named 'fibonacci'
+
+**Cause**: The fibonacci module is not in the Python path.
+
+**Solution**: Ensure you're running from the project root directory:
 ```bash
-# From project root
+cd /path/to/fibonacci-calculator
 python3 -c "from fibonacci import fibonacci; print(fibonacci(10))"
 ```
 
-### ValueError: n must be a non-negative integer
+### Test Failures
 
-**Cause**: You passed a negative number, float, string, or other invalid type to the fibonacci function.
+**Cause**: Dependencies not installed or Python version mismatch.
 
-**Solution**: Ensure you pass a non-negative integer:
-
-```python
-# Correct
-fibonacci(10)      # ✓ Integer
-fibonacci(0)       # ✓ Zero is valid
-
-# Incorrect
-fibonacci(-5)      # ✗ Negative
-fibonacci(5.5)     # ✗ Float
-fibonacci("10")    # ✗ String
-```
-
-### Tests Fail with ModuleNotFoundError
-
-**Solution**: Install dependencies and ensure pytest is available:
-
+**Solution**: Verify Python version and install dependencies:
 ```bash
+python3 --version  # Should be 3.12 or higher
 pip install -r requirements.txt
 pytest tests/ -v
 ```
 
-### Virtual Environment Not Activating
+## Project Structure
 
-**Solution**: Use the correct activation command for your OS:
-
-```bash
-# Linux/macOS
-source venv/bin/activate
-
-# Windows
-venv\Scripts\activate
-
-# Verify activation (prompt should show (venv))
-which python  # Should show path inside venv directory
 ```
-
-## Performance Characteristics
-
-### Time Complexity: O(
+fibonacci-calculator/
+├── fibonacci.py          # Main implementation
+├── tests/
+│   └── test_fibonacci.py # Unit and integration tests
+├── requirements.
