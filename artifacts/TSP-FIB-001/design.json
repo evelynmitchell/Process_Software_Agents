@@ -6,7 +6,7 @@
     {
       "component_name": "FibonacciValidator",
       "semantic_unit_id": "SU-001",
-      "responsibility": "Validates input parameters and enforces type constraints for Fibonacci function",
+      "responsibility": "Validates input parameters and enforces type hints for the Fibonacci function",
       "interfaces": [
         {
           "method": "validate_input",
@@ -14,17 +14,17 @@
             "n": "int"
           },
           "returns": "bool",
-          "description": "Validate that input n is a non-negative integer, raise ValueError if invalid"
+          "description": "Validate that input n is a non-negative integer, raise ValueError if negative"
         }
       ],
       "dependencies": [],
-      "implementation_notes": "Check if n is an integer type (use isinstance(n, int) and not isinstance(n, bool) to exclude booleans). Check if n >= 0. Raise ValueError with message 'n must be a non-negative integer' if validation fails. This component handles the input validation branch of SU-001.",
+      "implementation_notes": "Check if n < 0 and raise ValueError with message 'n must be a non-negative integer'. Use isinstance(n, int) to verify type. Do not accept float or other numeric types. This validation occurs before any calculation.",
       "complexity": 10
     },
     {
       "component_name": "FibonacciCalculator",
       "semantic_unit_id": "SU-002",
-      "responsibility": "Computes the nth Fibonacci number using iterative approach with edge case handling",
+      "responsibility": "Implements iterative Fibonacci calculation with proper edge case handling",
       "interfaces": [
         {
           "method": "calculate",
@@ -32,17 +32,25 @@
             "n": "int"
           },
           "returns": "int",
-          "description": "Calculate and return the nth Fibonacci number using iterative algorithm"
+          "description": "Calculate the nth Fibonacci number using iterative approach"
+        },
+        {
+          "method": "handle_base_cases",
+          "parameters": {
+            "n": "int"
+          },
+          "returns": "int or None",
+          "description": "Return Fibonacci value for base cases (n=0 or n=1), return None for other cases"
         }
       ],
       "dependencies": [],
-      "implementation_notes": "Implement iterative algorithm: Handle edge cases first - if n == 0 return 0, if n == 1 return 1. For n >= 2, initialize prev=0, curr=1. Loop from 2 to n (inclusive), in each iteration compute next=prev+curr, then prev=curr, curr=next. Return curr after loop completes. This approach has O(n) time complexity and O(1) space complexity. Use integer arithmetic only (no floating point). The algorithm handles the three logical branches: n=0 case, n=1 case, and n>=2 case.",
+      "implementation_notes": "Use iterative approach with two variables (prev, curr) initialized to (0, 1). For n=0, return 0 immediately. For n=1, return 1 immediately. For n>=2, iterate n-1 times, updating prev and curr: temp=curr, curr=prev+curr, prev=temp. Return curr after loop. This avoids recursion overhead and stack overflow for large n. Time complexity O(n), space complexity O(1).",
       "complexity": 18
     },
     {
       "component_name": "FibonacciFunction",
       "semantic_unit_id": "SU-003",
-      "responsibility": "Public API function that orchestrates validation and calculation with comprehensive documentation",
+      "responsibility": "Public API function that orchestrates validation, calculation, and documentation",
       "interfaces": [
         {
           "method": "fibonacci",
@@ -50,77 +58,76 @@
             "n": "int"
           },
           "returns": "int",
-          "description": "Calculate the nth Fibonacci number with full validation and documentation"
+          "description": "Calculate and return the nth Fibonacci number"
         }
       ],
       "dependencies": [
         "FibonacciValidator",
         "FibonacciCalculator"
       ],
-      "implementation_notes": "Function signature: def fibonacci(n: int) -> int. Include comprehensive docstring with: 1) One-line summary: 'Calculate the nth Fibonacci number using iterative approach.', 2) Extended description explaining the Fibonacci sequence, 3) Args section documenting n parameter with type and constraints, 4) Returns section documenting return type and value, 5) Raises section documenting ValueError for negative inputs, 6) Examples section with at least 5 examples: fibonacci(0)=0, fibonacci(1)=1, fibonacci(2)=1, fibonacci(5)=5, fibonacci(10)=55. Use Google-style docstring format. Call FibonacciValidator.validate_input(n) first to raise ValueError for invalid inputs. Then call FibonacciCalculator.calculate(n) to compute result. Return the computed Fibonacci number.",
+      "implementation_notes": "Function signature: def fibonacci(n: int) -> int. Include comprehensive docstring with: (1) One-line summary: 'Calculate the nth Fibonacci number using an iterative approach.', (2) Extended description explaining the Fibonacci sequence, (3) Args section documenting n parameter with type and constraints, (4) Returns section documenting return type and value, (5) Raises section documenting ValueError for negative inputs, (6) Examples section with at least 5 examples: fibonacci(0)=0, fibonacci(1)=1, fibonacci(2)=1, fibonacci(5)=5, fibonacci(10)=55. Use triple-quoted docstring (Google or NumPy style). Call FibonacciValidator.validate_input(n) first. Then call FibonacciCalculator.calculate(n). Return result.",
       "complexity": 4
     }
   ],
   "design_review_checklist": [
     {
-      "category": "Correctness",
-      "description": "Verify Fibonacci calculation produces correct sequence values",
-      "validation_criteria": "Function must return correct values for test cases: fibonacci(0)=0, fibonacci(1)=1, fibonacci(2)=1, fibonacci(3)=2, fibonacci(4)=3, fibonacci(5)=5, fibonacci(6)=8, fibonacci(10)=55, fibonacci(15)=610. Use iterative algorithm with O(n) time complexity.",
+      "category": "Architecture",
+      "description": "Verify function signature matches requirements with proper type hints",
+      "validation_criteria": "Function must be named 'fibonacci' with signature 'def fibonacci(n: int) -> int:'. All parameters and return value must have explicit type hints. No type hints should be missing.",
       "severity": "Critical"
     },
     {
       "category": "Error Handling",
-      "description": "Verify negative input validation raises appropriate exception",
-      "validation_criteria": "Function must raise ValueError with message containing 'non-negative' when n < 0. Test cases: fibonacci(-1), fibonacci(-100) must raise ValueError. No other exceptions should be raised for valid inputs.",
+      "description": "Verify ValueError is raised for negative inputs",
+      "validation_criteria": "Function must raise ValueError with descriptive message when n < 0. Error message must be 'n must be a non-negative integer' or similar. Negative inputs must not be processed.",
       "severity": "Critical"
     },
     {
-      "category": "Type Safety",
-      "description": "Verify type hints are complete and correct for all parameters and return values",
-      "validation_criteria": "Function signature must include type hints: def fibonacci(n: int) -> int. All parameters must have type hints. Return type must be int. Type hints must be syntactically valid Python 3.12.",
+      "category": "Correctness",
+      "description": "Verify edge cases are handled correctly",
+      "validation_criteria": "fibonacci(0) must return 0. fibonacci(1) must return 1. fibonacci(2) must return 1. fibonacci(3) must return 2. fibonacci(5) must return 5. fibonacci(10) must return 55. All edge cases must produce correct Fibonacci sequence values.",
+      "severity": "Critical"
+    },
+    {
+      "category": "Performance",
+      "description": "Verify iterative approach is used, not recursive",
+      "validation_criteria": "Implementation must use iterative approach with loop (for or while). No recursive calls to fibonacci() function. Time complexity must be O(n). Space complexity must be O(1) (constant space, not O(n) for recursion stack).",
       "severity": "High"
     },
     {
       "category": "Documentation",
-      "description": "Verify comprehensive docstring with examples and parameter documentation",
-      "validation_criteria": "Docstring must include: 1) One-line summary, 2) Extended description, 3) Args section with parameter documentation, 4) Returns section, 5) Raises section documenting ValueError, 6) Examples section with at least 5 usage examples. Docstring must follow Google-style format.",
+      "description": "Verify comprehensive docstring with examples",
+      "validation_criteria": "Docstring must include: (1) One-line summary, (2) Extended description, (3) Args section with parameter documentation, (4) Returns section, (5) Raises section documenting ValueError, (6) Examples section with at least 5 usage examples. Docstring must use triple quotes and follow Google or NumPy style.",
       "severity": "High"
-    },
-    {
-      "category": "Edge Cases",
-      "description": "Verify edge cases are handled correctly",
-      "validation_criteria": "fibonacci(0) must return 0 (not 1 or error). fibonacci(1) must return 1. Large values like fibonacci(100) must compute correctly without overflow (Python handles arbitrary precision integers). Boolean inputs must be rejected (isinstance check excludes bool type).",
-      "severity": "High"
-    },
-    {
-      "category": "Performance",
-      "description": "Verify iterative approach is used for efficiency",
-      "validation_criteria": "Implementation must use iterative algorithm (loop-based), not recursive. Time complexity must be O(n). Space complexity must be O(1). No memoization or caching needed for single function call.",
-      "severity": "Medium"
     },
     {
       "category": "Code Quality",
-      "description": "Verify code follows Python conventions and best practices",
-      "validation_criteria": "Function name must be lowercase with underscores (fibonacci). Variable names must be descriptive (prev, curr, next). Code must be readable without comments. No magic numbers. Proper spacing and formatting per PEP 8.",
+      "description": "Verify no external dependencies are used",
+      "validation_criteria": "Implementation must use only Python standard library. No imports from external packages. No third-party libraries. Pure Python only.",
       "severity": "Medium"
+    },
+    {
+      "category": "Input Validation",
+      "description": "Verify input type checking and validation",
+      "validation_criteria": "Function must validate that n is an integer type (not float, string, or other types). Function must check n >= 0. Invalid inputs must raise ValueError before any calculation.",
+      "severity": "High"
     }
   ],
-  "architecture_overview": "Simple single-function architecture with three logical components: FibonacciValidator handles input validation and raises ValueError for negative integers, FibonacciCalculator implements the iterative Fibonacci algorithm with O(n) time and O(1) space complexity, and FibonacciFunction serves as the public API that orchestrates validation and calculation while providing comprehensive documentation. No external dependencies, no database, no network calls. Pure computational function suitable for direct integration into any Python codebase.",
+  "architecture_overview": "Simple single-function architecture with three logical components: (1) FibonacciValidator handles input validation and type checking, raising ValueError for invalid inputs, (2) FibonacciCalculator implements the core iterative Fibonacci algorithm with O(n) time complexity and O(1) space complexity, (3) FibonacciFunction serves as the public API that orchestrates validation and calculation, includes comprehensive documentation with examples. No external dependencies, no database, no network calls. Pure computational function suitable for direct integration into larger systems.",
   "technology_stack": {
     "language": "Python 3.12",
-    "type_hints": "Python typing module (built-in)",
-    "docstring_format": "Google-style docstring",
-    "dependencies": "None (pure Python standard library only)"
+    "implementation_approach": "Pure Python standard library",
+    "algorithm": "Iterative approach with two-variable state tracking",
+    "docstring_style": "Google or NumPy style with triple-quoted strings"
   },
   "assumptions": [
-    "Input n is always an integer type (not float, string, or other types)",
-    "Non-negative integers only (n >= 0), negative inputs raise ValueError",
-    "Python 3.12 or later with support for type hints",
-    "No performance optimization needed beyond O(n) iterative algorithm",
-    "No caching or memoization required for single function calls",
-    "Function is called in single-threaded context (no concurrency concerns)",
-    "Integer overflow is not a concern (Python handles arbitrary precision integers)",
-    "Docstring examples are for documentation only, not executable tests"
+    "Input n is always an integer type (not float or string)",
+    "Negative integers should raise ValueError, not be silently converted",
+    "Function should handle n=0 and n=1 as base cases returning 0 and 1 respectively",
+    "Iterative approach is preferred over recursive to avoid stack overflow for large n",
+    "No caching or memoization is required (function is stateless)",
+    "Function will be called with reasonable values of n (no need to handle extremely large integers beyond Python's integer limits)",
+    "Docstring examples should demonstrate correct usage and edge cases"
   ],
-  "timestamp": "2025-11-22T03:10:46.774190"
+  "timestamp": "2025-11-22T03:17:11.061561"
 }
