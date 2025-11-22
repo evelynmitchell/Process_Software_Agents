@@ -246,6 +246,17 @@ class TestAgent(BaseAgent):
                 f"Expected dict matching TestReport schema"
             )
 
+        # Fix: Auto-correct test_status if build failed
+        # LLM sometimes returns test_status="FAIL" when build_successful=False
+        # but schema requires test_status="BUILD_FAILED" in this case
+        if not content.get("build_successful", True):
+            if content.get("test_status") != "BUILD_FAILED":
+                logger.debug(
+                    f"Auto-correcting test_status from '{content.get('test_status')}' "
+                    f"to 'BUILD_FAILED' because build_successful=False"
+                )
+                content["test_status"] = "BUILD_FAILED"
+
         # Validate against TestReport schema
         try:
             test_report = self.validate_output(content, TestReport)
