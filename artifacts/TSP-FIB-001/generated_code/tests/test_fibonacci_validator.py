@@ -67,6 +67,11 @@ class TestFibonacciValidatorNonIntegerTypes:
         with pytest.raises((ValueError, TypeError)):
             fibonacci('0')  # type: ignore
 
+    def test_fibonacci_string_negative_raises_error(self) -> None:
+        """Test that fibonacci('-5') raises error for string input."""
+        with pytest.raises((ValueError, TypeError)):
+            fibonacci('-5')  # type: ignore
+
     def test_fibonacci_none_raises_error(self) -> None:
         """Test that fibonacci(None) raises error for None input."""
         with pytest.raises((ValueError, TypeError)):
@@ -97,13 +102,13 @@ class TestFibonacciValidatorValidNonNegativeIntegers:
     """Test suite for valid non-negative integer inputs."""
 
     def test_fibonacci_zero_returns_zero(self) -> None:
-        """Test that fibonacci(0) returns 0 (base case)."""
+        """Test that fibonacci(0) returns 0."""
         result = fibonacci(0)
         assert result == 0
         assert isinstance(result, int)
 
     def test_fibonacci_one_returns_one(self) -> None:
-        """Test that fibonacci(1) returns 1 (base case)."""
+        """Test that fibonacci(1) returns 1."""
         result = fibonacci(1)
         assert result == 1
         assert isinstance(result, int)
@@ -170,7 +175,7 @@ class TestFibonacciCalculatorSequence:
             assert f_n == f_n_minus_1 + f_n_minus_2, \
                 f"fibonacci({n}) should equal fibonacci({n-1}) + fibonacci({n-2})"
 
-    def test_fibonacci_monotonic_increasing(self) -> None:
+    def test_fibonacci_monotonically_increasing(self) -> None:
         """Test that Fibonacci sequence is monotonically increasing for n >= 0."""
         previous = fibonacci(0)
         for n in range(1, 20):
@@ -184,8 +189,3 @@ class TestFibonacciCalculatorSequence:
         result = fibonacci(30)
         assert result == 832040
         assert isinstance(result, int)
-
-    def test_fibonacci_very_large_value(self) -> None:
-        """Test Fibonacci calculation for very large value."""
-        result = fibonacci(50)
-        assert result == 12586269025

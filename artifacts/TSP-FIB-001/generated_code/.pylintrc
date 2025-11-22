@@ -30,16 +30,17 @@ limit-inference-results=100
 # names.
 load-plugins=
 
-# Minimum Python version to target. Used for version dependent checks and
-# features activation, it should be a dotted version string (for example 3.8).
-min-version=3.12
+# Pickle collected data for later comparisons.
+persistent=yes
+
+# Specify a configuration file.
+#rcfile=
 
 # When enabled, pylint would attempt to guess common misconfiguration and emit
 # user-friendly hints instead of false-positive error messages.
 suggestion-mode=yes
 
-# Allow optimization of some checking when you estimate you won't benefit from
-# it.
+# Allow optimization of some checking when you estimate you benefit from it.
 unsafe-load-any-extension=no
 
 [MESSAGES CONTROL]
@@ -77,13 +78,13 @@ disable=
 # (RP0004).
 evaluation=max(0, 0 if fatal else 10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10))
 
-# Template used to display messages. This is a python new-style format string
+# Template used to display messages. This is a python new style format string
 # used to format the message information. See doc for all details.
 #msg-template=
 
 # Set the output format. Available formats are text, parseable, colorized, json
-# and msvg (multiple svg, one per message). You can also give a reporter class
-# e.g. mypackage.mymodule.MyReporterClass -:text.
+# and msvg (multiple scatterplot values for gp). You can also give a reporter
+# class e.g. mypackage.mymodule.MyReporterClass -:text
 output-format=text
 
 # Tells whether to display a full report or only the messages.
@@ -92,7 +93,7 @@ reports=no
 # Activate the evaluation score.
 score=yes
 
-[REFACTORING]
+[REFACTOR]
 
 # Maximum number of nested blocks for function / method body
 max-nested-blocks=5
@@ -103,120 +104,117 @@ max-nested-blocks=5
 # printed.
 never-returning-functions=sys.exit,argparse.parse_error
 
-[BASIC]
+[LOGGING]
 
-# Naming style matching correct argument names.
-argument-naming-style=snake_case
+# The type of string formatting that logging methods do. `old` for %
+# formatting, `new` for {} formatting and `fstring` for f-strings.
+logging-format-style=old
 
-# Regular expression matching correct argument names. Overrides argument-
-# naming-style. If left empty, argument names will be checked with the set
-# naming style.
-#argument-rgx=
+# Format template used to check logging format string.
+logging-modules=logging
 
-# Naming style matching correct attribute names.
-attr-naming-style=snake_case
+[SPELLING]
 
-# Regular expression matching correct attribute names. Overrides attr-naming-
-# style. If left empty, attribute names will be checked with the set naming
-# style.
-#attr-rgx=
+# Limits count of emitted suggestions for spelling mistakes.
+max-spelling-suggestions=4
 
-# Bad variable names which should always be refused, separated by a comma.
-bad-names=foo,bar,baz,toto,tutu,tata
+# Tells whether to store unknown words to indicated private dictionary in
+# --spelling-private-dict-file option instead of raising a message.
+spelling-store-unknown-words=no
 
-# Naming style matching correct class attribute names.
-class-attribute-naming-style=any
+[MISCELLANEOUS]
 
-# Regular expression matching correct class attribute names. Overrides class-
-# attribute-naming-style. If left empty, class attribute names will be checked
-# with the set naming style.
-#class-attribute-rgx=
+# List of note tags to take in consideration, separated by a comma.
+notes=FIXME,XXX,TODO
 
-# Naming style matching correct class constant names.
-class-const-naming-style=UPPER_CASE
+# Regular expression of note tags to take in consideration.
+#notes-rgx=
 
-# Regular expression matching correct class constant names. Overrides class-
-# const-naming-style. If left empty, class constant names will be checked with
-# the set naming style.
-#class-const-rgx=
+[TYPECHECK]
 
-# Naming style matching correct class names.
-class-naming-style=PascalCase
+# List of decorators that produce context managers, such as
+# contextlib.contextmanager. Add to this list to register other decorators that
+# produce valid context managers.
+contextmanager-decorators=contextlib.contextmanager
 
-# Regular expression matching correct class names. Overrides class-naming-
-# style. If left empty, class names will be checked with the set naming style.
-#class-rgx=
+# List of members which are set dynamically and missed by pylint inference
+# system, and so shouldn't trigger false positives when accessed as undefined
+# members in Python < 3.7.
+generated-members=
 
-# Naming style matching correct constant names.
-const-naming-style=UPPER_CASE
+# Tells whether missing members accessed in mixin class should be ignored. A
+# mixin class is considered a class which inherits from object and does not
+# define its own base classes.
+ignore-mixin-members=yes
 
-# Regular expression matching correct constant names. Overrides const-naming-
-# style. If left empty, constant names will be checked with the set naming
-# style.
-#const-rgx=
+# Tells whether to warn about missing members when the owner of the attribute
+# is inferred to be None.
+ignore-none=yes
 
-# Minimum line length for functions/classes that require docstrings, shorter
-# ones are exempt.
-docstring-min-length=-1
+# This flag controls whether pylint should warn about no-member-access for
+# owner which are a pass statement. The pass statement is used as a placeholder
+# in empty class body.
+ignore-on-opaque-object=yes
 
-# Naming style matching correct function names.
-function-naming-style=snake_case
+# A list of class names for which member attributes should not be checked
+# (useful for classes with dynamically set attributes). This supports the use
+# of the star-import when a __all__ is defined in the module.
+ignored-classes=optparse.Values,thread._local,_thread._local
 
-# Regular expression matching correct function names. Overrides function-
-# naming-style. If left empty, function names will be checked with the set
-# naming style.
-#function-rgx=
+# List of module names for which member attributes should not be checked
+# (useful for modules/projects where namespaces are manipulated during runtime
+# and thus existing member attributes cannot be deduced by static analysis). It
+# supports qualified module names, as well as Unix pattern matching.
+ignored-modules=
 
-# Good variable names which should always be accepted, separated by a comma.
-good-names=i,j,k,ex,Run,_
+# Show a hint with possible names when a member name was not found. The aspect
+# of finding the hint is based on edit distance.
+missing-member-hint=yes
 
-# Naming style matching correct inline variable names.
-inlinevar-naming-style=any
+# The minimum edit distance a name should have in order to consider it a
+# similar match for a missing member name.
+missing-member-hint-distance=1
 
-# Regular expression matching correct inline variable names. Overrides
-# inlinevar-naming-style. If left empty, inline variable names will be checked
-# with the set naming style.
-#inlinevar-rgx=
+# The total number of similar lines required to trigger the similar-lines
+# message.
+min-similarity-lines=4
 
-# Naming style matching correct method names.
-method-naming-style=snake_case
+[VARIABLES]
 
-# Regular expression matching correct method names. Overrides method-naming-
-# style. If left empty, method names will be checked with the set naming style.
-#method-rgx=
+# List of additional names supposed to be defined in builtins. Remember that
+# you should avoid to define new builtins when possible.
+additional-builtins=
 
-# Naming style matching correct module names.
-module-naming-style=snake_case
+# Tells whether unused global variables should be treated as a violation.
+allow-global-unused-variables=yes
 
-# Regular expression matching correct module names. Overrides module-naming-
-# style. If left empty, module names will be checked with the set naming style.
-#module-rgx=
+# List of names allowed to shadow builtins
+allowed-redefined-builtins=
 
-# Colon-delimited sets of names that determine each other's naming style when
-# the name regexes allow several styles. This is useful for enforcing naming
-# consistency across different name categories. Each name set should be
-# self-contained.
-name-group=
+# List of strings which can identify a callback function by name. A callback
+# name must start or end with one of those strings.
+callbacks=cb_,_cb
 
-# Regular expression which should only match function or class names that do
-# not require a docstring.
-no-docstring-rgx=^_
+# A regular expression matching the name of dummy variables (i.e. expected to
+# not be used).
+dummy-variables-rgx=_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|^ignored_|^unused_
 
-# List of decorators that produce properties, such as abc.abstractproperty. Add
-# to this list to register other decorators that produce valid properties.
-# These decorators are taken in consideration only for invalid-name.
-property-classes=abc.abstractproperty
+# Argument names that match this expression will be ignored. Default to name
+# with leading underscore.
+ignored-argument-names=_.*|^ignored_|^unused_
 
-# Naming style matching correct variable names.
-variable-naming-style=snake_case
+# Tells whether we should check for unused import in __init__ files.
+init-import=no
 
-# Regular expression matching correct variable names. Overrides variable-
-# naming-style. If left empty, variable names will be checked with the set
-# naming style.
-#variable-rgx=
+# List of qualified module names which can have objects that can change during
+# runtime and trigger false positives when accessed as undefined members.
+redefining-builtins-modules=six.moves,past.builtins,future.builtins,builtins,io
 
 [FORMAT]
 
 # Expected format of line ending, especially useful when checking scripts as
 # they are prone to have the wrong line ending convention. This represents the
-# line ending type to be considered as expecte
+# line ending type to be considered as expected.
+expected-line-ending-format=
+
+# Regexp for a line that is allowed to be longer than the limit.

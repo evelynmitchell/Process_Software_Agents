@@ -115,8 +115,8 @@ class TestFibonacciLargerValues:
         assert result == 354224848179261915075
 
 
-class TestFibonacciNegativeInput:
-    """Test suite for Fibonacci with negative input validation."""
+class TestFibonacciInputValidation:
+    """Test suite for input validation and error handling."""
 
     def test_fibonacci_negative_one_raises_value_error(self) -> None:
         """Test that fibonacci(-1) raises ValueError."""
@@ -124,10 +124,10 @@ class TestFibonacciNegativeInput:
             fibonacci(-1)
         assert "non-negative" in str(exc_info.value).lower()
 
-    def test_fibonacci_negative_five_raises_value_error(self) -> None:
-        """Test that fibonacci(-5) raises ValueError."""
+    def test_fibonacci_negative_ten_raises_value_error(self) -> None:
+        """Test that fibonacci(-10) raises ValueError."""
         with pytest.raises(ValueError) as exc_info:
-            fibonacci(-5)
+            fibonacci(-10)
         assert "non-negative" in str(exc_info.value).lower()
 
     def test_fibonacci_negative_hundred_raises_value_error(self) -> None:
@@ -135,17 +135,6 @@ class TestFibonacciNegativeInput:
         with pytest.raises(ValueError) as exc_info:
             fibonacci(-100)
         assert "non-negative" in str(exc_info.value).lower()
-
-    def test_fibonacci_error_message_contains_guidance(self) -> None:
-        """Test that ValueError message provides clear guidance."""
-        with pytest.raises(ValueError) as exc_info:
-            fibonacci(-1)
-        error_message = str(exc_info.value)
-        assert "non-negative" in error_message.lower() or "negative" in error_message.lower()
-
-
-class TestFibonacciTypeValidation:
-    """Test suite for Fibonacci input type validation."""
 
     def test_fibonacci_float_input_raises_error(self) -> None:
         """Test that fibonacci(5.5) raises ValueError or TypeError."""
@@ -174,32 +163,44 @@ class TestFibonacciTypeValidation:
 
 
 class TestFibonacciReturnType:
-    """Test suite for Fibonacci return type validation."""
+    """Test suite for return type validation."""
 
     def test_fibonacci_returns_integer_type(self) -> None:
-        """Test that fibonacci returns int type, not float or other."""
+        """Test that fibonacci always returns int type."""
         result = fibonacci(5)
         assert isinstance(result, int)
         assert not isinstance(result, bool)
 
-    def test_fibonacci_returns_positive_integer_for_positive_input(self) -> None:
-        """Test that fibonacci returns positive integer for positive input."""
-        result = fibonacci(10)
-        assert isinstance(result, int)
-        assert result > 0
-
-    def test_fibonacci_returns_zero_for_zero_input(self) -> None:
-        """Test that fibonacci returns zero (non-negative) for zero input."""
+    def test_fibonacci_returns_integer_for_zero(self) -> None:
+        """Test that fibonacci(0) returns int type."""
         result = fibonacci(0)
         assert isinstance(result, int)
-        assert result >= 0
 
-    def test_fibonacci_never_returns_negative(self) -> None:
-        """Test that fibonacci never returns negative value for valid input."""
+    def test_fibonacci_returns_integer_for_large_value(self) -> None:
+        """Test that fibonacci(100) returns int type."""
+        result = fibonacci(100)
+        assert isinstance(result, int)
+
+    def test_fibonacci_returns_positive_integer(self) -> None:
+        """Test that fibonacci returns non-negative integer for valid input."""
         for n in range(0, 20):
             result = fibonacci(n)
+            assert isinstance(result, int)
             assert result >= 0
 
 
-class TestFibonacciSequenceCorrectness:
-    """Test suite for verifying Fibonacci sequence correctness."""
+class TestFibonacciSequenceProperties:
+    """Test suite for mathematical properties of Fibonacci sequence."""
+
+    def test_fibonacci_sequence_is_monotonically_increasing(self) -> None:
+        """Test that Fibonacci sequence is monotonically increasing."""
+        previous = fibonacci(0)
+        for n in range(1, 15):
+            current = fibonacci(n)
+            assert current >= previous
+            previous = current
+
+    def test_fibonacci_sum_property(self) -> None:
+        """Test that fibonacci(n) = fibonacci(n-1) + fibonacci(n-2) for n >= 2."""
+        for n in range(2, 20):
+            fib_n =

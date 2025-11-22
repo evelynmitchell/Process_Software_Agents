@@ -164,12 +164,11 @@ def fibonacci(n: int) -> int:
     Calculate and return the nth Fibonacci number.
 
     Computes the nth number in the Fibonacci sequence, where each number is the sum of
-    the two preceding ones. The sequence begins with F(0)=0 and F(1)=1, and continues
+    the two preceding ones. The sequence starts with F(0)=0 and F(1)=1, and continues
     as: 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, ...
 
     This function uses an iterative algorithm with O(n) time complexity and O(1) space
-    complexity, making it efficient for computing Fibonacci numbers without risk of
-    stack overflow on large values of n.
+    complexity, making it efficient for large values of n without risk of stack overflow.
 
     Args:
         n: The position in the Fibonacci sequence to calculate. Must be a non-negative

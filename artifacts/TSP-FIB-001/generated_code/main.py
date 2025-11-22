@@ -27,7 +27,7 @@ def main() -> None:
     print("=" * 50)
     print()
 
-    # Test cases demonstrating fibonacci function
+    # Test cases demonstrating the fibonacci function
     test_cases: list[int] = [0, 1, 2, 5, 10, 15, 20]
 
     print("Computing Fibonacci numbers:")
@@ -42,18 +42,25 @@ def main() -> None:
     print("Demonstration complete!")
     print()
 
-    # Additional demonstration with error handling
-    print("Testing error handling with negative input:")
+    # Additional demonstration: showing the sequence
+    print("Fibonacci Sequence (first 15 numbers):")
     print("-" * 50)
-
-    try:
-        invalid_result: int = fibonacci(-5)
-        print(f"fibonacci(-5) = {invalid_result}")
-    except ValueError as e:
-        print(f"fibonacci(-5) raised ValueError: {e}")
-
+    sequence: list[int] = [fibonacci(i) for i in range(15)]
+    print(", ".join(str(num) for num in sequence))
     print()
-    print("=" * 50)
+
+    # Error handling demonstration
+    print("Error Handling Demonstration:")
+    print("-" * 50)
+    try:
+        print("Attempting to calculate fibonacci(-5)...")
+        result = fibonacci(-5)
+        print(f"Result: {result}")
+    except ValueError as e:
+        print(f"Caught expected error: {e}")
+    print()
+
+    print("All demonstrations completed successfully!")
 
 
 if __name__ == "__main__":
