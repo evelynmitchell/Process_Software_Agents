@@ -1,9 +1,11 @@
 """
-Fibonacci calculation module with validation and computation orchestration.
+Fibonacci Function Module
 
-This module provides a public API function for calculating Fibonacci numbers with
-comprehensive input validation and error handling. The implementation uses an
-iterative approach for optimal performance.
+Main public Fibonacci function with comprehensive docstring, type hints, and orchestration
+of validation and calculation components.
+
+This module provides the primary interface for computing Fibonacci numbers with full input
+validation and efficient iterative computation.
 
 Component ID: FibonacciFunction
 Semantic Unit ID: SU-003
@@ -17,73 +19,85 @@ from src.fibonacci_calculator import FibonacciCalculator
 
 def fibonacci(n: int) -> int:
     """
-    Calculate and return the nth Fibonacci number.
+    Calculate the nth Fibonacci number.
 
-    The Fibonacci sequence is a series of numbers where each number is the sum
-    of the two preceding ones, typically starting with 0 and 1. This function
-    computes the nth number in this sequence using an efficient iterative
-    approach with O(n) time complexity and O(1) space complexity.
+    The Fibonacci sequence is a series of numbers where each number is the sum of the
+    two preceding ones, starting from 0 and 1. This function computes the nth number
+    in this sequence using an efficient iterative algorithm.
 
-    Args:
-        n (int): The position in the Fibonacci sequence to calculate. Must be
-            a non-negative integer (0 or greater). The function will raise a
-            ValueError if a negative integer is provided.
+    The function validates input to ensure n is a non-negative integer, then uses an
+    iterative approach to compute the result with O(n) time complexity and O(1) space
+    complexity.
 
-    Returns:
-        int: The nth Fibonacci number. For n=0, returns 0. For n=1, returns 1.
-            For n>=2, returns the sum of the two preceding Fibonacci numbers.
+    Parameters
+    ----------
+    n : int
+        The position in the Fibonacci sequence to compute. Must be a non-negative
+        integer (n >= 0). Negative values will raise a ValueError.
 
-    Raises:
-        ValueError: If n is negative. The error message will indicate that
-            n must be a non-negative integer.
-        TypeError: If n is not an integer type (e.g., float, string, or other
-            non-integer numeric types).
+    Returns
+    -------
+    int
+        The nth Fibonacci number. For n=0, returns 0. For n=1, returns 1.
+        For n >= 2, returns the sum of the two preceding Fibonacci numbers.
 
-    Examples:
-        >>> fibonacci(0)
-        0
+    Raises
+    ------
+    ValueError
+        If n is negative. The error message will indicate that n must be a
+        non-negative integer.
+    TypeError
+        If n is not an integer type (e.g., float, string, None).
 
-        >>> fibonacci(1)
-        1
+    Examples
+    --------
+    >>> fibonacci(0)
+    0
 
-        >>> fibonacci(2)
-        1
+    >>> fibonacci(1)
+    1
 
-        >>> fibonacci(5)
-        5
+    >>> fibonacci(5)
+    5
 
-        >>> fibonacci(10)
-        55
+    >>> fibonacci(10)
+    55
 
-        >>> fibonacci(15)
-        610
+    >>> fibonacci(15)
+    610
 
-        Attempting to calculate with a negative number raises ValueError:
+    >>> fibonacci(20)
+    6765
 
-        >>> fibonacci(-1)
-        Traceback (most recent call last):
-            ...
-        ValueError: n must be a non-negative integer
+    Notes
+    -----
+    The Fibonacci sequence is defined as:
+    - F(0) = 0
+    - F(1) = 1
+    - F(n) = F(n-1) + F(n-2) for n >= 2
 
-        Attempting to calculate with a non-integer type raises ValueError:
+    This implementation uses an iterative algorithm rather than recursion to avoid
+    stack overflow and achieve optimal performance. The algorithm maintains only two
+    variables (a and b) to track the previous two Fibonacci numbers, resulting in
+    constant space complexity.
 
-        >>> fibonacci(5.5)
-        Traceback (most recent call last):
-            ...
-        ValueError: n must be a non-negative integer
+    Time Complexity: O(n)
+    Space Complexity: O(1)
 
-    Note:
-        The function uses an iterative algorithm rather than recursion to
-        avoid stack overflow issues with large values of n. The implementation
-        maintains constant space complexity regardless of input size.
+    Raises
+    ------
+    ValueError
+        When n is a negative integer.
+    TypeError
+        When n is not an integer type.
     """
-    # Validate input parameter
+    # Validate input using FibonacciValidator component
     validator = FibonacciValidator()
     validator.validate_input(n)
 
-    # Calculate Fibonacci number
+    # Calculate Fibonacci number using FibonacciCalculator component
     calculator = FibonacciCalculator()
     result = calculator.calculate(n)
 
     return result
-</code>
+</content>

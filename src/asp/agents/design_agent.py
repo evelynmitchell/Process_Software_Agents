@@ -263,6 +263,15 @@ class DesignAgent(BaseAgent):
 
         logger.debug(f"Received LLM response with {len(content)} top-level keys")
 
+        # Fix: Coerce technology_stack boolean values to strings
+        # LLM sometimes returns {"standard_library_only": true} instead of "yes"/"no"
+        if "technology_stack" in content and isinstance(content["technology_stack"], dict):
+            for key, value in content["technology_stack"].items():
+                if isinstance(value, bool):
+                    content["technology_stack"][key] = "yes" if value else "no"
+                elif not isinstance(value, str):
+                    content["technology_stack"][key] = str(value)
+
         # Validate and create DesignSpecification
         try:
             design_spec = DesignSpecification(**content)

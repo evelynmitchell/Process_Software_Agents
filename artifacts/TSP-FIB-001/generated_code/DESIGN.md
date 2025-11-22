@@ -1,225 +1,184 @@
-# Fibonacci Implementation - Design Documentation
+# Fibonacci Implementation - Architecture and Design Documentation
 
 ## Overview
 
-This document provides detailed design documentation for the Fibonacci number calculation implementation (Task ID: TSP-FIB-001). It outlines the component architecture, algorithm complexity analysis, and design decisions that guide the implementation.
+This document describes the architecture, design decisions, and implementation approach for the Fibonacci number calculation system (Task ID: TSP-FIB-001). The implementation follows a three-component architecture with clear separation of concerns, comprehensive input validation, and optimized iterative computation.
 
 ## Architecture Overview
 
-The implementation follows a modular, single-responsibility design pattern with three logical components:
+The Fibonacci implementation is organized into three distinct components, each with a single, well-defined responsibility:
 
-1. **FibonacciValidator** - Input validation and type checking
-2. **FibonacciCalculator** - Core iterative Fibonacci algorithm
-3. **FibonacciFunction** - Public API orchestration
-
-This architecture ensures separation of concerns, testability, and maintainability while keeping the implementation simple and efficient.
-
-### Design Principles
-
-- **Fail Fast**: Input validation occurs before any computation
-- **Single Responsibility**: Each component has one clear purpose
-- **Type Safety**: Strict type checking prevents invalid inputs
-- **Efficiency**: Iterative approach ensures O(n) time and O(1) space complexity
-- **Clarity**: Comprehensive documentation and examples guide usage
-
-## Component Architecture
-
-### Component 1: FibonacciValidator (SU-001)
-
-**Responsibility**: Validates input parameters and enforces type hints for the Fibonacci function
-
-**Interface**:
 ```
-validate_input(n: int) -> bool
+┌─────────────────────────────────────────────────────────────┐
+│                  FibonacciFunction (SU-003)                 │
+│              Public Interface & Orchestration               │
+│  - Comprehensive documentation and type hints               │
+│  - Coordinates validation and calculation                   │
+│  - Provides user-facing API                                 │
+└────────────────┬──────────────────────────┬─────────────────┘
+                 │                          │
+        ┌────────▼──────────┐      ┌────────▼──────────┐
+        │ FibonacciValidator │      │FibonacciCalculator│
+        │     (SU-001)       │      │     (SU-002)      │
+        │                    │      │                   │
+        │ Input Validation   │      │ Iterative Compute │
+        │ - Type checking    │      │ - O(n) time       │
+        │ - Range checking   │      │ - O(1) space      │
+        │ - Error handling   │      │ - Edge cases      │
+        └────────────────────┘      └───────────────────┘
 ```
 
-**Validation Rules**:
-- Input must be of type `int` (not `float`, `str`, or other numeric types)
-- Input must be non-negative (n >= 0)
-- Raises `ValueError` with message "n must be a non-negative integer" if validation fails
+### Component Responsibilities
 
-**Implementation Strategy**:
-- Use `isinstance(n, int)` to verify exact type (excludes `bool` in Python 3.x)
-- Check `n < 0` condition to enforce non-negative constraint
-- Raise `ValueError` immediately on validation failure (fail-fast principle)
-- Return `True` only if all validations pass
+#### 1. FibonacciValidator (SU-001)
+**Responsibility:** Validates input parameters and enforces type constraints for the Fibonacci function.
 
-**Complexity**: O(1) - constant time validation
+- **Method:** `validate_input(n: int) -> bool`
+- **Behavior:**
+  - Verifies that input `n` is of type `int` (not `float`, `str`, or other types)
+  - Checks that `n` is non-negative (n >= 0)
+  - Raises `ValueError` with descriptive message if validation fails
+  - Returns `True` if validation succeeds
+- **Error Handling:** Raises `ValueError` with message "n must be a non-negative integer" for invalid inputs
+- **Complexity:** O(1) - constant time validation
 
-### Component 2: FibonacciCalculator (SU-002)
+#### 2. FibonacciCalculator (SU-002)
+**Responsibility:** Computes the nth Fibonacci number using an optimized iterative approach with edge case handling.
 
-**Responsibility**: Implements iterative Fibonacci calculation with proper handling of edge cases
+- **Method:** `calculate(n: int) -> int`
+  - Implements iterative algorithm for computing Fibonacci numbers
+  - Handles base cases (n=0, n=1) efficiently
+  - Uses loop-based computation for n >= 2
+  - Returns the nth Fibonacci number as an integer
+  
+- **Method:** `handle_base_cases(n: int) -> int | None`
+  - Returns 0 for n=0 (base case)
+  - Returns 1 for n=1 (base case)
+  - Returns None for n >= 2 (requires iteration)
 
-**Interfaces**:
-```
-calculate(n: int) -> int
-handle_base_cases(n: int) -> int
-```
+- **Algorithm Details:**
+  - Initialize: `a = 0, b = 1`
+  - Loop n times: `a, b = b, a + b`
+  - Return final value of `a`
+  - Time Complexity: O(n) - linear iterations
+  - Space Complexity: O(1) - only constant variables
+  
+- **Complexity:** O(n) time, O(1) space
 
-**Algorithm Details**:
+#### 3. FibonacciFunction (SU-003)
+**Responsibility:** Main public interface providing comprehensive documentation, type hints, and orchestration of validation and calculation components.
 
-**Base Cases**:
-- `n = 0`: Return 0 immediately
-- `n = 1`: Return 1 immediately
+- **Method:** `fibonacci(n: int) -> int`
+  - Public API for calculating Fibonacci numbers
+  - Orchestrates FibonacciValidator and FibonacciCalculator
+  - Provides comprehensive docstring with examples
+  - Enforces type hints for static analysis
+  - Returns the nth Fibonacci number
 
-**Iterative Computation** (for n >= 2):
-1. Initialize two variables: `prev = 0`, `curr = 1`
-2. Loop from 2 to n (inclusive)
-3. In each iteration:
-   - `temp = curr`
-   - `curr = prev + curr`
-   - `prev = temp`
-4. Return `curr` after loop completes
-
-**Why Iterative Over Recursive**:
-- Recursive approach has O(2^n) exponential time complexity
-- Recursive approach causes stack overflow for large n values
-- Iterative approach achieves O(n) time with O(1) space
-- Iterative approach is production-ready for any reasonable n value
-
-**Complexity Analysis**:
-- Time Complexity: O(n) - single loop from 2 to n
-- Space Complexity: O(1) - only two variables regardless of n
-
-### Component 3: FibonacciFunction (SU-003)
-
-**Responsibility**: Public API function that orchestrates validation and calculation
-
-**Interface**:
-```python
-def fibonacci(n: int) -> int
-```
-
-**Orchestration Flow**:
-1. Call `FibonacciValidator.validate_input(n)` to validate input
-2. Call `FibonacciCalculator.calculate(n)` to compute result
-3. Return the computed Fibonacci number
-
-**Documentation Requirements**:
-- One-line summary of function purpose
-- Extended description explaining the Fibonacci sequence
-- Args section documenting the `n` parameter with type and constraints
-- Returns section documenting return type and value
-- Raises section documenting `ValueError` for negative inputs
-- Examples section with at least 5 test cases demonstrating correct usage
-
-**Docstring Format**: Google-style docstring
-
-**Example Cases**:
-- `fibonacci(0)` → 0
-- `fibonacci(1)` → 1
-- `fibonacci(2)` → 1
-- `fibonacci(5)` → 5
-- `fibonacci(10)` → 55
-
-**Complexity**: O(n) - dominated by calculation component
-
-## Algorithm Complexity Analysis
-
-### Time Complexity: O(n)
-
-The iterative approach requires exactly n-1 iterations for any input n >= 2:
-- Base cases (n=0, n=1): O(1) constant time
-- Iterative loop: n-2 iterations, each performing constant-time operations
-- Total: O(1) + O(n-2) = O(n)
-
-**Comparison with Alternatives**:
-- Recursive (naive): O(2^n) - exponential, impractical for n > 40
-- Recursive with memoization: O(n) time, O(n) space - uses extra memory
-- Matrix exponentiation: O(log n) time - more complex, not required
-
-### Space Complexity: O(1)
-
-The iterative approach uses only two variables (`prev`, `curr`) regardless of input size:
-- No recursion stack: O(1) stack space
-- No data structures: O(1) heap space
-- Total: O(1) constant space
-
-**Comparison with Alternatives**:
-- Recursive (naive): O(n) stack space - risk of stack overflow
-- Recursive with memoization: O(n) space - stores all computed values
-- Matrix exponentiation: O(1) space - but more complex
+- **Orchestration Flow:**
+  1. Call `FibonacciValidator.validate_input(n)` to validate input
+  2. If validation passes, call `FibonacciCalculator.calculate(n)`
+  3. Return computed result
+  4. If validation fails, ValueError is raised and propagated
 
 ## Design Decisions
 
-### Decision 1: Iterative Over Recursive Implementation
+### 1. Iterative vs. Recursive Approach
+**Decision:** Use iterative algorithm instead of recursive.
 
-**Rationale**:
-- Production systems require handling large inputs without stack overflow
-- O(n) time complexity is acceptable for most use cases
-- O(1) space complexity is superior to memoization approaches
-- Code is simpler and more maintainable than matrix exponentiation
+**Rationale:**
+- **Performance:** Iterative approach has O(n) time complexity with no function call overhead
+- **Memory Safety:** Avoids stack overflow for large values of n
+- **Simplicity:** Easier to understand and maintain
+- **Scalability:** Can handle arbitrarily large values of n (Python 3 supports arbitrary precision integers)
 
-**Trade-offs**:
-- Cannot achieve O(log n) time complexity (not required)
-- Slightly more verbose than naive recursion (acceptable for production)
+**Trade-off:** Recursive approach would be more elegant but less efficient for large inputs.
 
-### Decision 2: Strict Type Checking (int only)
+### 2. Component Separation
+**Decision:** Separate validation, calculation, and orchestration into distinct components.
 
-**Rationale**:
-- Prevents silent errors from float inputs (e.g., 5.0 treated as 5)
-- Prevents string inputs that could be parsed as integers
-- Enforces explicit type conversion by caller
-- Aligns with Python's type hint philosophy
+**Rationale:**
+- **Single Responsibility:** Each component has one reason to change
+- **Testability:** Components can be tested independently
+- **Reusability:** Validator and Calculator can be used in other contexts
+- **Maintainability:** Clear separation makes code easier to understand and modify
 
-**Trade-offs**:
-- Slightly less flexible than accepting numeric types
-- Caller must explicitly convert float to int if needed
+### 3. Input Validation Strategy
+**Decision:** Strict type checking and range validation in FibonacciValidator.
 
-### Decision 3: Fail-Fast Validation
+**Rationale:**
+- **Type Safety:** Reject non-integer types (float, string, etc.) explicitly
+- **Early Error Detection:** Fail fast with clear error messages
+- **Predictability:** Users know exactly what inputs are acceptable
+- **Security:** Prevents unexpected type coercion or implicit conversions
 
-**Rationale**:
-- Detects invalid inputs immediately before computation
-- Provides clear error messages for debugging
-- Prevents wasted computation on invalid inputs
-- Follows defensive programming principles
+### 4. Edge Case Handling
+**Decision:** Explicit handling of base cases (n=0, n=1) in FibonacciCalculator.
 
-**Trade-offs**:
-- Adds validation overhead (negligible at O(1))
-- Requires exception handling in calling code
+**Rationale:**
+- **Correctness:** Ensures fibonacci(0)=0 and fibonacci(1)=1 are always correct
+- **Efficiency:** Base cases return immediately without iteration
+- **Clarity:** Makes algorithm logic explicit and easy to verify
 
-### Decision 4: Explicit Base Case Handling
+## Implementation Approach
 
-**Rationale**:
-- Makes algorithm behavior transparent and testable
-- Prevents off-by-one errors in loop logic
-- Improves code readability and maintainability
-- Enables independent testing of base cases
+### Type Hints
+All functions include explicit type hints for parameters and return values:
+```python
+def fibonacci(n: int) -> int:
+    """Calculate the nth Fibonacci number."""
+    pass
+```
 
-**Trade-offs**:
-- Slightly more code than deriving from general algorithm
-- Minimal performance impact (negligible)
+### Documentation
+Comprehensive docstrings follow PEP 257 conventions:
+- Description of what the function does
+- Parameter documentation with types and constraints
+- Return value documentation
+- Raises documentation for exceptions
+- Multiple usage examples demonstrating different inputs
+
+### Error Handling
+- Input validation raises `ValueError` with descriptive messages
+- Error messages clearly indicate what went wrong and why
+- Errors are raised early before computation begins
+
+### Algorithm Correctness
+The iterative algorithm is verified against known Fibonacci values:
+- fibonacci(0) = 0
+- fibonacci(1) = 1
+- fibonacci(2) = 1
+- fibonacci(3) = 2
+- fibonacci(4) = 3
+- fibonacci(5) = 5
+- fibonacci(10) = 55
+- fibonacci(20) = 6765
+
+## Technology Stack
+
+- **Language:** Python 3.12
+- **Standard Library Only:** Yes (no external dependencies)
+- **Type Hints:** PEP 484 compliant
+- **Documentation:** PEP 257 docstring conventions
+- **Code Style:** PEP 8 compliance
+
+## Key Assumptions
+
+1. **Input Type:** Input `n` is always an integer type (not float or string)
+2. **Non-negative Definition:** Non-negative integers are defined as n >= 0
+3. **Fibonacci Sequence:** Sequence starts with F(0)=0, F(1)=1
+4. **Large Number Support:** Python 3 arbitrary precision integers handle large n values
+5. **Performance Priority:** Iterative approach preferred over recursive
+6. **Single-threaded Context:** No concurrency or thread-safety concerns
+7. **Type Hints:** Used for documentation and static analysis (not enforced at runtime by default)
 
 ## Design Review Checklist
 
-### Critical Requirements
+### Critical Items
+- ✓ Function signature: `def fibonacci(n: int) -> int:`
+- ✓ Type hints on all parameters and return values
+- ✓ ValueError raised for negative inputs with descriptive message
+- ✓ Negative inputs not processed by calculator
 
-1. **Function Signature** ✓
-   - Name: `fibonacci`
-   - Parameter: `n` of type `int`
-   - Return type: `int`
-   - Type hints present: `def fibonacci(n: int) -> int:`
-
-2. **Error Handling** ✓
-   - Negative inputs raise `ValueError`
-   - Error message contains "non-negative"
-   - No silent failures or special return values
-
-### High Priority Requirements
-
-3. **Edge Cases** ✓
-   - `fibonacci(0)` returns 0
-   - `fibonacci(1)` returns 1
-   - `fibonacci(2)` returns 1
-   - Handled explicitly, not derived from general algorithm
-
-4. **Performance** ✓
-   - Iterative approach used (not recursive)
-   - Two variables (prev, curr) for state
-   - No recursive calls within implementation
-   - Time complexity: O(n)
-   - Space complexity: O(1)
-
-5. **Documentation** ✓
-   - Comprehensive docstring present
-   - Summary
+### High Priority Items
+-

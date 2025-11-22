@@ -321,13 +321,17 @@ class TSPOrchestrator:
                 design_review, code_review, test_report
             )
 
+            # Get test summary values
+            total_tests = test_report.test_summary.get("total_tests", 0)
+            passed_tests = test_report.test_summary.get("passed", 0)
+
             logger.info(
                 f"\n" + "="*80 + "\n"
                 f"TSP ORCHESTRATOR: Pipeline COMPLETE\n"
                 f"Overall Status: {overall_status}\n"
                 f"Duration: {duration_seconds:.1f}s\n"
                 f"Files Generated: {generated_code.total_files}\n"
-                f"Tests Passed: {test_report.tests_passed}/{test_report.total_tests}\n"
+                f"Tests Passed: {passed_tests}/{total_tests}\n"
                 f"HITL Overrides: {len(self.hitl_overrides)}\n"
                 f"="*80
             )
@@ -579,9 +583,13 @@ class TSPOrchestrator:
             test_report = self.test_agent.execute(test_input)
             test_iterations += 1
 
+            # Get test summary values
+            total_tests = test_report.test_summary.get("total_tests", 0)
+            passed_tests = test_report.test_summary.get("passed", 0)
+
             logger.info(
                 f"Test Results: {test_report.test_status} "
-                f"({test_report.tests_passed}/{test_report.total_tests} passed)"
+                f"({passed_tests}/{total_tests} passed)"
             )
 
             # Check test status
