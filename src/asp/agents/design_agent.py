@@ -68,6 +68,7 @@ class DesignAgent(BaseAgent):
         db_path: Optional[Path] = None,
         llm_client: Optional[Any] = None,
         use_markdown: Optional[bool] = None,
+        model: Optional[str] = None,
     ):
         """
         Initialize Design Agent.
@@ -78,9 +79,12 @@ class DesignAgent(BaseAgent):
             use_markdown: Optional flag to use markdown output format instead of JSON.
                          If None, checks ASP_DESIGN_AGENT_USE_MARKDOWN environment variable.
                          Defaults to False if neither is set.
+            model: Optional model name to use for LLM calls (e.g., "claude-sonnet-4-5-20250929").
+                  If None, uses the default model from LLMClient.
         """
         super().__init__(db_path=db_path, llm_client=llm_client)
         self.agent_version = "1.0.0"
+        self.model = model  # Store model for use in LLM calls
 
         # Determine markdown mode: explicit parameter > env var > default (False)
         if use_markdown is not None:
@@ -93,7 +97,8 @@ class DesignAgent(BaseAgent):
         self.markdown_parser = DesignMarkdownParser() if self.use_markdown else None
 
         mode_str = "markdown" if self.use_markdown else "JSON"
-        logger.info(f"DesignAgent initialized (output mode: {mode_str})")
+        model_str = f", model: {self.model}" if self.model else ""
+        logger.info(f"DesignAgent initialized (output mode: {mode_str}{model_str})")
 
     @track_agent_cost(
         agent_role="Design",
@@ -243,7 +248,8 @@ class DesignAgent(BaseAgent):
         # Call LLM to generate design
         response = self.call_llm(
             prompt=formatted_prompt,
-            max_tokens=8000,  # Designs can be large
+            model=self.model,  # Use configured model or default
+            max_tokens=16000,  # Markdown designs can be large (increased from 8000)
             temperature=0.1,  # Low temperature for consistency
         )
 
@@ -308,12 +314,14 @@ class DesignAgent(BaseAgent):
         # Call LLM to generate design
         response = self.call_llm(
             prompt=formatted_prompt,
-            max_tokens=8000,  # Designs can be large
+            model=self.model,  # Use configured model or default
+            max_tokens=16000,  # Markdown designs can be large (increased from 8000)
             temperature=0.1,  # Low temperature for consistency
         )
 
         # Parse response - should be markdown text
-        content = response.get("content")
+        # Use raw_content to avoid JSON auto-parsing
+        content = response.get("raw_content") or response.get("content")
         if not isinstance(content, str):
             raise AgentExecutionError(
                 f"LLM returned non-string response in markdown mode: {type(content)}\n"
@@ -355,14 +363,14 @@ class DesignAgent(BaseAgent):
         lines = [
             f"Project ID: {project_plan.project_id if hasattr(project_plan, 'project_id') else 'N/A'}",
             f"Task ID: {project_plan.task_id}",
-            f"Total Complexity: {project_plan.total_complexity}",
+            f"Total Complexity: {project_plan.total_est_complexity}",
             "",
             "Semantic Units:",
         ]
 
         for unit in project_plan.semantic_units:
             lines.append(f"\n{unit.unit_id}: {unit.description}")
-            lines.append(f"  - Complexity: {unit.estimated_complexity}")
+            lines.append(f"  - Complexity: {unit.est_complexity}")
             if unit.dependencies:
                 lines.append(f"  - Dependencies: {', '.join(unit.dependencies)}")
 
@@ -514,7 +522,7 @@ class DesignAgent(BaseAgent):
         # Step 4: Call LLM to generate revised design
         response = self.call_llm(
             prompt=formatted_prompt,
-            max_tokens=8000,  # Designs can be large
+            max_tokens=16000,  # Markdown designs can be large (increased from 8000)
             temperature=0.1,  # Low temperature for consistency
         )
 

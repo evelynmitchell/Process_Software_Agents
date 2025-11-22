@@ -246,4 +246,26 @@ Return a complete JSON design specification. IMPORTANT: Follow this EXACT schema
 6. Include clear notes showing how feedback was addressed (use "ADDRESSES ISSUE-XXX" in implementation_notes)
 7. Follow the EXACT schema structure shown above
 
+⚠️⚠️⚠️ CRITICAL: request_params VALUES MUST BE PLAIN STRINGS, NOT OBJECTS ⚠️⚠️⚠️
+
+WRONG - DO NOT USE THIS FORMAT:
+```json
+"request_params": {{
+  "name": {{
+    "type": "string",
+    "required": false,
+    "description": "..."
+  }}
+}}
+```
+
+CORRECT - USE THIS FORMAT:
+```json
+"request_params": {{
+  "name": "string (optional, description)"
+}}
+```
+
+The value MUST be a simple string, NOT a nested object with "type", "required", etc.
+
 Begin revised design specification (return ONLY valid JSON matching the schema above):

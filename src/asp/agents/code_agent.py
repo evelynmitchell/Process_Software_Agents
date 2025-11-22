@@ -546,6 +546,9 @@ class CodeAgent(BaseAgent):
             logger.debug(
                 f"Response content keys: {content.keys() if isinstance(content, dict) else 'not a dict'}"
             )
+            # Debug: dump the full content for investigation
+            import json
+            logger.error(f"DEBUG: Full manifest content: {json.dumps(content, indent=2)}")
             raise AgentExecutionError(f"Manifest validation failed: {e}") from e
 
     def _generate_file_content(

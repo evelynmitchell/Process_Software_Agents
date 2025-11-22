@@ -73,18 +73,18 @@ Your output MUST follow this EXACT structure:
 
 **Request Body:** (omit section if N/A - typically for GET requests)
 ```json
-{
+{{
   "field1": "type (constraints, description)",
   "field2": "type (constraints, description)"
-}
+}}
 ```
 
 **Response (Success):**
 ```json
-{
+{{
   "field1": "type (description)",
   "field2": "type (description)"
-}
+}}
 ```
 
 **Error Responses:**
@@ -157,14 +157,14 @@ CHECK ({{constraint_expression}});
 
 **Implementation Notes:**
 
-{{Detailed implementation guidance - be VERY specific. Include:
+{{{{Detailed implementation guidance - be VERY specific. Include:
 - Specific algorithms to use
 - Validation rules
 - Error handling approaches
 - Performance considerations
 - Library/framework usage
 - Edge case handling
-}}
+}}}}
 
 **Estimated Complexity:** {{number from project plan}}
 
@@ -292,9 +292,9 @@ Simple single-tier REST API architecture using FastAPI framework. Application co
 
 **Response (Success):**
 ```json
-{
-  "message": "string (format: 'Hello, {name}!' or 'Hello, World!')"
-}
+{{
+  "message": "string (format: 'Hello, {{name}}!' or 'Hello, World!')"
+}}
 ```
 
 **Error Responses:**
@@ -312,10 +312,10 @@ Simple single-tier REST API architecture using FastAPI framework. Application co
 
 **Response (Success):**
 ```json
-{
+{{
   "status": "string (value: 'ok')",
   "timestamp": "string (ISO 8601 format, example: '2024-01-15T10:30:45.123456Z')"
-}
+}}
 ```
 
 **Error Responses:**
@@ -409,7 +409,7 @@ Format greeting message based on name parameter.
 
 **Implementation Notes:**
 
-Use FastAPI @app.get('/hello') decorator. Accept name as Query parameter with default None. Validate name using regex pattern '^[a-zA-Z0-9 ]*$' if provided. Raise HTTPException(status_code=400, detail='INVALID_NAME_PARAMETER') for invalid characters. Raise HTTPException(status_code=400, detail='NAME_TOO_LONG') if length > 255. Return dict with 'message' key. If name is None or empty string, return 'Hello, World!'. Otherwise return 'Hello, {name}!' with name stripped of leading/trailing whitespace.
+Use FastAPI @app.get('/hello') decorator. Accept name as Query parameter with default None. Validate name using regex pattern '^[a-zA-Z0-9 ]*$' if provided. Raise HTTPException(status_code=400, detail='INVALID_NAME_PARAMETER') for invalid characters. Raise HTTPException(status_code=400, detail='NAME_TOO_LONG') if length > 255. Return dict with 'message' key. If name is None or empty string, return 'Hello, World!'. Otherwise return 'Hello, {{name}}!' with name stripped of leading/trailing whitespace.
 
 **Estimated Complexity:** 24
 
@@ -499,7 +499,7 @@ Handle unexpected exceptions and return safe error response.
 
 **Implementation Notes:**
 
-Register exception handlers using @app.exception_handler(ExceptionType) decorator. For HTTPException: pass through status_code and detail as-is. For RequestValidationError: return status 400 with error code 'VALIDATION_ERROR' and message describing validation failure. For generic Exception: log exception with logging.error(), return status 500 with error code 'INTERNAL_SERVER_ERROR' and generic message 'An unexpected error occurred'. All error responses must be JSON with structure: {'error_code': str, 'message': str}. Never expose stack traces in error responses.
+Register exception handlers using @app.exception_handler(ExceptionType) decorator. For HTTPException: pass through status_code and detail as-is. For RequestValidationError: return status 400 with error code 'VALIDATION_ERROR' and message describing validation failure. For generic Exception: log exception with logging.error(), return status 500 with error code 'INTERNAL_SERVER_ERROR' and generic message 'An unexpected error occurred'. All error responses must be JSON with structure: {{'error_code': str, 'message': str}}. Never expose stack traces in error responses.
 
 **Estimated Complexity:** 27
 
@@ -572,11 +572,11 @@ Before outputting your design, verify:
 
 # INPUT DATA
 
-Task ID: {task_id}
-Requirements: {requirements}
-Project Plan: {project_plan}
-Context Files: {context_files}
-Design Constraints: {design_constraints}
+Task ID: {{task_id}}
+Requirements: {{requirements}}
+Project Plan: {{project_plan}}
+Context Files: {{context_files}}
+Design Constraints: {{design_constraints}}
 
 # YOUR RESPONSE
 

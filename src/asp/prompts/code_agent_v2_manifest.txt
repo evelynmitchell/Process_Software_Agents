@@ -383,4 +383,22 @@ Before returning your manifest, verify:
 
 5. **CLEAR DESCRIPTIONS:** Each file description should explain WHAT the file implements, not HOW.
 
+---
+
+# INPUT DATA
+
+## Task ID
+{task_id}
+
+## Design Specification
+{design_specification}
+
+## Coding Standards
+{coding_standards}
+
+## Context Files
+{context_files}
+
+---
+
 Now, analyze the provided design specification and generate the complete file manifest.
