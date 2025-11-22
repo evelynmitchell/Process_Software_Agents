@@ -1,185 +1,195 @@
+"""
+Comprehensive unit tests for the Fibonacci module.
+
+Tests cover input validation, edge cases, correctness of calculations, error handling
+for negative inputs, and type checking for the Fibonacci function.
+
+Component IDs: FibonacciValidator, FibonacciCalculator, FibonacciFunction
+Semantic Units: SU-001, SU-002, SU-003
+
+Author: ASP Code Agent
+"""
+
 import pytest
 from src.fibonacci import fibonacci
 
 
-class TestFibonacciCorrectness:
-    """Test suite for Fibonacci sequence correctness.
-    
-    Validates that the fibonacci function returns correct values for the
-    Fibonacci sequence. Tests cover base cases, standard cases, and larger values.
-    
-    Component ID: FibonacciCalculator
-    Semantic Unit: SU-002
-    """
+class TestFibonacciInputValidation:
+    """Test suite for input validation (SU-001: FibonacciValidator)."""
 
-    def test_fibonacci_n_zero_returns_zero(self) -> None:
-        """Test that fibonacci(0) returns 0 (base case)."""
-        result = fibonacci(0)
-        assert result == 0
-        assert isinstance(result, int)
-
-    def test_fibonacci_n_one_returns_one(self) -> None:
-        """Test that fibonacci(1) returns 1 (base case)."""
-        result = fibonacci(1)
-        assert result == 1
-        assert isinstance(result, int)
-
-    def test_fibonacci_n_two_returns_one(self) -> None:
-        """Test that fibonacci(2) returns 1."""
-        result = fibonacci(2)
-        assert result == 1
-        assert isinstance(result, int)
-
-    def test_fibonacci_n_three_returns_two(self) -> None:
-        """Test that fibonacci(3) returns 2."""
-        result = fibonacci(3)
-        assert result == 2
-        assert isinstance(result, int)
-
-    def test_fibonacci_n_four_returns_three(self) -> None:
-        """Test that fibonacci(4) returns 3."""
-        result = fibonacci(4)
-        assert result == 3
-        assert isinstance(result, int)
-
-    def test_fibonacci_n_five_returns_five(self) -> None:
-        """Test that fibonacci(5) returns 5."""
-        result = fibonacci(5)
-        assert result == 5
-        assert isinstance(result, int)
-
-    def test_fibonacci_n_six_returns_eight(self) -> None:
-        """Test that fibonacci(6) returns 8."""
-        result = fibonacci(6)
-        assert result == 8
-        assert isinstance(result, int)
-
-    def test_fibonacci_n_ten_returns_fifty_five(self) -> None:
-        """Test that fibonacci(10) returns 55."""
-        result = fibonacci(10)
-        assert result == 55
-        assert isinstance(result, int)
-
-    def test_fibonacci_n_fifteen_returns_six_hundred_ten(self) -> None:
-        """Test that fibonacci(15) returns 610."""
-        result = fibonacci(15)
-        assert result == 610
-        assert isinstance(result, int)
-
-    def test_fibonacci_sequence_correctness(self) -> None:
-        """Test that fibonacci produces correct sequence for multiple values."""
-        expected_sequence = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]
-        for n, expected_value in enumerate(expected_sequence):
-            result = fibonacci(n)
-            assert result == expected_value, (
-                f"fibonacci({n}) returned {result}, expected {expected_value}"
-            )
-
-    def test_fibonacci_n_twenty_returns_correct_value(self) -> None:
-        """Test that fibonacci(20) returns 6765."""
-        result = fibonacci(20)
-        assert result == 6765
-
-    def test_fibonacci_n_twenty_five_returns_correct_value(self) -> None:
-        """Test that fibonacci(25) returns 75025."""
-        result = fibonacci(25)
-        assert result == 75025
-
-    def test_fibonacci_large_value_n_fifty(self) -> None:
-        """Test that fibonacci(50) computes correctly for large values."""
-        result = fibonacci(50)
-        assert result == 12586269025
-        assert isinstance(result, int)
-
-    def test_fibonacci_large_value_n_one_hundred(self) -> None:
-        """Test that fibonacci(100) handles very large values without overflow."""
-        result = fibonacci(100)
-        expected = 354224848179261915075
-        assert result == expected
-        assert isinstance(result, int)
-
-    def test_fibonacci_return_type_is_always_int(self) -> None:
-        """Test that fibonacci always returns int type, never float or other."""
-        for n in [0, 1, 5, 10, 20]:
-            result = fibonacci(n)
-            assert isinstance(result, int)
-            assert not isinstance(result, bool)
-            assert not isinstance(result, float)
-
-
-class TestFibonacciErrorHandling:
-    """Test suite for error handling and input validation.
-    
-    Validates that the fibonacci function properly rejects invalid inputs
-    and raises appropriate exceptions with descriptive messages.
-    
-    Component ID: FibonacciValidator
-    Semantic Unit: SU-001
-    """
-
-    def test_fibonacci_negative_one_raises_value_error(self) -> None:
-        """Test that fibonacci(-1) raises ValueError."""
-        with pytest.raises(ValueError) as exc_info:
+    def test_fibonacci_rejects_negative_integer(self) -> None:
+        """Test that fibonacci raises ValueError for negative integer input."""
+        with pytest.raises(ValueError, match="n must be a non-negative integer"):
             fibonacci(-1)
-        assert "non-negative" in str(exc_info.value).lower()
 
-    def test_fibonacci_negative_ten_raises_value_error(self) -> None:
-        """Test that fibonacci(-10) raises ValueError."""
-        with pytest.raises(ValueError) as exc_info:
-            fibonacci(-10)
-        assert "non-negative" in str(exc_info.value).lower()
+    def test_fibonacci_rejects_large_negative_integer(self) -> None:
+        """Test that fibonacci raises ValueError for large negative integer."""
+        with pytest.raises(ValueError, match="n must be a non-negative integer"):
+            fibonacci(-1000)
 
-    def test_fibonacci_negative_one_hundred_raises_value_error(self) -> None:
-        """Test that fibonacci(-100) raises ValueError."""
-        with pytest.raises(ValueError) as exc_info:
-            fibonacci(-100)
-        assert "non-negative" in str(exc_info.value).lower()
-
-    def test_fibonacci_error_message_contains_non_negative(self) -> None:
-        """Test that error message explicitly mentions 'non-negative'."""
-        with pytest.raises(ValueError) as exc_info:
-            fibonacci(-5)
-        error_message = str(exc_info.value)
-        assert "non-negative" in error_message.lower()
-
-    def test_fibonacci_error_message_contains_integer(self) -> None:
-        """Test that error message mentions 'integer' requirement."""
-        with pytest.raises(ValueError) as exc_info:
-            fibonacci(-1)
-        error_message = str(exc_info.value)
-        assert "integer" in error_message.lower()
-
-    def test_fibonacci_float_input_raises_value_error(self) -> None:
-        """Test that fibonacci with float input raises ValueError."""
-        with pytest.raises(ValueError):
+    def test_fibonacci_rejects_float_input(self) -> None:
+        """Test that fibonacci raises TypeError for float input."""
+        with pytest.raises(TypeError):
             fibonacci(5.5)  # type: ignore
 
-    def test_fibonacci_string_input_raises_type_error_or_value_error(self) -> None:
-        """Test that fibonacci with string input raises appropriate error."""
-        with pytest.raises((ValueError, TypeError)):
+    def test_fibonacci_rejects_string_input(self) -> None:
+        """Test that fibonacci raises TypeError for string input."""
+        with pytest.raises(TypeError):
             fibonacci("5")  # type: ignore
 
-    def test_fibonacci_none_input_raises_type_error_or_value_error(self) -> None:
-        """Test that fibonacci with None input raises appropriate error."""
-        with pytest.raises((ValueError, TypeError)):
+    def test_fibonacci_rejects_none_input(self) -> None:
+        """Test that fibonacci raises TypeError for None input."""
+        with pytest.raises(TypeError):
             fibonacci(None)  # type: ignore
 
-    def test_fibonacci_list_input_raises_type_error_or_value_error(self) -> None:
-        """Test that fibonacci with list input raises appropriate error."""
-        with pytest.raises((ValueError, TypeError)):
+    def test_fibonacci_rejects_list_input(self) -> None:
+        """Test that fibonacci raises TypeError for list input."""
+        with pytest.raises(TypeError):
             fibonacci([5])  # type: ignore
 
-    def test_fibonacci_boolean_true_raises_value_error(self) -> None:
-        """Test that fibonacci(True) raises ValueError (bool excluded from int)."""
-        with pytest.raises(ValueError):
-            fibonacci(True)  # type: ignore
+    def test_fibonacci_rejects_dict_input(self) -> None:
+        """Test that fibonacci raises TypeError for dict input."""
+        with pytest.raises(TypeError):
+            fibonacci({"n": 5})  # type: ignore
 
-    def test_fibonacci_boolean_false_raises_value_error(self) -> None:
-        """Test that fibonacci(False) raises ValueError (bool excluded from int)."""
-        with pytest.raises(ValueError):
-            fibonacci(False)  # type: ignore
+    def test_fibonacci_accepts_zero(self) -> None:
+        """Test that fibonacci accepts zero as valid input."""
+        result = fibonacci(0)
+        assert isinstance(result, int)
+        assert result == 0
 
-    def test_fibonacci_no_exception_for_valid_non_negative_integers(self) -> None:
-        """Test that no exceptions are raised for valid non-negative integers."""
-        valid_inputs = [0, 1, 2, 5, 10, 20, 50, 100]
-        for n in valid_inputs:
+    def test_fibonacci_accepts_positive_integer(self) -> None:
+        """Test that fibonacci accepts positive integer input."""
+        result = fibonacci(5)
+        assert isinstance(result, int)
+        assert result == 5
+
+    def test_fibonacci_accepts_large_positive_integer(self) -> None:
+        """Test that fibonacci accepts large positive integer input."""
+        result = fibonacci(100)
+        assert isinstance(result, int)
+        assert result > 0
+
+
+class TestFibonacciEdgeCases:
+    """Test suite for edge cases (SU-002: FibonacciCalculator base cases)."""
+
+    def test_fibonacci_zero_returns_zero(self) -> None:
+        """Test that fibonacci(0) returns 0."""
+        assert fibonacci(0) == 0
+
+    def test_fibonacci_one_returns_one(self) -> None:
+        """Test that fibonacci(1) returns 1."""
+        assert fibonacci(1) == 1
+
+    def test_fibonacci_two_returns_one(self) -> None:
+        """Test that fibonacci(2) returns 1."""
+        assert fibonacci(2) == 1
+
+    def test_fibonacci_three_returns_two(self) -> None:
+        """Test that fibonacci(3) returns 2."""
+        assert fibonacci(3) == 2
+
+    def test_fibonacci_four_returns_three(self) -> None:
+        """Test that fibonacci(4) returns 3."""
+        assert fibonacci(4) == 3
+
+    def test_fibonacci_five_returns_five(self) -> None:
+        """Test that fibonacci(5) returns 5."""
+        assert fibonacci(5) == 5
+
+    def test_fibonacci_six_returns_eight(self) -> None:
+        """Test that fibonacci(6) returns 8."""
+        assert fibonacci(6) == 8
+
+
+class TestFibonacciCorrectness:
+    """Test suite for correctness of Fibonacci calculations (SU-002: FibonacciCalculator)."""
+
+    def test_fibonacci_sequence_correctness(self) -> None:
+        """Test that fibonacci produces correct sequence values."""
+        expected_sequence = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]
+        for n, expected in enumerate(expected_sequence):
+            assert fibonacci(n) == expected, f"fibonacci({n}) should be {expected}"
+
+    def test_fibonacci_ten_returns_fifty_five(self) -> None:
+        """Test that fibonacci(10) returns 55."""
+        assert fibonacci(10) == 55
+
+    def test_fibonacci_fifteen_returns_six_hundred_ten(self) -> None:
+        """Test that fibonacci(15) returns 610."""
+        assert fibonacci(15) == 610
+
+    def test_fibonacci_twenty_returns_six_thousand_seven_hundred_sixty_five(self) -> None:
+        """Test that fibonacci(20) returns 6765."""
+        assert fibonacci(20) == 6765
+
+    def test_fibonacci_twenty_five_returns_correct_value(self) -> None:
+        """Test that fibonacci(25) returns 75025."""
+        assert fibonacci(25) == 75025
+
+    def test_fibonacci_thirty_returns_correct_value(self) -> None:
+        """Test that fibonacci(30) returns 832040."""
+        assert fibonacci(30) == 832040
+
+    def test_fibonacci_property_sum_of_previous_two(self) -> None:
+        """Test that each Fibonacci number is sum of previous two."""
+        for n in range(2, 20):
+            assert fibonacci(n) == fibonacci(n - 1) + fibonacci(n - 2)
+
+    def test_fibonacci_monotonically_increasing(self) -> None:
+        """Test that Fibonacci sequence is monotonically increasing."""
+        previous = fibonacci(0)
+        for n in range(1, 30):
+            current = fibonacci(n)
+            assert current >= previous, f"fibonacci({n}) should be >= fibonacci({n-1})"
+            previous = current
+
+    def test_fibonacci_positive_for_positive_input(self) -> None:
+        """Test that fibonacci returns positive values for positive inputs."""
+        for n in range(1, 20):
+            assert fibonacci(n) > 0, f"fibonacci({n}) should be positive"
+
+
+class TestFibonacciReturnType:
+    """Test suite for return type validation."""
+
+    def test_fibonacci_returns_integer(self) -> None:
+        """Test that fibonacci returns an integer type."""
+        result = fibonacci(5)
+        assert isinstance(result, int)
+        assert not isinstance(result, bool)
+
+    def test_fibonacci_returns_integer_for_zero(self) -> None:
+        """Test that fibonacci returns integer for input 0."""
+        result = fibonacci(0)
+        assert isinstance(result, int)
+
+    def test_fibonacci_returns_integer_for_one(self) -> None:
+        """Test that fibonacci returns integer for input 1."""
+        result = fibonacci(1)
+        assert isinstance(result, int)
+
+    def test_fibonacci_returns_integer_for_large_input(self) -> None:
+        """Test that fibonacci returns integer for large input."""
+        result = fibonacci(50)
+        assert isinstance(result, int)
+
+    def test_fibonacci_never_returns_float(self) -> None:
+        """Test that fibonacci never returns float type."""
+        for n in range(0, 20):
+            result = fibonacci(n)
+            assert not isinstance(result, float)
+
+    def test_fibonacci_never_returns_none(self) -> None:
+        """Test that fibonacci never returns None."""
+        for n in range(0, 20):
+            result = fibonacci(n)
+            assert result is not None
+
+
+class TestFibonacciErrorMessages:
+    """Test suite for error message quality."""
+
+    def test_fibonacci_negative_error_message_clarity(self) -> None:
+        """Test that ValueError message

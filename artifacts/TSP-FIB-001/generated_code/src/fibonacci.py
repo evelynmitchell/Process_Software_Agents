@@ -1,9 +1,9 @@
 """
-Fibonacci module providing iterative computation of Fibonacci numbers.
+Fibonacci Module
 
-This module implements the Fibonacci sequence calculation with input validation
-and comprehensive documentation. It provides a public fibonacci() function that
-orchestrates validation and calculation.
+This module provides functionality to calculate Fibonacci numbers using an iterative approach.
+It includes input validation, calculation logic, and a public API function with comprehensive
+documentation and examples.
 
 Component IDs: FibonacciValidator, FibonacciCalculator, FibonacciFunction
 Semantic Units: SU-001, SU-002, SU-003
@@ -15,10 +15,11 @@ Author: ASP Code Agent
 
 class FibonacciValidator:
     """
-    Validates input parameters for Fibonacci computation.
+    Validator for Fibonacci function input parameters.
 
-    This class handles input validation and enforces type constraints for the
-    Fibonacci function. It ensures that only non-negative integers are accepted.
+    This class handles input validation and type checking for the Fibonacci
+    calculation function. It ensures that inputs are valid non-negative integers
+    before any calculation is performed.
 
     Component ID: FibonacciValidator
     Semantic Unit ID: SU-001
@@ -29,18 +30,18 @@ class FibonacciValidator:
         """
         Validate that input n is a non-negative integer.
 
-        This method checks if the input is an integer type (excluding booleans)
-        and is non-negative. It raises ValueError if validation fails.
+        This method performs type checking and range validation on the input
+        parameter. It raises ValueError if the input is invalid.
 
         Args:
-            n: The input value to validate.
+            n: The input value to validate. Must be an integer type.
 
         Returns:
-            bool: True if validation passes.
+            bool: True if input is valid (non-negative integer).
 
         Raises:
-            ValueError: If n is not an integer or is negative, with message
-                'n must be a non-negative integer'.
+            TypeError: If n is not an integer type (e.g., float, string).
+            ValueError: If n is a negative integer.
 
         Examples:
             >>> FibonacciValidator.validate_input(0)
@@ -54,15 +55,10 @@ class FibonacciValidator:
             >>> FibonacciValidator.validate_input(3.5)
             Traceback (most recent call last):
                 ...
-            ValueError: n must be a non-negative integer
-            >>> FibonacciValidator.validate_input(True)
-            Traceback (most recent call last):
-                ...
-            ValueError: n must be a non-negative integer
+            TypeError: n must be an integer, not float
         """
-        # Exclude booleans explicitly since bool is a subclass of int in Python
-        if isinstance(n, bool) or not isinstance(n, int):
-            raise ValueError("n must be a non-negative integer")
+        if not isinstance(n, int) or isinstance(n, bool):
+            raise TypeError(f"n must be an integer, not {type(n).__name__}")
 
         if n < 0:
             raise ValueError("n must be a non-negative integer")
@@ -72,39 +68,71 @@ class FibonacciValidator:
 
 class FibonacciCalculator:
     """
-    Computes Fibonacci numbers using an iterative approach.
+    Calculator for Fibonacci numbers using iterative approach.
 
-    This class implements the iterative Fibonacci algorithm with O(n) time
-    complexity and O(1) space complexity. It handles edge cases for n=0 and n=1,
-    and uses integer arithmetic for all computations.
+    This class implements the core Fibonacci calculation logic using an iterative
+    algorithm. It provides O(n) time complexity and O(1) space complexity by
+    avoiding recursion and using only two variables to track state.
 
     Component ID: FibonacciCalculator
     Semantic Unit ID: SU-002
     """
 
     @staticmethod
-    def calculate(n: int) -> int:
+    def handle_base_cases(n: int) -> int | None:
         """
-        Calculate the nth Fibonacci number using iterative algorithm.
+        Handle base cases for Fibonacci calculation.
 
-        This method computes the nth Fibonacci number where the sequence is
-        defined as: F(0)=0, F(1)=1, F(n)=F(n-1)+F(n-2) for n>=2.
-
-        The iterative approach maintains two variables (prev and curr) that
-        represent consecutive Fibonacci numbers, updating them in each iteration
-        until the nth number is computed.
+        Returns the Fibonacci value for base cases (n=0 or n=1) without
+        requiring iteration. Returns None for other cases to indicate that
+        the general calculation algorithm should be used.
 
         Args:
-            n: The position in the Fibonacci sequence (must be non-negative).
+            n: The input value. Must be a non-negative integer.
+
+        Returns:
+            int | None: The Fibonacci value for base cases (0 or 1),
+                       or None if n requires iterative calculation.
+
+        Examples:
+            >>> FibonacciCalculator.handle_base_cases(0)
+            0
+            >>> FibonacciCalculator.handle_base_cases(1)
+            1
+            >>> FibonacciCalculator.handle_base_cases(2) is None
+            True
+            >>> FibonacciCalculator.handle_base_cases(5) is None
+            True
+        """
+        if n == 0:
+            return 0
+        if n == 1:
+            return 1
+        return None
+
+    @staticmethod
+    def calculate(n: int) -> int:
+        """
+        Calculate the nth Fibonacci number using iterative approach.
+
+        This method implements the Fibonacci calculation using an iterative
+        algorithm with two variables (prev, curr) to track state. This approach
+        avoids recursion overhead and stack overflow issues for large values of n.
+
+        The algorithm:
+        1. Handle base cases (n=0 returns 0, n=1 returns 1)
+        2. Initialize prev=0, curr=1
+        3. Iterate n-1 times, updating: temp=curr, curr=prev+curr, prev=temp
+        4. Return curr
+
+        Time Complexity: O(n)
+        Space Complexity: O(1)
+
+        Args:
+            n: The position in the Fibonacci sequence. Must be non-negative.
 
         Returns:
             int: The nth Fibonacci number.
-
-        Time Complexity:
-            O(n) - Single pass through n iterations.
-
-        Space Complexity:
-            O(1) - Only two variables used regardless of input size.
 
         Examples:
             >>> FibonacciCalculator.calculate(0)
@@ -118,49 +146,47 @@ class FibonacciCalculator:
             >>> FibonacciCalculator.calculate(10)
             55
         """
-        # Handle base cases
-        if n == 0:
-            return 0
-        if n == 1:
-            return 1
+        base_case_result = FibonacciCalculator.handle_base_cases(n)
+        if base_case_result is not None:
+            return base_case_result
 
-        # Iterative computation for n >= 2
-        prev = 0
-        curr = 1
+        prev: int = 0
+        curr: int = 1
 
-        for _ in range(2, n + 1):
-            next_val = prev + curr
-            prev = curr
-            curr = next_val
+        for _ in range(n - 1):
+            temp: int = curr
+            curr = prev + curr
+            prev = temp
 
         return curr
 
 
 def fibonacci(n: int) -> int:
     """
-    Calculate the nth Fibonacci number using iterative approach.
+    Calculate the nth Fibonacci number using an iterative approach.
 
-    This function computes the nth number in the Fibonacci sequence, which is
-    a series of integers where each number is the sum of the two preceding ones.
-    The sequence starts with 0 and 1: 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, ...
+    The Fibonacci sequence is a series of numbers where each number is the sum
+    of the two preceding ones, typically starting with 0 and 1. This function
+    computes the nth number in this sequence efficiently using an iterative
+    algorithm that avoids recursion overhead.
 
-    The function validates the input to ensure it is a non-negative integer,
-    then uses an iterative algorithm to compute the result efficiently with
-    O(n) time complexity and O(1) space complexity.
+    The function validates input before calculation, ensuring that n is a
+    non-negative integer. It then uses an iterative approach with O(n) time
+    complexity and O(1) space complexity to compute the result.
 
     Args:
-        n: The position in the Fibonacci sequence. Must be a non-negative integer
-            (n >= 0). Represents which Fibonacci number to compute, where F(0)=0,
-            F(1)=1, F(2)=1, F(3)=2, etc.
+        n: The position in the Fibonacci sequence (0-indexed).
+           Must be a non-negative integer.
+           - n=0 returns 0 (first Fibonacci number)
+           - n=1 returns 1 (second Fibonacci number)
+           - n>=2 returns the sum of the two preceding numbers
 
     Returns:
-        int: The nth Fibonacci number. For n=0 returns 0, for n=1 returns 1,
-            and for n>=2 returns the sum of the two preceding Fibonacci numbers.
+        int: The nth Fibonacci number.
 
     Raises:
-        ValueError: If n is negative or not an integer type. The error message
-            will be 'n must be a non-negative integer'. Note that boolean values
-            (True, False) are rejected even though bool is a subclass of int.
+        TypeError: If n is not an integer type (e.g., float, string, bool).
+        ValueError: If n is a negative integer.
 
     Examples:
         >>> fibonacci(0)
@@ -174,14 +200,13 @@ def fibonacci(n: int) -> int:
         >>> fibonacci(10)
         55
 
-    Component ID: FibonacciFunction
-    Semantic Unit ID: SU-003
-    Task ID: TSP-FIB-001
+    Note:
+        This function uses an iterative approach rather than recursion,
+        making it suitable for large values of n without risk of stack overflow.
+        The Fibonacci sequence grows exponentially, so very large values of n
+        may result in very large integers.
     """
-    # Validate input using FibonacciValidator
     FibonacciValidator.validate_input(n)
-
-    # Calculate Fibonacci number using FibonacciCalculator
-    result = FibonacciCalculator.calculate(n)
-
+    result: int = FibonacciCalculator.calculate(n)
     return result
+</content>

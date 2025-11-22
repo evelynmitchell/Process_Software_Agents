@@ -1,50 +1,47 @@
-# Fibonacci Implementation
+# Fibonacci Function Project
 
-A pure Python implementation of the Fibonacci sequence calculator using an efficient iterative algorithm.
+A simple, efficient Python implementation of the Fibonacci sequence calculator with comprehensive documentation and test coverage.
 
 ## Overview
 
-This project provides a robust implementation of the Fibonacci sequence calculator that computes the nth Fibonacci number. The implementation uses an iterative approach with O(n) time complexity and O(1) space complexity, making it efficient for computing Fibonacci numbers without the overhead of recursion or memoization.
+This project provides a production-ready implementation of the Fibonacci function that calculates the nth number in the Fibonacci sequence using an iterative approach. The implementation emphasizes correctness, performance, and maintainability through proper input validation, comprehensive documentation, and thorough test coverage.
 
-The Fibonacci sequence is defined as:
-- F(0) = 0
-- F(1) = 1
-- F(n) = F(n-1) + F(n-2) for n ≥ 2
-
-This results in the sequence: 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, ...
-
-## Features
+### Features
 
 - **Efficient Iterative Algorithm**: O(n) time complexity with O(1) space complexity
-- **Comprehensive Input Validation**: Rejects negative integers and non-integer types
-- **Type Safety**: Full type hints for all parameters and return values
-- **Detailed Documentation**: Google-style docstrings with usage examples
-- **Edge Case Handling**: Correctly handles base cases (n=0, n=1) and large values
-- **Pure Python**: No external dependencies, uses only Python standard library
+- **Robust Input Validation**: Type checking and range validation with descriptive error messages
+- **Comprehensive Documentation**: Detailed docstrings with multiple usage examples
+- **Full Test Coverage**: Unit tests covering happy paths, edge cases, and error conditions
+- **Type Hints**: Complete type annotations for better code clarity and IDE support
+- **PEP 8 Compliant**: Follows Python style guidelines throughout
 
 ## Prerequisites
 
 - Python 3.12 or higher
-- pip package manager (for development and testing)
+- pip package manager
+- pytest (for running tests)
 
 ## Installation
 
-1. Clone or download the project:
-   ```bash
-   git clone <repository-url>
-   cd fibonacci
-   ```
+### 1. Clone or Download the Project
 
-2. (Optional) Create a virtual environment:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+```bash
+git clone <repository-url>
+cd fibonacci-project
+```
 
-3. Install development dependencies (for testing):
-   ```bash
-   pip install -r requirements.txt
-   ```
+### 2. Create a Virtual Environment (Recommended)
+
+```bash
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+### 3. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
 
 ## Usage
 
@@ -57,74 +54,66 @@ from fibonacci import fibonacci
 result = fibonacci(10)
 print(result)  # Output: 55
 
-# Calculate other Fibonacci numbers
-print(fibonacci(0))   # Output: 0
-print(fibonacci(1))   # Output: 1
-print(fibonacci(5))   # Output: 5
-print(fibonacci(15))  # Output: 610
+# Calculate the 0th Fibonacci number
+result = fibonacci(0)
+print(result)  # Output: 0
+
+# Calculate the 1st Fibonacci number
+result = fibonacci(1)
+print(result)  # Output: 1
 ```
 
-### In Your Code
-
-Simply import the `fibonacci` function and call it with a non-negative integer:
+### Common Examples
 
 ```python
 from fibonacci import fibonacci
 
-def process_sequence():
-    """Process Fibonacci numbers up to the 20th term."""
-    for n in range(21):
-        fib_n = fibonacci(n)
-        print(f"F({n}) = {fib_n}")
+# Fibonacci sequence: 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, ...
+
+fibonacci(0)   # Returns: 0
+fibonacci(1)   # Returns: 1
+fibonacci(2)   # Returns: 1
+fibonacci(3)   # Returns: 2
+fibonacci(5)   # Returns: 5
+fibonacci(10)  # Returns: 55
+fibonacci(15)  # Returns: 610
+fibonacci(20)  # Returns: 6765
 ```
 
 ### Error Handling
 
-The function validates input and raises `ValueError` for invalid inputs:
-
 ```python
 from fibonacci import fibonacci
 
+# Attempting to calculate Fibonacci for a negative number raises ValueError
 try:
     result = fibonacci(-5)
 except ValueError as e:
     print(f"Error: {e}")  # Output: Error: n must be a non-negative integer
 
+# Attempting to use a non-integer type raises ValueError
 try:
-    result = fibonacci(3.5)
+    result = fibonacci(5.5)
 except ValueError as e:
     print(f"Error: {e}")  # Output: Error: n must be a non-negative integer
 
+# Attempting to use a string raises ValueError
 try:
-    result = fibonacci(True)  # Boolean is rejected even though it's technically an int
+    result = fibonacci("10")
 except ValueError as e:
     print(f"Error: {e}")  # Output: Error: n must be a non-negative integer
 ```
 
-## API Reference
+## Project Structure
 
-### `fibonacci(n: int) -> int`
-
-Calculate the nth Fibonacci number using an iterative approach.
-
-**Parameters:**
-- `n` (int): The position in the Fibonacci sequence (must be non-negative)
-
-**Returns:**
-- (int): The nth Fibonacci number
-
-**Raises:**
-- `ValueError`: If n is negative or not an integer type
-
-**Examples:**
-```python
-fibonacci(0)   # Returns 0
-fibonacci(1)   # Returns 1
-fibonacci(2)   # Returns 1
-fibonacci(5)   # Returns 5
-fibonacci(10)  # Returns 55
-fibonacci(15)  # Returns 610
-fibonacci(100) # Returns 354224848179261915075
+```
+fibonacci-project/
+├── fibonacci.py          # Main implementation with fibonacci() function
+├── tests/
+│   └── test_fibonacci.py # Comprehensive unit tests
+├── requirements.txt      # Python dependencies
+├── README.md            # This file
+└── .gitignore           # Git ignore rules
 ```
 
 ## Running Tests
@@ -143,10 +132,10 @@ pytest tests/ --cov=. --cov-report=html
 
 This generates an HTML coverage report in the `htmlcov/` directory.
 
-### Run Specific Test File
+### Run Specific Test
 
 ```bash
-pytest tests/test_fibonacci.py -v
+pytest tests/test_fibonacci.py::test_fibonacci_returns_zero_for_zero -v
 ```
 
 ### Run Tests with Detailed Output
@@ -155,100 +144,171 @@ pytest tests/test_fibonacci.py -v
 pytest tests/ -vv --tb=short
 ```
 
-## Design Rationale
+## API Documentation
 
-### Why Iterative Over Recursive?
+### fibonacci(n: int) -> int
 
-The implementation uses an iterative approach rather than recursion for several important reasons:
+Calculate the nth Fibonacci number using an iterative approach.
 
-1. **Performance**: The iterative approach has O(n) time complexity with O(1) space complexity. A naive recursive implementation would have O(2^n) time complexity due to redundant calculations.
+#### Parameters
 
-2. **Stack Safety**: Iterative approach avoids stack overflow errors that can occur with deep recursion. Python has a default recursion limit (~1000), which would prevent computing Fibonacci numbers beyond approximately F(1000).
+- **n** (int): The position in the Fibonacci sequence (0-indexed). Must be a non-negative integer.
 
-3. **Memory Efficiency**: The iterative approach uses constant space regardless of n, while recursive approaches (even with memoization) require O(n) space for the call stack or memoization cache.
+#### Returns
 
-4. **Simplicity**: The iterative algorithm is straightforward and easy to understand, with clear variable names and minimal complexity.
+- (int): The nth Fibonacci number
 
-### Algorithm Explanation
+#### Raises
 
-The iterative algorithm works as follows:
+- **ValueError**: If n is negative or not an integer type
 
-1. **Base Cases**: Handle n=0 and n=1 directly as they are the foundation of the sequence.
+#### Examples
 
-2. **Iteration**: For n ≥ 2, maintain two variables:
-   - `prev`: The (i-1)th Fibonacci number
-   - `curr`: The ith Fibonacci number
+```python
+>>> fibonacci(0)
+0
 
-3. **Loop**: Iterate from 2 to n, computing the next Fibonacci number as the sum of the previous two, then shifting the window forward.
+>>> fibonacci(1)
+1
 
-4. **Return**: After the loop completes, `curr` contains F(n).
+>>> fibonacci(5)
+5
+
+>>> fibonacci(10)
+55
+
+>>> fibonacci(15)
+610
+```
+
+#### Algorithm Details
+
+The function uses an iterative approach with two variables to track the previous and current Fibonacci numbers:
+
+1. **Base Cases**: For n=0, return 0; for n=1, return 1
+2. **Iteration**: For n≥2, iterate n-1 times, updating the two variables
+3. **Return**: Return the final current value
 
 **Time Complexity**: O(n) - single pass through n iterations
-**Space Complexity**: O(1) - only two variables regardless of input size
+**Space Complexity**: O(1) - only two variables used regardless of input size
 
-### Input Validation Strategy
+#### Why Iterative Over Recursive?
 
-The implementation validates inputs to ensure:
+The iterative approach is preferred because:
+- Avoids stack overflow for large values of n
+- More efficient with no function call overhead
+- Constant space usage instead of O(n) recursion stack
+- Faster execution for practical use cases
 
-1. **Type Checking**: Input must be an integer type (not float, string, etc.)
-2. **Boolean Exclusion**: Booleans are explicitly rejected even though `isinstance(True, int)` returns True in Python
-3. **Non-Negative Constraint**: Input must be >= 0 (negative integers are rejected)
-4. **Clear Error Messages**: ValueError includes descriptive message for debugging
+## Implementation Details
 
-## Examples
+### Component Architecture
 
-### Computing Fibonacci Sequence
+The implementation is organized into three logical components:
+
+#### 1. FibonacciValidator (SU-001)
+
+Validates input parameters and enforces type constraints:
+- Checks that input is an integer type (not float, string, etc.)
+- Verifies that n is non-negative
+- Raises ValueError with descriptive message for invalid inputs
+
+#### 2. FibonacciCalculator (SU-002)
+
+Implements the core iterative Fibonacci algorithm:
+- Handles base cases (n=0 returns 0, n=1 returns 1)
+- Uses two-variable state tracking for iteration
+- Achieves O(n) time complexity and O(1) space complexity
+
+#### 3. FibonacciFunction (SU-003)
+
+Public API that orchestrates validation and calculation:
+- Validates input using FibonacciValidator
+- Calculates result using FibonacciCalculator
+- Provides comprehensive documentation with examples
+
+## Testing Strategy
+
+The test suite provides comprehensive coverage including:
+
+### Happy Path Tests
+- Correct results for base cases (0, 1)
+- Correct results for small values (2-10)
+- Correct results for larger values (15, 20)
+
+### Edge Case Tests
+- Boundary values (0, 1)
+- Consecutive Fibonacci numbers
+- Sequence correctness verification
+
+### Error Case Tests
+- Negative integer inputs
+- Float inputs
+- String inputs
+- None inputs
+- Other invalid types
+
+### Test Coverage
+
+Target: 80%+ code coverage of the fibonacci module
+
+Run coverage analysis:
+```bash
+pytest tests/ --cov=fibonacci --cov-report=term-missing
+```
+
+## Troubleshooting
+
+### ImportError: No module named 'fibonacci'
+
+**Solution**: Ensure you're running Python from the project root directory and the fibonacci.py file is in the same directory or in the Python path.
+
+```bash
+# From project root
+python3 -c "from fibonacci import fibonacci; print(fibonacci(10))"
+```
+
+### ValueError: n must be a non-negative integer
+
+**Cause**: You passed a negative number, float, string, or other invalid type to the fibonacci function.
+
+**Solution**: Ensure you pass a non-negative integer:
 
 ```python
-from fibonacci import fibonacci
+# Correct
+fibonacci(10)      # ✓ Integer
+fibonacci(0)       # ✓ Zero is valid
 
-# Print first 20 Fibonacci numbers
-for i in range(20):
-    print(f"F({i:2d}) = {fibonacci(i):6d}")
+# Incorrect
+fibonacci(-5)      # ✗ Negative
+fibonacci(5.5)     # ✗ Float
+fibonacci("10")    # ✗ String
 ```
 
-Output:
-```
-F( 0) =      0
-F( 1) =      1
-F( 2) =      1
-F( 3) =      2
-F( 4) =      3
-F( 5) =      5
-F( 6) =      8
-F( 7) =     13
-F( 8) =     21
-F( 9) =     34
-F(10) =     55
-F(11) =     89
-F(12) =    144
-F(13) =    233
-F(14) =    377
-F(15) =    610
-F(16) =    987
-F(17) =   1597
-F(18) =   2584
-F(19) =   4181
+### Tests Fail with ModuleNotFoundError
+
+**Solution**: Install dependencies and ensure pytest is available:
+
+```bash
+pip install -r requirements.txt
+pytest tests/ -v
 ```
 
-### Finding Fibonacci Numbers in a Range
+### Virtual Environment Not Activating
 
-```python
-from fibonacci import fibonacci
+**Solution**: Use the correct activation command for your OS:
 
-def fibonacci_in_range(start: int, end: int) -> list[int]:
-    """Find all Fibonacci numbers between start and end (inclusive)."""
-    result = []
-    n = 0
-    while True:
-        fib_n = fibonacci(n)
-        if fib_n > end:
-            break
-        if fib_n >= start:
-            result.append(fib_n)
-        n += 1
-    return result
+```bash
+# Linux/macOS
+source venv/bin/activate
 
-# Find Fibonacci numbers between 10 and 1000
-fibs = fibonacci_in_range(10, 1000)
-print(fibs)  # Output: [13, 21, 34, 55, 89, 144, 233, 377, 610,
+# Windows
+venv\Scripts\activate
+
+# Verify activation (prompt should show (venv))
+which python  # Should show path inside venv directory
+```
+
+## Performance Characteristics
+
+### Time Complexity: O(

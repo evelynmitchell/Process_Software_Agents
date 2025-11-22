@@ -3,8 +3,11 @@ pytest==7.4.3
 
 # Code quality and linting
 pylint==3.0.3
-black==23.12.1
+black==23.12.0
 flake8==6.1.0
 
 # Type checking
 mypy==1.7.1
+
+# Development utilities
+pytest-cov==4.1.0
