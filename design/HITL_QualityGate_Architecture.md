@@ -181,6 +181,144 @@ See Section 3.1B for full GitHub Issues design and Section 10.2 for detailed ana
 - Historical review analytics
 - Mobile-responsive design
 
+### 2.3 Repository Management Strategy
+
+#### 2.3.1 Overview
+
+This architecture must address when to create new repositories, checkout existing repositories, or create artifacts in the current repository for agent workflows. The strategy impacts HITL approval workflow, artifact storage, and audit trail management.
+
+#### 2.3.2 Repository Strategy Decision Matrix
+
+| Task Type | Repo Strategy | HITL Issue Location | Artifacts Location |
+|-----------|---------------|--------------------|--------------------|
+| Add feature to this project | Current repo, feature branch | Current repo | Current repo (`executions/`) |
+| Fix bug in external repo | Checkout external, feature branch | **Current repo** (central) | Current repo (with refs) |
+| Create new microservice | Create new repo | Current repo (planning), New repo (PRs) | Both repos (cross-linked) |
+| Generate documentation | Current repo | Current repo | Current repo (`docs/`) |
+| Analysis/research tasks | Current repo | Current repo | Current repo (`analysis/`) |
+
+#### 2.3.3 When to Create a New Repository
+
+**Create new repository when:**
+- **New standalone projects/services** - Completely new microservice or application with independent deployment
+- **Different security boundaries** - Public vs. private code, different access controls
+- **Cross-organizational work** - Contributing to external projects
+- **Long-lived separate concerns** - Core libraries that will be reused across multiple projects
+
+**Example:** If TSP Orchestrator instructs an agent to "create a new Python library for metrics collection", that might warrant a new repo.
+
+#### 2.3.4 When to Checkout an Existing Repository
+
+**Checkout existing repository when:**
+- **Modifying existing codebases** - Bug fixes, feature additions to established projects
+- **Multi-repo changes** - When a task spans multiple existing repositories
+- **Contributing to dependencies** - Patching upstream libraries
+
+**Example:** If an agent needs to "fix the authentication bug in the UserService repo", checkout that specific repo.
+
+#### 2.3.5 When to Create Artifacts in Current Repository
+
+**Create artifacts in current repository when:**
+- **Related to current project** - Session summaries, design docs, specifications
+- **Orchestration outputs** - Agent execution logs, metadata, traces
+- **Iteration artifacts** - PIPs (Process Improvement Proposals), postmortems
+- **Temporary/working artifacts** - Analysis results, code reviews, validation reports
+
+**Example:** Session summaries in `Summary/` directory document this project's development process.
+
+#### 2.3.6 Recommended Directory Structure
+
+For the `Process_Software_Agents` repository:
+
+```
+Process_Software_Agents/  (current repo)
+├── src/                  # Agent implementation code
+├── design/               # Architecture docs (HITL spec, etc.)
+├── Summary/              # Session summaries
+├── executions/           # Agent execution artifacts ⭐ NEW
+│   ├── 2025-11-23_task-123/
+│   │   ├── metadata.json
+│   │   ├── code_review.md
+│   │   ├── test_results.json
+│   │   └── approval.md   # HITL decision record
+├── pips/                 # Process Improvement Proposals ⭐ NEW
+└── analysis/             # Research and analysis outputs
+```
+
+#### 2.3.7 Centralized Orchestration Repository Principle
+
+**Key Principle:** The `Process_Software_Agents` repository should be the **single source of truth** for:
+- Agent orchestration state
+- HITL approval records
+- Execution metadata
+- Process improvement tracking
+
+Even when agents work across multiple external repositories, the orchestration and approval flow stays centralized here.
+
+**Rationale:**
+1. **GitHub Issues HITL Integration** - If artifacts are in the same repo as issues, references work seamlessly
+2. **Traceability** - Git history connects agent code, execution artifacts, and HITL decisions
+3. **Simplicity** - No cross-repo coordination overhead
+4. **Searchability** - Everything's in one place for analysis
+
+#### 2.3.8 Multi-Repository Task Workflow
+
+For tasks that **modify other repositories** (e.g., "fix bug in external-api-service"):
+
+1. **Checkout target repo** into temporary workspace
+2. **Create feature branch** in target repo
+3. **Store execution artifacts** in Process_Software_Agents repo with cross-references
+4. **Create HITL issue** in Process_Software_Agents repo (central approval)
+5. **Create PR** in target repo once approved
+
+**Example HITL Issue for External Repo:**
+```markdown
+Title: [HITL Approval] Fix authentication bug in external-api-service
+Body:
+- Target Repo: external-api-service
+- Branch: claude/fix-auth-bug-xyz
+- PR: external-api-service#456
+- Execution Record: executions/2025-11-23_task-789/
+- Quality Gate Failed: Security scan found SQL injection risk
+```
+
+#### 2.3.9 Integration with GitHub Issues HITL (Phase 1B)
+
+This strategy aligns perfectly with the Phase 1B GitHub Issues design:
+
+```typescript
+// GitHub issues always created in orchestration repo
+const issue = await github.issues.create({
+  owner: 'evelynmitchell',
+  repo: 'Process_Software_Agents',  // Always here!
+  title: `[HITL] ${task.name} - ${failureReason}`,
+  body: `
+    Task: ${task.name}
+    Target: ${task.targetRepo || 'current'}
+    Quality Gate Failed: ${failureReason}
+    Artifacts: executions/${task.executionId}/
+
+    /approve <justification> or /reject <reason>
+  `
+});
+```
+
+**Benefits:**
+- All HITL approvals tracked in one place
+- Execution artifacts stored alongside orchestration code
+- Cross-repository changes have centralized approval workflow
+- Git history provides complete audit trail
+
+#### 2.3.10 Default Strategy: "Branch per Task, Artifacts in Current Repo"
+
+**For most agent workflows:**
+- Create feature branch in appropriate repository (current or external)
+- Store all execution artifacts, logs, and HITL records in `Process_Software_Agents/executions/`
+- Create HITL approval issues in `Process_Software_Agents` repo
+- Cross-reference external PRs when applicable
+
+This provides consistency, traceability, and maintains the centralized orchestration principle.
+
 ---
 
 ## 3. Detailed Design
