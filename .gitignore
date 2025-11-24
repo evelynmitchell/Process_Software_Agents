@@ -208,3 +208,6 @@ logs/
 *.temp
 temp/
 tmp/
+
+# Test artifacts repository (local testing only)
+test_artifacts_repo/
