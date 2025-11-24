@@ -1,0 +1,120 @@
+{
+  "task_id": "TSP-FIB-001",
+  "test_status": "FAIL",
+  "build_successful": true,
+  "build_errors": [],
+  "test_summary": {
+    "total_tests": 89,
+    "passed": 82,
+    "failed": 7,
+    "skipped": 0
+  },
+  "coverage_percentage": 78.5,
+  "defects_found": [
+    {
+      "defect_id": "TEST-DEFECT-001",
+      "defect_type": "3_Tool_Use_Error",
+      "severity": "High",
+      "description": "FibonacciValidator instantiated as object in fibonacci.py but defined as static methods in fibonacci_validator.py",
+      "evidence": "File src/fibonacci.py line 47-48: validator = FibonacciValidator() followed by validator.validate_input(n). FibonacciValidator.validate_input is a @staticmethod, should be called as FibonacciValidator.validate_input(n) not instance method.",
+      "phase_injected": "Code",
+      "phase_removed": "Test",
+      "file_path": "src/fibonacci.py",
+      "line_number": 47,
+      "semantic_unit_id": "SU-003",
+      "component_id": "FibonacciFunction"
+    },
+    {
+      "defect_id": "TEST-DEFECT-002",
+      "defect_type": "3_Tool_Use_Error",
+      "severity": "High",
+      "description": "FibonacciCalculator instantiated as object in fibonacci.py but defined as static methods in fibonacci_calculator.py",
+      "evidence": "File src/fibonacci.py line 50-51: calculator = FibonacciCalculator() followed by calculator.calculate(n). FibonacciCalculator.calculate is a @staticmethod, should be called as FibonacciCalculator.calculate(n) not instance method.",
+      "phase_injected": "Code",
+      "phase_removed": "Test",
+      "file_path": "src/fibonacci.py",
+      "line_number": 50,
+      "semantic_unit_id": "SU-003",
+      "component_id": "FibonacciFunction"
+    },
+    {
+      "defect_id": "TEST-DEFECT-003",
+      "defect_type": "6_Conventional_Code_Bug",
+      "severity": "High",
+      "description": "Incomplete test file test_fibonacci_calculator.py - TestFibonacciSequenceCorrectness class definition is incomplete and truncated",
+      "evidence": "File tests/test_fibonacci_calculator.py ends abruptly at line 195 with incomplete class definition: 'class TestFibonacciSequenceCorrectness:' followed by docstring but no test methods. File appears truncated.",
+      "phase_injected": "Code",
+      "phase_removed": "Test",
+      "file_path": "tests/test_fibonacci_calculator.py",
+      "line_number": 195,
+      "semantic_unit_id": "SU-002",
+      "component_id": "FibonacciCalculator"
+    },
+    {
+      "defect_id": "TEST-DEFECT-004",
+      "defect_type": "6_Conventional_Code_Bug",
+      "severity": "High",
+      "description": "Incomplete test file test_fibonacci.py - TestFibonacciLargeValues class definition is incomplete and truncated",
+      "evidence": "File tests/test_fibonacci.py ends abruptly at line 195 with incomplete test method: 'def test_fibonacci_thirty_five(self) -> None:' with docstring but no implementation. File appears truncated.",
+      "phase_injected": "Code",
+      "phase_removed": "Test",
+      "file_path": "tests/test_fibonacci.py",
+      "line_number": 195,
+      "semantic_unit_id": "SU-003",
+      "component_id": "FibonacciFunction"
+    },
+    {
+      "defect_id": "TEST-DEFECT-005",
+      "defect_type": "6_Conventional_Code_Bug",
+      "severity": "Medium",
+      "description": "Incomplete test file test_design_review.py - TestPerformanceRequirements class definition is incomplete and truncated",
+      "evidence": "File tests/test_design_review.py ends abruptly at line 280 with incomplete test method: 'def test_fibonacci_completes_for_large_n(self) -> None:' with docstring but no implementation. File appears truncated.",
+      "phase_injected": "Code",
+      "phase_removed": "Test",
+      "file_path": "tests/test_design_review.py",
+      "line_number": 280,
+      "semantic_unit_id": null,
+      "component_id": null
+    },
+    {
+      "defect_id": "TEST-DEFECT-006",
+      "defect_type": "2_Prompt_Misinterpretation",
+      "severity": "High",
+      "description": "fibonacci.py imports from src.fibonacci_validator and src.fibonacci_calculator but these modules also define FibonacciValidator and FibonacciCalculator classes, creating duplicate definitions",
+      "evidence": "src/fibonacci.py imports: 'from src.fibonacci_validator import FibonacciValidator' and 'from src.fibonacci_calculator import FibonacciCalculator'. However, src/fibonacci_validator.py also defines both FibonacciValidator and FibonacciCalculator classes. This creates duplicate class definitions and violates single responsibility principle.",
+      "phase_injected": "Code",
+      "phase_removed": "Test",
+      "file_path": "src/fibonacci.py",
+      "line_number": 8,
+      "semantic_unit_id": "SU-003",
+      "component_id": "FibonacciFunction"
+    },
+    {
+      "defect_id": "TEST-DEFECT-007",
+      "defect_type": "6_Conventional_Code_Bug",
+      "severity": "Medium",
+      "description": "Test coverage below target threshold - 78.5% actual vs 80% target",
+      "evidence": "Coverage analysis shows 78.5% line coverage. Uncovered lines primarily in incomplete test files (test_fibonacci_calculator.py, test_fibonacci.py, test_design_review.py) and error handling paths in main.py. Target coverage is 80%.",
+      "phase_injected": "Code",
+      "phase_removed": "Test",
+      "file_path": "tests/",
+      "line_number": null,
+      "semantic_unit_id": null,
+      "component_id": null
+    }
+  ],
+  "total_tests_generated": 89,
+  "test_files_created": [
+    "tests/test_fibonacci_validator.py",
+    "tests/test_fibonacci_calculator.py",
+    "tests/test_fibonacci.py",
+    "tests/test_design_review.py"
+  ],
+  "critical_defects": 0,
+  "high_defects": 5,
+  "medium_defects": 2,
+  "low_defects": 0,
+  "agent_version": "1.0.0",
+  "test_timestamp": "2025-11-22T03:25:14Z",
+  "test_duration_seconds": 8.3
+}

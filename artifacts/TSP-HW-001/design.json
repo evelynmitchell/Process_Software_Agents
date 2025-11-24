@@ -1,0 +1,241 @@
+{
+  "task_id": "TSP-HW-001",
+  "api_contracts": [
+    {
+      "endpoint": "/hello",
+      "method": "GET",
+      "description": "Returns a greeting message with the current server timestamp in ISO 8601 format",
+      "request_schema": null,
+      "request_params": null,
+      "response_schema": {
+        "message": "string (fixed value: 'Hello, World!')",
+        "timestamp": "string (ISO 8601 format, e.g., '2024-01-15T10:30:45.123456Z')"
+      },
+      "error_responses": [
+        {
+          "status": 500,
+          "code": "INTERNAL_SERVER_ERROR",
+          "message": "An unexpected error occurred while processing the request"
+        }
+      ],
+      "authentication_required": false,
+      "rate_limit": null
+    }
+  ],
+  "data_schemas": [],
+  "component_logic": [
+    {
+      "component_name": "ApplicationFactory",
+      "semantic_unit_id": "SU-001",
+      "responsibility": "Initializes and configures the FastAPI application with all middleware, exception handlers, and startup/shutdown events",
+      "interfaces": [
+        {
+          "method": "create_app",
+          "parameters": {},
+          "returns": "FastAPI",
+          "description": "Create and configure FastAPI application instance with all middleware and handlers"
+        },
+        {
+          "method": "setup_middleware",
+          "parameters": {
+            "app": "FastAPI"
+          },
+          "returns": "None",
+          "description": "Configure CORS, headers, and other middleware for REST best practices"
+        },
+        {
+          "method": "setup_exception_handlers",
+          "parameters": {
+            "app": "FastAPI"
+          },
+          "returns": "None",
+          "description": "Register global exception handlers for error responses"
+        },
+        {
+          "method": "setup_logging",
+          "parameters": {
+            "app": "FastAPI"
+          },
+          "returns": "None",
+          "description": "Configure application logging with appropriate log levels and format"
+        }
+      ],
+      "dependencies": [],
+      "implementation_notes": "Create FastAPI instance with title='Hello World API' and version='1.0.0'. Configure CORS middleware to allow all origins (CORSMiddleware with allow_origins=['*']). Add response headers for security (X-Content-Type-Options: nosniff). Setup Python logging module with INFO level for application logs and DEBUG level for development. Use uvicorn logger configuration. Initialize app in main module and export as 'app' variable for uvicorn to discover.",
+      "complexity": 15
+    },
+    {
+      "component_name": "HelloEndpoint",
+      "semantic_unit_id": "SU-002",
+      "responsibility": "Implements the GET /hello endpoint that returns a greeting message with current server timestamp",
+      "interfaces": [
+        {
+          "method": "hello",
+          "parameters": {},
+          "returns": "dict[str, Any]",
+          "description": "Handle GET /hello request and return greeting with current timestamp"
+        }
+      ],
+      "dependencies": [
+        "TimestampProvider"
+      ],
+      "implementation_notes": "Use @app.get('/hello') decorator. Return dict with 'message' key set to 'Hello, World!' (exact string). Get current timestamp from TimestampProvider.get_current_timestamp() which returns ISO 8601 string with UTC timezone. Return response as JSON with Content-Type: application/json. Endpoint should be synchronous (not async) for simplicity. No request validation needed (no parameters).",
+      "complexity": 21
+    },
+    {
+      "component_name": "TimestampProvider",
+      "semantic_unit_id": "SU-002",
+      "responsibility": "Provides current server timestamp in ISO 8601 format with UTC timezone",
+      "interfaces": [
+        {
+          "method": "get_current_timestamp",
+          "parameters": {},
+          "returns": "str",
+          "description": "Return current UTC timestamp as ISO 8601 string (e.g., '2024-01-15T10:30:45.123456Z')"
+        }
+      ],
+      "dependencies": [],
+      "implementation_notes": "Use Python datetime.datetime.now(datetime.timezone.utc) to get current UTC time. Format using isoformat() method which produces ISO 8601 format. Ensure 'Z' suffix is present for UTC indicator (use .isoformat() which adds 'Z' automatically when timezone is UTC). Return string with microsecond precision.",
+      "complexity": 21
+    },
+    {
+      "component_name": "GlobalExceptionHandler",
+      "semantic_unit_id": "SU-003",
+      "responsibility": "Handles all unhandled exceptions and formats error responses consistently",
+      "interfaces": [
+        {
+          "method": "handle_exception",
+          "parameters": {
+            "request": "Request",
+            "exc": "Exception"
+          },
+          "returns": "JSONResponse",
+          "description": "Catch unhandled exceptions and return formatted error response"
+        },
+        {
+          "method": "handle_validation_error",
+          "parameters": {
+            "request": "Request",
+            "exc": "RequestValidationError"
+          },
+          "returns": "JSONResponse",
+          "description": "Handle FastAPI validation errors with 422 status code"
+        },
+        {
+          "method": "format_error_response",
+          "parameters": {
+            "status_code": "int",
+            "error_code": "str",
+            "message": "str"
+          },
+          "returns": "dict[str, Any]",
+          "description": "Format error response with consistent structure"
+        }
+      ],
+      "dependencies": [],
+      "implementation_notes": "Register exception handler using @app.exception_handler(Exception) decorator. Catch all Exception types and return JSONResponse with status_code=500, error_code='INTERNAL_SERVER_ERROR', message='An unexpected error occurred while processing the request'. Log exception details (traceback) at ERROR level but don't expose to client. Also register handler for RequestValidationError with status_code=422. Error response format: {\"error\": {\"code\": \"ERROR_CODE\", \"message\": \"error message\"}}. Never expose internal error details to client.",
+      "complexity": 27
+    },
+    {
+      "component_name": "ApplicationConfiguration",
+      "semantic_unit_id": "SU-004",
+      "responsibility": "Configures application startup, logging, CORS, and REST best practices",
+      "interfaces": [
+        {
+          "method": "configure_cors",
+          "parameters": {
+            "app": "FastAPI"
+          },
+          "returns": "None",
+          "description": "Configure CORS middleware for cross-origin requests"
+        },
+        {
+          "method": "configure_headers",
+          "parameters": {
+            "app": "FastAPI"
+          },
+          "returns": "None",
+          "description": "Add security and REST best practice headers to all responses"
+        },
+        {
+          "method": "configure_startup",
+          "parameters": {
+            "app": "FastAPI"
+          },
+          "returns": "None",
+          "description": "Register startup event handlers"
+        },
+        {
+          "method": "configure_shutdown",
+          "parameters": {
+            "app": "FastAPI"
+          },
+          "returns": "None",
+          "description": "Register shutdown event handlers"
+        }
+      ],
+      "dependencies": [],
+      "implementation_notes": "Use CORSMiddleware from fastapi.middleware.cors with allow_origins=['*'], allow_credentials=False, allow_methods=['GET', 'OPTIONS'], allow_headers=['*']. Add custom middleware to set response headers: 'X-Content-Type-Options: nosniff', 'X-Frame-Options: DENY', 'X-XSS-Protection: 1; mode=block'. Configure startup event to log 'Application started' at INFO level. Configure shutdown event to log 'Application shutting down' at INFO level. Use @app.on_event('startup') and @app.on_event('shutdown') decorators.",
+      "complexity": 19
+    }
+  ],
+  "design_review_checklist": [
+    {
+      "category": "Architecture",
+      "description": "Verify application factory pattern is used for proper initialization",
+      "validation_criteria": "ApplicationFactory.create_app() must be called to initialize FastAPI instance. All middleware and exception handlers must be registered during app creation. App must be exported as module-level variable named 'app' for uvicorn discovery.",
+      "severity": "Critical"
+    },
+    {
+      "category": "Error Handling",
+      "description": "Verify all exceptions are caught and formatted consistently",
+      "validation_criteria": "GlobalExceptionHandler must register exception handler for Exception type. All error responses must have status_code, error_code, and message fields. Internal error details must not be exposed to client. Exceptions must be logged with full traceback at ERROR level.",
+      "severity": "Critical"
+    },
+    {
+      "category": "REST Best Practices",
+      "description": "Verify CORS and security headers are properly configured",
+      "validation_criteria": "CORSMiddleware must be configured with appropriate allow_origins, allow_methods, and allow_headers. Response headers must include X-Content-Type-Options, X-Frame-Options, and X-XSS-Protection. All responses must have Content-Type: application/json.",
+      "severity": "High"
+    },
+    {
+      "category": "Performance",
+      "description": "Verify endpoint response format and timestamp accuracy",
+      "validation_criteria": "GET /hello must return JSON with 'message' and 'timestamp' fields. Message must be exactly 'Hello, World!'. Timestamp must be current UTC time in ISO 8601 format with microsecond precision and 'Z' suffix. Response time should be < 100ms.",
+      "severity": "High"
+    },
+    {
+      "category": "Logging",
+      "description": "Verify application logging is configured and operational",
+      "validation_criteria": "Logging must be configured at application startup. Application startup and shutdown events must be logged at INFO level. Exceptions must be logged at ERROR level with full traceback. Log format must include timestamp, level, and message.",
+      "severity": "Medium"
+    },
+    {
+      "category": "Data Integrity",
+      "description": "Verify timestamp is generated at request time, not application startup",
+      "validation_criteria": "TimestampProvider.get_current_timestamp() must be called during request handling, not during application initialization. Each request to /hello must return a different (or same if within same microsecond) timestamp reflecting current server time.",
+      "severity": "Medium"
+    }
+  ],
+  "architecture_overview": "Simple single-endpoint REST API built with FastAPI framework. Architecture consists of four main components: ApplicationFactory initializes the FastAPI app with middleware and exception handlers, HelloEndpoint implements the GET /hello route, TimestampProvider supplies current UTC timestamps, and GlobalExceptionHandler manages error responses. ApplicationConfiguration applies CORS, security headers, and logging. The application follows REST best practices with proper error handling, consistent JSON responses, and security headers. No database or external dependencies required.",
+  "technology_stack": {
+    "language": "Python 3.12",
+    "framework": "FastAPI 0.104.1",
+    "web_server": "uvicorn 0.24.0",
+    "cors_middleware": "fastapi.middleware.cors.CORSMiddleware (built-in)",
+    "logging": "Python logging module (stdlib)",
+    "datetime": "Python datetime module (stdlib)",
+    "json": "FastAPI automatic JSON serialization via pydantic"
+  },
+  "assumptions": [
+    "Application runs on localhost:8000 (default uvicorn configuration)",
+    "UTC timezone is used for all timestamps (no timezone conversion needed)",
+    "No authentication or authorization required for /hello endpoint",
+    "CORS is enabled for all origins (suitable for development/testing)",
+    "Application is stateless with no persistent storage",
+    "Synchronous request handling is acceptable (no async/await needed)",
+    "FastAPI automatic JSON serialization is used (no manual JSON encoding)",
+    "Uvicorn is used as the ASGI server (standard for FastAPI)"
+  ],
+  "timestamp": "2025-11-22T02:55:22.608079"
+}

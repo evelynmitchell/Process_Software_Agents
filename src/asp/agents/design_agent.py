@@ -15,11 +15,13 @@ Date: November 13, 2025
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any, Optional
 
 from asp.agents.base_agent import BaseAgent, AgentExecutionError
 from asp.models.design import DesignInput, DesignSpecification
+from asp.parsers.design_markdown_parser import DesignMarkdownParser
 from asp.telemetry import track_agent_cost
 from asp.utils.artifact_io import write_artifact_json, write_artifact_markdown
 from asp.utils.git_utils import git_commit_artifact, is_git_repository
@@ -65,6 +67,8 @@ class DesignAgent(BaseAgent):
         self,
         db_path: Optional[Path] = None,
         llm_client: Optional[Any] = None,
+        use_markdown: Optional[bool] = None,
+        model: Optional[str] = None,
     ):
         """
         Initialize Design Agent.
@@ -72,10 +76,29 @@ class DesignAgent(BaseAgent):
         Args:
             db_path: Optional path to SQLite database for telemetry
             llm_client: Optional LLM client (for dependency injection in tests)
+            use_markdown: Optional flag to use markdown output format instead of JSON.
+                         If None, checks ASP_DESIGN_AGENT_USE_MARKDOWN environment variable.
+                         Defaults to False if neither is set.
+            model: Optional model name to use for LLM calls (e.g., "claude-sonnet-4-5-20250929").
+                  If None, uses the default model from LLMClient.
         """
         super().__init__(db_path=db_path, llm_client=llm_client)
         self.agent_version = "1.0.0"
-        logger.info("DesignAgent initialized")
+        self.model = model  # Store model for use in LLM calls
+
+        # Determine markdown mode: explicit parameter > env var > default (False)
+        if use_markdown is not None:
+            self.use_markdown = use_markdown
+        else:
+            env_value = os.getenv("ASP_DESIGN_AGENT_USE_MARKDOWN", "false").lower()
+            self.use_markdown = env_value in ("true", "1", "yes")
+
+        # Initialize markdown parser if using markdown mode
+        self.markdown_parser = DesignMarkdownParser() if self.use_markdown else None
+
+        mode_str = "markdown" if self.use_markdown else "JSON"
+        model_str = f", model: {self.model}" if self.model else ""
+        logger.info(f"DesignAgent initialized (output mode: {mode_str}{model_str})")
 
     @track_agent_cost(
         agent_role="Design",
@@ -176,11 +199,31 @@ class DesignAgent(BaseAgent):
         """
         Generate the design specification using LLM.
 
+        Supports both JSON and Markdown output formats based on use_markdown flag.
+
         Args:
             input_data: DesignInput with requirements and project plan
 
         Returns:
             DesignSpecification parsed from LLM response
+
+        Raises:
+            AgentExecutionError: If LLM call fails or response is invalid
+        """
+        if self.use_markdown:
+            return self._generate_design_markdown(input_data)
+        else:
+            return self._generate_design_json(input_data)
+
+    def _generate_design_json(self, input_data: DesignInput) -> DesignSpecification:
+        """
+        Generate design specification using JSON format (legacy mode).
+
+        Args:
+            input_data: DesignInput with requirements and project plan
+
+        Returns:
+            DesignSpecification parsed from JSON response
 
         Raises:
             AgentExecutionError: If LLM call fails or response is invalid
@@ -205,7 +248,8 @@ class DesignAgent(BaseAgent):
         # Call LLM to generate design
         response = self.call_llm(
             prompt=formatted_prompt,
-            max_tokens=8000,  # Designs can be large
+            model=self.model,  # Use configured model or default
+            max_tokens=16000,  # Markdown designs can be large (increased from 8000)
             temperature=0.1,  # Low temperature for consistency
         )
 
@@ -219,6 +263,15 @@ class DesignAgent(BaseAgent):
 
         logger.debug(f"Received LLM response with {len(content)} top-level keys")
 
+        # Fix: Coerce technology_stack boolean values to strings
+        # LLM sometimes returns {"standard_library_only": true} instead of "yes"/"no"
+        if "technology_stack" in content and isinstance(content["technology_stack"], dict):
+            for key, value in content["technology_stack"].items():
+                if isinstance(value, bool):
+                    content["technology_stack"][key] = "yes" if value else "no"
+                elif not isinstance(value, str):
+                    content["technology_stack"][key] = str(value)
+
         # Validate and create DesignSpecification
         try:
             design_spec = DesignSpecification(**content)
@@ -227,7 +280,110 @@ class DesignAgent(BaseAgent):
         except Exception as e:
             logger.error(f"Failed to validate design specification: {e}")
             logger.debug(f"Response content keys: {content.keys() if isinstance(content, dict) else 'not a dict'}")
+            # Debug: dump the problematic field
+            if isinstance(content, dict) and "api_contracts" in content:
+                import json
+                logger.error(f"DEBUG: api_contracts content: {json.dumps(content['api_contracts'], indent=2)}")
             raise AgentExecutionError(f"Design validation failed: {e}") from e
+
+    def _generate_design_markdown(self, input_data: DesignInput) -> DesignSpecification:
+        """
+        Generate design specification using Markdown format (v2 mode).
+
+        Args:
+            input_data: DesignInput with requirements and project plan
+
+        Returns:
+            DesignSpecification parsed from Markdown response
+
+        Raises:
+            AgentExecutionError: If LLM call fails or response is invalid
+        """
+        # Load markdown prompt template
+        try:
+            prompt_template = self.load_prompt("design_agent_v2_markdown")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"Markdown prompt template not found: {e}") from e
+
+        # Format prompt with requirements and project plan
+        # Format project plan as readable text (not JSON for markdown mode)
+        project_plan_text = self._format_project_plan_for_markdown(input_data.project_plan)
+
+        formatted_prompt = self.format_prompt(
+            prompt_template,
+            task_id=input_data.task_id,
+            requirements=input_data.requirements,
+            project_plan=project_plan_text,
+            context_files="\n".join(input_data.context_files) if input_data.context_files else "None",
+            design_constraints=input_data.design_constraints or "None",
+        )
+
+        logger.debug(f"Generated markdown design prompt ({len(formatted_prompt)} chars)")
+
+        # Call LLM to generate design
+        response = self.call_llm(
+            prompt=formatted_prompt,
+            model=self.model,  # Use configured model or default
+            max_tokens=16000,  # Markdown designs can be large (increased from 8000)
+            temperature=0.1,  # Low temperature for consistency
+        )
+
+        # Parse response - should be markdown text
+        # Use raw_content to avoid JSON auto-parsing
+        content = response.get("raw_content") or response.get("content")
+        if not isinstance(content, str):
+            raise AgentExecutionError(
+                f"LLM returned non-string response in markdown mode: {type(content)}\n"
+                f"Expected markdown text"
+            )
+
+        logger.debug(f"Received markdown response ({len(content)} chars)")
+
+        # Parse markdown to dict
+        try:
+            design_dict = self.markdown_parser.parse(content)
+            logger.debug(f"Parsed markdown into dict with {len(design_dict)} top-level keys")
+        except Exception as e:
+            logger.error(f"Failed to parse markdown: {e}")
+            # Log first 500 chars of markdown for debugging
+            logger.debug(f"Markdown preview: {content[:500]}...")
+            raise AgentExecutionError(f"Markdown parsing failed: {e}") from e
+
+        # Validate and create DesignSpecification
+        try:
+            design_spec = DesignSpecification(**design_dict)
+            return design_spec
+
+        except Exception as e:
+            logger.error(f"Failed to validate design specification from markdown: {e}")
+            logger.debug(f"Parsed dict keys: {design_dict.keys()}")
+            raise AgentExecutionError(f"Design validation failed after markdown parsing: {e}") from e
+
+    def _format_project_plan_for_markdown(self, project_plan) -> str:
+        """
+        Format project plan as human-readable text for markdown prompts.
+
+        Args:
+            project_plan: ProjectPlan from Planning Agent
+
+        Returns:
+            Formatted text representation of project plan
+        """
+        lines = [
+            f"Project ID: {project_plan.project_id if hasattr(project_plan, 'project_id') else 'N/A'}",
+            f"Task ID: {project_plan.task_id}",
+            f"Total Complexity: {project_plan.total_est_complexity}",
+            "",
+            "Semantic Units:",
+        ]
+
+        for unit in project_plan.semantic_units:
+            lines.append(f"\n{unit.unit_id}: {unit.description}")
+            lines.append(f"  - Complexity: {unit.est_complexity}")
+            if unit.dependencies:
+                lines.append(f"  - Dependencies: {', '.join(unit.dependencies)}")
+
+        return "\n".join(lines)
 
     def _validate_semantic_unit_coverage(
         self,
@@ -375,7 +531,7 @@ class DesignAgent(BaseAgent):
         # Step 4: Call LLM to generate revised design
         response = self.call_llm(
             prompt=formatted_prompt,
-            max_tokens=8000,  # Designs can be large
+            max_tokens=16000,  # Markdown designs can be large (increased from 8000)
             temperature=0.1,  # Low temperature for consistency
         )
 

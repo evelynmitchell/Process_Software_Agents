@@ -1,89 +1,88 @@
-# Docker Compose configuration for Hello World API
-# Provides easy development and production deployment
-
 version: '3.8'
 
 services:
-  # Hello World API service
-  hello-api:
+  # PostgreSQL Database Service
+  postgres:
+    image: postgres:15-alpine
+    container_name: hello_world_postgres
+    environment:
+      POSTGRES_DB: hello_world_db
+      POSTGRES_USER: hello_user
+      POSTGRES_PASSWORD: hello_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - hello_world_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hello_user -d hello_world_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Hello World API Application Service
+  app:
     build:
       context: .
       dockerfile: Dockerfile
-      target: production
-    container_name: hello-world-api
-    ports:
-      - "8000:8000"
+    container_name: hello_world_app
     environment:
+      - DATABASE_URL=postgresql://hello_user:hello_password@postgres:5432/hello_world_db
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
       - HOST=0.0.0.0
       - PORT=8000
-      - LOG_LEVEL=info
-      - RELOAD=false
+    ports:
+      - "8000:8000"
     volumes:
-      # Mount logs directory for persistence
-      - ./logs:/app/logs:rw
-    restart: unless-stopped
+      - .:/app
+      - /app/__pycache__
+    networks:
+      - hello_world_network
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
-    networks:
-      - hello-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.hello-api.rule=Host(`localhost`)"
-      - "traefik.http.services.hello-api.loadbalancer.server.port=8000"
+      start_period: 40s
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
-  # Development service with hot reload
-  hello-api-dev:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: builder
-    container_name: hello-world-api-dev
+  # Redis Cache Service (for future caching needs)
+  redis:
+    image: redis:7-alpine
+    container_name: hello_world_redis
     ports:
-      - "8001:8000"
-    environment:
-      - HOST=0.0.0.0
-      - PORT=8000
-      - LOG_LEVEL=debug
-      - RELOAD=true
+      - "6379:6379"
     volumes:
-      # Mount source code for hot reload
-      - .:/app:rw
-      - /app/__pycache__
-    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+      - redis_data:/data
     networks:
-      - hello-network
-    profiles:
-      - dev
+      - hello_world_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
 
-  # Nginx reverse proxy (optional)
-  nginx:
-    image: nginx:alpine
-    container_name: hello-world-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - hello-api
-    networks:
-      - hello-network
-    profiles:
-      - nginx
-
-# Networks
-networks:
-  hello-network:
-    driver: bridge
-    name: hello-world-network
-
-# Volumes for data persistence
+# Named volumes for data persistence
 volumes:
-  logs:
+  postgres_data:
     driver: local
-    name: hello-world-logs
+  redis_data:
+    driver: local
+
+# Custom network for service communication
+networks:
+  hello_world_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

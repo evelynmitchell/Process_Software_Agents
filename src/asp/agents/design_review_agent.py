@@ -352,13 +352,37 @@ class DesignReviewAgent(BaseAgent):
 
         # Parse JSON response
         try:
+            import re
+            import json as json_module
+
             content = response.get("content", {})
             if isinstance(content, str):
-                # Handle case where content is JSON string
-                content = json.loads(content)
+                # Try to extract JSON from markdown code blocks
+                json_match = re.search(r'```json\s*(.*?)\s*```', content, re.DOTALL)
+                if json_match:
+                    try:
+                        json_str = json_match.group(1).strip()
+                        content = json_module.loads(json_str)
+                        logger.debug("Successfully extracted JSON from markdown code fence")
+                    except json_module.JSONDecodeError as e:
+                        json_preview = json_match.group(1).strip()[:500]
+                        raise AgentExecutionError(
+                            f"Failed to parse review JSON from markdown fence: {e}\n"
+                            f"JSON content preview: {json_preview}..."
+                        )
+                else:
+                    # Try to parse the whole string as JSON
+                    try:
+                        content = json_module.loads(content)
+                        logger.debug("Successfully parsed string content as JSON")
+                    except json_module.JSONDecodeError:
+                        raise AgentExecutionError(
+                            f"LLM returned non-JSON response: {content[:500]}...\n"
+                            f"Expected JSON matching DesignReview schema"
+                        )
 
             return content
-        except (json.JSONDecodeError, KeyError) as e:
+        except (json_module.JSONDecodeError, KeyError) as e:
             logger.error(f"Failed to parse LLM response: {e}")
             raise AgentExecutionError(f"Failed to parse LLM review response: {e}") from e
 

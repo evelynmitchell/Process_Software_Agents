@@ -4,59 +4,59 @@
 
 ## Architecture Overview
 
-Simple single-tier FastAPI web application with three components: FastAPIServer initializes the web framework, HelloWorldHandler implements the /hello endpoint logic, and ErrorHandler manages HTTP error responses. No database or external dependencies required. Follows FastAPI best practices with proper separation of server setup, route handling, and error management.
+Minimal three-tier architecture for a simple greeting API. HTTPServerFramework (SU-001) initializes the FastAPI application and sets up routing infrastructure. HelloRouteHandler (SU-002) implements the GET /hello endpoint that returns a JSON response with the greeting message. ResponseFormatter (SU-003) handles HTTP response formatting with appropriate status codes and content-type headers. FastAPI automatically handles JSON serialization, so no manual formatting is required. The application is stateless with no database or external dependencies.
 
 ## Technology Stack
 
-{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'asgi_server': 'uvicorn 0.24+', 'http_client': 'httpx (for testing)', 'logging': 'Python logging module (stdlib)'}
+{'language': 'Python 3.12', 'framework': 'FastAPI 0.104.1', 'web_server': 'Uvicorn 0.24.0', 'json_serialization': 'FastAPI built-in (Pydantic v2)', 'http_client_testing': 'httpx 0.25.0'}
 
 ## Assumptions
 
-['Application runs on single process/thread (no concurrency requirements)', 'No authentication or authorization needed for /hello endpoint', 'Response format is JSON (FastAPI default)', 'CORS is enabled for all origins (development setup)', 'Server runs on default host and port (uvicorn defaults)', 'No rate limiting required for simple Hello World endpoint', 'Error responses follow JSON format for API consistency']
+['The application runs on a single process (no clustering required)', 'No authentication or authorization is needed for the /hello endpoint', 'No rate limiting is required for this minimal endpoint', 'The server listens on localhost:8000 by default (standard Uvicorn configuration)', 'No database or external service dependencies are required', "The response message is exactly 'Hello World' with no variations", 'HTTPS/TLS is handled at infrastructure level (not in application code)', 'No request logging or monitoring is required beyond standard HTTP access logs']
 
 ## API Contracts
 
 ### GET /hello
 
-- **Description:** Returns a simple Hello World message
+- **Description:** Returns a simple greeting message with HTTP 200 status code
 - **Authentication:** False
 - **Response Schema:**
 ```json
-{'message': "string (exactly 'Hello World')"}
+{'message': "string (value: 'Hello World')"}
 ```
 - **Error Responses:** N/A
 
 ## Component Logic
 
-### FastAPIServer
+### HTTPServerFramework
 
-- **Responsibility:** Initialize and configure the FastAPI application server
+- **Responsibility:** Initialize and configure the FastAPI HTTP server framework with routing infrastructure
 - **Semantic Unit:** SU-001
 - **Dependencies:** None
-- **Implementation Notes:** Use FastAPI() constructor with title='Hello World API' and version='1.0.0'. Add CORSMiddleware to allow all origins for development. Configure exception handlers for 500 errors to return JSON format. Set up basic logging configuration.
+- **Implementation Notes:** Use FastAPI 0.104+ to create the application instance. Configure with title='Hello World API' and version='1.0.0'. Set up CORS middleware if needed for cross-origin requests. Initialize the app with default settings (no custom middleware required for this minimal implementation). The app instance should be created at module level for use by route handlers.
 - **Interfaces:**
   - `create_app`
-  - `configure_middleware`
+  - `configure_routes`
 
-### HelloWorldHandler
+### HelloRouteHandler
 
-- **Responsibility:** Handle GET /hello requests and return Hello World response
+- **Responsibility:** Handle GET /hello requests and return a greeting message with proper response serialization
 - **Semantic Unit:** SU-002
-- **Dependencies:** None
-- **Implementation Notes:** Use FastAPI @app.get('/hello') decorator. Return dictionary with single key 'message' and value 'Hello World'. Response will be automatically serialized to JSON by FastAPI. No input validation needed as endpoint takes no parameters.
+- **Dependencies:** HTTPServerFramework
+- **Implementation Notes:** Implement as a FastAPI route handler decorated with @app.get('/hello'). Return a dictionary with key 'message' and value 'Hello World'. FastAPI automatically serializes the dictionary to JSON with Content-Type: application/json. The response status code defaults to 200 OK. No request body is expected or processed. Handler should be synchronous (not async) for this simple use case.
 - **Interfaces:**
-  - `get_hello`
+  - `hello`
 
-### ErrorHandler
+### ResponseFormatter
 
-- **Responsibility:** Handle HTTP errors and exceptions with proper status codes and JSON responses
+- **Responsibility:** Format HTTP responses with appropriate status codes and content-type headers
 - **Semantic Unit:** SU-003
 - **Dependencies:** None
-- **Implementation Notes:** Use @app.exception_handler(500) decorator for internal server errors. Return JSONResponse with status_code=500 and JSON body containing error code and message. Log exceptions using Python logging module. Handle generic Exception class to catch any unhandled errors.
+- **Implementation Notes:** FastAPI handles response formatting automatically through Pydantic models or dict serialization. For success responses, return dict with data payload (e.g., {'message': 'Hello World'}). FastAPI sets Content-Type to application/json and status code to 200 by default. For error responses, use FastAPI's HTTPException with status_code parameter to set appropriate HTTP status (500 for internal errors). Include error_code and message in response body for client debugging. All responses should include proper Content-Type: application/json header (set automatically by FastAPI).
 - **Interfaces:**
-  - `handle_internal_error`
-  - `setup_exception_handlers`
+  - `format_success_response`
+  - `format_error_response`
 
 ---
 
-*Generated by Design Agent on 2025-11-19 21:25:51*
+*Generated by Design Agent on 2025-11-21 20:12:29*

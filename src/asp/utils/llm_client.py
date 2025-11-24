@@ -71,11 +71,13 @@ class LLMClient:
     """
 
     # Default model (pinned version for reproducibility)
-    DEFAULT_MODEL = "claude-sonnet-4-20250514"
+    # Using Haiku 4.5 for cost-effective testing
+    DEFAULT_MODEL = "claude-haiku-4-5"
 
     # Cost per million tokens (as of Nov 2025)
-    COST_PER_MILLION_INPUT_TOKENS = 3.0  # USD
-    COST_PER_MILLION_OUTPUT_TOKENS = 15.0  # USD
+    # Haiku 4.5 costs: ~$0.25 input, ~$1.25 output per million tokens
+    COST_PER_MILLION_INPUT_TOKENS = 0.25  # USD
+    COST_PER_MILLION_OUTPUT_TOKENS = 1.25  # USD
 
     def __init__(self, api_key: Optional[str] = None):
         """

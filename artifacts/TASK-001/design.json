@@ -1,0 +1,1023 @@
+{
+  "task_id": "TASK-001",
+  "api_contracts": [
+    {
+      "endpoint": "/api/v1/auth/register",
+      "method": "POST",
+      "description": "Registers a new user account with email and password. Validates email format, password strength, and email uniqueness. Returns JWT access token upon successful registration.",
+      "request_schema": {
+        "email": "string (valid email format, max 255 chars, required)",
+        "password": "string (min 8 chars, max 128 chars, must contain uppercase, lowercase, digit, required)",
+        "full_name": "string (max 255 chars, optional)"
+      },
+      "request_params": null,
+      "response_schema": {
+        "user_id": "string (UUID format)",
+        "email": "string",
+        "full_name": "string or null",
+        "access_token": "string (JWT token)",
+        "token_type": "string (value: 'bearer')",
+        "expires_in": "integer (seconds, value: 86400)"
+      },
+      "error_responses": [
+        {
+          "status": 400,
+          "code": "INVALID_EMAIL_FORMAT",
+          "message": "Email address format is invalid. Must be valid email format."
+        },
+        {
+          "status": 400,
+          "code": "WEAK_PASSWORD",
+          "message": "Password does not meet security requirements. Must be 8-128 characters with uppercase, lowercase, and digit."
+        },
+        {
+          "status": 409,
+          "code": "EMAIL_ALREADY_EXISTS",
+          "message": "An account with this email address already exists."
+        },
+        {
+          "status": 500,
+          "code": "INTERNAL_SERVER_ERROR",
+          "message": "An unexpected error occurred during registration."
+        }
+      ],
+      "authentication_required": false,
+      "rate_limit": null
+    },
+    {
+      "endpoint": "/api/v1/auth/login",
+      "method": "POST",
+      "description": "Authenticates user with email and password credentials. Returns JWT access token upon successful authentication.",
+      "request_schema": {
+        "email": "string (required)",
+        "password": "string (required)"
+      },
+      "request_params": null,
+      "response_schema": {
+        "user_id": "string (UUID format)",
+        "email": "string",
+        "access_token": "string (JWT token)",
+        "token_type": "string (value: 'bearer')",
+        "expires_in": "integer (seconds, value: 86400)"
+      },
+      "error_responses": [
+        {
+          "status": 401,
+          "code": "INVALID_CREDENTIALS",
+          "message": "Email or password is incorrect."
+        },
+        {
+          "status": 500,
+          "code": "INTERNAL_SERVER_ERROR",
+          "message": "An unexpected error occurred during authentication."
+        }
+      ],
+      "authentication_required": false,
+      "rate_limit": null
+    },
+    {
+      "endpoint": "/api/v1/tasks",
+      "method": "POST",
+      "description": "Creates a new task for the authenticated user. Validates task data and stores in database with creation timestamp.",
+      "request_schema": {
+        "title": "string (max 255 chars, required)",
+        "description": "string (max 5000 chars, optional)",
+        "status": "string (enum: 'pending', 'in_progress', 'completed', default: 'pending')",
+        "due_date": "string (ISO 8601 date format YYYY-MM-DD, optional)"
+      },
+      "request_params": null,
+      "response_schema": {
+        "task_id": "string (UUID format)",
+        "title": "string",
+        "description": "string or null",
+        "status": "string",
+        "due_date": "string (ISO 8601 date) or null",
+        "created_at": "string (ISO 8601 datetime with timezone)",
+        "updated_at": "string (ISO 8601 datetime with timezone)",
+        "user_id": "string (UUID format)"
+      },
+      "error_responses": [
+        {
+          "status": 400,
+          "code": "INVALID_TASK_DATA",
+          "message": "Task data validation failed. Check field constraints."
+        },
+        {
+          "status": 400,
+          "code": "INVALID_STATUS",
+          "message": "Status value must be one of: pending, in_progress, completed."
+        },
+        {
+          "status": 400,
+          "code": "INVALID_DATE_FORMAT",
+          "message": "Due date must be in YYYY-MM-DD format."
+        },
+        {
+          "status": 401,
+          "code": "UNAUTHORIZED",
+          "message": "Authentication token is missing or invalid."
+        },
+        {
+          "status": 500,
+          "code": "INTERNAL_SERVER_ERROR",
+          "message": "An unexpected error occurred while creating task."
+        }
+      ],
+      "authentication_required": true,
+      "rate_limit": null
+    },
+    {
+      "endpoint": "/api/v1/tasks",
+      "method": "GET",
+      "description": "Retrieves all tasks for the authenticated user with optional filtering by status and sorting. Supports pagination.",
+      "request_schema": null,
+      "request_params": {
+        "status": "string (optional, enum: 'pending', 'in_progress', 'completed', filters tasks by status)",
+        "sort_by": "string (optional, enum: 'created_at', 'due_date', 'title', default: 'created_at')",
+        "sort_order": "string (optional, enum: 'asc', 'desc', default: 'desc')",
+        "page": "integer (optional, min: 1, default: 1)",
+        "page_size": "integer (optional, min: 1, max: 100, default: 20)"
+      },
+      "response_schema": {
+        "tasks": [
+          {
+            "task_id": "string (UUID format)",
+            "title": "string",
+            "description": "string or null",
+            "status": "string",
+            "due_date": "string (ISO 8601 date) or null",
+            "created_at": "string (ISO 8601 datetime with timezone)",
+            "updated_at": "string (ISO 8601 datetime with timezone)",
+            "user_id": "string (UUID format)"
+          }
+        ],
+        "total": "integer (total number of tasks matching filter)",
+        "page": "integer (current page number)",
+        "page_size": "integer (items per page)",
+        "total_pages": "integer (total number of pages)"
+      },
+      "error_responses": [
+        {
+          "status": 400,
+          "code": "INVALID_STATUS_FILTER",
+          "message": "Status filter value must be one of: pending, in_progress, completed."
+        },
+        {
+          "status": 400,
+          "code": "INVALID_SORT_FIELD",
+          "message": "Sort field must be one of: created_at, due_date, title."
+        },
+        {
+          "status": 400,
+          "code": "INVALID_PAGINATION",
+          "message": "Page and page_size must be positive integers. Page_size max is 100."
+        },
+        {
+          "status": 401,
+          "code": "UNAUTHORIZED",
+          "message": "Authentication token is missing or invalid."
+        },
+        {
+          "status": 500,
+          "code": "INTERNAL_SERVER_ERROR",
+          "message": "An unexpected error occurred while retrieving tasks."
+        }
+      ],
+      "authentication_required": true,
+      "rate_limit": null
+    },
+    {
+      "endpoint": "/api/v1/tasks/{task_id}",
+      "method": "GET",
+      "description": "Retrieves a specific task by ID for the authenticated user. Returns 404 if task doesn't exist or doesn't belong to user.",
+      "request_schema": null,
+      "request_params": {
+        "task_id": "string (UUID format, path parameter, required)"
+      },
+      "response_schema": {
+        "task_id": "string (UUID format)",
+        "title": "string",
+        "description": "string or null",
+        "status": "string",
+        "due_date": "string (ISO 8601 date) or null",
+        "created_at": "string (ISO 8601 datetime with timezone)",
+        "updated_at": "string (ISO 8601 datetime with timezone)",
+        "user_id": "string (UUID format)"
+      },
+      "error_responses": [
+        {
+          "status": 400,
+          "code": "INVALID_TASK_ID",
+          "message": "Task ID must be valid UUID format."
+        },
+        {
+          "status": 401,
+          "code": "UNAUTHORIZED",
+          "message": "Authentication token is missing or invalid."
+        },
+        {
+          "status": 404,
+          "code": "TASK_NOT_FOUND",
+          "message": "Task with specified ID does not exist or does not belong to user."
+        },
+        {
+          "status": 500,
+          "code": "INTERNAL_SERVER_ERROR",
+          "message": "An unexpected error occurred while retrieving task."
+        }
+      ],
+      "authentication_required": true,
+      "rate_limit": null
+    },
+    {
+      "endpoint": "/api/v1/tasks/{task_id}",
+      "method": "PUT",
+      "description": "Updates an existing task for the authenticated user. All fields are optional; only provided fields are updated. Updates the updated_at timestamp.",
+      "request_schema": {
+        "title": "string (max 255 chars, optional)",
+        "description": "string (max 5000 chars, optional, null to clear)",
+        "status": "string (enum: 'pending', 'in_progress', 'completed', optional)",
+        "due_date": "string (ISO 8601 date format YYYY-MM-DD, optional, null to clear)"
+      },
+      "request_params": {
+        "task_id": "string (UUID format, path parameter, required)"
+      },
+      "response_schema": {
+        "task_id": "string (UUID format)",
+        "title": "string",
+        "description": "string or null",
+        "status": "string",
+        "due_date": "string (ISO 8601 date) or null",
+        "created_at": "string (ISO 8601 datetime with timezone)",
+        "updated_at": "string (ISO 8601 datetime with timezone)",
+        "user_id": "string (UUID format)"
+      },
+      "error_responses": [
+        {
+          "status": 400,
+          "code": "INVALID_TASK_ID",
+          "message": "Task ID must be valid UUID format."
+        },
+        {
+          "status": 400,
+          "code": "INVALID_TASK_DATA",
+          "message": "Task data validation failed. Check field constraints."
+        },
+        {
+          "status": 400,
+          "code": "INVALID_STATUS",
+          "message": "Status value must be one of: pending, in_progress, completed."
+        },
+        {
+          "status": 400,
+          "code": "INVALID_DATE_FORMAT",
+          "message": "Due date must be in YYYY-MM-DD format."
+        },
+        {
+          "status": 401,
+          "code": "UNAUTHORIZED",
+          "message": "Authentication token is missing or invalid."
+        },
+        {
+          "status": 404,
+          "code": "TASK_NOT_FOUND",
+          "message": "Task with specified ID does not exist or does not belong to user."
+        },
+        {
+          "status": 500,
+          "code": "INTERNAL_SERVER_ERROR",
+          "message": "An unexpected error occurred while updating task."
+        }
+      ],
+      "authentication_required": true,
+      "rate_limit": null
+    },
+    {
+      "endpoint": "/api/v1/tasks/{task_id}",
+      "method": "DELETE",
+      "description": "Deletes a specific task by ID for the authenticated user. Returns 404 if task doesn't exist or doesn't belong to user.",
+      "request_schema": null,
+      "request_params": {
+        "task_id": "string (UUID format, path parameter, required)"
+      },
+      "response_schema": {
+        "message": "string (value: 'Task deleted successfully')",
+        "task_id": "string (UUID format)"
+      },
+      "error_responses": [
+        {
+          "status": 400,
+          "code": "INVALID_TASK_ID",
+          "message": "Task ID must be valid UUID format."
+        },
+        {
+          "status": 401,
+          "code": "UNAUTHORIZED",
+          "message": "Authentication token is missing or invalid."
+        },
+        {
+          "status": 404,
+          "code": "TASK_NOT_FOUND",
+          "message": "Task with specified ID does not exist or does not belong to user."
+        },
+        {
+          "status": 500,
+          "code": "INTERNAL_SERVER_ERROR",
+          "message": "An unexpected error occurred while deleting task."
+        }
+      ],
+      "authentication_required": true,
+      "rate_limit": null
+    },
+    {
+      "endpoint": "/api/v1/health",
+      "method": "GET",
+      "description": "Health check endpoint returning service status and current timestamp. Used for monitoring and load balancer health checks.",
+      "request_schema": null,
+      "request_params": null,
+      "response_schema": {
+        "status": "string (value: 'healthy')",
+        "timestamp": "string (ISO 8601 datetime with timezone)",
+        "database": "string (value: 'connected' or 'disconnected')"
+      },
+      "error_responses": [
+        {
+          "status": 503,
+          "code": "SERVICE_UNAVAILABLE",
+          "message": "Service is unhealthy. Database connection failed."
+        }
+      ],
+      "authentication_required": false,
+      "rate_limit": null
+    }
+  ],
+  "data_schemas": [
+    {
+      "table_name": "users",
+      "description": "Stores user account information including authentication credentials and profile data.",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "constraints": "PRIMARY KEY, DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR(255)",
+          "constraints": "NOT NULL, UNIQUE"
+        },
+        {
+          "name": "password_hash",
+          "type": "VARCHAR(255)",
+          "constraints": "NOT NULL"
+        },
+        {
+          "name": "full_name",
+          "type": "VARCHAR(255)",
+          "constraints": "NULL"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "constraints": "NOT NULL, DEFAULT CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "constraints": "NOT NULL, DEFAULT CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_users_email_lower ON users(LOWER(email));",
+        "CREATE INDEX idx_users_created_at ON users(created_at DESC);"
+      ],
+      "relationships": [],
+      "constraints": [
+        "CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$');",
+        "CHECK (LENGTH(password_hash) >= 60);"
+      ]
+    },
+    {
+      "table_name": "tasks",
+      "description": "Stores task information including title, description, status, and due dates associated with users.",
+      "columns": [
+        {
+          "name": "task_id",
+          "type": "UUID",
+          "constraints": "PRIMARY KEY, DEFAULT gen_random_uuid()"
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "constraints": "NOT NULL"
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(255)",
+          "constraints": "NOT NULL"
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "constraints": "NULL"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(20)",
+          "constraints": "NOT NULL, DEFAULT 'pending'"
+        },
+        {
+          "name": "due_date",
+          "type": "DATE",
+          "constraints": "NULL"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "constraints": "NOT NULL, DEFAULT CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "constraints": "NOT NULL, DEFAULT CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_tasks_user_id ON tasks(user_id);",
+        "CREATE INDEX idx_tasks_status ON tasks(status);",
+        "CREATE INDEX idx_tasks_due_date ON tasks(due_date) WHERE due_date IS NOT NULL;",
+        "CREATE INDEX idx_tasks_created_at ON tasks(created_at DESC);",
+        "CREATE INDEX idx_tasks_user_status ON tasks(user_id, status);"
+      ],
+      "relationships": [
+        "ALTER TABLE tasks ADD FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE;"
+      ],
+      "constraints": [
+        "CHECK (status IN ('pending', 'in_progress', 'completed'));",
+        "CHECK (LENGTH(title) >= 1 AND LENGTH(title) <= 255);",
+        "CHECK (description IS NULL OR LENGTH(description) <= 5000);",
+        "CHECK (due_date IS NULL OR due_date >= CURRENT_DATE);"
+      ]
+    }
+  ],
+  "component_logic": [
+    {
+      "component_name": "FastAPIApplicationFactory",
+      "semantic_unit_id": "SU-001",
+      "responsibility": "Initializes and configures the FastAPI application instance with middleware, exception handlers, CORS settings, and database connection lifecycle management.",
+      "interfaces": [
+        {
+          "method": "create_app",
+          "parameters": {},
+          "returns": "FastAPI",
+          "description": "Creates and configures the FastAPI application with all necessary middleware and settings."
+        },
+        {
+          "method": "setup_middleware",
+          "parameters": {
+            "app": "FastAPI"
+          },
+          "returns": "None",
+          "description": "Configures middleware stack including CORS, request logging, and timing middleware."
+        },
+        {
+          "method": "setup_exception_handlers",
+          "parameters": {
+            "app": "FastAPI"
+          },
+          "returns": "None",
+          "description": "Registers global exception handlers for all custom and standard exceptions."
+        },
+        {
+          "method": "setup_database_events",
+          "parameters": {
+            "app": "FastAPI"
+          },
+          "returns": "None",
+          "description": "Configures startup and shutdown event handlers for database connection management."
+        }
+      ],
+      "dependencies": [
+        "DatabaseConnectionManager",
+        "GlobalExceptionHandler"
+      ],
+      "implementation_notes": "Use FastAPI 0.104.1 with title='Task Management API', version='1.0.0', description='RESTful API for task management with JWT authentication'. Configure CORS middleware with allow_origins=['*'] for development (restrict in production), allow_credentials=True, allow_methods=['*'], allow_headers=['*']. Add timing middleware to log request duration. Register exception handlers using GlobalExceptionHandler component. Setup startup event to initialize database connection pool using DatabaseConnectionManager.connect(). Setup shutdown event to close database connections using DatabaseConnectionManager.disconnect(). Configure request size limit to 1MB. Enable automatic API documentation at /docs and /redoc endpoints.",
+      "complexity": 15
+    },
+    {
+      "component_name": "DatabaseConnectionManager",
+      "semantic_unit_id": "SU-002",
+      "responsibility": "Manages PostgreSQL database connections using SQLAlchemy with connection pooling, handles connection lifecycle, and provides session management for database operations.",
+      "interfaces": [
+        {
+          "method": "connect",
+          "parameters": {},
+          "returns": "None",
+          "description": "Establishes database connection pool using SQLAlchemy engine with configured parameters."
+        },
+        {
+          "method": "disconnect",
+          "parameters": {},
+          "returns": "None",
+          "description": "Closes all database connections and disposes of connection pool."
+        },
+        {
+          "method": "get_session",
+          "parameters": {},
+          "returns": "Generator[Session, None, None]",
+          "description": "Provides database session context manager for transaction handling."
+        },
+        {
+          "method": "health_check",
+          "parameters": {},
+          "returns": "bool",
+          "description": "Verifies database connectivity by executing simple query."
+        }
+      ],
+      "dependencies": [],
+      "implementation_notes": "Use SQLAlchemy 2.0.23 with create_engine() using postgresql+psycopg2 driver. Configure connection pool with pool_size=5, max_overflow=15, pool_timeout=30, pool_recycle=3600. Read database URL from environment variable DATABASE_URL with format 'postgresql://user:password@host:port/database'. Use sessionmaker with autocommit=False, autoflush=False, expire_on_commit=False. Implement get_session() as context manager using contextlib.contextmanager decorator that yields session, commits on success, rolls back on exception, and always closes session. For health_check(), execute 'SELECT 1' query with 5-second timeout and return True on success, False on any exception. Log all connection errors using Python logging module at ERROR level.",
+      "complexity": 20
+    },
+    {
+      "component_name": "AuthenticationService",
+      "semantic_unit_id": "SU-003",
+      "responsibility": "Handles user authentication, JWT token generation and validation, password hashing and verification using bcrypt, and token payload extraction.",
+      "interfaces": [
+        {
+          "method": "hash_password",
+          "parameters": {
+            "password": "str"
+          },
+          "returns": "str",
+          "description": "Hashes password using bcrypt with cost factor 12."
+        },
+        {
+          "method": "verify_password",
+          "parameters": {
+            "password": "str",
+            "password_hash": "str"
+          },
+          "returns": "bool",
+          "description": "Verifies password against bcrypt hash."
+        },
+        {
+          "method": "create_access_token",
+          "parameters": {
+            "user_id": "str",
+            "email": "str"
+          },
+          "returns": "str",
+          "description": "Generates JWT access token with user claims and expiration."
+        },
+        {
+          "method": "decode_access_token",
+          "parameters": {
+            "token": "str"
+          },
+          "returns": "dict[str, Any]",
+          "description": "Decodes and validates JWT token, extracting user claims."
+        },
+        {
+          "method": "validate_password_strength",
+          "parameters": {
+            "password": "str"
+          },
+          "returns": "bool",
+          "description": "Validates password meets security requirements."
+        }
+      ],
+      "dependencies": [],
+      "implementation_notes": "Use bcrypt 4.1.1 with bcrypt.hashpw() and cost factor 12 (2^12 iterations). For JWT, use PyJWT 2.8.0 with HS256 algorithm. Read JWT_SECRET_KEY from environment variable (minimum 32 characters). Set token expiration to 86400 seconds (24 hours) from current UTC time. Token payload structure: {'user_id': str, 'email': str, 'exp': int, 'iat': int}. For decode_access_token(), catch jwt.ExpiredSignatureError and jwt.InvalidTokenError, raising custom AuthenticationException with appropriate message. Password validation regex: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,128}$' ensuring at least one lowercase, one uppercase, one digit, and length 8-128. Use secrets module for any random token generation. All exceptions should be custom AuthenticationException with specific error codes.",
+      "complexity": 25
+    },
+    {
+      "component_name": "UserRepository",
+      "semantic_unit_id": "SU-004",
+      "responsibility": "Handles all database operations for users table including create, read, and email uniqueness checks using SQLAlchemy ORM with parameterized queries.",
+      "interfaces": [
+        {
+          "method": "create_user",
+          "parameters": {
+            "email": "str",
+            "password_hash": "str",
+            "full_name": "Optional[str]"
+          },
+          "returns": "User",
+          "description": "Creates new user record in database."
+        },
+        {
+          "method": "get_user_by_email",
+          "parameters": {
+            "email": "str"
+          },
+          "returns": "Optional[User]",
+          "description": "Retrieves user by email address (case-insensitive)."
+        },
+        {
+          "method": "get_user_by_id",
+          "parameters": {
+            "user_id": "str"
+          },
+          "returns": "Optional[User]",
+          "description": "Retrieves user by UUID."
+        },
+        {
+          "method": "email_exists",
+          "parameters": {
+            "email": "str"
+          },
+          "returns": "bool",
+          "description": "Checks if email already exists in database (case-insensitive)."
+        }
+      ],
+      "dependencies": [
+        "DatabaseConnectionManager"
+      ],
+      "implementation_notes": "Define User SQLAlchemy ORM model mapped to users table with all columns. Use declarative_base() for model definition. All queries must use SQLAlchemy ORM methods (session.query(), session.add(), session.commit()) with automatic parameterization. For email_exists() and get_user_by_email(), use func.lower() for case-insensitive comparison: session.query(User).filter(func.lower(User.email) == func.lower(email)). Handle IntegrityError for unique constraint violations and raise custom RepositoryException with EMAIL_ALREADY_EXISTS code. Set created_at and updated_at automatically using server defaults. Use session from DatabaseConnectionManager.get_session() context manager. Catch SQLAlchemyError exceptions and raise custom RepositoryException with appropriate error codes. Log all database errors at ERROR level.",
+      "complexity": 22
+    },
+    {
+      "component_name": "TaskRepository",
+      "semantic_unit_id": "SU-005",
+      "responsibility": "Handles all database operations for tasks table including CRUD operations, filtering, sorting, and pagination using SQLAlchemy ORM with parameterized queries.",
+      "interfaces": [
+        {
+          "method": "create_task",
+          "parameters": {
+            "user_id": "str",
+            "title": "str",
+            "description": "Optional[str]",
+            "status": "str",
+            "due_date": "Optional[date]"
+          },
+          "returns": "Task",
+          "description": "Creates new task record in database."
+        },
+        {
+          "method": "get_task_by_id",
+          "parameters": {
+            "task_id": "str",
+            "user_id": "str"
+          },
+          "returns": "Optional[Task]",
+          "description": "Retrieves task by ID ensuring it belongs to specified user."
+        },
+        {
+          "method": "get_tasks_by_user",
+          "parameters": {
+            "user_id": "str",
+            "status_filter": "Optional[str]",
+            "sort_by": "str",
+            "sort_order": "str",
+            "page": "int",
+            "page_size": "int"
+          },
+          "returns": "tuple[list[Task], int]",
+          "description": "Retrieves paginated list of tasks for user with optional filtering and sorting."
+        },
+        {
+          "method": "update_task",
+          "parameters": {
+            "task_id": "str",
+            "user_id": "str",
+            "updates": "dict[str"
+          },
+          "returns": "Optional[Task]",
+          "description": "Updates task fields and updated_at timestamp."
+        },
+        {
+          "method": "delete_task",
+          "parameters": {
+            "task_id": "str",
+            "user_id": "str"
+          },
+          "returns": "bool",
+          "description": "Deletes task from database."
+        }
+      ],
+      "dependencies": [
+        "DatabaseConnectionManager"
+      ],
+      "implementation_notes": "Define Task SQLAlchemy ORM model mapped to tasks table with all columns and foreign key relationship to User. Use declarative_base() for model definition. All queries must use SQLAlchemy ORM with automatic parameterization. For get_tasks_by_user(), build query with filter(Task.user_id == user_id), add optional filter for status if provided, apply order_by based on sort_by and sort_order parameters (use desc() for descending), apply offset((page-1)*page_size) and limit(page_size) for pagination. Get total count with separate count query before pagination. For update_task(), use session.query(Task).filter_by(task_id=task_id, user_id=user_id).update(updates) and set updated_at=datetime.utcnow(). Handle SQLAlchemyError and raise RepositoryException. Validate UUID format before queries using uuid.UUID() constructor. Log all operations at INFO level and errors at ERROR level.",
+      "complexity": 30
+    },
+    {
+      "component_name": "UserService",
+      "semantic_unit_id": "SU-006",
+      "responsibility": "Implements business logic for user registration and authentication, coordinates between AuthenticationService and UserRepository, validates input data, and enforces business rules.",
+      "interfaces": [
+        {
+          "method": "register_user",
+          "parameters": {
+            "email": "str",
+            "password": "str",
+            "full_name": "Optional[str]"
+          },
+          "returns": "dict[str, Any]",
+          "description": "Registers new user with validation and returns user data with access token."
+        },
+        {
+          "method": "authenticate_user",
+          "parameters": {
+            "email": "str",
+            "password": "str"
+          },
+          "returns": "dict[str, Any]",
+          "description": "Authenticates user credentials and returns user data with access token."
+        },
+        {
+          "method": "validate_email_format",
+          "parameters": {
+            "email": "str"
+          },
+          "returns": "bool",
+          "description": "Validates email address format."
+        }
+      ],
+      "dependencies": [
+        "UserRepository",
+        "AuthenticationService"
+      ],
+      "implementation_notes": "For register_user(): (1) Validate email format using regex '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$', raise ValidationException with INVALID_EMAIL_FORMAT if invalid. (2) Validate password strength using AuthenticationService.validate_password_strength(), raise ValidationException with WEAK_PASSWORD if invalid. (3) Check email uniqueness using UserRepository.email_exists(), raise BusinessLogicException with EMAIL_ALREADY_EXISTS if exists. (4) Hash password using AuthenticationService.hash_password(). (5) Create user using UserRepository.create_user(). (6) Generate access token using AuthenticationService.create_access_token(). (7) Return dictionary with all user data and token. For authenticate_user(): (1) Retrieve user by email using UserRepository.get_user_by_email(), raise AuthenticationException with INVALID_CREDENTIALS if not found. (2) Verify password using AuthenticationService.verify_password(), raise AuthenticationException with INVALID_CREDENTIALS if invalid. (3) Generate access token. (4) Return dictionary with user data and token. Use constant TOKEN_TYPE='bearer' and EXPIRES_IN=86400. Catch all repository and authentication exceptions, log at ERROR level, and re-raise with appropriate service-level exception.",
+      "complexity": 28
+    },
+    {
+      "component_name": "TaskService",
+      "semantic_unit_id": "SU-007",
+      "responsibility": "Implements business logic for task CRUD operations, validates task data, enforces business rules, and coordinates between API layer and TaskRepository.",
+      "interfaces": [
+        {
+          "method": "create_task",
+          "parameters": {
+            "user_id": "str",
+            "title": "str",
+            "description": "Optional[str]",
+            "status": "str",
+            "due_date": "Optional[str]"
+          },
+          "returns": "dict[str, Any]",
+          "description": "Creates new task with validation and returns task data."
+        },
+        {
+          "method": "get_task",
+          "parameters": {
+            "task_id": "str",
+            "user_id": "str"
+          },
+          "returns": "dict[str, Any]",
+          "description": "Retrieves task by ID with authorization check."
+        },
+        {
+          "method": "get_tasks",
+          "parameters": {
+            "user_id": "str",
+            "status_filter": "Optional[str]",
+            "sort_by": "str",
+            "sort_order": "str",
+            "page": "int",
+            "page_size": "int"
+          },
+          "returns": "dict[str, Any]",
+          "description": "Retrieves paginated list of tasks with filtering and sorting."
+        },
+        {
+          "method": "update_task",
+          "parameters": {
+            "task_id": "str",
+            "user_id": "str",
+            "updates": "dict[str"
+          },
+          "returns": "dict[str, Any]",
+          "description": "Updates task with validation and authorization check."
+        },
+        {
+          "method": "delete_task",
+          "parameters": {
+            "task_id": "str",
+            "user_id": "str"
+          },
+          "returns": "dict[str, str]",
+          "description": "Deletes task with authorization check."
+        },
+        {
+          "method": "validate_task_data",
+          "parameters": {
+            "title": "Optional[str]",
+            "description": "Optional[str]",
+            "status": "Optional[str]",
+            "due_date": "Optional[str]"
+          },
+          "returns": "None",
+          "description": "Validates task field values."
+        }
+      ],
+      "dependencies": [
+        "TaskRepository"
+      ],
+      "implementation_notes": "For create_task(): (1) Validate title not empty and <= 255 chars, raise ValidationException with INVALID_TASK_DATA if invalid. (2) Validate description <= 5000 chars if provided. (3) Validate status in ['pending', 'in_progress', 'completed'], raise ValidationException with INVALID_STATUS if invalid. (4) Parse and validate due_date using datetime.strptime(due_date, '%Y-%m-%d') if provided, raise ValidationException with INVALID_DATE_FORMAT if invalid. (5) Call TaskRepository.create_task(). (6) Convert Task ORM model to dictionary using task_to_dict() helper. For get_tasks(): (1) Validate status_filter if provided. (2) Validate sort_by in ['created_at', 'due_date', 'title'], use default 'created_at'. (3) Validate sort_order in ['asc', 'desc'], use default 'desc'. (4) Validate page >= 1 and page_size between 1-100, raise ValidationException with INVALID_PAGINATION if invalid. (5) Call TaskRepository.get_tasks_by_user(). (6) Calculate total_pages = ceil(total / page_size). (7) Convert all Task models to dictionaries. For update_task(): (1) Validate only provided fields using validate_task_data(). (2) Parse due_date if provided. (3) Call TaskRepository.update_task(), raise NotFoundException with TASK_NOT_FOUND if returns None. For delete_task(): (1) Call TaskRepository.delete_task(), raise NotFoundException with TASK_NOT_FOUND if returns False. Helper method task_to_dict() converts Task ORM model to dictionary with all fields, formatting dates as ISO 8601 strings. Use datetime.isoformat() for timestamp formatting.",
+      "complexity": 35
+    },
+    {
+      "component_name": "AuthenticationMiddleware",
+      "semantic_unit_id": "SU-008",
+      "responsibility": "Intercepts requests to protected endpoints, extracts and validates JWT tokens from Authorization header, and injects authenticated user information into request state.",
+      "interfaces": [
+        {
+          "method": "__call__",
+          "parameters": {
+            "request": "Request",
+            "call_next": "Callable"
+          },
+          "returns": "Response",
+          "description": "Middleware entry point processing each request."
+        },
+        {
+          "method": "extract_token",
+          "parameters": {
+            "authorization_header": "Optional[str]"
+          },
+          "returns": "Optional[str]",
+          "description": "Extracts JWT token from Authorization header."
+        },
+        {
+          "method": "is_protected_endpoint",
+          "parameters": {
+            "path": "str"
+          },
+          "returns": "bool",
+          "description": "Determines if endpoint requires authentication."
+        }
+      ],
+      "dependencies": [
+        "AuthenticationService"
+      ],
+      "implementation_notes": "Implement as Starlette BaseHTTPMiddleware. Protected endpoints: all /api/v1/tasks/* endpoints. Public endpoints: /api/v1/auth/*, /api/v1/health, /docs, /redoc, /openapi.json. For protected endpoints: (1) Extract Authorization header from request.headers. (2) Validate format is 'Bearer {token}' using regex '^Bearer\\s+(.+)$', raise AuthenticationException with UNAUTHORIZED if invalid. (3) Extract token using extract_token(). (4) Decode token using AuthenticationService.decode_access_token(), catch exceptions and raise AuthenticationException with UNAUTHORIZED. (5) Inject user_id and email into request.state for access by route handlers. (6) Call call_next(request) to proceed. For public endpoints: call call_next(request) immediately without token validation. Catch all AuthenticationException and return JSONResponse with status 401 and error details. Log authentication failures at WARNING level with request path and IP address.",
+      "complexity": 20
+    },
+    {
+      "component_name": "GlobalExceptionHandler",
+      "semantic_unit_id": "SU-009",
+      "responsibility": "Provides centralized exception handling for all application exceptions, transforms exceptions to appropriate HTTP responses with consistent error format, and logs errors.",
+      "interfaces": [
+        {
+          "method": "handle_validation_exception",
+          "parameters": {
+            "request": "Request",
+            "exc": "ValidationException"
+          },
+          "returns": "JSONResponse",
+          "description": "Handles validation errors and returns 400 response."
+        },
+        {
+          "method": "handle_authentication_exception",
+          "parameters": {
+            "request": "Request",
+            "exc": "AuthenticationException"
+          },
+          "returns": "JSONResponse",
+          "description": "Handles authentication errors and returns 401 response."
+        },
+        {
+          "method": "handle_not_found_exception",
+          "parameters": {
+            "request": "Request",
+            "exc": "NotFoundException"
+          },
+          "returns": "JSONResponse",
+          "description": "Handles not found errors and returns 404 response."
+        },
+        {
+          "method": "handle_business_logic_exception",
+          "parameters": {
+            "request": "Request",
+            "exc": "BusinessLogicException"
+          },
+          "returns": "JSONResponse",
+          "description": "Handles business logic errors and returns 400 or 409 response."
+        },
+        {
+          "method": "handle_repository_exception",
+          "parameters": {
+            "request": "Request",
+            "exc": "RepositoryException"
+          },
+          "returns": "JSONResponse",
+          "description": "Handles database errors and returns 500 response."
+        },
+        {
+          "method": "handle_generic_exception",
+          "parameters": {
+            "request": "Request",
+            "exc": "Exception"
+          },
+          "returns": "JSONResponse",
+          "description": "Handles unexpected errors and returns 500 response."
+        }
+      ],
+      "dependencies": [],
+      "implementation_notes": "Define custom exception classes: ValidationException, AuthenticationException, NotFoundException, BusinessLogicException, RepositoryException. Each exception has error_code and message attributes. Register exception handlers using @app.exception_handler(ExceptionType) decorator. Error response format: {'error_code': str, 'message': str}. For ValidationException: return status 400 with error_code and message from exception. For AuthenticationException: return status 401. For NotFoundException: return status 404. For BusinessLogicException: return status 409 if error_code is EMAIL_ALREADY_EXISTS, otherwise 400. For RepositoryException: log full exception with traceback at ERROR level, return status 500 with generic message 'Database error occurred' (never expose internal details). For generic Exception: log full exception with traceback at ERROR level, return status 500 with error_code='INTERNAL_SERVER_ERROR' and message='An unexpected error occurred'. Never expose stack traces, SQL queries, or internal implementation details in error responses. Include request_id in logs for traceability (generate using uuid.uuid4()).",
+      "complexity": 25
+    },
+    {
+      "component_name": "HealthCheckHandler",
+      "semantic_unit_id": "SU-010",
+      "responsibility": "Handles health check endpoint, verifies database connectivity, and returns service status with timestamp.",
+      "interfaces": [
+        {
+          "method": "get_health",
+          "parameters": {},
+          "returns": "dict[str, str]",
+          "description": "Processes health check request and returns status."
+        }
+      ],
+      "dependencies": [
+        "DatabaseConnectionManager"
+      ],
+      "implementation_notes": "Use FastAPI @app.get('/api/v1/health') decorator with status_code=200. Call DatabaseConnectionManager.health_check() to verify database connectivity. If database check returns True, set database='connected', otherwise database='disconnected'. If database is disconnected, raise HTTPException with status_code=503 and error_code='SERVICE_UNAVAILABLE'. Get current UTC timestamp using datetime.now(timezone.utc).isoformat(). Return dictionary with status='healthy', timestamp=ISO8601 string, database=connection status. This endpoint should not require authentication. Response time should be under 1 second. Log health check failures at ERROR level.",
+      "complexity": 12
+    }
+  ],
+  "design_review_checklist": [
+    {
+      "category": "Security",
+      "description": "Password storage and authentication",
+      "validation_criteria": "Verify all passwords are hashed using bcrypt with cost factor 12 before storage. Confirm no plain text passwords are logged or exposed in any error messages. Validate JWT tokens use HS256 algorithm with secure secret key (minimum 256 bits). Check that JWT secret is read from environment variable and never hardcoded.",
+      "severity": "Critical"
+    },
+    {
+      "category": "Security",
+      "description": "SQL injection prevention",
+      "validation_criteria": "Verify all database queries use SQLAlchemy ORM with automatic parameterization. Confirm no raw SQL queries with string concatenation or f-strings. Check that all user input is validated before database operations. Validate UUID format before using in queries.",
+      "severity": "Critical"
+    },
+    {
+      "category": "Security",
+      "description": "Authentication and authorization",
+      "validation_criteria": "Verify AuthenticationMiddleware correctly validates JWT tokens for all protected endpoints. Confirm user_id from token is used for authorization checks in all task operations. Validate that users can only access their own tasks (no horizontal privilege escalation). Check that authentication failures return 401 without leaking information about user existence.",
+      "severity": "Critical"
+    },
+    {
+      "category": "Architecture",
+      "description": "Component separation and dependencies",
+      "validation_criteria": "Verify each component has single responsibility. Confirm service layer does not directly access database (must use repository layer). Check that repository layer does not contain business logic. Validate dependency flow: API -> Service -> Repository -> Database. Ensure no circular dependencies between components.",
+      "severity": "High"
+    },
+    {
+      "category": "API Design",
+      "description": "RESTful conventions and consistency",
+      "validation_criteria": "Verify all endpoints follow REST conventions (POST for create, GET for read, PUT for update, DELETE for delete). Confirm consistent error response format across all endpoints with error_code and message fields. Check that HTTP status codes are semantically correct (400 for validation, 401 for auth, 404 for not found, 500 for server errors). Validate consistent use of JSON for request and response bodies.",
+      "severity": "High"
+    },
+    {
+      "category": "Data Integrity",
+      "description": "Database constraints and validation",
+      "validation_criteria": "Verify all database tables have appropriate constraints (NOT NULL, UNIQUE, CHECK, FOREIGN KEY). Confirm cascading delete is configured for user-task relationship. Check that updated_at timestamp is automatically updated on record modification. Validate that due_date cannot be in the past. Ensure email uniqueness is case-insensitive.",
+      "severity": "High"
+    },
+    {
+      "category": "Performance",
+      "description": "Database query optimization",
+      "validation_criteria": "Verify appropriate indexes exist on frequently queried columns (user_id, status, created_at, due_date). Confirm connection pooling is configured with appropriate pool size (5-20 connections). Check that pagination is implemented to prevent loading large result sets. Validate that N+1 query problems are avoided using proper ORM relationships.",
+      "severity": "Medium"
+    },
+    {
+      "category": "Error Handling",
+      "description": "Comprehensive exception handling",
+      "validation_criteria": "Verify all exceptions are caught and handled appropriately at each layer. Confirm exceptions are transformed to appropriate HTTP responses with consistent format. Check that internal error details are never exposed to clients. Validate that all errors are logged with appropriate severity levels. Ensure database connection errors are handled gracefully.",
+      "severity": "High"
+    },
+    {
+      "category": "Maintainability",
+      "description": "Code organization and documentation",
+      "validation_criteria": "Verify components are organized in logical modules/packages. Confirm all public interfaces have clear method signatures with type hints. Check that implementation notes provide sufficient guidance for coding agent. Validate that all semantic units from project plan are covered by components. Ensure consistent naming conventions across all components.",
+      "severity": "Medium"
+    }
+  ],
+  "architecture_overview": "Multi-tier web application architecture implementing a task management system with RESTful API design. The system consists of five logical layers: (1) API Layer with FastAPI framework handling HTTP requests/responses, request validation, and routing to appropriate handlers, (2) Business Logic Layer containing TaskService for task CRUD operations, validation, and business rules enforcement, (3) Data Access Layer with TaskRepository implementing database operations using SQLAlchemy ORM with connection pooling, (4) Database Layer using PostgreSQL for persistent storage with proper indexing and constraints, (5) Authentication Layer implementing JWT-based stateless authentication with token generation and validation. Data flows from API endpoints through service layer to repository layer, with all database operations using parameterized queries to prevent SQL injection. The architecture supports horizontal scaling as all components are stateless except the database. Error handling is centralized with custom exception classes propagating through layers and being transformed to appropriate HTTP responses at the API boundary.",
+  "technology_stack": {
+    "language": "Python 3.11",
+    "framework": "FastAPI 0.104.1",
+    "database": "PostgreSQL 15.3",
+    "orm": "SQLAlchemy 2.0.23",
+    "authentication": "PyJWT 2.8.0",
+    "password_hashing": "bcrypt 4.1.1",
+    "migration_tool": "Alembic 1.12.1",
+    "asgi_server": "uvicorn 0.24.0",
+    "validation": "Pydantic 2.5.0 (FastAPI built-in)",
+    "connection_pool": "psycopg2-binary 2.9.9"
+  },
+  "assumptions": [
+    "PostgreSQL database is accessible and properly configured with connection credentials provided via environment variables",
+    "Database user has CREATE, READ, UPDATE, DELETE privileges on task management schema",
+    "JWT secret key is provided via environment variable and is cryptographically secure (minimum 256 bits)",
+    "Token expiration is set to 24 hours for access tokens",
+    "Password hashing uses bcrypt with cost factor 12 for security-performance balance",
+    "All timestamps are stored and transmitted in UTC timezone",
+    "Task titles are limited to 255 characters, descriptions to 5000 characters",
+    "API runs behind reverse proxy handling HTTPS/TLS termination",
+    "Maximum request body size is 1MB (FastAPI default)",
+    "Database connection pool maintains 5-20 connections based on load",
+    "User registration requires unique email addresses (case-insensitive)"
+  ],
+  "timestamp": "2025-01-20T10:30:00Z"
+}

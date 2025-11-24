@@ -4,7 +4,7 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Create basic project structure and server setup",
+      "description": "Set up HTTP server framework and configure routing infrastructure",
       "api_interactions": 0,
       "data_transformations": 0,
       "logical_branches": 1,
@@ -15,7 +15,7 @@
     },
     {
       "unit_id": "SU-002",
-      "description": "Implement GET /hello route handler with Hello World response",
+      "description": "Create GET /hello route handler with response serialization",
       "api_interactions": 0,
       "data_transformations": 1,
       "logical_branches": 1,
@@ -28,19 +28,19 @@
     },
     {
       "unit_id": "SU-003",
-      "description": "Add basic error handling and HTTP status codes",
+      "description": "Implement HTTP response formatting and status code handling",
       "api_interactions": 0,
-      "data_transformations": 0,
+      "data_transformations": 1,
       "logical_branches": 2,
       "code_entities_modified": 1,
       "novelty_multiplier": 1.0,
-      "est_complexity": 10,
+      "est_complexity": 15,
       "dependencies": [
         "SU-002"
       ]
     }
   ],
-  "total_est_complexity": 33,
+  "total_est_complexity": 38,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"

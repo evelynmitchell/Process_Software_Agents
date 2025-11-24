@@ -1,0 +1,47 @@
+{
+  "project_id": "TSP-E2E-TEST",
+  "task_id": "TSP-FIB-001",
+  "semantic_units": [
+    {
+      "unit_id": "SU-001",
+      "description": "Create fibonacci function signature with type hints and input validation",
+      "api_interactions": 0,
+      "data_transformations": 0,
+      "logical_branches": 2,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 10,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-002",
+      "description": "Implement iterative Fibonacci calculation logic with edge case handling",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 3,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 18,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Add comprehensive docstring with examples and parameter documentation",
+      "api_interactions": 0,
+      "data_transformations": 0,
+      "logical_branches": 0,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 4,
+      "dependencies": [
+        "SU-002"
+      ]
+    }
+  ],
+  "total_est_complexity": 32,
+  "probe_ai_prediction": null,
+  "probe_ai_enabled": false,
+  "agent_version": "1.0.0"
+}

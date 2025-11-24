@@ -605,4 +605,26 @@ You MUST output a single JSON object matching the DesignSpecification schema. Th
   "assumptions": ["assumption 1", "assumption 2"]
 }}
 
+⚠️⚠️⚠️ CRITICAL: request_params VALUES MUST BE PLAIN STRINGS, NOT OBJECTS ⚠️⚠️⚠️
+
+WRONG - DO NOT USE THIS FORMAT:
+```json
+"request_params": {{
+  "name": {{
+    "type": "string",
+    "required": false,
+    "description": "..."
+  }}
+}}
+```
+
+CORRECT - USE THIS FORMAT:
+```json
+"request_params": {{
+  "name": "string (optional, description)"
+}}
+```
+
+The value MUST be a simple string, NOT a nested object with "type", "required", etc.
+
 Generate the complete design now. Remember: this design will be used directly by a Coding Agent, so it must be complete, unambiguous, and implementable without any further clarification.
