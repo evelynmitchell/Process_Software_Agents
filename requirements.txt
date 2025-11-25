@@ -40,3 +40,6 @@ mypy==1.18.2
 
 # Logging
 structlog==23.2.0
+
+# Terminal UI
+rich==13.9.4
