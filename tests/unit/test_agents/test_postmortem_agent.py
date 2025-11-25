@@ -182,7 +182,7 @@ def create_test_defect_log(task_id="POSTMORTEM-001"):
         DefectLogEntry(
             defect_id="D-001",
             task_id=task_id,
-            defect_type="Security_Vulnerability",
+            defect_type="5_Security_Vulnerability",
             phase_injected="Code",
             phase_removed="Code Review",
             effort_to_fix_vector={
@@ -196,7 +196,7 @@ def create_test_defect_log(task_id="POSTMORTEM-001"):
         DefectLogEntry(
             defect_id="D-002",
             task_id=task_id,
-            defect_type="Conventional_Code_Bug",
+            defect_type="6_Conventional_Code_Bug",
             phase_injected="Code",
             phase_removed="Test",
             effort_to_fix_vector={
@@ -210,7 +210,7 @@ def create_test_defect_log(task_id="POSTMORTEM-001"):
         DefectLogEntry(
             defect_id="D-003",
             task_id=task_id,
-            defect_type="Prompt_Misinterpretation",
+            defect_type="2_Prompt_Misinterpretation",
             phase_injected="Design",
             phase_removed="Design Review",
             effort_to_fix_vector={
@@ -312,7 +312,7 @@ def test_execute_basic_analysis(
     # Verify root cause analysis
     assert len(report.root_cause_analysis) > 0
     top_issue = report.root_cause_analysis[0]
-    assert top_issue.defect_type == "Security_Vulnerability"  # Highest fix cost
+    assert top_issue.defect_type == "5_Security_Vulnerability"  # Highest fix cost
     assert top_issue.total_effort_to_fix == 0.02
     assert top_issue.occurrence_count == 1
 
@@ -357,11 +357,11 @@ def test_root_cause_analysis(postmortem_agent, test_postmortem_input):
 
     # Should be sorted by total_effort_to_fix (descending)
     assert len(root_causes) == 3
-    assert root_causes[0].defect_type == "Security_Vulnerability"
+    assert root_causes[0].defect_type == "5_Security_Vulnerability"
     assert root_causes[0].total_effort_to_fix == 0.02
-    assert root_causes[1].defect_type == "Conventional_Code_Bug"
+    assert root_causes[1].defect_type == "6_Conventional_Code_Bug"
     assert root_causes[1].total_effort_to_fix == 0.01
-    assert root_causes[2].defect_type == "Prompt_Misinterpretation"
+    assert root_causes[2].defect_type == "2_Prompt_Misinterpretation"
     assert root_causes[2].total_effort_to_fix == 0.008
 
 

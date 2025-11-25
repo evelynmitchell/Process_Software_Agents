@@ -97,14 +97,14 @@ class DefectLogEntry(BaseModel):
     )
 
     defect_type: Literal[
-        "Planning_Failure",
-        "Prompt_Misinterpretation",
-        "Tool_Use_Error",
-        "Hallucination",
-        "Security_Vulnerability",
-        "Conventional_Code_Bug",
-        "Task_Execution_Error",
-        "Alignment_Deviation",
+        "1_Planning_Failure",
+        "2_Prompt_Misinterpretation",
+        "3_Tool_Use_Error",
+        "4_Hallucination",
+        "5_Security_Vulnerability",
+        "6_Conventional_Code_Bug",
+        "7_Task_Execution_Error",
+        "8_Alignment_Deviation",
     ] = Field(
         ...,
         description="Classification from AI Defect Taxonomy (FR-11)",
@@ -211,7 +211,7 @@ class PostmortemInput(BaseModel):
                     {
                         "defect_id": "D-001",
                         "task_id": "POSTMORTEM-001",
-                        "defect_type": "Security_Vulnerability",
+                        "defect_type": "5_Security_Vulnerability",
                         "phase_injected": "Code",
                         "phase_removed": "Code Review",
                         "effort_to_fix_vector": {
@@ -444,7 +444,7 @@ class PostmortemReport(BaseModel):
                 },
                 "root_cause_analysis": [
                     {
-                        "defect_type": "Security_Vulnerability",
+                        "defect_type": "5_Security_Vulnerability",
                         "occurrence_count": 1,
                         "total_effort_to_fix": 0.02,
                         "average_effort_to_fix": 0.02,
@@ -571,7 +571,7 @@ class ProcessImprovementProposal(BaseModel):
                 "proposal_id": "PIP-001",
                 "task_id": "POSTMORTEM-001",
                 "created_at": "2025-11-19T15:00:00Z",
-                "analysis": "The Code Agent injected a Security_Vulnerability defect (SQL Injection), which was caught by Code Review but consumed significant correction effort ($0.02). This suggests the Code Review checklist needs more specific SQL injection examples to catch this earlier in the review process.",
+                "analysis": "The Code Agent injected a 5_Security_Vulnerability defect (SQL Injection), which was caught by Code Review but consumed significant correction effort ($0.02). This suggests the Code Review checklist needs more specific SQL injection examples to catch this earlier in the review process.",
                 "proposed_changes": [
                     {
                         "target_artifact": "code_review_checklist",
