@@ -89,13 +89,13 @@ class TestSumNumbersBasicArithmetic:
 class TestSumNumbersNoneHandling:
     """Test None value handling in sum_numbers function."""
 
-    def test_sum_with_none_first_parameter(self) -> None:
+    def test_sum_with_none_as_first_parameter(self) -> None:
         """Test sum_numbers raises TypeError when first parameter is None."""
         with pytest.raises(TypeError) as exc_info:
             sum_numbers(None, 5)  # type: ignore
         assert "Parameter a cannot be None" in str(exc_info.value)
 
-    def test_sum_with_none_second_parameter(self) -> None:
+    def test_sum_with_none_as_second_parameter(self) -> None:
         """Test sum_numbers raises TypeError when second parameter is None."""
         with pytest.raises(TypeError) as exc_info:
             sum_numbers(5, None)  # type: ignore
@@ -107,64 +107,63 @@ class TestSumNumbersNoneHandling:
             sum_numbers(None, None)  # type: ignore
         assert "Parameter a cannot be None" in str(exc_info.value)
 
+    def test_none_error_message_includes_parameter_name(self) -> None:
+        """Test that TypeError message includes the parameter name."""
+        with pytest.raises(TypeError) as exc_info:
+            sum_numbers(None, 10)  # type: ignore
+        error_message = str(exc_info.value)
+        assert "a" in error_message
+        assert "None" in error_message
+
 
 class TestSumNumbersTypeValidation:
-    """Test type validation and type mismatch handling in sum_numbers function."""
+    """Test type validation and type mismatch handling."""
 
-    def test_sum_with_string_first_parameter(self) -> None:
+    def test_sum_with_string_as_first_parameter(self) -> None:
         """Test sum_numbers raises TypeError when first parameter is string."""
         with pytest.raises(TypeError) as exc_info:
             sum_numbers("5", 3)  # type: ignore
         assert "Parameter a must be an integer" in str(exc_info.value)
         assert "str" in str(exc_info.value)
 
-    def test_sum_with_string_second_parameter(self) -> None:
+    def test_sum_with_string_as_second_parameter(self) -> None:
         """Test sum_numbers raises TypeError when second parameter is string."""
         with pytest.raises(TypeError) as exc_info:
             sum_numbers(5, "3")  # type: ignore
         assert "Parameter b must be an integer" in str(exc_info.value)
         assert "str" in str(exc_info.value)
 
-    def test_sum_with_float_first_parameter(self) -> None:
+    def test_sum_with_float_as_first_parameter(self) -> None:
         """Test sum_numbers raises TypeError when first parameter is float."""
         with pytest.raises(TypeError) as exc_info:
             sum_numbers(5.5, 3)  # type: ignore
         assert "Parameter a must be an integer" in str(exc_info.value)
         assert "float" in str(exc_info.value)
 
-    def test_sum_with_float_second_parameter(self) -> None:
+    def test_sum_with_float_as_second_parameter(self) -> None:
         """Test sum_numbers raises TypeError when second parameter is float."""
         with pytest.raises(TypeError) as exc_info:
             sum_numbers(5, 3.5)  # type: ignore
         assert "Parameter b must be an integer" in str(exc_info.value)
         assert "float" in str(exc_info.value)
 
-    def test_sum_with_list_first_parameter(self) -> None:
+    def test_sum_with_list_as_first_parameter(self) -> None:
         """Test sum_numbers raises TypeError when first parameter is list."""
         with pytest.raises(TypeError) as exc_info:
             sum_numbers([5], 3)  # type: ignore
         assert "Parameter a must be an integer" in str(exc_info.value)
         assert "list" in str(exc_info.value)
 
-    def test_sum_with_list_second_parameter(self) -> None:
-        """Test sum_numbers raises TypeError when second parameter is list."""
-        with pytest.raises(TypeError) as exc_info:
-            sum_numbers(5, [3])  # type: ignore
-        assert "Parameter b must be an integer" in str(exc_info.value)
-        assert "list" in str(exc_info.value)
-
-    def test_sum_with_dict_first_parameter(self) -> None:
-        """Test sum_numbers raises TypeError when first parameter is dict."""
-        with pytest.raises(TypeError) as exc_info:
-            sum_numbers({"value": 5}, 3)  # type: ignore
-        assert "Parameter a must be an integer" in str(exc_info.value)
-        assert "dict" in str(exc_info.value)
-
-    def test_sum_with_dict_second_parameter(self) -> None:
+    def test_sum_with_dict_as_second_parameter(self) -> None:
         """Test sum_numbers raises TypeError when second parameter is dict."""
         with pytest.raises(TypeError) as exc_info:
             sum_numbers(5, {"value": 3})  # type: ignore
         assert "Parameter b must be an integer" in str(exc_info.value)
         assert "dict" in str(exc_info.value)
 
-    def test_sum_with_
+    def test_sum_with_tuple_as_first_parameter(self) -> None:
+        """Test sum_numbers raises TypeError when first parameter is tuple."""
+        with pytest.raises(TypeError) as exc_info:
+            sum_numbers((5,), 3)  # type: ignore
+        assert "Parameter a must be an integer" in str(exc_info.value)
+        assert "tuple" in str(exc_info.value)

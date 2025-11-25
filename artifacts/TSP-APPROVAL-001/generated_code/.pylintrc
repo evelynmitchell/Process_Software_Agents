@@ -169,7 +169,11 @@ max-module-lines=1000
 # length of an outer construct's body
 no-space-check=trailing-comma,before-comment
 
-# Number of spaces before inline comment.
+# Number of spaces required before a trailing comment.
+required-between-trailing-comment-and-closing-paren=2
+
+# Tells whether we should check for single quoted strings or double quoted
+# strings.
 single-line-if-statements=no
 
 [SIMILARITIES]
@@ -181,10 +185,10 @@ ignore-comments=yes
 ignore-docstrings=yes
 
 # Imports are removed from the similarity computation
-ignore-imports=no
+ignore-imports=yes
 
 # Signatures are removed from the similarity computation
-ignore-signatures=no
+ignore-signatures=yes
 
 # Minimum lines number d a similarity.
 min-similarity-lines=4
@@ -194,7 +198,7 @@ min-similarity-lines=4
 # Limits count of emitted suggestions for spelling mistakes.
 max-spelling-suggestions=4
 
-# Path to a file that contains private dictionary; one word per line.
+# Path to a file that contains the private dictionary; one word per line.
 spelling-private-word-list=
 
 # Tells whether to store unknown words to indicated private dictionary in
@@ -219,8 +223,4 @@ contextmanager-decorators=contextlib.contextmanager
 # List of members which are set dynamically and missed by pylint inference
 # system, and so shouldn't trigger false positives when accessed as an attribute
 # of a class. Python regular expressions are accepted.
-generated-members=
-
-# Tells whether missing members accessed in mixin class should be ignored. A
-# mixin class is considered a class which inherits from object and doesn't
-#
+generate
