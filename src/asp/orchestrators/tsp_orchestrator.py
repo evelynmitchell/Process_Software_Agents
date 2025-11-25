@@ -44,6 +44,7 @@ from asp.models.postmortem import (
 )
 from asp.models.test import TestInput, TestReport
 from asp.orchestrators.types import TSPExecutionResult
+from asp.approval.base import ApprovalService, ApprovalRequest, ReviewDecision
 
 
 logger = logging.getLogger(__name__)
@@ -108,6 +109,7 @@ class TSPOrchestrator:
         self,
         db_path: Optional[Path] = None,
         llm_client: Optional[Any] = None,
+        approval_service: Optional[ApprovalService] = None,
     ):
         """
         Initialize TSP Orchestrator.
@@ -115,9 +117,11 @@ class TSPOrchestrator:
         Args:
             db_path: Optional path to SQLite database for telemetry
             llm_client: Optional LLM client (for dependency injection in tests)
+            approval_service: Optional ApprovalService for HITL workflow
         """
         self.db_path = db_path
         self.llm_client = llm_client
+        self.approval_service = approval_service
 
         # Initialize agents (lazy-loaded)
         self._planning_agent: Optional[PlanningAgent] = None
@@ -235,9 +239,11 @@ class TSPOrchestrator:
             requirements: TaskRequirements with task description
             design_constraints: Optional design constraints/standards
             coding_standards: Optional coding standards
-            hitl_approver: Optional callable for HITL approval.
+            hitl_approver: Optional callable for HITL approval (legacy interface).
                           Signature: (gate_name: str, report: dict) -> bool
-                          If None, quality gate failures raise QualityGateFailure
+                          If None and no approval_service configured, quality gate
+                          failures raise QualityGateFailure.
+                          NOTE: approval_service takes precedence over hitl_approver
 
         Returns:
             TSPExecutionResult containing all artifacts and execution metadata
@@ -441,15 +447,16 @@ class TSPOrchestrator:
                 )
 
                 # Request HITL approval if available
-                if hitl_approver:
-                    approved = hitl_approver(
-                        gate_name="DesignReview",
-                        report=design_review.model_dump(),
-                    )
-                    if approved:
-                        logger.info("✓ HITL override approved - proceeding despite failures")
-                        self._record_hitl_override("DesignReview", design_review, "Approved")
-                        return design_spec, design_review
+                approved = self._request_approval(
+                    task_id=requirements.task_id,
+                    gate_type="design_review",
+                    gate_name="DesignReview",
+                    report=design_review,
+                    hitl_approver=hitl_approver,
+                )
+                if approved:
+                    logger.info("✓ HITL override approved - proceeding despite failures")
+                    return design_spec, design_review
 
                 # No HITL or rejected - attempt correction if iterations remain
                 if design_iterations < self.MAX_DESIGN_ITERATIONS:
@@ -530,15 +537,16 @@ class TSPOrchestrator:
                 )
 
                 # Request HITL approval if available
-                if hitl_approver:
-                    approved = hitl_approver(
-                        gate_name="CodeReview",
-                        report=code_review.model_dump(),
-                    )
-                    if approved:
-                        logger.info("✓ HITL override approved - proceeding despite failures")
-                        self._record_hitl_override("CodeReview", code_review, "Approved")
-                        return generated_code, code_review
+                approved = self._request_approval(
+                    task_id=requirements.task_id,
+                    gate_type="code_review",
+                    gate_name="CodeReview",
+                    report=code_review,
+                    hitl_approver=hitl_approver,
+                )
+                if approved:
+                    logger.info("✓ HITL override approved - proceeding despite failures")
+                    return generated_code, code_review
 
                 # No HITL or rejected - attempt correction if iterations remain
                 if code_iterations < self.MAX_CODE_ITERATIONS:
@@ -663,6 +671,76 @@ class TSPOrchestrator:
     # =========================================================================
     # Helper methods
     # =========================================================================
+
+    def _request_approval(
+        self,
+        task_id: str,
+        gate_type: str,
+        gate_name: str,
+        report: Any,
+        hitl_approver: Optional[callable],
+    ) -> bool:
+        """
+        Request approval for quality gate failure.
+
+        Uses ApprovalService if configured, otherwise falls back to hitl_approver callable.
+
+        Args:
+            task_id: Task identifier
+            gate_type: Gate type (design_review, code_review)
+            gate_name: Gate name for logging (DesignReview, CodeReview)
+            report: Quality report (DesignReviewReport or CodeReviewReport)
+            hitl_approver: Legacy callable approver
+
+        Returns:
+            True if approved, False if rejected/deferred
+        """
+        # Priority 1: Use ApprovalService if configured
+        if self.approval_service:
+            logger.info(f"Requesting approval via ApprovalService: {gate_type}")
+
+            approval_request = ApprovalRequest(
+                task_id=task_id,
+                gate_type=gate_type,
+                agent_output=report.model_dump(),
+                quality_report=report.model_dump(),
+            )
+
+            response = self.approval_service.request_approval(approval_request)
+
+            # Log approval response
+            logger.info(
+                f"Approval decision: {response.decision.value} "
+                f"by {response.reviewer} at {response.timestamp}"
+            )
+            logger.info(f"Justification: {response.justification}")
+
+            if response.decision == ReviewDecision.APPROVED:
+                self._record_hitl_override(
+                    gate_name,
+                    report,
+                    f"Approved by {response.reviewer}: {response.justification}"
+                )
+                return True
+            else:
+                logger.warning(
+                    f"Approval {response.decision.value}: {response.justification}"
+                )
+                return False
+
+        # Priority 2: Fall back to legacy callable approver
+        if hitl_approver:
+            logger.info(f"Requesting approval via legacy hitl_approver: {gate_name}")
+            approved = hitl_approver(
+                gate_name=gate_name,
+                report=report.model_dump(),
+            )
+            if approved:
+                self._record_hitl_override(gate_name, report, "Approved (legacy)")
+            return approved
+
+        # No approval mechanism available
+        return False
 
     def _log_phase(self, phase_name: str, status: str, artifact: Any):
         """Log phase execution to execution log."""
