@@ -1,0 +1,73 @@
+{
+  "task_id": "POSTMORTEM-001",
+  "analysis_timestamp": "2025-11-25T22:47:38.837312",
+  "estimation_accuracy": {
+    "latency_ms": {
+      "planned": 35000.0,
+      "actual": 38500.0,
+      "variance_percent": 10.0
+    },
+    "tokens": {
+      "planned": 88000.0,
+      "actual": 132000.0,
+      "variance_percent": 50.0
+    },
+    "api_cost": {
+      "planned": 0.14,
+      "actual": 0.16999999999999998,
+      "variance_percent": 21.43
+    },
+    "semantic_complexity": {
+      "planned": 18.0,
+      "actual": 20.3,
+      "variance_percent": 12.78
+    }
+  },
+  "quality_metrics": {
+    "defect_density": 0.148,
+    "total_defects": 3,
+    "defect_injection_by_phase": {
+      "Code": 2,
+      "Design": 1
+    },
+    "defect_removal_by_phase": {
+      "Code Review": 1,
+      "Test": 1,
+      "Design Review": 1
+    },
+    "phase_yield": {
+      "Code Review": 33.3,
+      "Test": 33.3,
+      "Design Review": 33.3
+    }
+  },
+  "root_cause_analysis": [
+    {
+      "defect_type": "5_Security_Vulnerability",
+      "occurrence_count": 1,
+      "total_effort_to_fix": 0.02,
+      "average_effort_to_fix": 0.02,
+      "recommendation": "Review and enhance Code Agent prompt and Code Review checklist."
+    },
+    {
+      "defect_type": "6_Conventional_Code_Bug",
+      "occurrence_count": 1,
+      "total_effort_to_fix": 0.01,
+      "average_effort_to_fix": 0.01,
+      "recommendation": "Review and enhance Code Agent prompt and Test checklist."
+    },
+    {
+      "defect_type": "2_Prompt_Misinterpretation",
+      "occurrence_count": 1,
+      "total_effort_to_fix": 0.008,
+      "average_effort_to_fix": 0.008,
+      "recommendation": "Review and enhance Design Agent prompt and Design Review checklist."
+    }
+  ],
+  "summary": "Task POSTMORTEM-001 completed with latency on target and cost overran by 21%. 3 defects found (density: 0.15), with 5_Security_Vulnerability being the primary issue. Process improvements recommended to prevent future defects.",
+  "recommendations": [
+    "Review and enhance Code Agent prompt and Code Review checklist.",
+    "Review and enhance Code Agent prompt and Test checklist.",
+    "Review and enhance Design Agent prompt and Design Review checklist."
+  ]
+}

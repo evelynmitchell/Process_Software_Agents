@@ -233,9 +233,19 @@ class PostmortemAgent(BaseAgent):
 
         # Get planned values from project plan
         plan = input_data.project_plan
-        planned_latency_ms = plan.total_est_latency_ms
-        planned_tokens = plan.total_est_tokens
-        planned_api_cost = plan.total_est_api_cost
+
+        # Check if PROBE-AI predictions are available
+        if plan.probe_ai_prediction:
+            planned_latency_ms = plan.probe_ai_prediction.total_est_latency_ms
+            planned_tokens = plan.probe_ai_prediction.total_est_tokens
+            planned_api_cost = plan.probe_ai_prediction.total_est_api_cost
+        else:
+            # If no PROBE-AI predictions, use 0 as baseline (can't compare)
+            # This happens in Phase 1 before PROBE-AI is enabled
+            planned_latency_ms = 0.0
+            planned_tokens = 0.0
+            planned_api_cost = 0.0
+
         planned_complexity = plan.total_est_complexity
 
         # Create metric comparisons

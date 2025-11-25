@@ -23,7 +23,7 @@ import pytest
 
 from asp.agents.base_agent import AgentExecutionError
 from asp.agents.postmortem_agent import PostmortemAgent
-from asp.models.planning import ProjectPlan, SemanticUnit
+from asp.models.planning import PROBEAIPrediction, ProjectPlan, SemanticUnit
 from asp.models.postmortem import (
     DefectLogEntry,
     EffortLogEntry,
@@ -44,9 +44,13 @@ def create_test_project_plan(task_id="POSTMORTEM-001"):
         task_id=task_id,
         project_id="TEST-PROJECT",
         total_est_complexity=18,
-        total_est_latency_ms=35000,
-        total_est_tokens=88000,
-        total_est_api_cost=0.14,
+        probe_ai_prediction=PROBEAIPrediction(
+            total_est_latency_ms=35000.0,
+            total_est_tokens=88000,
+            total_est_api_cost=0.14,
+            confidence=0.85,
+        ),
+        probe_ai_enabled=True,
         semantic_units=[
             SemanticUnit(
                 unit_id="SU-001",
