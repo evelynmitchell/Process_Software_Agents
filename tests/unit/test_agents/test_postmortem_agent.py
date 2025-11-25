@@ -480,9 +480,9 @@ def test_execute_with_invalid_input(postmortem_agent):
 # =============================================================================
 
 
-@patch("asp.utils.artifact_io.write_artifact_json")
-@patch("asp.utils.artifact_io.write_artifact_markdown")
-@patch("asp.utils.git_utils.is_git_repository", return_value=False)
+@patch("asp.agents.postmortem_agent.write_artifact_json")
+@patch("asp.agents.postmortem_agent.write_artifact_markdown")
+@patch("asp.agents.postmortem_agent.is_git_repository", return_value=False)
 def test_artifact_writing(
     mock_git,
     mock_write_md,

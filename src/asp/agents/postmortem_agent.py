@@ -184,7 +184,7 @@ class PostmortemAgent(BaseAgent):
                 md_path = write_artifact_markdown(
                     task_id=report.task_id,
                     artifact_type="postmortem_report",
-                    content=markdown_content,
+                    markdown_content=markdown_content,
                 )
                 logger.debug(f"Wrote postmortem report Markdown: {md_path}")
                 artifact_files.append(str(md_path))
