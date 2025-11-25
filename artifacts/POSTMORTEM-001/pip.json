@@ -1,0 +1,20 @@
+{
+  "proposal_id": "PIP-20251125230028",
+  "task_id": "POSTMORTEM-001",
+  "created_at": "2025-11-25T23:00:28.903228",
+  "analysis": "Security vulnerabilities indicate Code Agent needs better security guidance",
+  "proposed_changes": [
+    {
+      "target_artifact": "code_agent_prompt",
+      "change_type": "add",
+      "current_content": null,
+      "proposed_content": "SECURITY: Use parameterized queries for all SQL",
+      "rationale": "Prevent SQL injection vulnerabilities"
+    }
+  ],
+  "expected_impact": "Reduce security vulnerabilities by 70%",
+  "hitl_status": "pending",
+  "hitl_reviewer": null,
+  "hitl_reviewed_at": null,
+  "hitl_feedback": null
+}
