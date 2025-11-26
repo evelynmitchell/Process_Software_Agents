@@ -16,6 +16,36 @@ The ASP Platform transforms autonomous AI agents from unpredictable "copilots" i
 
 ---
 
+## 🚀 Quick Example
+
+```python
+from asp.orchestrators import TSPOrchestrator
+from asp.models.planning import TaskRequirements
+
+# Create task
+task = TaskRequirements(
+    task_id="EXAMPLE-001",
+    description="Create a Python function that validates email addresses",
+    requirements=[
+        "Function accepts email string",
+        "Returns True for valid emails, False otherwise",
+        "Use regex for validation",
+        "Include comprehensive tests"
+    ]
+)
+
+# Run through ASP pipeline (7 agents)
+orchestrator = TSPOrchestrator()
+result = orchestrator.execute(task)
+
+print(f"✅ Task complete! Cost: ${result.total_cost_usd:.4f}")
+print(f"📁 Artifacts: artifacts/{task.task_id}/")
+```
+
+**More examples:** See [examples/](examples/) directory
+
+---
+
 ## Quick Start
 
 ### Option 1: GitHub Codespaces (Recommended)
@@ -379,47 +409,58 @@ The Design Review Agent is a **production-ready multi-agent system** that perfor
 
 ## Documentation
 
-### Product & Architecture
+### 🚀 Getting Started (Start Here!)
+- **[ASP Overview](docs/ASP_Overview.md)** - What is ASP? Core concepts and benefits
+- **[Getting Started Guide](docs/Getting_Started.md)** - Installation, configuration, and first task
+- **[Examples](examples/)** - Runnable code examples demonstrating key features
+
+### 📚 User Guides
+- **[HITL Integration Guide](docs/HITL_Integration.md)** - Human-In-The-Loop approval workflows
+- **[Agent Reference](docs/Agents_Reference.md)** - Complete reference for all 7 agents
+- **[API Reference](docs/API_Reference.md)** - Python API documentation
+- [design_review_agent_user_guide.md](docs/design_review_agent_user_guide.md) - Design Review Agent deep dive
+- [artifact_persistence_user_guide.md](docs/artifact_persistence_user_guide.md) - Artifact system usage
+- [telemetry_user_guide.md](docs/telemetry_user_guide.md) - Telemetry and observability
+
+### 👨‍💻 Developer Documentation
+- **[Developer Guide](docs/Developer_Guide.md)** - Extending, customizing, and contributing
+- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Directory organization
+- [Claude.md](Claude.md) - Development guidelines
+- [.env.example](.env.example) - Environment variables reference
+
+### 📋 Product & Architecture
 - [PRD.md](PRD.md) - Product Requirements Document
 - [PSPdoc.md](PSPdoc.md) - ASP Framework Source Document
-- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Directory Organization
 
-### Architecture Decisions
-- [docs/data_storage_decision.md](docs/data_storage_decision.md) - SQLite vs PostgreSQL (with database file location)
-- [docs/secrets_management_decision.md](docs/secrets_management_decision.md) - GitHub Codespaces Secrets strategy
-- [docs/planning_agent_architecture_decision.md](docs/planning_agent_architecture_decision.md) - Planning Agent design
-- [docs/design_agent_architecture_decision.md](docs/design_agent_architecture_decision.md) - Design Agent design
-- [docs/design_review_agent_architecture_decision.md](docs/design_review_agent_architecture_decision.md) - Design Review multi-agent architecture
-- [docs/error_correction_feedback_loops_decision.md](docs/error_correction_feedback_loops_decision.md) - Phase-aware feedback and orchestrator routing
-- [docs/artifact_traceability_decision.md](docs/artifact_traceability_decision.md) - Artifact flow through pipeline and PlanningDesignResult
-- [docs/artifact_persistence_version_control_decision.md](docs/artifact_persistence_version_control_decision.md) - Artifact storage and version control strategy
-- [docs/phase_aware_feedback_revision_plan.md](docs/phase_aware_feedback_revision_plan.md) - Implementation plan for orchestrator feedback loops
-- [docs/complexity_calibration_decision.md](docs/complexity_calibration_decision.md) - Semantic complexity scoring for PROBE-AI
-- [docs/bootstrap_data_collection_decision.md](docs/bootstrap_data_collection_decision.md) - Bootstrap learning framework implementation
+### 🏗️ Architecture Decisions (ADRs)
+- [data_storage_decision.md](docs/data_storage_decision.md) - SQLite vs PostgreSQL
+- [secrets_management_decision.md](docs/secrets_management_decision.md) - GitHub Codespaces Secrets
+- [planning_agent_architecture_decision.md](docs/planning_agent_architecture_decision.md) - Planning Agent design
+- [design_agent_architecture_decision.md](docs/design_agent_architecture_decision.md) - Design Agent design
+- [design_review_agent_architecture_decision.md](docs/design_review_agent_architecture_decision.md) - Multi-agent review architecture
+- [error_correction_feedback_loops_decision.md](docs/error_correction_feedback_loops_decision.md) - Phase-aware feedback
+- [artifact_traceability_decision.md](docs/artifact_traceability_decision.md) - Artifact flow
+- [artifact_persistence_version_control_decision.md](docs/artifact_persistence_version_control_decision.md) - Artifact storage
+- [phase_aware_feedback_revision_plan.md](docs/phase_aware_feedback_revision_plan.md) - Feedback implementation
+- [complexity_calibration_decision.md](docs/complexity_calibration_decision.md) - Semantic complexity
+- [bootstrap_data_collection_decision.md](docs/bootstrap_data_collection_decision.md) - Bootstrap learning
 
-### Agent User Guides
-- [docs/design_review_agent_user_guide.md](docs/design_review_agent_user_guide.md) - Complete guide for Design Review Agent (usage, examples, API reference, troubleshooting)
-- [docs/artifact_persistence_user_guide.md](docs/artifact_persistence_user_guide.md) - How to use the artifact persistence system
-- [docs/telemetry_user_guide.md](docs/telemetry_user_guide.md) - Using telemetry decorators and observability features
+### 🧪 Testing Documentation
+- [comprehensive_agent_test_plan.md](docs/comprehensive_agent_test_plan.md) - Complete test plan for all 21 agents
+- [test_gap_analysis_and_recommendations.md](docs/test_gap_analysis_and_recommendations.md) - Test gap analysis
+- [test_plan_quick_start.md](docs/test_plan_quick_start.md) - Testing quick reference
+- [test_coverage_analysis.md](docs/test_coverage_analysis.md) - Coverage analysis
+- [test_implementation_plan.md](docs/test_implementation_plan.md) - Test implementation roadmap
+- [run_agent_tests.py](scripts/run_agent_tests.py) - Python test runner
+- [run_agent_tests.sh](scripts/run_agent_tests.sh) - Bash test runner
 
-### Technical Specifications
-- [docs/database_schema_specification.md](docs/database_schema_specification.md) - Database Design
-- [docs/observability_platform_evaluation.md](docs/observability_platform_evaluation.md) - Platform Selection
-- [database/README.md](database/README.md) - Database Setup Guide (SQLite & PostgreSQL)
+### 🔧 Technical Specifications
+- [database_schema_specification.md](docs/database_schema_specification.md) - Database design
+- [observability_platform_evaluation.md](docs/observability_platform_evaluation.md) - Platform selection
+- [database/README.md](database/README.md) - Database setup guide
 
-### Testing Documentation
-- [docs/comprehensive_agent_test_plan.md](docs/comprehensive_agent_test_plan.md) - **UPDATED!** Complete test plan for all 21 agents + 106 new critical tests for AI safety, resource management, and bootstrap learning (~300+ total tests)
-- [docs/test_gap_analysis_and_recommendations.md](docs/test_gap_analysis_and_recommendations.md) - **NEW!** Analysis of missing test cases with focus on prompt injection, cost control, hallucination detection, and bootstrap learning validation
-- [docs/test_plan_quick_start.md](docs/test_plan_quick_start.md) - Quick reference guide for executing the comprehensive test plan
-- [docs/test_coverage_analysis.md](docs/test_coverage_analysis.md) - Comprehensive test coverage analysis and gap identification
-- [docs/test_implementation_plan.md](docs/test_implementation_plan.md) - Detailed 3-4 week implementation roadmap for test coverage
-- [scripts/run_agent_tests.py](scripts/run_agent_tests.py) - Python test runner with incremental execution modes
-- [scripts/run_agent_tests.sh](scripts/run_agent_tests.sh) - Bash test runner for Linux/macOS
-
-### Development Guidelines
-- [Claude.md](Claude.md) - Guidelines for Claude Code
-- [.env.example](.env.example) - Environment Variables Reference
-- [Summary/](Summary/) - Daily Work Logs
+### 📝 Development Logs
+- [Summary/](Summary/) - Daily work logs and session summaries
 
 ---
 
