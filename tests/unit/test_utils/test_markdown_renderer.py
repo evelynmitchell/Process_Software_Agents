@@ -17,7 +17,6 @@ from asp.models.design import (
     APIContract,
     ComponentLogic,
     DataSchema,
-    DesignChecklistItem,
     DesignSpecification,
 )
 from asp.models.design_review import (

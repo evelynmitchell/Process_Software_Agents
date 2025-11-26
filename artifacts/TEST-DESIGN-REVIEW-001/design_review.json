@@ -1,0 +1,110 @@
+{
+  "task_id": "TEST-DESIGN-REVIEW-001",
+  "review_id": "REVIEW-TESTDESIGNREVIEW001-20251126-215131",
+  "timestamp": "2025-11-26T21:51:31.012072",
+  "overall_assessment": "FAIL",
+  "automated_checks": {
+    "semantic_coverage": true,
+    "no_circular_deps": true,
+    "checklist_complete": true,
+    "has_high_priority_items": true,
+    "schema_api_consistency": true,
+    "components_have_interfaces": true
+  },
+  "issues_found": [
+    {
+      "issue_id": "ISSUE-005",
+      "category": "Security",
+      "severity": "Critical",
+      "description": "Critical security vulnerability requiring immediate attention",
+      "evidence": "Test evidence showing the critical issue",
+      "impact": "High impact requiring immediate remediation effort",
+      "affected_phase": "Design"
+    },
+    {
+      "issue_id": "ISSUE-006",
+      "category": "Architecture",
+      "severity": "High",
+      "description": "High severity architectural design issue found",
+      "evidence": "Test evidence for high severity",
+      "impact": "High impact on system architecture and maintainability",
+      "affected_phase": "Design"
+    },
+    {
+      "issue_id": "ISSUE-007",
+      "category": "Performance",
+      "severity": "Medium",
+      "description": "Medium severity performance issue detected in design",
+      "evidence": "Test evidence for medium severity",
+      "impact": "Moderate impact on system performance and scalability",
+      "affected_phase": "Design"
+    },
+    {
+      "issue_id": "ISSUE-008",
+      "category": "Maintainability",
+      "severity": "Low",
+      "description": "Low severity documentation issue needs attention",
+      "evidence": "Test evidence for low severity",
+      "impact": "Minor impact on documentation quality and completeness",
+      "affected_phase": "Design"
+    }
+  ],
+  "improvement_suggestions": [],
+  "checklist_review": [
+    {
+      "checklist_item_id": "CHK-DEFAULT",
+      "category": "General",
+      "description": "General design quality assessment",
+      "status": "Pass",
+      "notes": "All automated checks passed successfully with no issues found",
+      "related_issues": []
+    }
+  ],
+  "planning_phase_issues": [],
+  "design_phase_issues": [
+    {
+      "issue_id": "ISSUE-005",
+      "category": "Security",
+      "severity": "Critical",
+      "description": "Critical security vulnerability requiring immediate attention",
+      "evidence": "Test evidence showing the critical issue",
+      "impact": "High impact requiring immediate remediation effort",
+      "affected_phase": "Design"
+    },
+    {
+      "issue_id": "ISSUE-006",
+      "category": "Architecture",
+      "severity": "High",
+      "description": "High severity architectural design issue found",
+      "evidence": "Test evidence for high severity",
+      "impact": "High impact on system architecture and maintainability",
+      "affected_phase": "Design"
+    },
+    {
+      "issue_id": "ISSUE-007",
+      "category": "Performance",
+      "severity": "Medium",
+      "description": "Medium severity performance issue detected in design",
+      "evidence": "Test evidence for medium severity",
+      "impact": "Moderate impact on system performance and scalability",
+      "affected_phase": "Design"
+    },
+    {
+      "issue_id": "ISSUE-008",
+      "category": "Maintainability",
+      "severity": "Low",
+      "description": "Low severity documentation issue needs attention",
+      "evidence": "Test evidence for low severity",
+      "impact": "Minor impact on documentation quality and completeness",
+      "affected_phase": "Design"
+    }
+  ],
+  "multi_phase_issues": [],
+  "critical_issue_count": 1,
+  "high_issue_count": 1,
+  "medium_issue_count": 1,
+  "low_issue_count": 1,
+  "reviewer_agent": "DesignReviewAgent",
+  "agent_version": "1.0.0",
+  "review_duration_ms": 0.506
+}
