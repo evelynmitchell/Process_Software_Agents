@@ -4,109 +4,43 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Establish core system architecture, database schema, and foundational data models for features 0-15",
+      "description": "Implement API endpoint handler",
       "api_interactions": 2,
-      "data_transformations": 4,
-      "logical_branches": 3,
-      "code_entities_modified": 8,
-      "novelty_multiplier": 1.5,
-      "est_complexity": 98,
+      "data_transformations": 1,
+      "logical_branches": 2,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.2,
+      "est_complexity": 32,
       "dependencies": []
     },
     {
       "unit_id": "SU-002",
-      "description": "Implement features 0-5 with CRUD operations, validation logic, and data persistence",
-      "api_interactions": 5,
-      "data_transformations": 6,
-      "logical_branches": 7,
-      "code_entities_modified": 8,
+      "description": "Add validation logic",
+      "api_interactions": 0,
+      "data_transformations": 2,
+      "logical_branches": 3,
+      "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 93,
+      "est_complexity": 27,
       "dependencies": [
         "SU-001"
       ]
     },
     {
       "unit_id": "SU-003",
-      "description": "Implement features 6-15 with business logic, inter-feature dependencies, and state management",
-      "api_interactions": 6,
-      "data_transformations": 7,
-      "logical_branches": 8,
-      "code_entities_modified": 9,
+      "description": "Implement error handling",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 4,
+      "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 107,
+      "est_complexity": 25,
       "dependencies": [
-        "SU-001",
-        "SU-002"
-      ]
-    },
-    {
-      "unit_id": "SU-004",
-      "description": "Implement features 16-30 with advanced data transformations and complex business workflows",
-      "api_interactions": 7,
-      "data_transformations": 8,
-      "logical_branches": 8,
-      "code_entities_modified": 9,
-      "novelty_multiplier": 1.5,
-      "est_complexity": 171,
-      "dependencies": [
-        "SU-003"
-      ]
-    },
-    {
-      "unit_id": "SU-005",
-      "description": "Implement features 31-50 with integration points, error handling, and recovery mechanisms",
-      "api_interactions": 8,
-      "data_transformations": 8,
-      "logical_branches": 9,
-      "code_entities_modified": 10,
-      "novelty_multiplier": 1.0,
-      "est_complexity": 123,
-      "dependencies": [
-        "SU-004"
-      ]
-    },
-    {
-      "unit_id": "SU-006",
-      "description": "Implement features 51-70 with performance optimization, caching strategies, and async operations",
-      "api_interactions": 7,
-      "data_transformations": 7,
-      "logical_branches": 8,
-      "code_entities_modified": 9,
-      "novelty_multiplier": 1.5,
-      "est_complexity": 164,
-      "dependencies": [
-        "SU-005"
-      ]
-    },
-    {
-      "unit_id": "SU-007",
-      "description": "Implement features 71-85 with monitoring, logging, and system observability",
-      "api_interactions": 6,
-      "data_transformations": 6,
-      "logical_branches": 7,
-      "code_entities_modified": 8,
-      "novelty_multiplier": 1.0,
-      "est_complexity": 95,
-      "dependencies": [
-        "SU-006"
-      ]
-    },
-    {
-      "unit_id": "SU-008",
-      "description": "Implement features 86-99 with security hardening, testing integration, and system validation",
-      "api_interactions": 7,
-      "data_transformations": 6,
-      "logical_branches": 8,
-      "code_entities_modified": 9,
-      "novelty_multiplier": 1.5,
-      "est_complexity": 156,
-      "dependencies": [
-        "SU-007"
+        "SU-001"
       ]
     }
   ],
-  "total_est_complexity": 1007,
+  "total_est_complexity": 84,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"
