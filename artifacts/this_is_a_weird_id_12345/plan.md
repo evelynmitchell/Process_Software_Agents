@@ -28,7 +28,7 @@
 - **Novelty Multiplier:** 1.0
 - **Dependencies:** SU-001
 
-### SU-003: Add basic error handling and response validation for health endpoint
+### SU-003: Add basic error handling and HTTP status code responses
 
 - **Estimated Complexity:** 15
 - **API Interactions:** 0

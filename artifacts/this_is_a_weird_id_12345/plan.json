@@ -28,7 +28,7 @@
     },
     {
       "unit_id": "SU-003",
-      "description": "Add basic error handling and response validation for health endpoint",
+      "description": "Add basic error handling and HTTP status code responses",
       "api_interactions": 0,
       "data_transformations": 1,
       "logical_branches": 2,
