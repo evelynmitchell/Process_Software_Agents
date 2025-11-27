@@ -44,7 +44,7 @@ class TestPIPReviewCollector:
         """Test approving a PIP."""
         # Mock user input
         inputs = iter(['1', 'Looks good, security improvement needed'])
-        monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+        monkeypatch.setattr('builtins.input', lambda *_: next(inputs))
 
         # Mock git config
         mock_run = Mock()
@@ -58,7 +58,7 @@ class TestPIPReviewCollector:
         task_dir.mkdir()
 
         # Create collector
-        collector = PIPReviewCollector()
+        collector = PIPReviewCollector(base_path=str(tmp_path))
 
         # Review PIP
         with patch('asp.utils.artifact_io.write_artifact_json'):
@@ -70,11 +70,11 @@ class TestPIPReviewCollector:
         assert updated_pip.hitl_feedback == "Looks good, security improvement needed"
         assert updated_pip.hitl_reviewed_at is not None
 
-    def test_review_pip_reject(self, sample_pip, monkeypatch):
+    def test_review_pip_reject(self, sample_pip, monkeypatch, tmp_path):
         """Test rejecting a PIP."""
         # Mock user input
         inputs = iter(['2', 'Not enough evidence for 70% reduction'])
-        monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+        monkeypatch.setattr('builtins.input', lambda *_: next(inputs))
 
         # Mock git config failure (use fallback)
         def mock_subprocess_run(*args, **kwargs):
@@ -85,7 +85,7 @@ class TestPIPReviewCollector:
         monkeypatch.setattr('getpass.getuser', lambda: 'testuser')
 
         # Create collector
-        collector = PIPReviewCollector()
+        collector = PIPReviewCollector(base_path=str(tmp_path))
 
         # Review PIP
         with patch('asp.utils.artifact_io.write_artifact_json'):
@@ -96,14 +96,14 @@ class TestPIPReviewCollector:
         assert updated_pip.hitl_reviewer == "testuser@local"
         assert updated_pip.hitl_feedback == "Not enough evidence for 70% reduction"
 
-    def test_review_pip_needs_revision(self, sample_pip, monkeypatch):
+    def test_review_pip_needs_revision(self, sample_pip, monkeypatch, tmp_path):
         """Test requesting revision for a PIP."""
         # Mock user input
         inputs = iter(['3', 'Please add more specific security examples'])
-        monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+        monkeypatch.setattr('builtins.input', lambda *_: next(inputs))
 
         # Mock reviewer
-        collector = PIPReviewCollector()
+        collector = PIPReviewCollector(base_path=str(tmp_path))
 
         # Review PIP
         with patch('asp.utils.artifact_io.write_artifact_json'):
@@ -120,25 +120,27 @@ class TestPIPReviewService:
 
     def test_review_pip_by_id(self, sample_pip, monkeypatch, tmp_path):
         """Test loading and reviewing PIP by ID."""
-        # Mock PIP loading
-        mock_read = Mock(return_value=sample_pip.model_dump())
+        # Create a dummy pip.json file
+        artifacts_dir = tmp_path / "artifacts"
+        artifacts_dir.mkdir()
+        task_dir = artifacts_dir / sample_pip.task_id
+        task_dir.mkdir()
+        pip_file = task_dir / "pip.json"
+        pip_file.write_text(sample_pip.model_dump_json())
 
         # Mock user input
         inputs = iter(['1', 'Approved'])
-        monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+        monkeypatch.setattr('builtins.input', lambda *_: next(inputs))
 
         # Create service
-        service = PIPReviewService()
+        service = PIPReviewService(base_path=str(tmp_path))
 
         # Review PIP
-        with patch('asp.utils.artifact_io.read_artifact_json', mock_read):
-            with patch('asp.utils.artifact_io.write_artifact_json'):
-                updated_pip = service.review_pip_by_id("TEST-001", reviewer="test@example.com")
+        updated_pip = service.review_pip_by_id("TEST-001", reviewer="test@example.com")
 
         # Verify
         assert updated_pip.hitl_status == "approved"
         assert updated_pip.hitl_reviewer == "test@example.com"
-        mock_read.assert_called_once_with("TEST-001", "pip")
 
     def test_list_pending_pips(self, tmp_path):
         """Test listing pending PIPs."""
@@ -189,10 +191,10 @@ class TestPIPReviewService:
         (approved_dir / "pip.json").write_text(approved_pip.model_dump_json())
 
         # Create service
-        service = PIPReviewService()
+        service = PIPReviewService(base_path=str(tmp_path))
 
         # List pending PIPs
-        pending = service.list_pending_pips(artifacts_dir)
+        pending = service.list_pending_pips(artifacts_dir=artifacts_dir)
 
         # Verify only pending PIP is listed
         assert len(pending) == 1
@@ -204,8 +206,8 @@ class TestPIPReviewService:
         artifacts_dir = tmp_path / "artifacts"
         artifacts_dir.mkdir()
 
-        service = PIPReviewService()
-        pending = service.list_pending_pips(artifacts_dir)
+        service = PIPReviewService(base_path=str(tmp_path))
+        pending = service.list_pending_pips(artifacts_dir=artifacts_dir)
 
         assert pending == []
 
@@ -227,17 +229,16 @@ class TestPIPReviewIntegration:
 
         # Mock user input (approve)
         inputs = iter(['1', 'Security improvement approved'])
-        monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+        monkeypatch.setattr('builtins.input', lambda *_: next(inputs))
 
         # Create service
-        service = PIPReviewService()
+        service = PIPReviewService(base_path=str(tmp_path))
 
         # Review PIP
-        with patch('asp.utils.artifact_io.ARTIFACTS_DIR', artifacts_dir):
-            updated_pip = service.review_pip_by_id(
-                sample_pip.task_id,
-                reviewer="security@example.com"
-            )
+        updated_pip = service.review_pip_by_id(
+            sample_pip.task_id,
+            reviewer="security@example.com"
+        )
 
         # Verify workflow
         assert updated_pip.proposal_id == sample_pip.proposal_id

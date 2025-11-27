@@ -15,7 +15,75 @@ from pydantic import ValidationError
 
 from asp.models.test import TestInput, TestDefect, TestReport
 from asp.models.code import GeneratedCode, GeneratedFile
-from asp.models.design import DesignSpecification
+from asp.models.design import (
+    ComponentLogic,
+    DesignReviewChecklistItem,
+    DesignSpecification,
+)
+
+
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
+
+def create_valid_generated_code(task_id="TEST-001"):
+    """Creates a minimal valid GeneratedCode for testing."""
+    return GeneratedCode(
+        task_id=task_id,
+        files=[
+            GeneratedFile(
+                file_path="src/main.py",
+                content="print('hello world')",
+                file_type="source",
+                description="This is the main file for the application.",
+            )
+        ],
+        file_structure={"src": ["main.py"]},
+        dependencies=["python>=3.12"],
+        setup_instructions="Run python src/main.py",
+        implementation_notes="This is a simple hello world application that prints a message.",
+    )
+
+
+def create_valid_design_spec(task_id="TEST-001"):
+    """Creates a minimal valid DesignSpecification for testing."""
+    component = ComponentLogic(
+        component_name="TestComponent",
+        semantic_unit_id="SU-001",
+        responsibility="Handles test operations for validation purposes",
+        interfaces=[{"method": "test"}],
+        implementation_notes="Test implementation notes for validation purposes",
+    )
+
+    checklist = [
+        DesignReviewChecklistItem(
+            category="Security",
+            description="Critical security check for validation purposes",
+            validation_criteria="Validate that security requirements are met",
+            severity="Critical",
+        )
+    ] + [
+        DesignReviewChecklistItem(
+            category=f"Category {i}",
+            description=f"Check item {i} for validation purposes",
+            validation_criteria=f"Validate that item {i} meets criteria",
+        )
+        for i in range(1, 5)
+    ]
+
+    return DesignSpecification(
+        task_id=task_id,
+        component_logic=[component],
+        design_review_checklist=checklist,
+        architecture_overview="This is a test architecture with sufficient detail to pass validation requirements",
+        technology_stack={"language": "Python", "framework": "FastAPI"},
+    )
+
+
+# =============================================================================
+# Test Cases
+# =============================================================================
 
 
 class TestTestInputModel:
@@ -23,36 +91,9 @@ class TestTestInputModel:
 
     def test_init_with_valid_data(self):
         """Test initialization with valid data."""
-        # Create minimal valid GeneratedCode
-        code = GeneratedCode(
-            task_id="TEST-001",
-            files=[
-                GeneratedFile(
-                    file_path="src/main.py",
-                    content="print('hello')",
-                    file_type="source",
-                    description="Main file",
-                )
-            ],
-            file_structure={"src": ["main.py"]},
-            dependencies=["python>=3.12"],
-            setup_instructions="Run python src/main.py",
-            implementation_notes="Simple hello world",
-        )
+        code = create_valid_generated_code()
+        design = create_valid_design_spec()
 
-        # Create minimal valid DesignSpecification
-        design = DesignSpecification(
-            task_id="TEST-001",
-            architecture_overview="Simple app",
-            technology_stack="Python 3.12",
-            assumptions="Standard Python environment",
-            api_contracts=[],
-            data_schemas=[],
-            component_logic=[],
-            design_review_checklist=[],
-        )
-
-        # Create TestInput
         test_input = TestInput(
             task_id="TEST-001",
             generated_code=code,
@@ -67,24 +108,8 @@ class TestTestInputModel:
 
     def test_task_id_min_length_validation(self):
         """Test task_id minimum length validation."""
-        code = GeneratedCode(
-            task_id="TE",
-            files=[],
-            file_structure={},
-            dependencies=[],
-            setup_instructions="",
-            implementation_notes="",
-        )
-        design = DesignSpecification(
-            task_id="TE",
-            architecture_overview="",
-            technology_stack="",
-            assumptions="",
-            api_contracts=[],
-            data_schemas=[],
-            component_logic=[],
-            design_review_checklist=[],
-        )
+        code = create_valid_generated_code()
+        design = create_valid_design_spec()
 
         with pytest.raises(ValidationError) as exc_info:
             TestInput(
@@ -96,24 +121,8 @@ class TestTestInputModel:
 
     def test_coverage_target_range_validation(self):
         """Test coverage_target must be 0-100."""
-        code = GeneratedCode(
-            task_id="TEST-001",
-            files=[],
-            file_structure={},
-            dependencies=[],
-            setup_instructions="",
-            implementation_notes="",
-        )
-        design = DesignSpecification(
-            task_id="TEST-001",
-            architecture_overview="",
-            technology_stack="",
-            assumptions="",
-            api_contracts=[],
-            data_schemas=[],
-            component_logic=[],
-            design_review_checklist=[],
-        )
+        code = create_valid_generated_code()
+        design = create_valid_design_spec()
 
         # Test > 100
         with pytest.raises(ValidationError) as exc_info:
@@ -137,24 +146,8 @@ class TestTestInputModel:
 
     def test_default_values(self):
         """Test default values are applied."""
-        code = GeneratedCode(
-            task_id="TEST-001",
-            files=[],
-            file_structure={},
-            dependencies=[],
-            setup_instructions="",
-            implementation_notes="",
-        )
-        design = DesignSpecification(
-            task_id="TEST-001",
-            architecture_overview="",
-            technology_stack="",
-            assumptions="",
-            api_contracts=[],
-            data_schemas=[],
-            component_logic=[],
-            design_review_checklist=[],
-        )
+        code = create_valid_generated_code()
+        design = create_valid_design_spec()
 
         test_input = TestInput(
             task_id="TEST-001",
@@ -230,8 +223,8 @@ class TestTestDefectModel:
                 defect_id="TEST-DEFECT-001",
                 defect_type=dtype,
                 severity="High",
-                description="Test",
-                evidence="Evidence",
+                description="This is a valid test description.",
+                evidence="This is valid evidence.",
                 phase_injected="Code",
             )
             assert defect.defect_type == dtype
@@ -242,8 +235,8 @@ class TestTestDefectModel:
                 defect_id="TEST-DEFECT-001",
                 defect_type="Invalid_Type",
                 severity="High",
-                description="Test",
-                evidence="Evidence",
+                description="This is a valid test description.",
+                evidence="This is valid evidence.",
                 phase_injected="Code",
             )
 
@@ -256,8 +249,8 @@ class TestTestDefectModel:
                 defect_id="TEST-DEFECT-001",
                 defect_type="6_Conventional_Code_Bug",
                 severity=sev,
-                description="Test",
-                evidence="Evidence",
+                description="This is a valid test description.",
+                evidence="This is valid evidence.",
                 phase_injected="Code",
             )
             assert defect.severity == sev
@@ -268,8 +261,8 @@ class TestTestDefectModel:
                 defect_id="TEST-DEFECT-001",
                 defect_type="6_Conventional_Code_Bug",
                 severity="Invalid",
-                description="Test",
-                evidence="Evidence",
+                description="This is a valid test description.",
+                evidence="This is valid evidence.",
                 phase_injected="Code",
             )
 
@@ -366,12 +359,12 @@ class TestTestReportModel:
         assert report.low_defects == 0
 
     def test_test_status_validation_build_failed(self):
-        """Test validation: BUILD_FAILED requires build_successful=False."""
+        """Test validation: test_status must be BUILD_FAILED if build_successful is False."""
         with pytest.raises(ValidationError) as exc_info:
             TestReport(
                 task_id="TEST-001",
-                test_status="BUILD_FAILED",
-                build_successful=True,  # Inconsistent!
+                test_status="FAIL",  # Should be BUILD_FAILED
+                build_successful=False,
                 build_errors=["Some error"],
                 test_summary={
                     "total_tests": 0,

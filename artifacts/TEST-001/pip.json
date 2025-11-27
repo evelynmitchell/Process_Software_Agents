@@ -1,7 +1,7 @@
 {
-  "proposal_id": "PIP-20251126232231",
-  "task_id": "POSTMORTEM-001",
-  "created_at": "2025-11-26T23:22:31.804923",
+  "proposal_id": "PIP-001",
+  "task_id": "TEST-001",
+  "created_at": "2025-11-25T10:00:00",
   "analysis": "Security vulnerabilities indicate Code Agent needs better security guidance",
   "proposed_changes": [
     {
@@ -13,8 +13,8 @@
     }
   ],
   "expected_impact": "Reduce security vulnerabilities by 70%",
-  "hitl_status": "pending",
-  "hitl_reviewer": null,
-  "hitl_reviewed_at": null,
-  "hitl_feedback": null
+  "hitl_status": "approved",
+  "hitl_reviewer": "test@example.com",
+  "hitl_reviewed_at": "2025-11-26T22:57:43.717340",
+  "hitl_feedback": "Approved"
 }
