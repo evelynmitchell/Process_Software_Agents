@@ -1,0 +1,59 @@
+{
+  "project_id": "CALIBRATION",
+  "task_id": "CAL-SIMPLE-001",
+  "semantic_units": [
+    {
+      "unit_id": "SU-001",
+      "description": "Create email validation utility function with regex pattern matching",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 2,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 15,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-002",
+      "description": "Create password validation utility function with length constraints",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 1,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 12,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Integrate validation functions into POST /users endpoint handler",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 3,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 18,
+      "dependencies": [
+        "SU-001",
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Implement 400 error response handler with structured error messages",
+      "api_interactions": 0,
+      "data_transformations": 2,
+      "logical_branches": 2,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 20,
+      "dependencies": [
+        "SU-003"
+      ]
+    }
+  ],
+  "total_est_complexity": 65,
+  "probe_ai_prediction": null,
+  "probe_ai_enabled": false,
+  "agent_version": "1.0.0"
+}
