@@ -1,0 +1,103 @@
+{
+  "project_id": "TEST-E2E",
+  "task_id": "E2E-ERROR-004",
+  "semantic_units": [
+    {
+      "unit_id": "SU-001",
+      "description": "Design API input validation schema and sanitization strategy for special characters",
+      "api_interactions": 0,
+      "data_transformations": 2,
+      "logical_branches": 2,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 28,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-002",
+      "description": "Implement JSON parsing and quote escaping handler for request bodies",
+      "api_interactions": 1,
+      "data_transformations": 4,
+      "logical_branches": 3,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 39,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Build HTML tag sanitization and encoding middleware",
+      "api_interactions": 0,
+      "data_transformations": 3,
+      "logical_branches": 4,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 35,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Create SQL injection prevention layer with parameterized query handling",
+      "api_interactions": 2,
+      "data_transformations": 3,
+      "logical_branches": 4,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 43,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-005",
+      "description": "Implement regex pattern validation and safe regex execution",
+      "api_interactions": 0,
+      "data_transformations": 2,
+      "logical_branches": 5,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 50,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-006",
+      "description": "Build URL parsing and query parameter encoding/decoding handler",
+      "api_interactions": 1,
+      "data_transformations": 4,
+      "logical_branches": 3,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 39,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-007",
+      "description": "Create unified API endpoint with integrated special character handling and response serialization",
+      "api_interactions": 2,
+      "data_transformations": 5,
+      "logical_branches": 4,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 53,
+      "dependencies": [
+        "SU-002",
+        "SU-003",
+        "SU-004",
+        "SU-005",
+        "SU-006"
+      ]
+    }
+  ],
+  "total_est_complexity": 287,
+  "probe_ai_prediction": null,
+  "probe_ai_enabled": false,
+  "agent_version": "1.0.0"
+}
