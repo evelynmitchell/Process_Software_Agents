@@ -1,0 +1,101 @@
+{
+  "project_id": "TEST-E2E",
+  "task_id": "E2E-ERROR-006",
+  "semantic_units": [
+    {
+      "unit_id": "SU-001",
+      "description": "Analyze and document conflicting requirements, identify architectural constraints and propose resolution strategy",
+      "api_interactions": 0,
+      "data_transformations": 0,
+      "logical_branches": 2,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 14,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-002",
+      "description": "Design hybrid state management using client-side storage (IndexedDB/localStorage) with in-memory session cache for stateless server architecture",
+      "api_interactions": 1,
+      "data_transformations": 3,
+      "logical_branches": 3,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 57,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Implement client-side persistence layer with IndexedDB for offline data storage and synchronization queue for eventual consistency",
+      "api_interactions": 2,
+      "data_transformations": 5,
+      "logical_branches": 4,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 86,
+      "dependencies": [
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Build stateless session management using JWT tokens stored client-side with server-side validation only (no session storage)",
+      "api_interactions": 2,
+      "data_transformations": 3,
+      "logical_branches": 4,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 43,
+      "dependencies": [
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-005",
+      "description": "Implement WebSocket-based real-time synchronization with conflict resolution for offline-first data updates",
+      "api_interactions": 3,
+      "data_transformations": 6,
+      "logical_branches": 5,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 2.0,
+      "est_complexity": 134,
+      "dependencies": [
+        "SU-003",
+        "SU-004"
+      ]
+    },
+    {
+      "unit_id": "SU-006",
+      "description": "Create offline detection and sync queue manager with exponential backoff retry logic for connectivity restoration",
+      "api_interactions": 1,
+      "data_transformations": 4,
+      "logical_branches": 5,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 74,
+      "dependencies": [
+        "SU-005"
+      ]
+    },
+    {
+      "unit_id": "SU-007",
+      "description": "Implement data reconciliation engine to merge offline changes with server state while maintaining consistency without persistent database",
+      "api_interactions": 2,
+      "data_transformations": 7,
+      "logical_branches": 6,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 2.0,
+      "est_complexity": 146,
+      "dependencies": [
+        "SU-005",
+        "SU-006"
+      ]
+    }
+  ],
+  "total_est_complexity": 554,
+  "probe_ai_prediction": null,
+  "probe_ai_enabled": false,
+  "agent_version": "1.0.0"
+}
