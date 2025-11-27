@@ -1,6 +1,7 @@
 # UI Design Concept: ASP Overwatch (Engineering Manager)
 
 **Persona:** Sarah, Director of Engineering
+**Team Size:** 15 Developers (3 squads)
 **Core Need:** "Sleep at night." (Visibility, Control, Quality Assurance)
 **Design Philosophy:** "The Cockpit." Information dense but prioritized. Dark mode by default to reduce eye strain during incident response.
 
