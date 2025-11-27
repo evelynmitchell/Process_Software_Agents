@@ -4,43 +4,43 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Create health check route handler with basic endpoint structure",
-      "api_interactions": 0,
+      "description": "Implement API endpoint handler",
+      "api_interactions": 2,
       "data_transformations": 1,
-      "logical_branches": 1,
-      "code_entities_modified": 2,
-      "novelty_multiplier": 1.0,
-      "est_complexity": 16,
+      "logical_branches": 2,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.2,
+      "est_complexity": 32,
       "dependencies": []
     },
     {
       "unit_id": "SU-002",
-      "description": "Implement health check response with status and timestamp",
+      "description": "Add validation logic",
       "api_interactions": 0,
       "data_transformations": 2,
-      "logical_branches": 1,
-      "code_entities_modified": 1,
+      "logical_branches": 3,
+      "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 17,
+      "est_complexity": 27,
       "dependencies": [
         "SU-001"
       ]
     },
     {
       "unit_id": "SU-003",
-      "description": "Add basic error handling and HTTP status code responses",
+      "description": "Implement error handling",
       "api_interactions": 0,
       "data_transformations": 1,
-      "logical_branches": 2,
-      "code_entities_modified": 1,
+      "logical_branches": 4,
+      "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 15,
+      "est_complexity": 25,
       "dependencies": [
-        "SU-002"
+        "SU-001"
       ]
     }
   ],
-  "total_est_complexity": 48,
+  "total_est_complexity": 84,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"
