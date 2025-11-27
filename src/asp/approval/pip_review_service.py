@@ -56,9 +56,10 @@ class PIPReviewCollector:
         >>> print(f"Decision: {updated_pip.hitl_status}")
     """
 
-    def __init__(self):
+    def __init__(self, base_path: Optional[str] = None):
         """Initialize PIPReviewCollector with rich console."""
         self.console = Console()
+        self.base_path = base_path
 
     def review_pip(
         self,
@@ -108,6 +109,7 @@ class PIPReviewCollector:
                 task_id=pip.task_id,
                 artifact_type="pip",
                 data=pip,
+                base_path=self.base_path,
             )
             logger.info(f"Updated PIP artifact: {pip.proposal_id} -> {pip.hitl_status}")
         except Exception as e:
@@ -324,9 +326,10 @@ class PIPReviewService:
         >>>     print("PIP approved! Applying changes...")
     """
 
-    def __init__(self):
+    def __init__(self, base_path: Optional[str] = None):
         """Initialize PIPReviewService."""
-        self.collector = PIPReviewCollector()
+        self.collector = PIPReviewCollector(base_path=base_path)
+        self.base_path = base_path
 
     def review_pip_by_id(
         self,
@@ -350,7 +353,7 @@ class PIPReviewService:
         logger.info(f"Loading PIP for task_id={task_id}")
 
         # Load PIP from artifact
-        pip_data = read_artifact_json(task_id, "pip")
+        pip_data = read_artifact_json(task_id, "pip", base_path=self.base_path)
         pip = ProcessImprovementProposal(**pip_data)
 
         # Review PIP
@@ -373,17 +376,16 @@ class PIPReviewService:
         """
         return self.collector.review_pip(pip, reviewer=reviewer)
 
-    def list_pending_pips(self, artifacts_dir: Path = Path("artifacts")) -> list[str]:
+    def list_pending_pips(self, artifacts_dir: Optional[Path] = None) -> list[str]:
         """
         List all pending PIPs (status = "pending").
-
-        Args:
-            artifacts_dir: Directory containing artifacts
 
         Returns:
             List of task IDs with pending PIPs
         """
         pending_pips = []
+        if artifacts_dir is None:
+            artifacts_dir = Path(self.base_path or "artifacts")
 
         if not artifacts_dir.exists():
             return pending_pips
@@ -397,7 +399,7 @@ class PIPReviewService:
                 continue
 
             try:
-                pip_data = read_artifact_json(task_dir.name, "pip")
+                pip_data = read_artifact_json(task_dir.name, "pip", base_path=self.base_path)
                 pip = ProcessImprovementProposal(**pip_data)
 
                 if pip.hitl_status == "pending":
