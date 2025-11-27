@@ -23,7 +23,7 @@ Alex decided to try the ASP Platform on a whim for a tedious task: *"Create a se
     *   *"I treat it like a rubber duck that talks back. I feed it my architecture plan, and it points out 'Hey, you missed a potential race condition here.' It's not always right, but it makes me think."*
 
 3.  **Test Generation:** This is his favorite part. The **Test Agent** generates comprehensive unit tests, including edge cases he hadn't thought of.
-    *   *"It wrote a test for a malformed unicode string input that would have definitely crashed production. I didn't even think to test that."*
+    *   *"It wrote a test for a malformed Unicode string input that would have definitely crashed production. I didn't even think to test that."*
 
 ### The Outcome
 
