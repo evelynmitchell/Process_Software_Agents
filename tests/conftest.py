@@ -370,8 +370,7 @@ class MockLLMClient:
 
     def _mock_planning_response(self, prompt: str) -> str:
         """Generate mock planning response with semantic units."""
-        return """```json
-{
+        return """{
   "semantic_units": [
     {
       "unit_id": "SU-001",
@@ -404,8 +403,7 @@ class MockLLMClient:
       "dependencies": ["SU-001"]
     }
   ]
-}
-```"""
+}"""
 
     def _mock_design_response(self, prompt: str) -> str:
         """Generate mock design document response."""
@@ -438,46 +436,45 @@ This design addresses the requirements specified in the task.
 
     def _mock_design_review_response(self, prompt: str) -> str:
         """Generate mock design review response."""
-        return """```json
-{
-  "issues": [
-    {
-      "issue_type": "missing_requirement",
-      "severity": "high",
-      "affected_phase": "Design",
-      "description": "Error handling strategy not fully defined",
-      "recommendation": "Add comprehensive error handling section"
-    }
-  ],
-  "overall_assessment": "good",
-  "requires_replanning": false
-}
-```"""
+        return """{
+  "issues_found": [],
+  "critical_issues": [],
+  "high_issues": [],
+  "medium_issues": [],
+  "low_issues": [],
+  "overall_assessment": "PASS",
+  "critical_issue_count": 0,
+  "high_issue_count": 0,
+  "medium_issue_count": 0,
+  "low_issue_count": 0,
+  "total_issue_count": 0,
+  "replanning_required": false,
+  "redesign_required": false,
+  "issues_requiring_replanning": [],
+  "issues_requiring_redesign": [],
+  "summary": "Design review passed with no critical issues found. The design appears solid and ready for implementation."
+}"""
 
     def _mock_code_review_response(self, prompt: str) -> str:
         """Generate mock code review response."""
-        return """```json
-{
+        return """{
   "issues": [],
   "overall_quality": "good",
   "recommendations": [
     "Consider adding docstrings",
     "Add type hints where missing"
   ]
-}
-```"""
+}"""
 
     def _mock_test_response(self, prompt: str) -> str:
         """Generate mock test plan response."""
-        return """```json
-{
+        return """{
   "test_plan": {
     "unit_tests": ["test_validation", "test_processing"],
     "integration_tests": ["test_api_endpoint"],
     "coverage_target": 80
   }
-}
-```"""
+}"""
 
     def _mock_generic_response(self, prompt: str) -> str:
         """Generate generic mock response."""

@@ -6,8 +6,8 @@ They are marked with @pytest.mark.e2e and can be run with:
     pytest tests/e2e/test_code_agent_e2e.py -m e2e
 
 Requirements:
-- ANTHROPIC_API_KEY environment variable must be set
-- Will consume API credits (approximately $0.05-0.10 per test)
+- Supports both real API (with ANTHROPIC_API_KEY) and mock mode
+- Real API mode will consume API credits (approximately $0.05-0.10 per test)
 """
 
 import os
@@ -27,10 +27,6 @@ from asp.models.design import (
 
 
 # Skip all tests if no API key is available
-pytestmark = pytest.mark.skipif(
-    not os.getenv("ANTHROPIC_API_KEY"),
-    reason="ANTHROPIC_API_KEY not set - skipping E2E tests"
-)
 
 
 def create_simple_design_specification(task_id: str) -> DesignSpecification:
@@ -144,9 +140,9 @@ def create_simple_design_specification(task_id: str) -> DesignSpecification:
 class TestCodeAgentE2E:
     """End-to-end tests with real API calls."""
 
-    def test_simple_api_code_generation(self):
+    def test_simple_api_code_generation(self, llm_client):
         """Test code generation for a simple user registration API."""
-        agent = CodeAgent()
+        agent = CodeAgent(llm_client=llm_client)
 
         design_spec = create_simple_design_specification("E2E-CODE-001")
 
@@ -223,9 +219,9 @@ class TestCodeAgentE2E:
 
         print(f"\n All validations passed!")
 
-    def test_code_generation_includes_tests(self):
+    def test_code_generation_includes_tests(self, llm_client):
         """Test that code generation includes test files."""
-        agent = CodeAgent()
+        agent = CodeAgent(llm_client=llm_client)
 
         design_spec = create_simple_design_specification("E2E-CODE-002")
 
@@ -263,9 +259,9 @@ class TestCodeAgentE2E:
 
         print(f" All test files valid!")
 
-    def test_code_generation_with_context(self):
+    def test_code_generation_with_context(self, llm_client):
         """Test code generation with additional context files."""
-        agent = CodeAgent()
+        agent = CodeAgent(llm_client=llm_client)
 
         design_spec = create_simple_design_specification("E2E-CODE-003")
 

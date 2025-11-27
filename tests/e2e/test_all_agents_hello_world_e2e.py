@@ -9,12 +9,11 @@ This test validates the complete 7-agent workflow with a minimal "Hello World" A
 5. Test Agent - creates and runs tests
 6. Postmortem Agent - analyzes performance metrics
 
-This is a comprehensive integration test that makes real API calls to validate
-the entire ASP agent pipeline end-to-end.
+This test supports dual modes:
+- Real API Mode: Uses actual Anthropic Claude API when ANTHROPIC_API_KEY is set
+- Mock Mode: Uses mock LLM client when API key is not available (validates structure/flow)
 
-Requirements:
-- ANTHROPIC_API_KEY environment variable must be set
-- Will consume API credits (approximately $0.20-0.40 per full test run)
+Note: In mock mode, this validates the orchestration flow but not LLM reasoning quality.
 
 Run with:
     pytest tests/e2e/test_all_agents_hello_world_e2e.py -m e2e -v -s
@@ -45,18 +44,11 @@ from asp.models.postmortem import (
 )
 
 
-# Skip all tests if no API key is available
-pytestmark = pytest.mark.skipif(
-    not os.getenv("ANTHROPIC_API_KEY"),
-    reason="ANTHROPIC_API_KEY not set - skipping E2E tests"
-)
-
-
 @pytest.mark.e2e
 class TestAllAgentsHelloWorldE2E:
     """Complete end-to-end test of all 7 agents with a Hello World task."""
 
-    def test_complete_agent_pipeline_hello_world(self):
+    def test_complete_agent_pipeline_hello_world(self, llm_client):
         """
         Test the complete 7-agent pipeline with a simple Hello World API.
 
@@ -78,7 +70,7 @@ class TestAllAgentsHelloWorldE2E:
         print("\n[1-3/6] PLANNING → DESIGN → REVIEW with Feedback Orchestrator")
         print("=" * 80)
 
-        orchestrator = PlanningDesignOrchestrator()
+        orchestrator = PlanningDesignOrchestrator(llm_client=llm_client)
 
         task_requirements = TaskRequirements(
             project_id="HELLO-WORLD-E2E",
@@ -155,7 +147,7 @@ class TestAllAgentsHelloWorldE2E:
         print("\n[4/6] CODE AGENT - Code Generation")
         print("-" * 80)
 
-        code_agent = CodeAgent(use_multi_stage=True)
+        code_agent = CodeAgent(use_multi_stage=True, llm_client=llm_client)
 
         code_input = CodeInput(
             task_id="HW-001",
@@ -197,7 +189,7 @@ class TestAllAgentsHelloWorldE2E:
         print("\n[5/6] TEST AGENT - Test Generation and Validation")
         print("-" * 80)
 
-        test_agent = TestAgent()
+        test_agent = TestAgent(llm_client=llm_client)
 
         test_input = TestInput(
             task_id="HW-001",
@@ -231,7 +223,7 @@ class TestAllAgentsHelloWorldE2E:
         print("\n[6/6] POSTMORTEM AGENT - Performance Analysis")
         print("-" * 80)
 
-        postmortem_agent = PostmortemAgent()
+        postmortem_agent = PostmortemAgent(llm_client=llm_client)
 
         # Create mock effort and defect logs for the postmortem
         # EffortLogEntry uses telemetry format: timestamp, task_id, agent_role, metric_type, metric_value, unit
@@ -482,7 +474,7 @@ class TestAllAgentsHelloWorldE2E:
         design = design_agent.execute(design_input)
 
         # Now test code generation
-        code_agent = CodeAgent(use_multi_stage=True)
+        code_agent = CodeAgent(use_multi_stage=True, llm_client=llm_client)
         code_input = CodeInput(
             task_id="HW-CODE-001",
             design_specification=design,

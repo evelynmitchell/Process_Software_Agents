@@ -1,13 +1,12 @@
 """
-End-to-End tests for Design Agent with real Anthropic API
+End-to-End tests for Design Agent with real or mocked Anthropic API
 
-These tests make actual API calls to validate the complete workflow.
-They are marked with @pytest.mark.e2e and can be run with:
+These tests validate the complete workflow with either:
+- Real Anthropic API if ANTHROPIC_API_KEY is set
+- Mock LLM client if API key is not available
+
+Tests are marked with @pytest.mark.e2e and can be run with:
     pytest tests/e2e/test_design_agent_e2e.py -m e2e
-
-Requirements:
-- ANTHROPIC_API_KEY environment variable must be set
-- Will consume API credits (approximately $0.02-0.03 per test)
 """
 
 import os
@@ -23,13 +22,6 @@ from asp.models.planning import (
     SemanticUnit,
     PROBEAIPrediction,
     TaskRequirements,
-)
-
-
-# Skip all tests if no API key is available
-pytestmark = pytest.mark.skipif(
-    not os.getenv("ANTHROPIC_API_KEY"),
-    reason="ANTHROPIC_API_KEY not set - skipping E2E tests"
 )
 
 
@@ -79,9 +71,9 @@ def create_simple_project_plan(task_id: str) -> ProjectPlan:
 class TestDesignAgentE2E:
     """End-to-end tests with real API calls."""
 
-    def test_simple_api_design(self):
+    def test_simple_api_design(self, llm_client):
         """Test design generation for a simple REST API."""
-        agent = DesignAgent()
+        agent = DesignAgent(llm_client=llm_client)
 
         requirements = """
         Build a simple user registration API endpoint.
@@ -173,9 +165,9 @@ class TestDesignAgentE2E:
             print(f"  {i}. {component.component_name} [{component.semantic_unit_id}]")
         print(f"\nDesign Review Checklist: {len(design.design_review_checklist)} items")
 
-    def test_authentication_system_design(self):
+    def test_authentication_system_design(self, llm_client):
         """Test design generation for JWT authentication system."""
-        agent = DesignAgent()
+        agent = DesignAgent(llm_client=llm_client)
 
         requirements = """
         Build a JWT authentication system with user registration and login capabilities.
@@ -307,7 +299,7 @@ class TestDesignAgentE2E:
             if component.dependencies:
                 print(f"    Depends on: {', '.join(component.dependencies)}")
 
-    def test_planning_to_design_workflow(self):
+    def test_planning_to_design_workflow(self, llm_client):
         """Test full Planning->Design workflow with real API calls."""
         requirements_text = """
         Build a RESTful API for a simple blog system with the following features:
@@ -325,7 +317,7 @@ class TestDesignAgentE2E:
         print(f"{'='*80}")
         print(f"Step 1: Running Planning Agent...")
 
-        planning_agent = PlanningAgent()
+        planning_agent = PlanningAgent(llm_client=llm_client)
         task_requirements = TaskRequirements(
             project_id="TEST-E2E",
             task_id="E2E-WORKFLOW-001",
@@ -339,7 +331,7 @@ class TestDesignAgentE2E:
         # Step 2: Run Design Agent
         print(f"\nStep 2: Running Design Agent...")
 
-        design_agent = DesignAgent()
+        design_agent = DesignAgent(llm_client=llm_client)
         design_input = DesignInput(
             task_id="E2E-WORKFLOW-001",
             requirements=requirements_text,
@@ -379,9 +371,9 @@ class TestDesignAgentE2E:
             for comp in components:
                 print(f"    - {comp}")
 
-    def test_data_pipeline_design(self):
+    def test_data_pipeline_design(self, llm_client):
         """Test design generation for ETL data pipeline."""
-        agent = DesignAgent()
+        agent = DesignAgent(llm_client=llm_client)
 
         requirements = """
         Create a data pipeline that extracts user activity logs from CSV files,
@@ -482,7 +474,7 @@ class TestDesignAgentE2E:
             if component.dependencies:
                 print(f"    Dependencies: {', '.join(component.dependencies)}")
 
-    def test_telemetry_integration(self):
+    def test_telemetry_integration(self, llm_client):
         """Test that telemetry is captured during execution."""
         db_path = Path("data/asp_telemetry.db")
         agent = DesignAgent(db_path=db_path)

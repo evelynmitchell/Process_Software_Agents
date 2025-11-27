@@ -12,8 +12,8 @@ This validates:
 - Execution metadata tracking
 
 Requirements:
-- ANTHROPIC_API_KEY environment variable must be set
-- Will consume API credits (approximately $0.30-0.60 per full test run)
+- Supports both real API (with ANTHROPIC_API_KEY) and mock mode
+- Real API mode will consume API credits (approximately $0.30-0.60 per full test run)
 
 Run with:
     pytest tests/e2e/test_tsp_orchestrator_e2e.py -m e2e -v -s
@@ -29,17 +29,13 @@ from asp.models.planning import TaskRequirements
 
 
 # Skip all tests if no API key is available
-pytestmark = pytest.mark.skipif(
-    not os.getenv("ANTHROPIC_API_KEY"),
-    reason="ANTHROPIC_API_KEY not set - skipping E2E tests"
-)
 
 
 @pytest.mark.e2e
 class TestTSPOrchestratorE2E:
     """End-to-end tests for TSP Orchestrator."""
 
-    def test_simple_hello_world_pipeline_success(self):
+    def test_simple_hello_world_pipeline_success(self, llm_client):
         """
         Test complete autonomous pipeline with simple Fibonacci task.
 
@@ -158,7 +154,7 @@ class TestTSPOrchestratorE2E:
         print("✓ TSP ORCHESTRATOR E2E TEST: PASSED")
         print("="*80)
 
-    def test_quality_gate_enforcement_without_hitl(self):
+    def test_quality_gate_enforcement_without_hitl(self, llm_client):
         """
         Test that quality gates enforce properly when HITL is not provided.
 
@@ -214,7 +210,7 @@ class TestTSPOrchestratorE2E:
             # Other exceptions are test failures
             pytest.fail(f"Unexpected exception: {e}")
 
-    def test_hitl_override_approves_quality_gate_failure(self):
+    def test_hitl_override_approves_quality_gate_failure(self, llm_client):
         """
         Test HITL override workflow for quality gate failures.
 
@@ -291,7 +287,7 @@ class TestTSPOrchestratorE2E:
 
         print("\n✓ HITL override workflow validated")
 
-    def test_hitl_override_rejects_quality_gate_failure(self):
+    def test_hitl_override_rejects_quality_gate_failure(self, llm_client):
         """
         Test HITL rejection workflow for quality gate failures.
 
@@ -345,7 +341,7 @@ class TestTSPOrchestratorE2E:
             assert "FAILED" in str(e) or "iterations" in str(e)
             print("✓ HITL rejection properly halts pipeline")
 
-    def test_execution_metadata_tracking(self):
+    def test_execution_metadata_tracking(self, llm_client):
         """
         Test that execution metadata is properly tracked.
 
@@ -402,7 +398,7 @@ class TestTSPOrchestratorE2E:
 class TestTSPOrchestratorCorrectionLoops:
     """Tests for correction loop behavior in TSP Orchestrator."""
 
-    def test_design_correction_loop(self):
+    def test_design_correction_loop(self, llm_client):
         """
         Test that design correction loop works properly.
 
@@ -416,7 +412,7 @@ class TestTSPOrchestratorCorrectionLoops:
         # Full implementation would mock design review to return failures
         pass
 
-    def test_code_correction_loop(self):
+    def test_code_correction_loop(self, llm_client):
         """
         Test that code correction loop works properly.
 
@@ -428,7 +424,7 @@ class TestTSPOrchestratorCorrectionLoops:
         # Similar to design correction loop test
         pass
 
-    def test_test_correction_loop(self):
+    def test_test_correction_loop(self, llm_client):
         """
         Test that test retry loop works properly.
 

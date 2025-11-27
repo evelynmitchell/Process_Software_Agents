@@ -6,8 +6,8 @@ They are marked with @pytest.mark.e2e and can be run with:
     pytest tests/e2e/test_design_review_agent_e2e.py -m e2e
 
 Requirements:
-- ANTHROPIC_API_KEY environment variable must be set
-- Will consume API credits (approximately $0.15-0.25 per test due to 6 specialists)
+- Supports both real API (with ANTHROPIC_API_KEY) and mock mode
+- Real API mode will consume API credits (approximately $0.15-0.25 per test due to 6 specialists)
 """
 
 import os
@@ -27,10 +27,6 @@ from asp.models.design_review import DesignReviewReport
 
 
 # Skip all tests if no API key is available
-pytestmark = pytest.mark.skipif(
-    not os.getenv("ANTHROPIC_API_KEY"),
-    reason="ANTHROPIC_API_KEY not set - skipping E2E tests",
-)
 
 
 def create_jwt_auth_design_spec() -> DesignSpecification:
@@ -258,7 +254,7 @@ def create_jwt_auth_design_spec() -> DesignSpecification:
 class TestDesignReviewAgentE2E:
     """End-to-end tests with real API calls to all 6 specialist agents."""
 
-    def test_jwt_authentication_design_review(self):
+    def test_jwt_authentication_design_review(self, llm_client):
         """Test complete design review for JWT authentication system."""
         # Create orchestrator
         orchestrator = DesignReviewOrchestrator()
@@ -350,7 +346,7 @@ class TestDesignReviewAgentE2E:
         assert report.reviewer_agent == "DesignReviewOrchestrator"
         assert report.agent_version == "1.0.0"
 
-    def test_simple_crud_api_review(self):
+    def test_simple_crud_api_review(self, llm_client):
         """Test design review for a simple CRUD API."""
         orchestrator = DesignReviewOrchestrator()
 
@@ -479,7 +475,7 @@ class TestDesignReviewAgentE2E:
         print(f"Issues: {len(report.issues_found)}")
         print(f"Suggestions: {len(report.improvement_suggestions)}")
 
-    def test_minimal_design_review(self):
+    def test_minimal_design_review(self, llm_client):
         """Test design review with minimal but valid design specification."""
         orchestrator = DesignReviewOrchestrator()
 

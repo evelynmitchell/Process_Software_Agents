@@ -7,7 +7,7 @@ from asp.orchestrators import PlanningDesignOrchestrator
 from asp.models.planning import TaskRequirements
 
 @pytest.mark.e2e
-def test_planning_design_orchestrator_e2e():
+def test_planning_design_orchestrator_e2e(llm_client):
     """
     Tests that the PlanningDesignOrchestrator can successfully execute a simple task.
     This test makes real API calls and may take a few minutes to run.
@@ -16,7 +16,7 @@ def test_planning_design_orchestrator_e2e():
         pytest.skip("ANTHROPIC_API_KEY not set, skipping end-to-end test.")
 
     # Create orchestrator
-    orchestrator = PlanningDesignOrchestrator()
+    orchestrator = PlanningDesignOrchestrator(llm_client=llm_client)
 
     # Create minimal task
     requirements = TaskRequirements(

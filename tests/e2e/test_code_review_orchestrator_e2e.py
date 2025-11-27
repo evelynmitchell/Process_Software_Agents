@@ -78,27 +78,27 @@ import pytest
 from calculator import add, subtract
 
 
-def test_add_positive_numbers():
+def test_add_positive_numbers(llm_client):
     """Test adding two positive numbers."""
     assert add(2, 3) == 5
 
 
-def test_add_negative_numbers():
+def test_add_negative_numbers(llm_client):
     """Test adding negative numbers."""
     assert add(-2, -3) == -5
 
 
-def test_add_mixed():
+def test_add_mixed(llm_client):
     """Test adding positive and negative."""
     assert add(5, -3) == 2
 
 
-def test_subtract_positive():
+def test_subtract_positive(llm_client):
     """Test subtracting positive numbers."""
     assert subtract(5, 3) == 2
 
 
-def test_subtract_negative():
+def test_subtract_negative(llm_client):
     """Test subtracting negative numbers."""
     assert subtract(-5, -3) == -2
 ''',
@@ -192,7 +192,7 @@ def find_duplicates(items):
             GeneratedFile(
                 file_path="tests/test_order_service.py",
                 content='''
-def test_get_orders():
+def test_get_orders(llm_client):
     orders = get_orders_with_users()
     assert len(orders) > 0
 ''',
@@ -221,7 +221,7 @@ def test_get_orders():
 # =============================================================================
 
 
-def test_e2e_simple_code_passes_review():
+def test_e2e_simple_code_passes_review(llm_client):
     """Test that simple, well-written code passes review."""
     # Mock all specialists to return no issues
     def create_clean_response(prompt, **kwargs):
@@ -250,7 +250,7 @@ def test_e2e_simple_code_passes_review():
     assert len(report.issues_found) == 0
 
 
-def test_e2e_problematic_code_fails_review():
+def test_e2e_problematic_code_fails_review(llm_client):
     """Test that code with critical issues fails review."""
     # Mock specialists to return critical security issues
     def create_security_issues_response(prompt, **kwargs):
@@ -318,7 +318,7 @@ def test_e2e_problematic_code_fails_review():
         assert issue.issue_id.startswith("CODE-ISSUE-")
 
 
-def test_e2e_performance_issues_needs_revision():
+def test_e2e_performance_issues_needs_revision(llm_client):
     """Test that code with high-severity performance issues gets NEEDS_REVISION."""
     # Mock specialists to return high-severity performance issues
     def create_performance_issues_response(prompt, **kwargs):
@@ -366,7 +366,7 @@ def test_e2e_performance_issues_needs_revision():
 # =============================================================================
 
 
-def test_e2e_automated_checks_detect_missing_tests():
+def test_e2e_automated_checks_detect_missing_tests(llm_client):
     """Test that automated checks detect missing test files."""
     # Create code without tests
     generated_code = GeneratedCode(
@@ -402,7 +402,7 @@ def test_e2e_automated_checks_detect_missing_tests():
     assert report.files_reviewed >= 1
 
 
-def test_e2e_automated_checks_detect_oversized_files():
+def test_e2e_automated_checks_detect_oversized_files(llm_client):
     """Test that automated checks detect files exceeding size limit."""
     # Create a file with >1000 lines
     large_content = "\n".join([f"# Line {i}" for i in range(1500)])
@@ -445,7 +445,7 @@ def test_e2e_automated_checks_detect_oversized_files():
 # =============================================================================
 
 
-def test_e2e_checklist_review_reflects_issues():
+def test_e2e_checklist_review_reflects_issues(llm_client):
     """Test that checklist review correctly reflects found issues."""
     # Mock security specialist to return critical issue
     def create_security_issue_response(prompt, **kwargs):
@@ -499,7 +499,7 @@ def test_e2e_checklist_review_reflects_issues():
 # =============================================================================
 
 
-def test_e2e_review_id_format():
+def test_e2e_review_id_format(llm_client):
     """Test that review IDs follow correct pattern."""
     mock_llm = Mock()
     mock_llm.call_with_retry.return_value = {
@@ -532,7 +532,7 @@ def test_e2e_review_id_format():
 # =============================================================================
 
 
-def test_e2e_full_pipeline_integration():
+def test_e2e_full_pipeline_integration(llm_client):
     """Test full code review pipeline with mixed issue severities."""
     # Mock specialists with varied responses
     def create_varied_responses(prompt, **kwargs):

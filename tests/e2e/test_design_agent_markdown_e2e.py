@@ -16,8 +16,8 @@ Run with:
     pytest tests/e2e/test_design_agent_markdown_e2e.py -m e2e -v -s
 
 Requirements:
-- ANTHROPIC_API_KEY environment variable must be set
-- Will consume API credits (approximately $0.02-0.05 per test)
+- Supports both real API (with ANTHROPIC_API_KEY) and mock mode
+- Real API mode will consume API credits (approximately $0.02-0.05 per test)
 """
 
 import os
@@ -38,10 +38,6 @@ from asp.parsers.design_markdown_parser import DesignMarkdownParser
 
 
 # Skip all tests if no API key is available
-pytestmark = pytest.mark.skipif(
-    not os.getenv("ANTHROPIC_API_KEY"),
-    reason="ANTHROPIC_API_KEY not set - skipping E2E tests"
-)
 
 
 def create_hello_world_plan() -> ProjectPlan:
@@ -204,7 +200,7 @@ def print_test_summary(title: str, design: DesignSpecification, metrics: Dict[st
 class TestDesignAgentMarkdownBasic:
     """Basic markdown mode functionality tests."""
 
-    def test_hello_world_markdown_sonnet(self):
+    def test_hello_world_markdown_sonnet(self, llm_client):
         """Test Hello World API with markdown mode using Sonnet 4.5."""
         agent = DesignAgent(
             use_markdown=True,
@@ -255,7 +251,7 @@ class TestDesignAgentMarkdownBasic:
         assert len(design.api_contracts) >= 1
         assert any("hello" in api.endpoint.lower() for api in design.api_contracts)
 
-    def test_user_registration_markdown_sonnet(self):
+    def test_user_registration_markdown_sonnet(self, llm_client):
         """Test user registration API with markdown mode using Sonnet 4.5."""
         agent = DesignAgent(
             use_markdown=True,
@@ -320,7 +316,7 @@ class TestDesignAgentMarkdownBasic:
 class TestDesignAgentMarkdownHaiku:
     """Test markdown mode with Haiku 4.5 model."""
 
-    def test_hello_world_markdown_haiku(self):
+    def test_hello_world_markdown_haiku(self, llm_client):
         """Test Hello World API with markdown mode using Haiku 4.5."""
         agent = DesignAgent(
             use_markdown=True,
@@ -367,7 +363,7 @@ class TestDesignAgentMarkdownHaiku:
 
         print_test_summary("Hello World API - Haiku 4.5 Markdown", design, metrics)
 
-    def test_user_registration_markdown_haiku(self):
+    def test_user_registration_markdown_haiku(self, llm_client):
         """Test user registration API with markdown mode using Haiku 4.5."""
         agent = DesignAgent(
             use_markdown=True,
@@ -423,7 +419,7 @@ class TestDesignAgentMarkdownHaiku:
 class TestDesignAgentMarkdownComparison:
     """Compare markdown vs JSON modes."""
 
-    def test_json_vs_markdown_sonnet(self):
+    def test_json_vs_markdown_sonnet(self, llm_client):
         """Compare JSON and markdown modes with Sonnet 4.5."""
         requirements = """
         Build a simple Hello World REST API.
@@ -505,7 +501,7 @@ class TestDesignAgentMarkdownComparison:
         print(f"  Markdown: {len(design_md.design_review_checklist)}")
         print("="*80 + "\n")
 
-    def test_json_vs_markdown_haiku(self):
+    def test_json_vs_markdown_haiku(self, llm_client):
         """Compare JSON and markdown modes with Haiku 4.5."""
         requirements = """
         Build a simple Hello World REST API.
@@ -592,7 +588,7 @@ class TestDesignAgentMarkdownComparison:
 class TestDesignAgentMarkdownParsing:
     """Test markdown parsing and format validation."""
 
-    def test_raw_markdown_parsing(self):
+    def test_raw_markdown_parsing(self, llm_client):
         """Test that raw markdown output can be parsed correctly."""
         agent = DesignAgent(
             use_markdown=True,

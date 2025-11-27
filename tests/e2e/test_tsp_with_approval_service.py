@@ -12,8 +12,8 @@ Tests:
 5. Full 7-agent pipeline with HITL integration
 
 Requirements:
-- ANTHROPIC_API_KEY environment variable must be set
-- Will consume API credits (approximately $0.30-0.60 per full test run)
+- Supports both real API (with ANTHROPIC_API_KEY) and mock mode
+- Real API mode will consume API credits (approximately $0.30-0.60 per full test run)
 
 Run with:
     pytest tests/e2e/test_tsp_with_approval_service.py -m e2e -v -s
@@ -37,10 +37,6 @@ from asp.approval.base import (
 
 
 # Skip all tests if no API key is available
-pytestmark = pytest.mark.skipif(
-    not os.getenv("ANTHROPIC_API_KEY"),
-    reason="ANTHROPIC_API_KEY not set - skipping E2E tests"
-)
 
 
 class MockApprovalService(ApprovalService):
@@ -113,7 +109,7 @@ class MockApprovalService(ApprovalService):
 class TestTSPWithApprovalService:
     """E2E tests for TSP Orchestrator with ApprovalService integration."""
 
-    def test_approval_service_integration_with_simple_task(self):
+    def test_approval_service_integration_with_simple_task(self, llm_client):
         """
         Test TSP Orchestrator with MockApprovalService on simple task.
 
@@ -193,7 +189,7 @@ class TestTSPWithApprovalService:
 
         print("\n✓ TEST PASSED: ApprovalService integration working")
 
-    def test_approval_service_called_on_complex_task(self):
+    def test_approval_service_called_on_complex_task(self, llm_client):
         """
         Test that ApprovalService is called for complex task with likely failures.
 
@@ -276,7 +272,7 @@ class TestTSPWithApprovalService:
 
         print("\n✓ TEST PASSED: Complex task with ApprovalService integration")
 
-    def test_rejection_decision_halts_pipeline(self):
+    def test_rejection_decision_halts_pipeline(self, llm_client):
         """
         Test that REJECTED decision halts the pipeline.
 
@@ -338,7 +334,7 @@ class TestTSPWithApprovalService:
 
         print("\n✓ TEST PASSED: Rejection workflow validated")
 
-    def test_approval_service_priority_over_callable(self):
+    def test_approval_service_priority_over_callable(self, llm_client):
         """
         Test that ApprovalService takes precedence over legacy hitl_approver callable.
 
@@ -404,7 +400,7 @@ class TestTSPWithApprovalService:
 
         print("\n✓ TEST PASSED: ApprovalService takes precedence over callable")
 
-    def test_metadata_and_audit_trail(self):
+    def test_metadata_and_audit_trail(self, llm_client):
         """
         Test that approval metadata is captured in audit trail.
 
