@@ -1,0 +1,58 @@
+{
+  "project_id": "TEST-E2E",
+  "task_id": "E2E-001",
+  "semantic_units": [
+    {
+      "unit_id": "SU-001",
+      "description": "Set up route handler for GET /users/:id with parameter validation and type checking",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 2,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 19,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-002",
+      "description": "Implement database query function to retrieve user by ID from database",
+      "api_interactions": 1,
+      "data_transformations": 1,
+      "logical_branches": 1,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 18,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Add error handling logic for database failures and user not found scenarios",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 4,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 25,
+      "dependencies": [
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Format user data response as JSON and return with appropriate HTTP status codes",
+      "api_interactions": 0,
+      "data_transformations": 2,
+      "logical_branches": 2,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 20,
+      "dependencies": [
+        "SU-003"
+      ]
+    }
+  ],
+  "total_est_complexity": 82,
+  "probe_ai_prediction": null,
+  "probe_ai_enabled": false,
+  "agent_version": "1.0.0"
+}
