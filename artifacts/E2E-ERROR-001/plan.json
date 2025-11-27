@@ -1,0 +1,73 @@
+{
+  "project_id": "TEST-E2E",
+  "task_id": "E2E-ERROR-001",
+  "semantic_units": [
+    {
+      "unit_id": "SU-001",
+      "description": "Define endpoint route and HTTP method (GET/POST/etc) with path parameters",
+      "api_interactions": 0,
+      "data_transformations": 0,
+      "logical_branches": 1,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 7,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-002",
+      "description": "Implement request validation and input sanitization logic",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 2,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 15,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Create endpoint handler function with basic business logic",
+      "api_interactions": 1,
+      "data_transformations": 1,
+      "logical_branches": 2,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 21,
+      "dependencies": [
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Implement response formatting and HTTP status code handling",
+      "api_interactions": 0,
+      "data_transformations": 2,
+      "logical_branches": 2,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 20,
+      "dependencies": [
+        "SU-003"
+      ]
+    },
+    {
+      "unit_id": "SU-005",
+      "description": "Add error handling and exception management for the endpoint",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 3,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 22,
+      "dependencies": [
+        "SU-004"
+      ]
+    }
+  ],
+  "total_est_complexity": 85,
+  "probe_ai_prediction": null,
+  "probe_ai_enabled": false,
+  "agent_version": "1.0.0"
+}
