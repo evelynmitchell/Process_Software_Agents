@@ -2,7 +2,7 @@
 
 **Project ID:** TEST-E2E
 **Task ID:** E2E-ERROR-001
-**Total Complexity:** 85
+**Total Complexity:** 63
 **PROBE-AI Enabled:** False
 **Agent Version:** 1.0.0
 
@@ -47,14 +47,4 @@
 - **Code Entities Modified:** 1
 - **Novelty Multiplier:** 1.0
 - **Dependencies:** SU-003
-
-### SU-005: Add error handling and exception management for the endpoint
-
-- **Estimated Complexity:** 22
-- **API Interactions:** 0
-- **Data Transformations:** 1
-- **Logical Branches:** 3
-- **Code Entities Modified:** 2
-- **Novelty Multiplier:** 1.0
-- **Dependencies:** SU-004
 

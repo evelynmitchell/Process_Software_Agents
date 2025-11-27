@@ -51,22 +51,9 @@
       "dependencies": [
         "SU-003"
       ]
-    },
-    {
-      "unit_id": "SU-005",
-      "description": "Add error handling and exception management for the endpoint",
-      "api_interactions": 0,
-      "data_transformations": 1,
-      "logical_branches": 3,
-      "code_entities_modified": 2,
-      "novelty_multiplier": 1.0,
-      "est_complexity": 22,
-      "dependencies": [
-        "SU-004"
-      ]
     }
   ],
-  "total_est_complexity": 85,
+  "total_est_complexity": 63,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"
