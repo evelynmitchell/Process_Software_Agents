@@ -336,6 +336,8 @@ class MockLLMClient:
         Analyzes the prompt to determine which agent is calling and returns
         appropriate mock data.
         """
+        import json
+
         self.call_count += 1
 
         # Determine which agent is calling based on prompt content
@@ -358,11 +360,21 @@ class MockLLMClient:
             # Generic response
             content = self._mock_generic_response(prompt)
 
+        # Parse JSON strings to match real LLMClient behavior
+        # Real LLMClient calls _try_parse_json() which returns dict for JSON
+        parsed_content = content
+        if isinstance(content, str):
+            try:
+                parsed_content = json.loads(content)
+            except json.JSONDecodeError:
+                # Not JSON, keep as string (e.g., for design markdown)
+                parsed_content = content
+
         return {
-            "content": content,
+            "content": parsed_content,
             "usage": {
                 "input_tokens": len(prompt.split()) * 2,  # Rough estimate
-                "output_tokens": len(content.split()) * 2 if isinstance(content, str) else 500,
+                "output_tokens": len(str(content).split()) * 2,
             },
             "model": model,
             "stop_reason": "end_turn",
@@ -380,6 +392,7 @@ class MockLLMClient:
       "logical_branches": 2,
       "code_entities_modified": 3,
       "novelty_multiplier": 1.2,
+      "est_complexity": 18,
       "dependencies": []
     },
     {
@@ -390,6 +403,7 @@ class MockLLMClient:
       "logical_branches": 3,
       "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
+      "est_complexity": 12,
       "dependencies": ["SU-001"]
     },
     {
@@ -400,6 +414,7 @@ class MockLLMClient:
       "logical_branches": 4,
       "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
+      "est_complexity": 14,
       "dependencies": ["SU-001"]
     }
   ]
