@@ -9,11 +9,33 @@
       "semantic_unit_id": "SU-001",
       "component_id": "COMP-001",
       "description": "Authentication service with user registration"
+    },
+    {
+      "file_path": "src/repositories/user_repository.py",
+      "content": "\"\"\"User repository.\"\"\"\n\nclass UserRepository:\n    pass",
+      "file_type": "source",
+      "semantic_unit_id": "SU-002",
+      "component_id": "COMP-002",
+      "description": "User database repository"
+    },
+    {
+      "file_path": "tests/test_auth_service.py",
+      "content": "\"\"\"Tests for auth service.\"\"\"\n\nimport pytest\n\ndef test_register():\n    pass",
+      "file_type": "test",
+      "semantic_unit_id": "SU-001",
+      "component_id": "COMP-001",
+      "description": "Unit tests for authentication service"
     }
   ],
   "file_structure": {
     "src/services": [
       "auth_service.py"
+    ],
+    "src/repositories": [
+      "user_repository.py"
+    ],
+    "tests": [
+      "test_auth_service.py"
     ]
   },
   "implementation_notes": "Implemented JWT authentication with bcrypt password hashing",
@@ -31,8 +53,9 @@
     "SU-002"
   ],
   "components_implemented": [
-    "COMP-001"
+    "COMP-001",
+    "COMP-002"
   ],
   "agent_version": "1.0.0",
-  "generation_timestamp": "2025-11-27T01:59:38.287543"
+  "generation_timestamp": "2025-11-27T01:59:38.427692"
 }
