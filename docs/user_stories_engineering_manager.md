@@ -29,7 +29,7 @@ Sarah implemented the **Agentic Software Process (ASP) Platform** not to replace
 
 ### The Outcome
 
-Three months in, Sarah's team is shipping faster, but the "re-work" rate has dropped by 40%. The "Postmortem Agent" even suggests process improvements automatically.
+Three months in, Sarah's team is shipping faster, but the "rework" rate has dropped by 40%. The "Postmortem Agent" even suggests process improvements automatically.
 
 *"The emotional weight of 'what if it breaks' is gone. I trust the process because I can measure the process. My seniors are mentoring again instead of just fixing AI bugs, and my juniors are learning from the feedback the agents provide."*
 
