@@ -15,7 +15,7 @@ def temp_repo():
     repo_dir = tempfile.mkdtemp()
 
     # Initialize git repo
-    subprocess.run(["git", "init"], cwd=repo_dir, check=True, capture_output=True)
+    subprocess.run(["git", "init", "-b", "main"], cwd=repo_dir, check=True, capture_output=True)
     subprocess.run(
         ["git", "config", "user.email", "test@test.com"],
         cwd=repo_dir,
