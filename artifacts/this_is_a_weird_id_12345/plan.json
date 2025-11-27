@@ -1,0 +1,47 @@
+{
+  "project_id": "TEST-E2E!!!",
+  "task_id": "this_is_a_weird_id_12345",
+  "semantic_units": [
+    {
+      "unit_id": "SU-001",
+      "description": "Create health check route handler with basic endpoint structure",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 1,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 16,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-002",
+      "description": "Implement health check response with status and timestamp",
+      "api_interactions": 0,
+      "data_transformations": 2,
+      "logical_branches": 1,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 17,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Add basic error handling and response validation for health endpoint",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 2,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 15,
+      "dependencies": [
+        "SU-002"
+      ]
+    }
+  ],
+  "total_est_complexity": 48,
+  "probe_ai_prediction": null,
+  "probe_ai_enabled": false,
+  "agent_version": "1.0.0"
+}
