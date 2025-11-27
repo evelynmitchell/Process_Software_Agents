@@ -4,56 +4,43 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Define endpoint route and HTTP method (GET/POST/etc) with path parameters",
-      "api_interactions": 0,
-      "data_transformations": 0,
-      "logical_branches": 1,
-      "code_entities_modified": 1,
-      "novelty_multiplier": 1.0,
-      "est_complexity": 7,
+      "description": "Implement API endpoint handler",
+      "api_interactions": 2,
+      "data_transformations": 1,
+      "logical_branches": 2,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.2,
+      "est_complexity": 32,
       "dependencies": []
     },
     {
       "unit_id": "SU-002",
-      "description": "Implement request validation and input sanitization logic",
+      "description": "Add validation logic",
       "api_interactions": 0,
-      "data_transformations": 1,
-      "logical_branches": 2,
-      "code_entities_modified": 1,
+      "data_transformations": 2,
+      "logical_branches": 3,
+      "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 15,
+      "est_complexity": 27,
       "dependencies": [
         "SU-001"
       ]
     },
     {
       "unit_id": "SU-003",
-      "description": "Create endpoint handler function with basic business logic",
-      "api_interactions": 1,
+      "description": "Implement error handling",
+      "api_interactions": 0,
       "data_transformations": 1,
-      "logical_branches": 2,
+      "logical_branches": 4,
       "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 21,
+      "est_complexity": 25,
       "dependencies": [
-        "SU-002"
-      ]
-    },
-    {
-      "unit_id": "SU-004",
-      "description": "Implement response formatting and HTTP status code handling",
-      "api_interactions": 0,
-      "data_transformations": 2,
-      "logical_branches": 2,
-      "code_entities_modified": 1,
-      "novelty_multiplier": 1.0,
-      "est_complexity": 20,
-      "dependencies": [
-        "SU-003"
+        "SU-001"
       ]
     }
   ],
-  "total_est_complexity": 63,
+  "total_est_complexity": 84,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"
