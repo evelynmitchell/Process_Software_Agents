@@ -1,0 +1,100 @@
+{
+  "project_id": "TEST-E2E",
+  "task_id": "E2E-ERROR-002",
+  "semantic_units": [
+    {
+      "unit_id": "SU-001",
+      "description": "Analyze current error handling implementation and identify performance bottlenecks",
+      "api_interactions": 2,
+      "data_transformations": 1,
+      "logical_branches": 2,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 27,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-002",
+      "description": "Refactor error logging and monitoring to reduce I/O overhead",
+      "api_interactions": 2,
+      "data_transformations": 3,
+      "logical_branches": 3,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 44,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Implement error caching and deduplication mechanism",
+      "api_interactions": 1,
+      "data_transformations": 4,
+      "logical_branches": 4,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 69,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Optimize error response serialization and transmission",
+      "api_interactions": 1,
+      "data_transformations": 5,
+      "logical_branches": 2,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 41,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-005",
+      "description": "Add circuit breaker pattern for cascading error prevention",
+      "api_interactions": 2,
+      "data_transformations": 2,
+      "logical_branches": 5,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 68,
+      "dependencies": [
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-006",
+      "description": "Implement retry logic with exponential backoff for transient errors",
+      "api_interactions": 1,
+      "data_transformations": 2,
+      "logical_branches": 4,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 36,
+      "dependencies": [
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-007",
+      "description": "Create comprehensive error metrics and alerting system",
+      "api_interactions": 3,
+      "data_transformations": 3,
+      "logical_branches": 3,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 46,
+      "dependencies": [
+        "SU-002",
+        "SU-005"
+      ]
+    }
+  ],
+  "total_est_complexity": 331,
+  "probe_ai_prediction": null,
+  "probe_ai_enabled": false,
+  "agent_version": "1.0.0"
+}
