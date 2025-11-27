@@ -1,12 +1,16 @@
 # End-to-End (E2E) Tests
 
-This directory contains end-to-end tests that validate the complete Planning Agent workflow with real API calls to Anthropic Claude.
+This directory contains end-to-end tests that validate the complete Planning Agent workflow.
+
+**New in 2025-11-27:** E2E tests now support two modes:
+- **Real API Mode:** Uses actual Anthropic Claude API when `ANTHROPIC_API_KEY` is set
+- **Mock Mode:** Uses mock LLM client when API key is not available (no cost, validates structure/flow)
 
 ## Setup
 
-### 1. Set API Key
+### 1. Set API Key (Optional for Mock Mode)
 
-E2E tests require an Anthropic API key. Set it using one of these methods:
+For real API testing, set the Anthropic API key using one of these methods:
 
 **Option A: GitHub Codespaces Secrets (Recommended)**
 1. Go to: https://github.com/settings/codespaces
@@ -76,10 +80,14 @@ uv run pytest tests/e2e/ -v -s -m calibration
 
 ## Cost Considerations
 
-E2E tests make real API calls and consume API credits:
+**Mock Mode (No API Key):** FREE - No API calls are made
+
+**Real API Mode (With API Key):**
 - **Per test:** ~$0.01-0.02 USD
 - **Full suite:** ~$0.10-0.15 USD
 - **Model used:** claude-sonnet-4-20250514
+
+**Recommendation:** Use mock mode for development and CI, use real API mode for calibration and validation.
 
 ## Test Output
 
@@ -113,11 +121,13 @@ Semantic Units:
 
 ## Troubleshooting
 
-### Test Skipped: "ANTHROPIC_API_KEY not set"
-- **Cause:** API key not available in environment
-- **Fix:** Follow setup instructions above
+### Tests Running in Mock Mode vs Real API Mode
+- **How to check:** Tests will automatically use mock mode if no API key is set
+- **Mock Mode:** Returns pre-defined responses, validates structure and flow
+- **Real API Mode:** Makes actual API calls, validates LLM reasoning quality
+- **To force Real API Mode:** Set the `ANTHROPIC_API_KEY` environment variable
 
-### ValidationError: "String should match pattern '^SU-\d{3}$'"
+### ValidationError: "String should match pattern '^SU-\d{3}$'" (Real API Mode)
 - **Cause:** LLM returned non-standard unit IDs
 - **Fix:** This is expected occasionally; retry the test
 - **Note:** Prompt includes format examples to minimize this

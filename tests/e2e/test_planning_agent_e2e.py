@@ -1,13 +1,15 @@
 """
-End-to-End tests for Planning Agent with real Anthropic API
+End-to-End tests for Planning Agent with real or mocked Anthropic API
 
-These tests make actual API calls to validate the complete workflow.
-They are marked with @pytest.mark.e2e and can be run with:
+These tests validate the complete workflow with either:
+- Real Anthropic API if ANTHROPIC_API_KEY is set (will consume API credits)
+- Mock LLM client if API key is not available (for testing without API access)
+
+Tests are marked with @pytest.mark.e2e and can be run with:
     pytest tests/e2e/ -m e2e
 
-Requirements:
-- ANTHROPIC_API_KEY environment variable must be set
-- Will consume API credits (approximately $0.01-0.02 per test)
+Note: When running with mock LLM, tests validate the structure and flow,
+but not the actual LLM reasoning quality.
 """
 
 import os
@@ -18,20 +20,13 @@ from asp.agents.planning_agent import PlanningAgent
 from asp.models.planning import TaskRequirements, ProjectPlan
 
 
-# Skip all tests if no API key is available
-pytestmark = pytest.mark.skipif(
-    not os.getenv("ANTHROPIC_API_KEY"),
-    reason="ANTHROPIC_API_KEY not set - skipping E2E tests"
-)
-
-
 @pytest.mark.e2e
 class TestPlanningAgentE2E:
-    """End-to-end tests with real API calls."""
+    """End-to-end tests with real or mocked API calls."""
 
-    def test_simple_task_decomposition(self):
+    def test_simple_task_decomposition(self, llm_client):
         """Test decomposition of a simple REST API task."""
-        agent = PlanningAgent()
+        agent = PlanningAgent(llm_client=llm_client)
 
         requirements = TaskRequirements(
             project_id="TEST-E2E",
@@ -88,9 +83,9 @@ class TestPlanningAgentE2E:
             if unit.dependencies:
                 print(f"   Dependencies: {', '.join(unit.dependencies)}")
 
-    def test_moderate_complexity_task(self):
+    def test_moderate_complexity_task(self, llm_client):
         """Test decomposition of a moderate complexity authentication task."""
-        agent = PlanningAgent()
+        agent = PlanningAgent(llm_client=llm_client)
 
         requirements = TaskRequirements(
             project_id="TEST-E2E",
@@ -135,9 +130,9 @@ class TestPlanningAgentE2E:
             if unit.dependencies:
                 print(f"   Dependencies: {', '.join(unit.dependencies)}")
 
-    def test_with_context_files(self):
+    def test_with_context_files(self, llm_client):
         """Test decomposition with context files specified."""
-        agent = PlanningAgent()
+        agent = PlanningAgent(llm_client=llm_client)
 
         requirements = TaskRequirements(
             project_id="TEST-E2E",
@@ -177,9 +172,9 @@ class TestPlanningAgentE2E:
             print(f"\n{i}. {unit.unit_id}: {unit.description}")
             print(f"   Complexity: {unit.est_complexity}")
 
-    def test_complex_data_pipeline_task(self):
+    def test_complex_data_pipeline_task(self, llm_client):
         """Test decomposition of a complex data pipeline task."""
-        agent = PlanningAgent()
+        agent = PlanningAgent(llm_client=llm_client)
 
         requirements = TaskRequirements(
             project_id="TEST-E2E",
@@ -233,11 +228,11 @@ class TestPlanningAgentE2E:
             else:
                 print(f"   Dependencies: None (can start immediately)")
 
-    def test_telemetry_integration(self):
+    def test_telemetry_integration(self, llm_client):
         """Test that telemetry is captured during execution."""
         # Use a real database path for telemetry
         db_path = Path("data/asp_telemetry.db")
-        agent = PlanningAgent(db_path=db_path)
+        agent = PlanningAgent(db_path=db_path, llm_client=llm_client)
 
         requirements = TaskRequirements(
             project_id="TEST-E2E",
@@ -271,9 +266,9 @@ class TestPlanningAgentE2E:
 class TestComplexityCalibration:
     """Tests for calibrating complexity scoring."""
 
-    def test_trivial_task_complexity(self):
+    def test_trivial_task_complexity(self, llm_client):
         """Test that trivial tasks score low complexity (< 10)."""
-        agent = PlanningAgent()
+        agent = PlanningAgent(llm_client=llm_client)
 
         requirements = TaskRequirements(
             project_id="CALIBRATION",
@@ -294,9 +289,9 @@ class TestComplexityCalibration:
         print(f"Actual: {plan.total_est_complexity}")
         print(f"Result: {' PASS' if plan.total_est_complexity <= 10 else ' FAIL'}")
 
-    def test_simple_task_complexity(self):
+    def test_simple_task_complexity(self, llm_client):
         """Test that simple tasks score 11-30 complexity."""
-        agent = PlanningAgent()
+        agent = PlanningAgent(llm_client=llm_client)
 
         requirements = TaskRequirements(
             project_id="CALIBRATION",
@@ -319,9 +314,9 @@ class TestComplexityCalibration:
         print(f"Actual: {plan.total_est_complexity}")
         print(f"Result: {' PASS' if 11 <= plan.total_est_complexity <= 30 else ' FAIL'}")
 
-    def test_moderate_task_complexity(self):
+    def test_moderate_task_complexity(self, llm_client):
         """Test that moderate tasks score 31-60 complexity."""
-        agent = PlanningAgent()
+        agent = PlanningAgent(llm_client=llm_client)
 
         requirements = TaskRequirements(
             project_id="CALIBRATION",
@@ -346,6 +341,175 @@ class TestComplexityCalibration:
         print(f"Expected: Complexity 31-60")
         print(f"Actual: {plan.total_est_complexity}")
         print(f"Result: {' PASS' if 31 <= plan.total_est_complexity <= 60 else ' FAIL'}")
+
+
+@pytest.mark.e2e
+class TestPlanningAgentUnhappyPaths:
+    """Tests for error handling and edge cases."""
+
+    def test_minimal_requirements(self, llm_client):
+        """Test handling of minimal requirements string."""
+        agent = PlanningAgent(llm_client=llm_client)
+
+        requirements = TaskRequirements(
+            project_id="TEST-E2E",
+            task_id="E2E-ERROR-001",
+            description="Minimal requirements test",
+            requirements="Create a simple endpoint",  # Minimal but valid
+        )
+
+        # Should still return a valid plan, even if minimal
+        plan = agent.execute(requirements)
+        assert isinstance(plan, ProjectPlan)
+        assert plan.project_id == "TEST-E2E"
+        assert plan.task_id == "E2E-ERROR-001"
+
+    def test_very_vague_requirements(self, llm_client):
+        """Test handling of vague/unclear requirements."""
+        agent = PlanningAgent(llm_client=llm_client)
+
+        requirements = TaskRequirements(
+            project_id="TEST-E2E",
+            task_id="E2E-ERROR-002",
+            description="Do something",
+            requirements="Make it work better somehow",  # Vague but valid length
+        )
+
+        # Should still produce a plan, even if it's generic
+        plan = agent.execute(requirements)
+        assert isinstance(plan, ProjectPlan)
+        assert len(plan.semantic_units) > 0
+
+    def test_extremely_long_requirements(self, llm_client):
+        """Test handling of very long requirements."""
+        agent = PlanningAgent(llm_client=llm_client)
+
+        # Generate a very long requirements string
+        long_requirements = "\n".join([
+            f"- Requirement {i}: Implement feature {i} with comprehensive functionality"
+            for i in range(100)
+        ])
+
+        requirements = TaskRequirements(
+            project_id="TEST-E2E",
+            task_id="E2E-ERROR-003",
+            description="Very complex system with many requirements",
+            requirements=long_requirements,
+        )
+
+        # Should handle long input gracefully
+        plan = agent.execute(requirements)
+        assert isinstance(plan, ProjectPlan)
+        assert len(plan.semantic_units) > 0
+
+    def test_special_characters_in_requirements(self, llm_client):
+        """Test handling of special characters in requirements."""
+        agent = PlanningAgent(llm_client=llm_client)
+
+        requirements = TaskRequirements(
+            project_id="TEST-E2E",
+            task_id="E2E-ERROR-004",
+            description="API with special chars: <>&\"'`",
+            requirements="""
+            Create an API that handles:
+            - JSON with quotes: {"key": "value"}
+            - HTML tags: <div>content</div>
+            - SQL: SELECT * FROM users WHERE name = 'O\\'Reilly'
+            - Regex: ^[a-zA-Z0-9_]*$
+            - URLs: https://example.com?param=value&other=123
+            """,
+        )
+
+        # Should handle special characters without errors
+        plan = agent.execute(requirements)
+        assert isinstance(plan, ProjectPlan)
+        assert len(plan.semantic_units) > 0
+
+    def test_unicode_and_emojis_in_requirements(self, llm_client):
+        """Test handling of unicode and emojis."""
+        agent = PlanningAgent(llm_client=llm_client)
+
+        requirements = TaskRequirements(
+            project_id="TEST-E2E",
+            task_id="E2E-ERROR-005",
+            description="Multi-language app with emojis 🚀",
+            requirements="""
+            Create an app that supports:
+            - English: Hello World
+            - Spanish: Hola Mundo
+            - Japanese: こんにちは世界
+            - Chinese: 你好世界
+            - Arabic: مرحبا بالعالم
+            - Emojis: 🎉 🚀 💻 ✅
+            """,
+        )
+
+        # Should handle unicode gracefully
+        plan = agent.execute(requirements)
+        assert isinstance(plan, ProjectPlan)
+        assert len(plan.semantic_units) > 0
+
+    def test_conflicting_requirements(self, llm_client):
+        """Test handling of contradictory requirements."""
+        agent = PlanningAgent(llm_client=llm_client)
+
+        requirements = TaskRequirements(
+            project_id="TEST-E2E",
+            task_id="E2E-ERROR-006",
+            description="System with conflicting requirements",
+            requirements="""
+            Build a system that:
+            1. Must be completely stateless
+            2. Must track user sessions
+            3. Must have no database
+            4. Must persist user data permanently
+            5. Must be real-time
+            6. Must work offline without connectivity
+            """,
+        )
+
+        # Should still produce a plan (agent will do its best)
+        plan = agent.execute(requirements)
+        assert isinstance(plan, ProjectPlan)
+        assert len(plan.semantic_units) > 0
+
+    def test_missing_context_files(self, llm_client):
+        """Test handling of non-existent context files."""
+        agent = PlanningAgent(llm_client=llm_client)
+
+        requirements = TaskRequirements(
+            project_id="TEST-E2E",
+            task_id="E2E-ERROR-007",
+            description="Update non-existent files",
+            requirements="Update the user authentication logic",
+            context_files=[
+                "src/nonexistent/file1.py",
+                "src/missing/file2.py",
+                "docs/not_real.md"
+            ]
+        )
+
+        # Should handle gracefully (context files are just hints)
+        plan = agent.execute(requirements)
+        assert isinstance(plan, ProjectPlan)
+        assert len(plan.semantic_units) > 0
+
+    def test_invalid_task_id_format(self, llm_client):
+        """Test with non-standard task ID format."""
+        agent = PlanningAgent(llm_client=llm_client)
+
+        requirements = TaskRequirements(
+            project_id="TEST-E2E!!!",
+            task_id="this_is_a_weird_id_12345",
+            description="Test with unusual IDs",
+            requirements="Create a simple health check endpoint",
+        )
+
+        # Should work regardless of ID format
+        plan = agent.execute(requirements)
+        assert isinstance(plan, ProjectPlan)
+        assert plan.project_id == "TEST-E2E!!!"
+        assert plan.task_id == "this_is_a_weird_id_12345"
 
 
 if __name__ == "__main__":

@@ -289,7 +289,7 @@ def pytest_configure(config):
 def pytest_collection_modifyitems(config, items):
     """
     Modify test collection to add markers based on test names.
-    
+
     Args:
         config: Pytest configuration object
         items: List of collected test items
@@ -302,3 +302,220 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.integration)
         elif "e2e" in str(item.fspath):
             item.add_marker(pytest.mark.e2e)
+
+
+# ============================================================================
+# E2E Test Fixtures and Mock LLM Client
+# ============================================================================
+
+
+class MockLLMClient:
+    """
+    Mock LLM client for E2E tests when ANTHROPIC_API_KEY is not available.
+
+    Returns realistic responses based on common ASP agent patterns.
+    """
+
+    def __init__(self, api_key: str = "mock-api-key"):
+        """Initialize mock LLM client."""
+        self.api_key = api_key
+        self.call_count = 0
+
+    def call_with_retry(
+        self,
+        prompt: str,
+        model: str = "claude-haiku-4-5",
+        max_tokens: int = 4096,
+        temperature: float = 0.0,
+        system: str = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Mock LLM API call that returns realistic responses.
+
+        Analyzes the prompt to determine which agent is calling and returns
+        appropriate mock data.
+        """
+        self.call_count += 1
+
+        # Determine which agent is calling based on prompt content
+        if "semantic units" in prompt.lower() or "planning" in prompt.lower():
+            # Planning Agent - return mock semantic units
+            content = self._mock_planning_response(prompt)
+        elif "design" in prompt.lower() and "review" in prompt.lower():
+            # Design Review Agent - return mock design issues
+            content = self._mock_design_review_response(prompt)
+        elif "design" in prompt.lower():
+            # Design Agent - return mock design document
+            content = self._mock_design_response(prompt)
+        elif "code review" in prompt.lower():
+            # Code Review Agent - return mock code review
+            content = self._mock_code_review_response(prompt)
+        elif "test" in prompt.lower():
+            # Test Agent - return mock test plan
+            content = self._mock_test_response(prompt)
+        else:
+            # Generic response
+            content = self._mock_generic_response(prompt)
+
+        return {
+            "content": content,
+            "usage": {
+                "input_tokens": len(prompt.split()) * 2,  # Rough estimate
+                "output_tokens": len(content.split()) * 2 if isinstance(content, str) else 500,
+            },
+            "model": model,
+            "stop_reason": "end_turn",
+        }
+
+    def _mock_planning_response(self, prompt: str) -> str:
+        """Generate mock planning response with semantic units."""
+        return """```json
+{
+  "semantic_units": [
+    {
+      "unit_id": "SU-001",
+      "description": "Implement API endpoint handler",
+      "api_interactions": 2,
+      "data_transformations": 1,
+      "logical_branches": 2,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.2,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-002",
+      "description": "Add validation logic",
+      "api_interactions": 0,
+      "data_transformations": 2,
+      "logical_branches": 3,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "dependencies": ["SU-001"]
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Implement error handling",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 4,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "dependencies": ["SU-001"]
+    }
+  ]
+}
+```"""
+
+    def _mock_design_response(self, prompt: str) -> str:
+        """Generate mock design document response."""
+        return """# Design Document
+
+## Overview
+This design addresses the requirements specified in the task.
+
+## Architecture
+- Component A: Handles input validation
+- Component B: Processes business logic
+- Component C: Manages data persistence
+
+## Implementation Plan
+1. Create API endpoint structure
+2. Implement validation layer
+3. Add error handling
+4. Write unit tests
+
+## Dependencies
+- FastAPI framework
+- Pydantic for validation
+- SQLAlchemy for database
+
+## Testing Strategy
+- Unit tests for each component
+- Integration tests for API endpoints
+- E2E tests for complete workflow
+"""
+
+    def _mock_design_review_response(self, prompt: str) -> str:
+        """Generate mock design review response."""
+        return """```json
+{
+  "issues": [
+    {
+      "issue_type": "missing_requirement",
+      "severity": "high",
+      "affected_phase": "Design",
+      "description": "Error handling strategy not fully defined",
+      "recommendation": "Add comprehensive error handling section"
+    }
+  ],
+  "overall_assessment": "good",
+  "requires_replanning": false
+}
+```"""
+
+    def _mock_code_review_response(self, prompt: str) -> str:
+        """Generate mock code review response."""
+        return """```json
+{
+  "issues": [],
+  "overall_quality": "good",
+  "recommendations": [
+    "Consider adding docstrings",
+    "Add type hints where missing"
+  ]
+}
+```"""
+
+    def _mock_test_response(self, prompt: str) -> str:
+        """Generate mock test plan response."""
+        return """```json
+{
+  "test_plan": {
+    "unit_tests": ["test_validation", "test_processing"],
+    "integration_tests": ["test_api_endpoint"],
+    "coverage_target": 80
+  }
+}
+```"""
+
+    def _mock_generic_response(self, prompt: str) -> str:
+        """Generate generic mock response."""
+        return "Mock response: Processing completed successfully."
+
+
+@pytest.fixture(scope="session")
+def has_api_key() -> bool:
+    """
+    Check if ANTHROPIC_API_KEY is available.
+
+    Returns:
+        bool: True if API key is set, False otherwise
+    """
+    return bool(os.getenv("ANTHROPIC_API_KEY"))
+
+
+@pytest.fixture(scope="function")
+def llm_client(has_api_key: bool):
+    """
+    Provide LLM client for testing.
+
+    Returns real LLMClient if ANTHROPIC_API_KEY is available,
+    otherwise returns MockLLMClient for testing without API access.
+
+    Args:
+        has_api_key: Whether API key is available
+
+    Returns:
+        LLMClient or MockLLMClient instance
+    """
+    if has_api_key:
+        # Import here to avoid errors if anthropic package not installed
+        try:
+            from asp.utils.llm_client import LLMClient
+            return LLMClient()
+        except (ImportError, ValueError):
+            # Fall back to mock if import fails or API key invalid
+            return MockLLMClient()
+    else:
+        return MockLLMClient()
