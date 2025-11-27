@@ -341,24 +341,44 @@ class MockLLMClient:
         self.call_count += 1
 
         # Determine which agent is calling based on prompt content
-        if "semantic units" in prompt.lower() or "planning" in prompt.lower():
-            # Planning Agent - return mock semantic units
-            content = self._mock_planning_response(prompt)
-        elif "design" in prompt.lower() and "review" in prompt.lower():
-            # Design Review Agent - return mock design issues
+        # Check most specific patterns first to avoid mismatches
+        prompt_lower = prompt.lower()
+
+        # Debug: print first 200 chars to help diagnose detection issues
+        # print(f"[MockLLM] Prompt preview: {prompt[:200]}...")
+
+        # Be very specific about design review vs design generation
+        # Check for review INTENT specifically
+        is_reviewing = (
+            "review the following design" in prompt_lower or
+            "evaluate the design" in prompt_lower or
+            "assess whether the design" in prompt_lower
+        )
+
+        if is_reviewing:
+            # Design Review Agent - reviewing a design
             content = self._mock_design_review_response(prompt)
-        elif "design" in prompt.lower():
-            # Design Agent - return mock design document
-            content = self._mock_design_response(prompt)
-        elif "code review" in prompt.lower():
+        elif "code review" in prompt_lower or "review the code" in prompt_lower or "reviewing code" in prompt_lower:
             # Code Review Agent - return mock code review
             content = self._mock_code_review_response(prompt)
-        elif "test" in prompt.lower():
+        elif "design" in prompt_lower and any(word in prompt_lower for word in ["create", "generate", "produce", "specification", "document"]):
+            # Design Agent - creating design specification (JSON)
+            content = self._mock_design_specification_response(prompt)
+        elif "semantic units" in prompt_lower or "decompose" in prompt_lower:
+            # Planning Agent - return mock semantic units
+            content = self._mock_planning_response(prompt)
+        elif "generate code" in prompt_lower or "implement" in prompt_lower or "code generation" in prompt_lower:
+            # Code Agent - return mock code generation
+            content = self._mock_code_generation_response(prompt)
+        elif "generate tests" in prompt_lower or "test generation" in prompt_lower or "test plan" in prompt_lower:
             # Test Agent - return mock test plan
             content = self._mock_test_response(prompt)
+        elif "postmortem" in prompt_lower or ("defect" in prompt_lower and "effort" in prompt_lower):
+            # Postmortem Agent - return mock postmortem
+            content = self._mock_postmortem_response(prompt)
         else:
-            # Generic response
-            content = self._mock_generic_response(prompt)
+            # Generic response (for markdown design, etc.)
+            content = self._mock_design_response(prompt)
 
         # Parse JSON strings to match real LLMClient behavior
         # Real LLMClient calls _try_parse_json() which returns dict for JSON
@@ -489,6 +509,102 @@ This design addresses the requirements specified in the task.
     "integration_tests": ["test_api_endpoint"],
     "coverage_target": 80
   }
+}"""
+
+    def _mock_design_specification_response(self, prompt: str) -> str:
+        """Generate mock design specification response (JSON format)."""
+        return """{
+  "task_id": "TEST-001",
+  "api_contracts": [
+    {
+      "endpoint": "/api/users",
+      "method": "GET",
+      "description": "Retrieve user list",
+      "request_schema": {},
+      "response_schema": {"users": "array"},
+      "error_responses": [{"status_code": 404, "description": "Not found"}]
+    }
+  ],
+  "data_schemas": [
+    {
+      "table_name": "users",
+      "columns": [
+        {"name": "id", "type": "INTEGER", "constraints": ["PRIMARY KEY"]},
+        {"name": "email", "type": "VARCHAR(255)", "constraints": ["UNIQUE", "NOT NULL"]}
+      ]
+    }
+  ],
+  "component_logic": [
+    {
+      "component_name": "UserService",
+      "description": "Handles user business logic",
+      "responsibilities": ["User CRUD operations", "Validation"],
+      "dependencies": ["Database"],
+      "key_methods": [
+        {"name": "get_user", "parameters": ["user_id"], "return_type": "User"}
+      ]
+    }
+  ],
+  "design_review_checklist": [
+    {"criterion": "API endpoints follow REST conventions", "category": "API Design"},
+    {"criterion": "Database schema normalized", "category": "Data Design"},
+    {"criterion": "Error handling defined", "category": "Robustness"},
+    {"criterion": "Security measures in place", "category": "Security"},
+    {"criterion": "Performance considerations addressed", "category": "Performance"}
+  ],
+  "architecture_overview": "Simple REST API with service layer and database persistence",
+  "technology_stack": {
+    "language": "Python 3.12",
+    "framework": "FastAPI",
+    "database": "PostgreSQL",
+    "testing": "pytest"
+  },
+  "assumptions": ["RESTful API design", "PostgreSQL database available"]
+}"""
+
+    def _mock_code_generation_response(self, prompt: str) -> str:
+        """Generate mock code generation response."""
+        return """{
+  "task_id": "TEST-001",
+  "files": [
+    {
+      "file_path": "src/main.py",
+      "file_type": "source",
+      "language": "python",
+      "content": "from fastapi import FastAPI\\n\\napp = FastAPI()\\n\\n@app.get('/')\\ndef read_root():\\n    return {'message': 'Hello World'}",
+      "lines_of_code": 6
+    },
+    {
+      "file_path": "tests/test_main.py",
+      "file_type": "test",
+      "language": "python",
+      "content": "def test_read_root():\\n    assert True",
+      "lines_of_code": 2
+    }
+  ],
+  "total_files": 2,
+  "total_lines_of_code": 8,
+  "dependencies": ["fastapi"],
+  "implementation_notes": "Basic FastAPI application with hello world endpoint"
+}"""
+
+    def _mock_postmortem_response(self, prompt: str) -> str:
+        """Generate mock postmortem analysis response."""
+        return """{
+  "task_id": "TEST-001",
+  "actual_time": 120.5,
+  "predicted_time": 100.0,
+  "prediction_accuracy": 83.3,
+  "defects_injected": 0,
+  "defects_removed": 0,
+  "phase_data": {
+    "planning": {"time_spent": 20.0, "defects": 0},
+    "design": {"time_spent": 30.0, "defects": 0},
+    "coding": {"time_spent": 50.5, "defects": 0},
+    "testing": {"time_spent": 20.0, "defects": 0}
+  },
+  "process_insights": ["Good adherence to estimates", "No defects found"],
+  "improvement_recommendations": ["Continue current practices"]
 }"""
 
     def _mock_generic_response(self, prompt: str) -> str:
