@@ -4,111 +4,43 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Design authentication database schema with users table, password hashing configuration, and token storage",
-      "api_interactions": 1,
-      "data_transformations": 2,
-      "logical_branches": 1,
+      "description": "Implement API endpoint handler",
+      "api_interactions": 2,
+      "data_transformations": 1,
+      "logical_branches": 2,
       "code_entities_modified": 3,
-      "novelty_multiplier": 1.0,
-      "est_complexity": 27,
+      "novelty_multiplier": 1.2,
+      "est_complexity": 32,
       "dependencies": []
     },
     {
       "unit_id": "SU-002",
-      "description": "Implement user registration endpoint with email/password input validation and sanitization",
-      "api_interactions": 2,
-      "data_transformations": 3,
-      "logical_branches": 4,
-      "code_entities_modified": 3,
+      "description": "Add validation logic",
+      "api_interactions": 0,
+      "data_transformations": 2,
+      "logical_branches": 3,
+      "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 43,
+      "est_complexity": 27,
       "dependencies": [
         "SU-001"
       ]
     },
     {
       "unit_id": "SU-003",
-      "description": "Implement password hashing with bcrypt and secure storage in registration flow",
-      "api_interactions": 1,
-      "data_transformations": 2,
-      "logical_branches": 2,
-      "code_entities_modified": 2,
-      "novelty_multiplier": 1.0,
-      "est_complexity": 26,
-      "dependencies": [
-        "SU-002"
-      ]
-    },
-    {
-      "unit_id": "SU-004",
-      "description": "Create login endpoint with credential validation, bcrypt comparison, and JWT token generation",
-      "api_interactions": 2,
-      "data_transformations": 3,
-      "logical_branches": 4,
-      "code_entities_modified": 3,
-      "novelty_multiplier": 1.0,
-      "est_complexity": 43,
-      "dependencies": [
-        "SU-001",
-        "SU-003"
-      ]
-    },
-    {
-      "unit_id": "SU-005",
-      "description": "Implement refresh token mechanism with token rotation and expiration validation",
-      "api_interactions": 2,
-      "data_transformations": 3,
-      "logical_branches": 5,
-      "code_entities_modified": 3,
-      "novelty_multiplier": 1.0,
-      "est_complexity": 46,
-      "dependencies": [
-        "SU-004"
-      ]
-    },
-    {
-      "unit_id": "SU-006",
-      "description": "Build JWT token validation middleware with signature verification and claims extraction",
+      "description": "Implement error handling",
       "api_interactions": 0,
-      "data_transformations": 2,
+      "data_transformations": 1,
       "logical_branches": 4,
       "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 30,
+      "est_complexity": 25,
       "dependencies": [
-        "SU-004"
-      ]
-    },
-    {
-      "unit_id": "SU-007",
-      "description": "Implement rate limiting for login attempts with sliding window counter and blocking logic",
-      "api_interactions": 1,
-      "data_transformations": 2,
-      "logical_branches": 5,
-      "code_entities_modified": 3,
-      "novelty_multiplier": 1.5,
-      "est_complexity": 58,
-      "dependencies": [
-        "SU-004"
-      ]
-    },
-    {
-      "unit_id": "SU-008",
-      "description": "Add comprehensive error handling, logging, and security event tracking across all endpoints",
-      "api_interactions": 1,
-      "data_transformations": 2,
-      "logical_branches": 6,
-      "code_entities_modified": 4,
-      "novelty_multiplier": 1.0,
-      "est_complexity": 46,
-      "dependencies": [
-        "SU-002",
-        "SU-004",
-        "SU-006"
+        "SU-001"
       ]
     }
   ],
-  "total_est_complexity": 319,
+  "total_est_complexity": 84,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"
