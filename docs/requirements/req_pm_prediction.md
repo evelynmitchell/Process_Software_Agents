@@ -48,8 +48,9 @@ interface TimelineProjection {
 
 ```html
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <title>Prediction Engine - Product Manager</title>
 <style>
   :root {
     --bg-app: #ffffff;
