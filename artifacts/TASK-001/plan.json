@@ -4,7 +4,7 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Implement feature",
+      "description": "First semantic unit",
       "api_interactions": 2,
       "data_transformations": 3,
       "logical_branches": 1,
@@ -12,9 +12,36 @@
       "novelty_multiplier": 1.0,
       "est_complexity": 30,
       "dependencies": []
+    },
+    {
+      "unit_id": "SU-002",
+      "description": "Second semantic unit",
+      "api_interactions": 1,
+      "data_transformations": 2,
+      "logical_branches": 2,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 26,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Third semantic unit",
+      "api_interactions": 3,
+      "data_transformations": 4,
+      "logical_branches": 3,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 76,
+      "dependencies": [
+        "SU-001",
+        "SU-002"
+      ]
     }
   ],
-  "total_est_complexity": 30,
+  "total_est_complexity": 132,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"
