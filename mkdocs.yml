@@ -1,0 +1,125 @@
+site_name: Agentic Software Process (ASP) Platform
+site_description: Multi-agent orchestration system applying PSP/TSP methodology to autonomous AI agents
+site_author: ASP Team
+site_url: https://evelynmitchell.github.io/Process_Software_Agents/
+
+repo_name: evelynmitchell/Process_Software_Agents
+repo_url: https://github.com/evelynmitchell/Process_Software_Agents
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.tracking
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+    - toc.follow
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - admonition
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Quick Start: Getting_Started.md
+    - Developer Guide: Developer_Guide.md
+    - HITL Integration: HITL_Integration.md
+  - Reference:
+    - API Reference: API_Reference.md
+    - Agents Reference: Agents_Reference.md
+    - Overview: ASP_Overview.md
+  - User Stories:
+    - Engineering Manager: user_stories_engineering_manager.md
+    - Developer: user_stories_developer.md
+    - Product Manager: user_stories_product_manager.md
+  - Requirements:
+    - Manager Overwatch: requirements/req_manager_overwatch.md
+    - Developer Flow: requirements/req_developer_flow.md
+    - PM Prediction: requirements/req_pm_prediction.md
+  - UI Designs:
+    - Manager Overwatch: ui_designs/01_manager_overwatch.md
+    - Developer Canvas: ui_designs/02_developer_flow_canvas.md
+    - Prediction Engine: ui_designs/03_pm_prediction_engine.md
+  - Architecture Decisions:
+    - Agent Output Format: agent_output_format_decision.md
+    - Code Generation Format: code_generation_artifact_format_decision.md
+    - Complexity Calibration: complexity_calibration_decision.md
+    - Data Storage: data_storage_decision.md
+    - Design Agent Architecture: design_agent_architecture_decision.md
+    - Error Correction Loops: error_correction_feedback_loops_decision.md
+    - All Decisions: decisions/
+  - Guides:
+    - Artifact Persistence: artifact_persistence_user_guide.md
+    - Test Artifacts Repository: test_artifacts_repository_guide.md
+    - Design Agent Markdown: design_agent_markdown_format.md
+    - Design Review Agent: design_review_agent_user_guide.md
+  - Testing:
+    - Test Plan: comprehensive_agent_test_plan.md
+    - Test Coverage Analysis: test_coverage_analysis.md
+  - Debugging:
+    - Code Agent JSON Parsing: debugging/code_agent_json_parsing_issue.md
+    - Session 3 Lessons Learned: lessons_learned_session3_debugging.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/evelynmitchell/Process_Software_Agents
+  version:
+    provider: mike
+
+copyright: Copyright &copy; 2025 ASP Team
