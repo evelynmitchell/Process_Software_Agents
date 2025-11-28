@@ -475,6 +475,8 @@ print(f"  Suggestions: {len(review_report.improvement_suggestions)}")
 
 ---
 
+<a id="performance--cost"></a>
+
 ## Performance & Cost
 
 ### Execution Time
