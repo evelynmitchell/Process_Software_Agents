@@ -30,6 +30,13 @@ def temp_repo():
         check=True,
         capture_output=True
     )
+    # Disable commit signing for test repo
+    subprocess.run(
+        ["git", "config", "commit.gpgsign", "false"],
+        cwd=repo_dir,
+        check=True,
+        capture_output=True
+    )
 
     # Create initial commit
     readme = Path(repo_dir) / "README.md"
