@@ -69,14 +69,9 @@ class TestLLMClientInitialization:
         assert LLMClient.DEFAULT_MODEL == "claude-haiku-4-5"
 
     def test_cost_constants(self):
-        """Test that cost constants exist and are positive."""
-        # Test existence and sanity check (not hardcoded values)
-        assert hasattr(LLMClient, 'COST_PER_MILLION_INPUT_TOKENS')
-        assert hasattr(LLMClient, 'COST_PER_MILLION_OUTPUT_TOKENS')
-        assert LLMClient.COST_PER_MILLION_INPUT_TOKENS > 0
-        assert LLMClient.COST_PER_MILLION_OUTPUT_TOKENS > 0
-        # Output tokens should cost more than input tokens
-        assert LLMClient.COST_PER_MILLION_OUTPUT_TOKENS > LLMClient.COST_PER_MILLION_INPUT_TOKENS
+        """Test that cost constants are set correctly."""
+        assert LLMClient.COST_PER_MILLION_INPUT_TOKENS == 0.25
+        assert LLMClient.COST_PER_MILLION_OUTPUT_TOKENS == 1.25
 
 
 class TestCallWithRetry:

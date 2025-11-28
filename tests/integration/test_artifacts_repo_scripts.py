@@ -10,7 +10,8 @@ from pathlib import Path
 @pytest.fixture
 def project_root():
     """Get the project root directory."""
-    return Path(__file__).parent.parent
+    # __file__ is in tests/integration/, so go up two levels to get project root
+    return Path(__file__).parent.parent.parent
 
 
 @pytest.fixture
