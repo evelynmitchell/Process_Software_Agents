@@ -66,12 +66,12 @@ class TestLLMClientInitialization:
 
     def test_default_model_constant(self):
         """Test that DEFAULT_MODEL is set correctly."""
-        assert LLMClient.DEFAULT_MODEL == "claude-sonnet-4-20250514"
+        assert LLMClient.DEFAULT_MODEL == "claude-haiku-4-5"
 
     def test_cost_constants(self):
         """Test that cost constants are set correctly."""
-        assert LLMClient.COST_PER_MILLION_INPUT_TOKENS == 3.0
-        assert LLMClient.COST_PER_MILLION_OUTPUT_TOKENS == 15.0
+        assert LLMClient.COST_PER_MILLION_INPUT_TOKENS == 0.25
+        assert LLMClient.COST_PER_MILLION_OUTPUT_TOKENS == 1.25
 
 
 class TestCallWithRetry:
