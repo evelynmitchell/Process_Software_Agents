@@ -19,7 +19,18 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 
-from src.main import app
+# Note: The demo FastAPI app has been moved to artifacts/
+# Keeping imports for backwards compatibility with existing tests
+try:
+    from artifacts.demo_hello_world_api import app
+except ImportError:
+    # Fallback if artifacts module import doesn't work
+    import sys
+    from pathlib import Path
+    artifacts_path = Path(__file__).parent.parent / "artifacts"
+    sys.path.insert(0, str(artifacts_path))
+    from demo_hello_world_api import app
+
 from src.database.connection import get_db, Base
 
 

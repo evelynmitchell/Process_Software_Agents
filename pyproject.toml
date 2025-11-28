@@ -65,8 +65,8 @@ Repository = "https://github.com/example/hello-world-api.git"
 Issues = "https://github.com/example/hello-world-api/issues"
 Documentation = "https://github.com/example/hello-world-api#readme"
 
-[project.scripts]
-hello-api = "main:app"
+# Note: Demo FastAPI app moved to artifacts/demo_hello_world_api.py
+# No project scripts defined for the ASP platform itself
 
 [tool.black]
 line-length = 88
