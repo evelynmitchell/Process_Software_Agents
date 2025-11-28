@@ -4,17 +4,17 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Test semantic unit",
-      "api_interactions": 1,
-      "data_transformations": 1,
+      "description": "Implement feature",
+      "api_interactions": 2,
+      "data_transformations": 3,
       "logical_branches": 1,
-      "code_entities_modified": 1,
+      "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 14,
+      "est_complexity": 30,
       "dependencies": []
     }
   ],
-  "total_est_complexity": 14,
+  "total_est_complexity": 30,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"
