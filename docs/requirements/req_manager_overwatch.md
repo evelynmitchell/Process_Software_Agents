@@ -173,7 +173,7 @@ interface Anomaly {
       </div>
       <p class="label-small">Phase: BLOCKED</p>
       <p>Agents Active: 0</p>
-      <p class="label-small" style="color:var(--accent-alert)">🔴 Sec Review Fail</p>
+      <p class="label-small" style="color:var(--accent-alert)">🔴 Security Review Failed</p>
       <div style="background:#334155; height:4px; border-radius:2px; margin-top:10px;">
         <div style="background:var(--accent-alert); width:90%; height:100%; border-radius:2px;"></div>
       </div>
