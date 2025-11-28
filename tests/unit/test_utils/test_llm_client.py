@@ -66,12 +66,12 @@ class TestLLMClientInitialization:
 
     def test_default_model_constant(self):
         """Test that DEFAULT_MODEL is set correctly."""
-        assert LLMClient.DEFAULT_MODEL == "claude-sonnet-4-20250514"
+        assert LLMClient.DEFAULT_MODEL == "claude-haiku-4-5"
 
     def test_cost_constants(self):
         """Test that cost constants are set correctly."""
-        assert LLMClient.COST_PER_MILLION_INPUT_TOKENS == 3.0
-        assert LLMClient.COST_PER_MILLION_OUTPUT_TOKENS == 15.0
+        assert LLMClient.COST_PER_MILLION_INPUT_TOKENS == 0.25
+        assert LLMClient.COST_PER_MILLION_OUTPUT_TOKENS == 1.25
 
 
 class TestCallWithRetry:
@@ -119,7 +119,7 @@ class TestCallWithRetry:
             # Verify defaults were used
             mock_create.assert_called_once()
             call_kwargs = mock_create.call_args[1]
-            assert call_kwargs["model"] == "claude-sonnet-4-20250514"
+            assert call_kwargs["model"] == "claude-haiku-4-5"
             assert call_kwargs["max_tokens"] == 4096
             assert call_kwargs["temperature"] == 0.0
 
@@ -136,8 +136,8 @@ class TestCallWithRetry:
         with patch.object(client.client.messages, 'create', return_value=mock_response):
             result = client.call_with_retry(prompt="Test")
 
-        # Expected cost: (1000/1M * 3.0) + (500/1M * 15.0) = 0.003 + 0.0075 = 0.0105
-        expected_cost = 0.0105
+        # Expected cost: (1000/1M * 0.25) + (500/1M * 1.25) = 0.00025 + 0.000625 = 0.000875
+        expected_cost = 0.000875
         assert result["cost"] == pytest.approx(expected_cost, rel=1e-6)
 
     def test_with_system_prompt(self):
@@ -384,8 +384,8 @@ class TestEstimateCost:
         # 1,000 input tokens, 500 output tokens
         cost = client.estimate_cost(input_tokens=1000, output_tokens=500)
 
-        # Expected: (1000/1M * 3.0) + (500/1M * 15.0) = 0.003 + 0.0075 = 0.0105
-        expected = 0.0105
+        # Expected: (1000/1M * 0.25) + (500/1M * 1.25) = 0.00025 + 0.000625 = 0.000875
+        expected = 0.000875
         assert cost == pytest.approx(expected, rel=1e-6)
 
     def test_estimate_cost_large_values(self):
@@ -395,8 +395,8 @@ class TestEstimateCost:
         # 1 million input tokens, 500k output tokens
         cost = client.estimate_cost(input_tokens=1_000_000, output_tokens=500_000)
 
-        # Expected: (1M/1M * 3.0) + (500k/1M * 15.0) = 3.0 + 7.5 = 10.5
-        expected = 10.5
+        # Expected: (1M/1M * 0.25) + (500k/1M * 1.25) = 0.25 + 0.625 = 0.875
+        expected = 0.875
         assert cost == pytest.approx(expected, rel=1e-6)
 
     def test_estimate_cost_zero_tokens(self):
@@ -412,8 +412,8 @@ class TestEstimateCost:
 
         cost = client.estimate_cost(input_tokens=1000, output_tokens=0)
 
-        # Expected: (1000/1M * 3.0) = 0.003
-        expected = 0.003
+        # Expected: (1000/1M * 0.25) = 0.00025
+        expected = 0.00025
         assert cost == pytest.approx(expected, rel=1e-6)
 
     def test_estimate_cost_output_only(self):
@@ -422,8 +422,8 @@ class TestEstimateCost:
 
         cost = client.estimate_cost(input_tokens=0, output_tokens=500)
 
-        # Expected: (500/1M * 15.0) = 0.0075
-        expected = 0.0075
+        # Expected: (500/1M * 1.25) = 0.000625
+        expected = 0.000625
         assert cost == pytest.approx(expected, rel=1e-6)
 
 

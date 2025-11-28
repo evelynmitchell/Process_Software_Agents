@@ -7,7 +7,7 @@ name = "hello-world-api"
 version = "1.0.0"
 description = "A simple Hello World REST API built with FastAPI"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 authors = [
     {name = "ASP Code Agent", email = "agent@example.com"}
 ]
@@ -17,6 +17,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Framework :: FastAPI",
     "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
@@ -70,7 +71,7 @@ hello-api = "main:app"
 
 [tool.black]
 line-length = 88
-target-version = ['py312']
+target-version = ['py311']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -96,7 +97,7 @@ use_parentheses = true
 ensure_newline_before_comments = true
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

@@ -60,7 +60,7 @@ def is_git_repository(path: Optional[str] = None) -> bool:
         return False
 
 
-def git_status_check(path: Optional[str] = None) -> tuple[bool, str]:
+def git_status_check(path: Optional[str] = None) -> dict[str, any]:
     """
     Check git working directory status.
 
@@ -68,16 +68,18 @@ def git_status_check(path: Optional[str] = None) -> tuple[bool, str]:
         path: Optional path to check (defaults to current directory)
 
     Returns:
-        Tuple of (is_clean, status_output)
-        is_clean is True if working directory is clean
+        Dict with keys:
+        - is_clean (bool): True if working directory is clean
+        - untracked_files (list): List of untracked file paths
+        - modified_files (list): List of modified file paths
 
     Raises:
         GitError: If git command fails
 
     Example:
-        >>> is_clean, status = git_status_check()
-        >>> if not is_clean:
-        ...     print(f"Uncommitted changes: {status}")
+        >>> status = git_status_check()
+        >>> if not status["is_clean"]:
+        ...     print(f"Untracked: {status['untracked_files']}")
     """
     try:
         cmd = ["git", "status", "--porcelain"]
@@ -89,8 +91,24 @@ def git_status_check(path: Optional[str] = None) -> tuple[bool, str]:
             check=True,
         )
 
+        untracked_files = []
+        modified_files = []
+
+        # Parse porcelain output
+        for line in result.stdout.splitlines():
+            if line.startswith("??"):
+                # Untracked file
+                untracked_files.append(line[3:].strip())
+            elif line.startswith(" M") or line.startswith("M "):
+                # Modified file
+                modified_files.append(line[3:].strip())
+
         is_clean = len(result.stdout.strip()) == 0
-        return is_clean, result.stdout
+        return {
+            "is_clean": is_clean,
+            "untracked_files": untracked_files,
+            "modified_files": modified_files,
+        }
 
     except subprocess.CalledProcessError as e:
         raise GitError(f"Git status check failed: {e.stderr}") from e
@@ -180,7 +198,8 @@ def git_commit(
         return commit_hash
 
     except subprocess.CalledProcessError as e:
-        raise GitError(f"Git commit failed: {e.stderr}") from e
+        error_msg = e.stderr or e.stdout or "Unknown error"
+        raise GitError(f"Git commit failed: {error_msg}") from e
 
 
 def git_commit_artifact(
@@ -230,6 +249,15 @@ def git_commit_artifact(
             message = f"{agent_name}: {action} for {task_id} [{status}]"
         else:
             message = f"{agent_name}: {action} for {task_id}"
+
+        # Add file list to commit body
+        file_count = len(artifact_files)
+        if file_count == 1:
+            message += f"\n\nFiles: {artifact_files[0]}"
+        else:
+            message += f"\n\nFiles ({file_count}):"
+            for file_path in artifact_files:
+                message += f"\n- {file_path}"
 
         # Add co-author footer
         message += (
@@ -341,4 +369,6 @@ def get_git_root(path: Optional[str] = None) -> Path:
         return git_root
 
     except subprocess.CalledProcessError as e:
+        if "not a git repository" in e.stderr.lower():
+            raise GitError("Not a git repository") from e
         raise GitError(f"Failed to get git root: {e.stderr}") from e
