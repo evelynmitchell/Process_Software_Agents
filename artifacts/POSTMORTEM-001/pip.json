@@ -1,7 +1,7 @@
 {
-  "proposal_id": "PIP-20251126232231",
+  "proposal_id": "PIP-20251128163326",
   "task_id": "POSTMORTEM-001",
-  "created_at": "2025-11-26T23:22:31.804923",
+  "created_at": "2025-11-28T16:33:26.193452",
   "analysis": "Security vulnerabilities indicate Code Agent needs better security guidance",
   "proposed_changes": [
     {
