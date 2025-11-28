@@ -1247,6 +1247,8 @@ pytest tests/unit/test_context_window_handling.py -v
 
 ---
 
+<a id="resource-management--production-readiness-test-plan"></a>
+
 ## Resource Management & Production Readiness Test Plan
 
 ### 25. Cost Budget Enforcement (NEW - CRITICAL)
@@ -1494,6 +1496,8 @@ pytest tests/security/test_secrets_detection.py -v
 - ✅ < 5% false positive rate
 
 ---
+
+<a id="bootstrap-learning--self-improvement-test-plan"></a>
 
 ## Bootstrap Learning & Self-Improvement Test Plan
 
