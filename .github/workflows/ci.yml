@@ -32,8 +32,17 @@ jobs:
         uv pip install --system -e ".[dev]"
 
     - name: Run tests with pytest
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       run: |
-        pytest --cov=. --cov-report=term-missing --cov-report=xml --cov-fail-under=80
+        if [[ -n "$OPENAI_API_KEY" ]] || [[ -n "$ANTHROPIC_API_KEY" ]]; then
+          echo "API keys detected. Running all tests..."
+          pytest --cov=. --cov-report=term-missing --cov-report=xml --cov-fail-under=80
+        else
+          echo "No API keys detected. Skipping E2E tests..."
+          pytest -m "not e2e" --cov=. --cov-report=term-missing --cov-report=xml --cov-fail-under=80
+        fi
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4
