@@ -14,6 +14,7 @@ import pytest
 import sqlite3
 import tempfile
 import time
+import os
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import Mock, MagicMock, patch, call
@@ -25,6 +26,8 @@ from asp.telemetry.telemetry import (
     insert_defect,
     track_agent_cost,
     get_langfuse_client,
+    get_user_id,
+    DefectType
 )
 
 
@@ -50,6 +53,7 @@ def temp_db():
             task_id TEXT NOT NULL,
             subtask_id TEXT,
             project_id TEXT,
+            user_id TEXT,
             agent_role TEXT NOT NULL,
             agent_version TEXT,
             agent_iteration INTEGER DEFAULT 1,
@@ -70,6 +74,7 @@ def temp_db():
             created_at TEXT NOT NULL,
             task_id TEXT NOT NULL,
             project_id TEXT,
+            user_id TEXT,
             defect_type TEXT NOT NULL,
             severity TEXT NOT NULL,
             description TEXT NOT NULL,
@@ -220,6 +225,7 @@ class TestInsertAgentCost:
             metric_unit="tokens",
             subtask_id="SU-001",
             project_id="PROJ-001",
+            user_id="user-123",
             agent_version="1.0.0",
             agent_iteration=2,
             llm_model="claude-3-sonnet",
@@ -236,6 +242,7 @@ class TestInsertAgentCost:
             assert row['task_id'] == "TEST-002"
             assert row['subtask_id'] == "SU-001"
             assert row['project_id'] == "PROJ-001"
+            assert row['user_id'] == "user-123"
             assert row['agent_version'] == "1.0.0"
             assert row['agent_iteration'] == 2
             assert row['llm_model'] == "claude-3-sonnet"
@@ -310,6 +317,7 @@ class TestInsertDefect:
             phase_removed="CodeReview",
             description="SQL injection vulnerability detected",
             project_id="PROJ-001",
+            user_id="user-123",
             component_path="src/auth/login.py",
             function_name="validate_credentials",
             line_number=42,
@@ -326,6 +334,7 @@ class TestInsertDefect:
             cursor.execute("SELECT * FROM defect_log WHERE defect_id = ?", (defect_id,))
             row = cursor.fetchone()
             assert row['project_id'] == "PROJ-001"
+            assert row['user_id'] == "user-123"
             assert row['component_path'] == "src/auth/login.py"
             assert row['function_name'] == "validate_credentials"
             assert row['line_number'] == 42
@@ -469,6 +478,43 @@ class TestLangfuseIntegration:
             assert client1 == mock_client
             # Langfuse constructor should only be called once
             mock_langfuse.assert_called_once()
+
+
+# =============================================================================
+# User ID Resolution Tests
+# =============================================================================
+
+class TestUserIdResolution:
+    """Test get_user_id resolution logic."""
+
+    def test_get_user_id_env_var(self):
+        """Test resolution from environment variable."""
+        with patch.dict(os.environ, {"ASP_USER_ID": "env-user"}):
+            assert get_user_id() == "env-user"
+
+    def test_get_user_id_git_config(self):
+        """Test resolution from git config."""
+        with patch.dict(os.environ, {}, clear=True):  # Ensure no env var
+            with patch("subprocess.run") as mock_run:
+                mock_run.return_value.returncode = 0
+                mock_run.return_value.stdout = "git-user@example.com"
+
+                assert get_user_id() == "git-user@example.com"
+
+    def test_get_user_id_system(self):
+        """Test resolution from system login."""
+        with patch.dict(os.environ, {}, clear=True):
+            with patch("subprocess.run") as mock_run:
+                mock_run.side_effect = Exception("No git")
+                with patch("os.getlogin", return_value="system-user"):
+                    assert get_user_id() == "system-user"
+
+    def test_get_user_id_fallback(self):
+        """Test fallback to unknown-user."""
+        with patch.dict(os.environ, {}, clear=True):
+            with patch("subprocess.run", side_effect=Exception("No git")):
+                with patch("os.getlogin", side_effect=Exception("No system user")):
+                    assert get_user_id() == "unknown-user"
 
 
 # =============================================================================
