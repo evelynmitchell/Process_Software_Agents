@@ -20,6 +20,7 @@ import sqlite3
 import time
 from contextlib import contextmanager
 from datetime import datetime
+from enum import StrEnum
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
@@ -33,6 +34,22 @@ from langfuse import Langfuse
 # Database path (relative to project root)
 DEFAULT_DB_PATH = Path(__file__).parent.parent.parent.parent / "data" / "asp_telemetry.db"
 
+
+class DefectType(StrEnum):
+    """
+    Standard Defect Taxonomy (PSP/TSP PROBE).
+    """
+    DOCUMENTATION = "10_Documentation"
+    SYNTAX = "20_Syntax"
+    BUILD_PACKAGE = "30_Build_Package"
+    ASSIGNMENT = "40_Assignment"
+    INTERFACE = "50_Interface"
+    CHECKING = "60_Checking"
+    DATA = "70_Data"
+    FUNCTION = "80_Function"
+    SYSTEM = "90_System"
+    ENVIRONMENT = "100_Environment"
+
 # Langfuse client (initialized lazily)
 _langfuse_client: Optional[Langfuse] = None
 
@@ -43,6 +60,46 @@ def get_langfuse_client() -> Langfuse:
     if _langfuse_client is None:
         _langfuse_client = Langfuse()
     return _langfuse_client
+
+
+def get_user_id() -> str:
+    """
+    Resolve the current user ID for telemetry.
+
+    Resolution order:
+    1. ASP_USER_ID environment variable
+    2. Git user.email configuration
+    3. System user (os.getlogin())
+    4. "unknown-user" fallback
+    """
+    # 1. Environment variable
+    env_user = os.getenv("ASP_USER_ID")
+    if env_user:
+        return env_user
+
+    # 2. Git config
+    try:
+        import subprocess
+
+        result = subprocess.run(
+            ["git", "config", "user.email"],
+            capture_output=True,
+            text=True,
+            timeout=1,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except Exception:
+        pass
+
+    # 3. System user
+    try:
+        return os.getlogin()
+    except Exception:
+        pass
+
+    # 4. Fallback
+    return "unknown-user"
 
 
 # ============================================================================
@@ -81,6 +138,7 @@ def insert_agent_cost(
     metric_unit: str,
     subtask_id: Optional[str] = None,
     project_id: Optional[str] = None,
+    user_id: Optional[str] = None,
     agent_version: Optional[str] = None,
     agent_iteration: int = 1,
     llm_model: Optional[str] = None,
@@ -99,6 +157,7 @@ def insert_agent_cost(
         metric_unit: Unit of measurement (ms, tokens, USD, MB, count)
         subtask_id: Optional subtask identifier for decomposed tasks
         project_id: Optional project identifier
+        user_id: Optional user identifier (person or agent instance)
         agent_version: Optional agent version string
         agent_iteration: Iteration number for retry loops
         llm_model: LLM model name (e.g., "claude-sonnet-4")
@@ -111,22 +170,27 @@ def insert_agent_cost(
     """
     import json
 
+    # Auto-resolve user_id if not provided
+    if user_id is None:
+        user_id = get_user_id()
+
     with get_db_connection(db_path) as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
             INSERT INTO agent_cost_vector (
-                timestamp, task_id, subtask_id, project_id,
+                timestamp, task_id, subtask_id, project_id, user_id,
                 agent_role, agent_version, agent_iteration,
                 metric_type, metric_value, metric_unit,
                 llm_model, llm_provider, metadata
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 datetime.utcnow().isoformat(),
                 task_id,
                 subtask_id,
                 project_id,
+                user_id,
                 agent_role,
                 agent_version,
                 agent_iteration,
@@ -149,6 +213,7 @@ def insert_defect(
     phase_removed: str,
     description: str,
     project_id: Optional[str] = None,
+    user_id: Optional[str] = None,
     component_path: Optional[str] = None,
     function_name: Optional[str] = None,
     line_number: Optional[int] = None,
@@ -186,24 +251,29 @@ def insert_defect(
 
     defect_id = f"DEFECT-{uuid.uuid4().hex[:12].upper()}"
 
+    # Auto-resolve user_id if not provided
+    if user_id is None:
+        user_id = get_user_id()
+
     with get_db_connection(db_path) as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
             INSERT INTO defect_log (
-                defect_id, created_at, task_id, project_id,
+                defect_id, created_at, task_id, project_id, user_id,
                 defect_type, severity, description,
                 phase_injected, phase_removed,
                 component_path, function_name, line_number,
                 root_cause, resolution_notes,
                 flagged_by_agent, metadata
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 defect_id,
                 datetime.utcnow().isoformat(),
                 task_id,
                 project_id,
+                user_id,
                 defect_type,
                 severity,
                 description,
@@ -304,13 +374,22 @@ def track_agent_cost(
             if task_id is None:
                 raise ValueError(f"task_id not found in function arguments (looking for '{task_id_param}')")
 
+            # Resolve User and Model
+            user_id = get_user_id()
+
             # Start Langfuse span
             langfuse = get_langfuse_client()
             span = langfuse.start_span(
                 name=f"{agent_role}.{func.__name__}",
+                tags=[
+                    f"user:{user_id}",
+                    f"model:{llm_model}" if llm_model else "model:unknown",
+                    f"pair:{user_id}|{llm_model}" if llm_model else f"pair:{user_id}|unknown"
+                ],
                 metadata={
                     "agent_role": agent_role,
                     "task_id": task_id,
+                    "user_id": user_id,
                     "function": func.__name__,
                     "llm_model": llm_model,
                     "llm_provider": llm_provider,
@@ -358,6 +437,7 @@ def track_agent_cost(
                         metric_unit="ms",
                         llm_model=llm_model,
                         llm_provider=llm_provider,
+                        user_id=user_id,
                         agent_version=agent_version,
                         metadata=metadata,
                     )
@@ -372,6 +452,7 @@ def track_agent_cost(
                             metric_unit="tokens",
                             llm_model=llm_usage.get("model", llm_model),
                             llm_provider=llm_provider,
+                            user_id=user_id,
                             agent_version=agent_version,
                             metadata=metadata,
                         )
@@ -385,6 +466,7 @@ def track_agent_cost(
                             metric_unit="tokens",
                             llm_model=llm_usage.get("model", llm_model),
                             llm_provider=llm_provider,
+                            user_id=user_id,
                             agent_version=agent_version,
                             metadata=metadata,
                         )
@@ -398,6 +480,7 @@ def track_agent_cost(
                             metric_unit="USD",
                             llm_model=llm_usage.get("model", llm_model),
                             llm_provider=llm_provider,
+                            user_id=user_id,
                             agent_version=agent_version,
                             metadata=metadata,
                         )
@@ -472,6 +555,9 @@ def log_defect(
             if task_id is None:
                 raise ValueError(f"task_id not found in function arguments (looking for '{task_id_param}')")
 
+            # Resolve User
+            user_id = get_user_id()
+
             # Track fix time
             start_time = time.time()
             error = None
@@ -498,6 +584,7 @@ def log_defect(
                         phase_injected=phase_injected,
                         phase_removed=phase_removed,
                         description=f"Detected and fixed by {func.__name__}",
+                        user_id=user_id,
                         flagged_by_agent=True,
                         metadata={
                             "function": func.__name__,
@@ -515,6 +602,7 @@ def log_defect(
                         name=f"defect.{defect_type}",
                         metadata={
                             "task_id": task_id,
+                            "user_id": user_id,
                             "defect_type": defect_type,
                             "severity": severity,
                             "phase_injected": phase_injected,

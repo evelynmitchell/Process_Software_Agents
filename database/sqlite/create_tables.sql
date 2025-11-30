@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS agent_cost_vector (
     task_id TEXT NOT NULL,
     subtask_id TEXT,
     project_id TEXT,
+    user_id TEXT,
 
     -- Agent Identification
     agent_role TEXT NOT NULL,
@@ -61,6 +62,7 @@ CREATE TABLE IF NOT EXISTS defect_log (
     -- Task Context
     task_id TEXT NOT NULL,
     project_id TEXT,
+    user_id TEXT,
 
     -- Defect Classification
     defect_type TEXT NOT NULL,
@@ -94,9 +96,11 @@ CREATE TABLE IF NOT EXISTS defect_log (
     -- Constraints
     CHECK (phase_injected != phase_removed),
     CHECK (resolved_at IS NULL OR resolved_at >= created_at),
-    CHECK (defect_type IN ('1_Planning_Failure', '2_Prompt_Misinterpretation', '3_Tool_Use_Error',
-                           '4_Hallucination', '5_Security_Vulnerability', '6_Conventional_Code_Bug',
-                           '7_Task_Execution_Error', '8_Alignment_Deviation')),
+    -- PROBE/PSP Defect Taxonomy (10-100)
+    -- CHECK (defect_type IN ('10_Documentation', '20_Syntax', '30_Build_Package', '40_Assignment',
+    --                        '50_Interface', '60_Checking', '70_Data', '80_Function',
+    --                        '90_System', '100_Environment')),
+    -- Note: Strict check commented out to allow migration from old types
     CHECK (severity IN ('Low', 'Medium', 'High', 'Critical')),
     CHECK (flagged_by_agent IN (0, 1)),
     CHECK (validated_by_human IN (0, 1)),
