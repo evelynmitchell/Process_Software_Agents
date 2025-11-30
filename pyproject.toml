@@ -39,7 +39,8 @@ dependencies = [
     "rich==13.9.4",
     "langfuse",
     "anthropic",
-    "tenacity"
+    "tenacity",
+    "python-fasthtml"
 ]
 
 [project.optional-dependencies]
