@@ -90,6 +90,7 @@ extend-exclude = '''
   | \.venv
   | build
   | dist
+  | contrib
 )/
 '''
 
@@ -101,6 +102,7 @@ include_trailing_comma = true
 force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
+skip = ["contrib"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -153,6 +155,7 @@ exclude = [
     "build",
     "dist",
     "__pycache__",
+    "contrib",
 ]
 
 [tool.ruff.lint]
