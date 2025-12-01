@@ -10,17 +10,17 @@ Tests the Pydantic models for Planning Agent including:
 - Edge cases and error handling
 """
 
-import pytest
 import json
+
+import pytest
 from pydantic import ValidationError
 
 from asp.models.planning import (
-    TaskRequirements,
-    SemanticUnit,
     PROBEAIPrediction,
     ProjectPlan,
+    SemanticUnit,
+    TaskRequirements,
 )
-
 
 # =============================================================================
 # TaskRequirements Tests

@@ -8,7 +8,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-
 # Paths relative to project root
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 DATA_DIR = PROJECT_ROOT / "data"

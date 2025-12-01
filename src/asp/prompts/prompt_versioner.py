@@ -29,7 +29,6 @@ from typing import Dict, List, Optional, Tuple
 from asp.models.postmortem import ProcessImprovementProposal, ProposedChange
 from asp.utils.git_utils import git_commit_artifact, is_git_repository
 
-
 logger = logging.getLogger(__name__)
 
 

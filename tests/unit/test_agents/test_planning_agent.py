@@ -9,16 +9,17 @@ Tests the PlanningAgent implementation including:
 - Error handling
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
-from asp.agents.planning_agent import PlanningAgent
+import pytest
+
 from asp.agents.base_agent import AgentExecutionError
+from asp.agents.planning_agent import PlanningAgent
 from asp.models.planning import (
-    TaskRequirements,
     ProjectPlan,
     SemanticUnit,
+    TaskRequirements,
 )
 from asp.utils.semantic_complexity import ComplexityFactors
 

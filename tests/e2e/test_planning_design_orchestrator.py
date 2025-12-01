@@ -3,9 +3,11 @@ End-to-end test for the PlanningDesignOrchestrator.
 """
 
 import os
+
 import pytest
-from asp.orchestrators import PlanningDesignOrchestrator
+
 from asp.models.planning import TaskRequirements
+from asp.orchestrators import PlanningDesignOrchestrator
 
 
 @pytest.mark.e2e

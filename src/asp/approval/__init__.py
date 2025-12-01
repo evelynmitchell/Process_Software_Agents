@@ -6,9 +6,9 @@ overrides in the TSP Orchestrator.
 """
 
 from asp.approval.base import (
-    ApprovalService,
     ApprovalRequest,
     ApprovalResponse,
+    ApprovalService,
     ReviewDecision,
 )
 from asp.approval.local_pr import LocalPRApprovalService

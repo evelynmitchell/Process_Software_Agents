@@ -1,14 +1,15 @@
 """Tests for LocalPRApprovalService."""
 
-import pytest
+import shutil
 import subprocess
 import tempfile
-import shutil
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import pytest
+
+from asp.approval.base import ApprovalRequest, ApprovalResponse, ReviewDecision
 from asp.approval.local_pr import LocalPRApprovalService
-from asp.approval.base import ApprovalRequest, ReviewDecision, ApprovalResponse
 
 
 @pytest.fixture

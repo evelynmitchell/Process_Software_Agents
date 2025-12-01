@@ -20,21 +20,21 @@ Run with:
 """
 
 import os
-import pytest
-from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any
+from pathlib import Path
+from typing import Any, Dict
 
-from asp.orchestrators import TSPOrchestrator, TSPExecutionResult
-from asp.orchestrators.tsp_orchestrator import QualityGateFailure
-from asp.models.planning import TaskRequirements
+import pytest
+
 from asp.approval.base import (
-    ApprovalService,
     ApprovalRequest,
     ApprovalResponse,
+    ApprovalService,
     ReviewDecision,
 )
-
+from asp.models.planning import TaskRequirements
+from asp.orchestrators import TSPExecutionResult, TSPOrchestrator
+from asp.orchestrators.tsp_orchestrator import QualityGateFailure
 
 # Skip all tests if no API key is available
 

@@ -10,26 +10,26 @@ Tests the telemetry infrastructure including:
 - Error handling and resilience
 """
 
-import pytest
+import os
 import sqlite3
 import tempfile
 import time
-import os
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch, call
-from contextlib import contextmanager
+from unittest.mock import MagicMock, Mock, call, patch
+
+import pytest
 
 from asp.telemetry.telemetry import (
+    DefectType,
     get_db_connection,
+    get_langfuse_client,
+    get_user_id,
     insert_agent_cost,
     insert_defect,
     track_agent_cost,
-    get_langfuse_client,
-    get_user_id,
-    DefectType,
 )
-
 
 # =============================================================================
 # Fixtures

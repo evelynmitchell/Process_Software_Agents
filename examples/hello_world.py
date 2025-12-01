@@ -11,9 +11,10 @@ Cost: ~$0.08 - $0.15
 Time: ~45 seconds
 """
 
-from asp.orchestrators import TSPOrchestrator
-from asp.models.planning import TaskRequirements
 from pathlib import Path
+
+from asp.models.planning import TaskRequirements
+from asp.orchestrators import TSPOrchestrator
 
 
 def main():

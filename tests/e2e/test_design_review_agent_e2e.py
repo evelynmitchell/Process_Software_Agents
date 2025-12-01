@@ -25,7 +25,6 @@ from asp.models.design import (
 )
 from asp.models.design_review import DesignReviewReport
 
-
 # Skip all tests if no API key is available
 
 

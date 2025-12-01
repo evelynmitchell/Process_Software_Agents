@@ -4,8 +4,9 @@ Tests for test artifacts repository initialization and cleanup scripts.
 
 import os
 import subprocess
-import pytest
 from pathlib import Path
+
+import pytest
 
 
 @pytest.fixture

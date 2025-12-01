@@ -1,10 +1,11 @@
 """Tests for BranchManager."""
 
-import pytest
+import shutil
 import subprocess
 import tempfile
-import shutil
 from pathlib import Path
+
+import pytest
 
 from asp.approval.branch_manager import BranchManager
 

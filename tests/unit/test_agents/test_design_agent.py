@@ -24,8 +24,7 @@ from pydantic import ValidationError
 from asp.agents.base_agent import AgentExecutionError
 from asp.agents.design_agent import DesignAgent
 from asp.models.design import DesignInput, DesignSpecification
-from asp.models.planning import ProjectPlan, PROBEAIPrediction, SemanticUnit
-
+from asp.models.planning import PROBEAIPrediction, ProjectPlan, SemanticUnit
 
 # =============================================================================
 # Test Fixtures

@@ -26,7 +26,6 @@ from typing import Any, Callable, Dict, Optional
 
 from langfuse import Langfuse
 
-
 # ============================================================================
 # Configuration
 # ============================================================================

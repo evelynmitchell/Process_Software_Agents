@@ -4,8 +4,8 @@ Base classes and interfaces for HITL approval services.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
 from enum import Enum
+from typing import Any, Dict, Optional
 
 
 class ReviewDecision(Enum):

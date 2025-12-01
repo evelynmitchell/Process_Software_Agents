@@ -14,7 +14,7 @@ Date: November 17, 2025
 import json
 import logging
 from pathlib import Path
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from asp.models.code import GeneratedFile

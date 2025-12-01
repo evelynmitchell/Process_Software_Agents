@@ -35,8 +35,8 @@ from asp.agents.design_agent import DesignAgent
 from asp.agents.planning_agent import PlanningAgent
 from asp.models.design import DesignInput
 from asp.models.planning import (
-    ProjectPlan,
     PROBEAIPrediction,
+    ProjectPlan,
     SemanticUnit,
     TaskRequirements,
 )

@@ -29,7 +29,6 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from asp.models.code import GeneratedCode
 from asp.models.design import DesignSpecification
 
-
 # =============================================================================
 # Input Models
 # =============================================================================

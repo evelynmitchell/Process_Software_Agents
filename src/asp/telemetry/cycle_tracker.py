@@ -29,7 +29,6 @@ from pydantic import BaseModel, Field
 from asp.models.postmortem import ProcessImprovementProposal
 from asp.utils.artifact_io import read_artifact_json, write_artifact_json
 
-
 logger = logging.getLogger(__name__)
 
 

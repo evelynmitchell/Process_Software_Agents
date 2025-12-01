@@ -7,12 +7,13 @@ Author: ASP Development Team
 Date: November 25, 2025
 """
 
-import pytest
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import pytest
+
 from asp.models.postmortem import ProcessImprovementProposal, ProposedChange
-from asp.telemetry.cycle_tracker import CycleTracker, ImprovementCycle, CycleEvent
+from asp.telemetry.cycle_tracker import CycleEvent, CycleTracker, ImprovementCycle
 
 
 @pytest.fixture

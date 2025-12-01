@@ -35,7 +35,6 @@ from asp.models.postmortem import (
 from asp.prompts.prompt_versioner import PromptVersioner
 from asp.telemetry.cycle_tracker import CycleTracker
 
-
 logger = logging.getLogger(__name__)
 
 

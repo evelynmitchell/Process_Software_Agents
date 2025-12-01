@@ -8,12 +8,13 @@ Tests the BaseAgent abstract class functionality including:
 - Error handling
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 from pydantic import BaseModel, ValidationError
 
-from asp.agents.base_agent import BaseAgent, AgentExecutionError
+from asp.agents.base_agent import AgentExecutionError, BaseAgent
 
 
 # Test data models

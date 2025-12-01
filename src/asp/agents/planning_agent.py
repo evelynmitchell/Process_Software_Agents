@@ -16,17 +16,16 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from asp.agents.base_agent import BaseAgent, AgentExecutionError
-from asp.models.planning import TaskRequirements, ProjectPlan, SemanticUnit
-from asp.utils.semantic_complexity import (
-    calculate_semantic_complexity,
-    ComplexityFactors,
-)
+from asp.agents.base_agent import AgentExecutionError, BaseAgent
+from asp.models.planning import ProjectPlan, SemanticUnit, TaskRequirements
 from asp.telemetry import track_agent_cost
 from asp.utils.artifact_io import write_artifact_json, write_artifact_markdown
 from asp.utils.git_utils import git_commit_artifact, is_git_repository
 from asp.utils.markdown_renderer import render_plan_markdown
-
+from asp.utils.semantic_complexity import (
+    ComplexityFactors,
+    calculate_semantic_complexity,
+)
 
 logger = logging.getLogger(__name__)
 

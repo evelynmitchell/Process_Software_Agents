@@ -35,7 +35,6 @@ from asp.models.design import (
 )
 from asp.models.planning import ProjectPlan, SemanticUnit
 
-
 # =============================================================================
 # Helper Functions
 # =============================================================================

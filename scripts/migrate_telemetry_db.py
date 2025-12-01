@@ -9,10 +9,10 @@ Usage:
     python scripts/migrate_telemetry_db.py
 """
 
-import sqlite3
 import shutil
-from pathlib import Path
+import sqlite3
 from datetime import datetime
+from pathlib import Path
 
 # Path to database
 DB_PATH = Path(__file__).parent.parent / "data" / "asp_telemetry.db"

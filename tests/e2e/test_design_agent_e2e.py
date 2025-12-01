@@ -10,17 +10,18 @@ Tests are marked with @pytest.mark.e2e and can be run with:
 """
 
 import os
-import pytest
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
+import pytest
 
 from asp.agents.design_agent import DesignAgent
 from asp.agents.planning_agent import PlanningAgent
 from asp.models.design import DesignInput, DesignSpecification
 from asp.models.planning import (
+    PROBEAIPrediction,
     ProjectPlan,
     SemanticUnit,
-    PROBEAIPrediction,
     TaskRequirements,
 )
 

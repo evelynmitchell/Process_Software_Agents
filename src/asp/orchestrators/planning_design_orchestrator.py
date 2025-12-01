@@ -24,7 +24,6 @@ from asp.models.design_review import DesignReviewReport
 from asp.models.planning import ProjectPlan, TaskRequirements
 from asp.orchestrators.types import PlanningDesignResult
 
-
 logger = logging.getLogger(__name__)
 
 

@@ -12,9 +12,9 @@ import pytest
 from pydantic import ValidationError
 
 from asp.models.design_review import (
+    ChecklistItemReview,
     DesignIssue,
     DesignReviewReport,
-    ChecklistItemReview,
 )
 
 

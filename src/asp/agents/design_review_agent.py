@@ -354,8 +354,8 @@ class DesignReviewAgent(BaseAgent):
 
         # Parse JSON response
         try:
-            import re
             import json as json_module
+            import re
 
             content = response.get("content", {})
             if isinstance(content, str):

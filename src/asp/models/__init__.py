@@ -1,8 +1,8 @@
 """Pydantic models for ASP agents."""
 
 from asp.models.code import CodeInput, GeneratedCode, GeneratedFile
+from asp.models.code_review import ChecklistItemReview as CodeChecklistItemReview
 from asp.models.code_review import (
-    ChecklistItemReview as CodeChecklistItemReview,
     CodeImprovementSuggestion,
     CodeIssue,
     CodeReviewReport,
@@ -22,8 +22,8 @@ from asp.models.design_review import (
     ImprovementSuggestion,
 )
 from asp.models.planning import (
-    ProjectPlan,
     PROBEAIPrediction,
+    ProjectPlan,
     SemanticUnit,
     TaskRequirements,
 )

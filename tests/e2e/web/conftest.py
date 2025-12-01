@@ -46,6 +46,7 @@ class ServerThread(threading.Thread):
     def run(self):
         """Run the server in this thread."""
         import uvicorn
+
         from src.asp.web import app
         from src.asp.web.data import init_database, insert_demo_data
 

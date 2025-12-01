@@ -6,7 +6,8 @@ Displays real task data, recent activity, and quick actions.
 """
 
 from fasthtml.common import *
-from .data import get_tasks, get_recent_activity, get_agent_stats, get_task_details
+
+from .data import get_agent_stats, get_recent_activity, get_task_details, get_tasks
 
 
 def developer_routes(app, rt):

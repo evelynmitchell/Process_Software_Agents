@@ -14,10 +14,10 @@ See: design/ADR_001_workspace_isolation_and_execution_tracking.md
 
 import shutil
 import subprocess
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
-from dataclasses import dataclass
 
 
 @dataclass

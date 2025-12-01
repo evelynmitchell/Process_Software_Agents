@@ -19,13 +19,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-from asp.agents.base_agent import BaseAgent, AgentExecutionError
+from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.models.code import (
     CodeInput,
-    GeneratedCode,
-    GeneratedFile,
     FileManifest,
     FileMetadata,
+    GeneratedCode,
+    GeneratedFile,
 )
 from asp.telemetry import track_agent_cost
 from asp.utils.artifact_io import (
@@ -35,7 +35,6 @@ from asp.utils.artifact_io import (
 )
 from asp.utils.git_utils import git_commit_artifact, is_git_repository
 from asp.utils.markdown_renderer import render_code_manifest_markdown
-
 
 logger = logging.getLogger(__name__)
 
@@ -289,8 +288,8 @@ class CodeAgent(BaseAgent):
 
         # If content is a string, try to extract JSON from markdown fences
         if isinstance(content, str):
-            import re
             import json
+            import re
 
             # Try to extract JSON from markdown code blocks
             # More robust pattern that handles various whitespace formatting:
@@ -524,8 +523,8 @@ class CodeAgent(BaseAgent):
 
         # If content is a string, try to extract JSON from markdown fences
         if isinstance(content, str):
-            import re
             import json
+            import re
 
             # Try to extract JSON from markdown code blocks
             json_match = re.search(r"```json\s*(.*?)\s*```", content, re.DOTALL)

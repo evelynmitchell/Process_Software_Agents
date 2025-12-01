@@ -31,7 +31,6 @@ from rich.table import Table
 from asp.models.postmortem import ProcessImprovementProposal
 from asp.utils.artifact_io import read_artifact_json, write_artifact_json
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -261,8 +260,8 @@ class PIPReviewCollector:
         Returns:
             Reviewer email or username
         """
-        import subprocess
         import getpass
+        import subprocess
 
         # Try to get from git config
         try:

@@ -6,7 +6,8 @@ Displays high-level metrics, agent health, quality gates, and team overview.
 """
 
 from fasthtml.common import *
-from .data import get_tasks, get_agent_stats, get_design_review_stats
+
+from .data import get_agent_stats, get_design_review_stats, get_tasks
 
 
 def manager_routes(app, rt):

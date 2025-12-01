@@ -8,23 +8,24 @@ These are integration tests that validate the approval workflow without requirin
 full E2E pipeline execution or API calls.
 """
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
+from unittest.mock import MagicMock, Mock, patch
 
-from asp.orchestrators.tsp_orchestrator import TSPOrchestrator
+import pytest
+
 from asp.approval.base import (
-    ApprovalService,
     ApprovalRequest,
     ApprovalResponse,
+    ApprovalService,
     ReviewDecision,
 )
+from asp.models.code_review import CodeIssue, CodeReviewReport
 from asp.models.design_review import (
-    DesignReviewReport,
-    DesignIssue,
     ChecklistItemReview,
+    DesignIssue,
+    DesignReviewReport,
 )
-from asp.models.code_review import CodeReviewReport, CodeIssue
+from asp.orchestrators.tsp_orchestrator import TSPOrchestrator
 
 
 class TestTSPHITLIntegration:

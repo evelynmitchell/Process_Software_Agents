@@ -9,18 +9,18 @@ Tests cover:
 - JSON serialization/deserialization
 """
 
-import pytest
 from datetime import datetime
+
+import pytest
 from pydantic import ValidationError
 
-from asp.models.test import TestInput, TestDefect, TestReport
 from asp.models.code import GeneratedCode, GeneratedFile
 from asp.models.design import (
     ComponentLogic,
     DesignReviewChecklistItem,
     DesignSpecification,
 )
-
+from asp.models.test import TestDefect, TestInput, TestReport
 
 # =============================================================================
 # Helper Functions

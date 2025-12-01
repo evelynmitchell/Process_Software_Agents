@@ -4,13 +4,14 @@ Unit tests for PlanningDesignOrchestrator.
 Tests the phase-aware feedback loop implementation.
 """
 
-import pytest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import MagicMock, Mock
 
+import pytest
+
+from asp.models.design import APIContract, ComponentLogic, DesignSpecification
+from asp.models.design_review import DesignIssue, DesignReviewReport
+from asp.models.planning import ProjectPlan, SemanticUnit, TaskRequirements
 from asp.orchestrators import PlanningDesignOrchestrator, PlanningDesignResult
-from asp.models.planning import TaskRequirements, ProjectPlan, SemanticUnit
-from asp.models.design import DesignSpecification, APIContract, ComponentLogic
-from asp.models.design_review import DesignReviewReport, DesignIssue
 
 
 class TestPlanningDesignOrchestrator:

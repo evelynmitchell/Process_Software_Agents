@@ -11,6 +11,7 @@ Date: November 13, 2025
 """
 
 from typing import Optional
+
 from pydantic import BaseModel, Field
 
 

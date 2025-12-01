@@ -11,13 +11,14 @@ Tests cover:
 See: design/ADR_001_workspace_isolation_and_execution_tracking.md
 """
 
-import pytest
 import subprocess
 import tempfile
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
-from src.services.workspace_manager import WorkspaceManager, Workspace
+import pytest
+
+from src.services.workspace_manager import Workspace, WorkspaceManager
 
 
 @pytest.fixture

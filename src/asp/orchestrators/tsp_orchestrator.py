@@ -25,12 +25,13 @@ from typing import Any, Optional
 
 from asp.agents.base_agent import AgentExecutionError
 from asp.agents.code_agent import CodeAgent
+from asp.agents.code_review_orchestrator import CodeReviewOrchestrator
 from asp.agents.design_agent import DesignAgent
+from asp.agents.design_review_orchestrator import DesignReviewOrchestrator
 from asp.agents.planning_agent import PlanningAgent
 from asp.agents.postmortem_agent import PostmortemAgent
 from asp.agents.test_agent import TestAgent
-from asp.agents.code_review_orchestrator import CodeReviewOrchestrator
-from asp.agents.design_review_orchestrator import DesignReviewOrchestrator
+from asp.approval.base import ApprovalRequest, ApprovalService, ReviewDecision
 from asp.models.code import CodeInput, GeneratedCode
 from asp.models.code_review import CodeReviewReport
 from asp.models.design import DesignInput, DesignSpecification
@@ -44,8 +45,6 @@ from asp.models.postmortem import (
 )
 from asp.models.test import TestInput, TestReport
 from asp.orchestrators.types import TSPExecutionResult
-from asp.approval.base import ApprovalService, ApprovalRequest, ReviewDecision
-
 
 logger = logging.getLogger(__name__)
 

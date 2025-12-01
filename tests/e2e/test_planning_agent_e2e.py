@@ -13,11 +13,12 @@ but not the actual LLM reasoning quality.
 """
 
 import os
-import pytest
 from pathlib import Path
 
+import pytest
+
 from asp.agents.planning_agent import PlanningAgent
-from asp.models.planning import TaskRequirements, ProjectPlan
+from asp.models.planning import ProjectPlan, TaskRequirements
 
 
 @pytest.mark.e2e

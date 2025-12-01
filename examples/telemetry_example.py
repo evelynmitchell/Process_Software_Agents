@@ -9,8 +9,8 @@ Usage:
 """
 
 import time
-from asp.telemetry import track_agent_cost, log_defect, log_agent_metric
 
+from asp.telemetry import log_agent_metric, log_defect, track_agent_cost
 
 # ============================================================================
 # Example 1: Using @track_agent_cost decorator

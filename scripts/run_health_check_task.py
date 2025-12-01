@@ -21,14 +21,14 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from asp.agents.planning_agent import PlanningAgent
+from asp.agents.code_agent import CodeAgent
 from asp.agents.design_agent import DesignAgent
 from asp.agents.design_review_agent import DesignReviewAgent
-from asp.agents.code_agent import CodeAgent
-from asp.models.planning import TaskRequirements, ProjectPlan
+from asp.agents.planning_agent import PlanningAgent
+from asp.models.code import CodeInput, GeneratedCode
 from asp.models.design import DesignInput, DesignSpecification
 from asp.models.design_review import DesignReviewReport
-from asp.models.code import CodeInput, GeneratedCode
+from asp.models.planning import ProjectPlan, TaskRequirements
 
 
 def print_section(title: str):

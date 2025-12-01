@@ -6,7 +6,8 @@ Displays project progress, task pipeline, and delivery metrics.
 """
 
 from fasthtml.common import *
-from .data import get_tasks, get_agent_stats
+
+from .data import get_agent_stats, get_tasks
 
 
 def product_routes(app, rt):

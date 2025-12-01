@@ -2,8 +2,8 @@
 
 from asp.utils.llm_client import LLMClient
 from asp.utils.semantic_complexity import (
-    calculate_semantic_complexity,
     ComplexityFactors,
+    calculate_semantic_complexity,
 )
 
 __all__ = [

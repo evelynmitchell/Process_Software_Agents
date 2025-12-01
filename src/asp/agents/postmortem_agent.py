@@ -39,7 +39,6 @@ from asp.utils.artifact_io import write_artifact_json, write_artifact_markdown
 from asp.utils.git_utils import git_commit_artifact, is_git_repository
 from asp.utils.markdown_renderer import render_postmortem_report_markdown
 
-
 logger = logging.getLogger(__name__)
 
 

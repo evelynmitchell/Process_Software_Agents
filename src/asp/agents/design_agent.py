@@ -19,14 +19,13 @@ import os
 from pathlib import Path
 from typing import Any, Optional
 
-from asp.agents.base_agent import BaseAgent, AgentExecutionError
+from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.models.design import DesignInput, DesignSpecification
 from asp.parsers.design_markdown_parser import DesignMarkdownParser
 from asp.telemetry import track_agent_cost
 from asp.utils.artifact_io import write_artifact_json, write_artifact_markdown
 from asp.utils.git_utils import git_commit_artifact, is_git_repository
 from asp.utils.markdown_renderer import render_design_markdown
-
 
 logger = logging.getLogger(__name__)
 

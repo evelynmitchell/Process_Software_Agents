@@ -29,7 +29,6 @@ from pydantic import BaseModel, Field, field_validator
 
 from asp.models.planning import ProjectPlan  # Import Planning Agent output
 
-
 # =============================================================================
 # Input Models
 # =============================================================================

@@ -10,16 +10,16 @@ Semantic Unit: SU-010
 Author: ASP Code Agent
 """
 
-import os
-from typing import Generator, Optional
-from contextlib import contextmanager
 import logging
+import os
+from contextlib import contextmanager
+from typing import Generator, Optional
 
-from sqlalchemy import create_engine, Engine, event
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 # Configure logging
 logger = logging.getLogger(__name__)

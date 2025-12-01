@@ -12,11 +12,12 @@ Cost: ~$0.15 - $0.30
 Time: ~1 minute + human approval time
 """
 
-from asp.orchestrators import TSPOrchestrator
+import os
+from pathlib import Path
+
 from asp.approval import LocalPRApprovalService
 from asp.models.planning import TaskRequirements
-from pathlib import Path
-import os
+from asp.orchestrators import TSPOrchestrator
 
 
 def main():

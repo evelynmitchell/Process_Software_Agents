@@ -2,10 +2,10 @@
 Branch management for local PR-style HITL workflow.
 """
 
+import json
 import subprocess
 from pathlib import Path
-from typing import Dict, Any, Optional, List
-import json
+from typing import Any, Dict, List, Optional
 
 
 class BranchManager:

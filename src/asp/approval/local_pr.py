@@ -2,18 +2,18 @@
 Local PR-style approval service for HITL quality gate overrides.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
 
+from asp.approval.approval_collector import ApprovalCollector
 from asp.approval.base import (
-    ApprovalService,
     ApprovalRequest,
     ApprovalResponse,
+    ApprovalService,
     ReviewDecision,
 )
 from asp.approval.branch_manager import BranchManager
-from asp.approval.review_presenter import ReviewPresenter
-from asp.approval.approval_collector import ApprovalCollector
 from asp.approval.merge_controller import MergeController
+from asp.approval.review_presenter import ReviewPresenter
 
 
 class LocalPRApprovalService(ApprovalService):

@@ -1,14 +1,15 @@
 """Tests for MergeController."""
 
-import pytest
+import shutil
 import subprocess
 import tempfile
-import shutil
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
-from asp.approval.merge_controller import MergeController
+import pytest
+
 from asp.approval.base import ApprovalResponse, ReviewDecision
+from asp.approval.merge_controller import MergeController
 
 
 @pytest.fixture

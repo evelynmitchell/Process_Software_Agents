@@ -45,8 +45,7 @@ from asp.models.design_review import (
     DesignReviewReport,
     ImprovementSuggestion,
 )
-from asp.models.planning import ProjectPlan, PROBEAIPrediction, SemanticUnit
-
+from asp.models.planning import PROBEAIPrediction, ProjectPlan, SemanticUnit
 
 # =============================================================================
 # Test Fixtures
