@@ -1,10 +1,9 @@
 """
 ASP Web UI Module
 
-FastHTML-based web interface for the ASP Platform.
-Provides persona-specific views for different user roles.
+Provides FastHTML-based web interface for the ASP Platform.
 """
 
-from .main import create_app, app
+from .main import app, create_app
 
-__all__ = ["create_app", "app"]
+__all__ = ["app", "create_app"]
