@@ -7,6 +7,20 @@
 
 ---
 
+## Screenshots
+
+### System Overview & Agent Health
+![Manager Overview](../images/04_manager_overview.png)
+
+*The ASP Overwatch dashboard shows system-wide metrics (100% success rate, 34 active tasks, 10.8s avg execution) and real-time agent health status for all 7 agents.*
+
+### Recent Task Activity
+![Manager Tasks](../images/05_manager_tasks.png)
+
+*Detailed task activity view showing complexity scores, status, and execution times for each completed task.*
+
+---
+
 ## 1. The Dashboard ("The Pulse")
 
 A clean, high-level view of the entire engineering organization's health.

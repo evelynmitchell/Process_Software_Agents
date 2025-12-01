@@ -6,6 +6,20 @@
 
 ---
 
+## Screenshots
+
+### Developer Dashboard
+![Developer Dashboard](../images/02_developer_dashboard.png)
+
+*The Flow State Canvas shows active tasks, defect overview (12/12 success rate, 357 avg complexity), and recent activity feed with linked artifacts.*
+
+### Tools & Activity Feed
+![Developer Activity](../images/03_developer_activity.png)
+
+*Recent completed tasks with complexity scores, and quick-access tools (View All Tasks, Agent Stats, View Traces).*
+
+---
+
 ## 1. The Canvas ("The Workbench")
 
 Alex doesn't work in files; he works in *features*. The UI reflects this.

@@ -6,6 +6,20 @@
 
 ---
 
+## Screenshots
+
+### Delivery Dashboard & Task Pipeline
+![PM Pipeline](../images/06_pm_pipeline.png)
+
+*Project Overview showing delivery metrics (26% completion rate) and a kanban-style task pipeline (Planning → In Progress → Completed).*
+
+### Performance Summary
+![PM Performance](../images/07_pm_performance.png)
+
+*Throughput and complexity analysis with key metrics: 12 tasks processed, 357 avg complexity, 100% success rate, 10.8s avg execution.*
+
+---
+
 ## 1. The Feature Wizard ("The Input")
 
 Jordan doesn't write JIRA tickets; they converse with the Planning Agent to build a spec.

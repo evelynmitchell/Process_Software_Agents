@@ -9,6 +9,16 @@ The ASP Web UI is a FastHTML-based dashboard that provides persona-specific view
 - **Alex** (Developer) - Flow State Canvas
 - **Jordan** (Product Manager) - Requirements Hub
 
+### Role Selection
+![Role Selection](images/01_role_selection.png)
+
+*The ASP Overwatch landing page allows users to select their role-specific dashboard view.*
+
+For detailed UI documentation with additional screenshots, see:
+- [Manager Overwatch UI](ui_designs/01_manager_overwatch.md)
+- [Developer Flow Canvas UI](ui_designs/02_developer_flow_canvas.md)
+- [Product Manager Prediction Engine UI](ui_designs/03_pm_prediction_engine.md)
+
 ## Prerequisites
 
 - Docker 20.10+
