@@ -9,7 +9,6 @@ Tests are marked with @pytest.mark.e2e and can be run with:
     pytest tests/e2e/test_design_agent_e2e.py -m e2e
 """
 
-import os
 from datetime import datetime
 from pathlib import Path
 
@@ -161,11 +160,11 @@ class TestDesignAgentE2E:
 
         # Log results
         print(f"\n{'='*80}")
-        print(f"E2E Test: Simple API Design")
+        print("E2E Test: Simple API Design")
         print(f"{'='*80}")
         print(f"Task ID: {design.task_id}")
         print(f"\nArchitecture: {design.architecture_overview[:100]}...")
-        print(f"\nTechnology Stack:")
+        print("\nTechnology Stack:")
         for key, value in design.technology_stack.items():
             print(f"  - {key}: {value}")
         print(f"\nAPI Contracts: {len(design.api_contracts)}")
@@ -304,7 +303,7 @@ class TestDesignAgentE2E:
 
         # Log results
         print(f"\n{'='*80}")
-        print(f"E2E Test: JWT Authentication System")
+        print("E2E Test: JWT Authentication System")
         print(f"{'='*80}")
         print(f"API Contracts: {len(design.api_contracts)}")
         for api in design.api_contracts:
@@ -332,9 +331,9 @@ class TestDesignAgentE2E:
 
         # Step 1: Run Planning Agent
         print(f"\n{'='*80}")
-        print(f"E2E Test: Planning->Design Workflow")
+        print("E2E Test: Planning->Design Workflow")
         print(f"{'='*80}")
-        print(f"Step 1: Running Planning Agent...")
+        print("Step 1: Running Planning Agent...")
 
         planning_agent = PlanningAgent(llm_client=llm_client)
         task_requirements = TaskRequirements(
@@ -350,7 +349,7 @@ class TestDesignAgentE2E:
         )
 
         # Step 2: Run Design Agent
-        print(f"\nStep 2: Running Design Agent...")
+        print("\nStep 2: Running Design Agent...")
 
         design_agent = DesignAgent(llm_client=llm_client)
         design_input = DesignInput(
@@ -379,17 +378,17 @@ class TestDesignAgentE2E:
 
         # Log results
         print(f"\n{'='*80}")
-        print(f"Workflow Summary")
+        print("Workflow Summary")
         print(f"{'='*80}")
-        print(f"Planning Output:")
+        print("Planning Output:")
         print(f"  - Semantic Units: {len(project_plan.semantic_units)}")
         print(f"  - Total Complexity: {project_plan.total_est_complexity}")
-        print(f"\nDesign Output:")
+        print("\nDesign Output:")
         print(f"  - API Contracts: {len(design.api_contracts)}")
         print(f"  - Data Schemas: {len(design.data_schemas)}")
         print(f"  - Components: {len(design.component_logic)}")
         print(f"  - Review Items: {len(design.design_review_checklist)}")
-        print(f"\nSemantic Unit Mapping:")
+        print("\nSemantic Unit Mapping:")
         for unit in project_plan.semantic_units:
             components = [
                 c.component_name
@@ -497,7 +496,7 @@ class TestDesignAgentE2E:
 
         # Log results
         print(f"\n{'='*80}")
-        print(f"E2E Test: ETL Data Pipeline Design")
+        print("E2E Test: ETL Data Pipeline Design")
         print(f"{'='*80}")
         print(f"Components: {len(design.component_logic)}")
         for component in design.component_logic:
@@ -536,11 +535,11 @@ class TestDesignAgentE2E:
         assert isinstance(design, DesignSpecification)
 
         print(f"\n{'='*80}")
-        print(f"E2E Test: Telemetry Integration")
+        print("E2E Test: Telemetry Integration")
         print(f"{'='*80}")
         print(f"Telemetry captured for task: {design_input.task_id}")
         print(f"Database: {db_path}")
-        print(f"Check Langfuse dashboard for trace data")
+        print("Check Langfuse dashboard for trace data")
         print(
             f"Run: uv run python scripts/query_telemetry.py --task-id {design_input.task_id}"
         )

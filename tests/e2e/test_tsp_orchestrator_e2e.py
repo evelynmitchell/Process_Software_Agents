@@ -19,8 +19,6 @@ Run with:
     pytest tests/e2e/test_tsp_orchestrator_e2e.py -m e2e -v -s
 """
 
-import os
-from pathlib import Path
 
 import pytest
 
@@ -155,7 +153,7 @@ class TestTSPOrchestratorE2E:
         assert result.postmortem_report.defect_density >= 0
 
         # Validate execution metadata
-        print(f"\n[METADATA] Execution Summary:")
+        print("\n[METADATA] Execution Summary:")
         print(f"  Overall Status: {result.overall_status}")
         print(f"  Duration: {result.total_duration_seconds:.1f}s")
         print(f"  Pipeline Phases: {len(result.execution_log)}")
@@ -418,7 +416,7 @@ class TestTSPOrchestratorE2E:
         assert result.timestamp is not None
         assert result.total_duration_seconds > 0
 
-        print(f"\n[METADATA]")
+        print("\n[METADATA]")
         print(f"  Task ID: {result.task_id}")
         print(f"  Timestamp: {result.timestamp}")
         print(f"  Duration: {result.total_duration_seconds:.1f}s")

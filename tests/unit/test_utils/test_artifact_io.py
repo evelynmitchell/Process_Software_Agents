@@ -11,15 +11,11 @@ Tests artifact persistence functionality including:
 """
 
 import json
-import tempfile
-from pathlib import Path
 
 import pytest
-from pydantic import BaseModel
 
-from asp.models.code import GeneratedCode, GeneratedFile
-from asp.models.design import DesignSpecification
-from asp.models.planning import ProjectPlan, SemanticUnit, TaskRequirements
+from asp.models.code import GeneratedFile
+from asp.models.planning import TaskRequirements
 from asp.utils.artifact_io import (
     ArtifactIOError,
     artifact_exists,

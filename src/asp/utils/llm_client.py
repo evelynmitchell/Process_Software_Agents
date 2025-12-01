@@ -15,13 +15,12 @@ Date: November 13, 2025
 import json
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 from anthropic import Anthropic, APIConnectionError, APIStatusError, RateLimitError
 from tenacity import (
     retry,
     retry_if_exception,
-    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
 )
@@ -78,7 +77,7 @@ class LLMClient:
     COST_PER_MILLION_INPUT_TOKENS = 0.25  # USD
     COST_PER_MILLION_OUTPUT_TOKENS = 1.25  # USD
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         """
         Initialize LLM client.
 
@@ -104,12 +103,12 @@ class LLMClient:
     def call_with_retry(
         self,
         prompt: str,
-        model: Optional[str] = None,
+        model: str | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.0,
-        system: Optional[str] = None,
+        system: str | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Call Anthropic API with retry logic.
 

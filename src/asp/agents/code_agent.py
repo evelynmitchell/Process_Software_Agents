@@ -17,7 +17,7 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.models.code import (
@@ -72,9 +72,9 @@ class CodeAgent(BaseAgent):
 
     def __init__(
         self,
-        db_path: Optional[Path] = None,
-        llm_client: Optional[Any] = None,
-        use_multi_stage: Optional[bool] = None,
+        db_path: Path | None = None,
+        llm_client: Any | None = None,
+        use_multi_stage: bool | None = None,
     ):
         """
         Initialize Code Agent.

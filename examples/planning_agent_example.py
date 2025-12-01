@@ -58,7 +58,7 @@ def print_project_plan(plan):
         print(f"Unit {i}: {unit.unit_id}")
         print(f"  Description: {unit.description}")
         print(f"  Complexity: {unit.est_complexity} ({complexity_band})")
-        print(f"  Factors:")
+        print("  Factors:")
         print(f"    - API Interactions: {unit.api_interactions}")
         print(f"    - Data Transformations: {unit.data_transformations}")
         print(f"    - Logical Branches: {unit.logical_branches}")

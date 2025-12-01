@@ -14,7 +14,6 @@ Date: November 17, 2025
 import logging
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,7 @@ class GitError(Exception):
     pass
 
 
-def is_git_repository(path: Optional[str] = None) -> bool:
+def is_git_repository(path: str | None = None) -> bool:
     """
     Check if the current directory is a git repository.
 
@@ -60,7 +59,7 @@ def is_git_repository(path: Optional[str] = None) -> bool:
         return False
 
 
-def git_status_check(path: Optional[str] = None) -> dict[str, any]:
+def git_status_check(path: str | None = None) -> dict[str, any]:
     """
     Check git working directory status.
 
@@ -116,7 +115,7 @@ def git_status_check(path: Optional[str] = None) -> dict[str, any]:
         raise GitError("Git command not found. Is git installed?") from e
 
 
-def git_add_files(file_paths: list[str], path: Optional[str] = None) -> None:
+def git_add_files(file_paths: list[str], path: str | None = None) -> None:
     """
     Stage files for commit.
 
@@ -152,7 +151,7 @@ def git_add_files(file_paths: list[str], path: Optional[str] = None) -> None:
 
 def git_commit(
     message: str,
-    path: Optional[str] = None,
+    path: str | None = None,
     allow_empty: bool = False,
 ) -> str:
     """
@@ -206,8 +205,8 @@ def git_commit_artifact(
     task_id: str,
     agent_name: str,
     artifact_files: list[str],
-    status: Optional[str] = None,
-    path: Optional[str] = None,
+    status: str | None = None,
+    path: str | None = None,
 ) -> str:
     """
     Commit artifact files with standardized message format.
@@ -302,7 +301,7 @@ def _get_action_for_agent(agent_name: str) -> str:
     return action_map.get(agent_name, "Add artifact")
 
 
-def get_current_branch(path: Optional[str] = None) -> str:
+def get_current_branch(path: str | None = None) -> str:
     """
     Get the current git branch name.
 
@@ -336,7 +335,7 @@ def get_current_branch(path: Optional[str] = None) -> str:
         raise GitError(f"Failed to get current branch: {e.stderr}") from e
 
 
-def get_git_root(path: Optional[str] = None) -> Path:
+def get_git_root(path: str | None = None) -> Path:
     """
     Get the root directory of the git repository.
 

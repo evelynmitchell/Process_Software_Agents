@@ -43,9 +43,6 @@ from asp.models.design import (
     DesignSpecification,
 )
 from asp.models.planning import (
-    PROBEAIPrediction,
-    ProjectPlan,
-    SemanticUnit,
     TaskRequirements,
 )
 

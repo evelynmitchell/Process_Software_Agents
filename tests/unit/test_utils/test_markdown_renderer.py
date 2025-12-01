@@ -9,7 +9,6 @@ Tests markdown generation for all artifact types:
 - Code review reports
 """
 
-import pytest
 
 from asp.models.code import GeneratedCode, GeneratedFile
 from asp.models.code_review import CodeReviewReport
@@ -17,10 +16,10 @@ from asp.models.design import (
     APIContract,
     ComponentLogic,
     DataSchema,
+    DesignReviewChecklistItem,
     DesignSpecification,
 )
 from asp.models.design_review import (
-    ChecklistItemReview,
     DesignIssue,
     DesignReviewReport,
     ImprovementSuggestion,
@@ -168,12 +167,32 @@ class TestRenderDesignMarkdown:
                     implementation_notes="Notes",
                 )
             ],
-            design_checklist=[
-                DesignChecklistItem(
+            design_review_checklist=[
+                DesignReviewChecklistItem(
                     item_id="CHECK-001",
                     description="Validate security",
                     category="Security",
-                )
+                ),
+                DesignReviewChecklistItem(
+                    item_id="CHECK-002",
+                    description="Check API design",
+                    category="API",
+                ),
+                DesignReviewChecklistItem(
+                    item_id="CHECK-003",
+                    description="Verify data models",
+                    category="Data",
+                ),
+                DesignReviewChecklistItem(
+                    item_id="CHECK-004",
+                    description="Review error handling",
+                    category="Error Handling",
+                ),
+                DesignReviewChecklistItem(
+                    item_id="CHECK-005",
+                    description="Check performance",
+                    category="Performance",
+                ),
             ],
         )
 

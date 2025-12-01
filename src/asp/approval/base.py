@@ -5,7 +5,7 @@ Base classes and interfaces for HITL approval services.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class ReviewDecision(Enum):
@@ -22,8 +22,8 @@ class ApprovalRequest:
 
     task_id: str
     gate_type: str  # "design_review", "code_review", etc.
-    agent_output: Dict[str, Any]
-    quality_report: Dict[str, Any]
+    agent_output: dict[str, Any]
+    quality_report: dict[str, Any]
     base_branch: str = "main"
 
 
@@ -35,8 +35,8 @@ class ApprovalResponse:
     reviewer: str
     timestamp: str
     justification: str
-    review_branch: Optional[str] = None
-    merge_commit: Optional[str] = None
+    review_branch: str | None = None
+    merge_commit: str | None = None
 
 
 class ApprovalService(ABC):

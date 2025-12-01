@@ -284,7 +284,7 @@ def run_bootstrap_collection():
             elapsed_time = time.time() - start_time
 
             # Display results
-            print(f" SUCCESS")
+            print(" SUCCESS")
             print(f"Units: {len(plan.semantic_units)}")
             print(f"Total Complexity: {plan.total_est_complexity}")
             print(f"Execution Time: {elapsed_time:.2f}s")

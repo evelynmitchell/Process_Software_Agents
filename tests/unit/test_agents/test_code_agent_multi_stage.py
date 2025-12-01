@@ -13,7 +13,7 @@ Date: November 20, 2025
 """
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from pydantic import ValidationError
@@ -24,7 +24,6 @@ from asp.models.code import CodeInput, FileManifest, FileMetadata
 from asp.models.design import (
     APIContract,
     ComponentLogic,
-    DataSchema,
     DesignSpecification,
 )
 

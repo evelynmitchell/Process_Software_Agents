@@ -16,12 +16,11 @@ Date: November 19, 2025
 import json
 import logging
 import re
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
-from asp.models.test import TestDefect, TestInput, TestReport
+from asp.models.test import TestInput, TestReport
 from asp.telemetry import track_agent_cost
 from asp.utils.artifact_io import write_artifact_json, write_artifact_markdown
 from asp.utils.git_utils import git_commit_artifact, is_git_repository
@@ -64,8 +63,8 @@ class TestAgent(BaseAgent):
 
     def __init__(
         self,
-        db_path: Optional[Path] = None,
-        llm_client: Optional[Any] = None,
+        db_path: Path | None = None,
+        llm_client: Any | None = None,
     ):
         """
         Initialize Test Agent.

@@ -9,9 +9,7 @@ full E2E pipeline execution or API calls.
 """
 
 from datetime import datetime
-from unittest.mock import MagicMock, Mock, patch
-
-import pytest
+from unittest.mock import Mock
 
 from asp.approval.base import (
     ApprovalRequest,

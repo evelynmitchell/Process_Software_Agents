@@ -61,10 +61,10 @@ def print_design_summary(design, output_json=False):
     print(f"DESIGN SPECIFICATION: {design.task_id}")
     print("=" * 80)
 
-    print(f"\nArchitecture Overview:")
+    print("\nArchitecture Overview:")
     print(f"  {design.architecture_overview}")
 
-    print(f"\nTechnology Stack:")
+    print("\nTechnology Stack:")
     for key, value in design.technology_stack.items():
         print(f"  - {key}: {value}")
 
@@ -73,7 +73,7 @@ def print_design_summary(design, output_json=False):
         print(f"  {i}. {api.method} {api.endpoint}")
         print(f"     {api.description}")
         if api.authentication_required:
-            print(f"     [AUTH REQUIRED]")
+            print("     [AUTH REQUIRED]")
         if api.rate_limit:
             print(f"     Rate limit: {api.rate_limit}")
 

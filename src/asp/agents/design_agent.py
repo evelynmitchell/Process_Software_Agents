@@ -13,11 +13,10 @@ Author: ASP Development Team
 Date: November 13, 2025
 """
 
-import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.models.design import DesignInput, DesignSpecification
@@ -64,10 +63,10 @@ class DesignAgent(BaseAgent):
 
     def __init__(
         self,
-        db_path: Optional[Path] = None,
-        llm_client: Optional[Any] = None,
-        use_markdown: Optional[bool] = None,
-        model: Optional[str] = None,
+        db_path: Path | None = None,
+        llm_client: Any | None = None,
+        use_markdown: bool | None = None,
+        model: str | None = None,
     ):
         """
         Initialize Design Agent.
@@ -107,7 +106,7 @@ class DesignAgent(BaseAgent):
         agent_version="1.0.0",
     )
     def execute(
-        self, input_data: DesignInput, feedback: Optional[list] = None
+        self, input_data: DesignInput, feedback: list | None = None
     ) -> DesignSpecification:
         """
         Execute the Design Agent to generate a technical design with optional feedback.

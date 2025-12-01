@@ -181,7 +181,7 @@ def run_bootstrap_design_review_collection():
         }
 
         # STEP 1: Run Design Agent
-        print(f"[1/2] Running Design Agent...")
+        print("[1/2] Running Design Agent...")
         design_start = time.time()
 
         try:
@@ -233,7 +233,7 @@ def run_bootstrap_design_review_collection():
             continue
 
         # STEP 2: Run Design Review Agent
-        print(f"[2/2] Running Design Review Agent...")
+        print("[2/2] Running Design Review Agent...")
         review_start = time.time()
 
         try:
@@ -308,6 +308,8 @@ def run_bootstrap_design_review_collection():
     # Final save with summary
     save_results(all_results, output_file)
 
+    successful_pipeline = sum(1 for r in all_results if r.get("pipeline_success"))
+
     print(f"\n{'='*80}")
     print("BOOTSTRAP COLLECTION COMPLETE")
     print(f"{'='*80}")
@@ -378,7 +380,7 @@ def main():
             )
             total_time = sum(r["total_execution_time"] for r in successful)
 
-            print(f"\nPipeline (Planning→Design→Review):")
+            print("\nPipeline (Planning→Design→Review):")
             print(f"  Avg Total Time: {avg_total_time:.2f}s")
             print(f"  Total Time: {total_time:.2f}s ({total_time/60:.1f} minutes)")
 
@@ -388,7 +390,7 @@ def main():
                 assessment = r["review_overall_assessment"]
                 assessment_counts[assessment] = assessment_counts.get(assessment, 0) + 1
 
-            print(f"\nReview Assessment Breakdown:")
+            print("\nReview Assessment Breakdown:")
             for assessment, count in sorted(assessment_counts.items()):
                 print(f"  {assessment}: {count}")
 

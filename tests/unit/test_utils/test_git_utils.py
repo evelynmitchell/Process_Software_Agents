@@ -11,8 +11,6 @@ Tests git operations for artifact persistence including:
 """
 
 import subprocess
-import tempfile
-from pathlib import Path
 
 import pytest
 

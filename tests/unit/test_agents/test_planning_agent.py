@@ -10,7 +10,7 @@ Tests the PlanningAgent implementation including:
 """
 
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -18,10 +18,8 @@ from asp.agents.base_agent import AgentExecutionError
 from asp.agents.planning_agent import PlanningAgent
 from asp.models.planning import (
     ProjectPlan,
-    SemanticUnit,
     TaskRequirements,
 )
-from asp.utils.semantic_complexity import ComplexityFactors
 
 
 # Helper function to create valid TaskRequirements for testing

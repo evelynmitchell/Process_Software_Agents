@@ -12,7 +12,7 @@ Date: November 13, 2025
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -41,8 +41,8 @@ class BaseAgent(ABC):
 
     def __init__(
         self,
-        db_path: Optional[Path] = None,
-        llm_client: Optional[Any] = None,
+        db_path: Path | None = None,
+        llm_client: Any | None = None,
     ):
         """
         Initialize base agent.
@@ -138,11 +138,11 @@ class BaseAgent(ABC):
     def call_llm(
         self,
         prompt: str,
-        model: Optional[str] = None,
+        model: str | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.0,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Call LLM with retry logic and telemetry.
 
@@ -197,7 +197,7 @@ class BaseAgent(ABC):
 
     def validate_output(
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         model_class: type[BaseModel],
     ) -> BaseModel:
         """

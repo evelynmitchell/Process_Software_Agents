@@ -23,7 +23,7 @@ Date: 2025-11-13
 """
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -79,7 +79,7 @@ class DesignInput(BaseModel):
         examples=[["Claude.md", "ARCHITECTURE.md", "API_STANDARDS.md"]],
     )
 
-    design_constraints: Optional[str] = Field(
+    design_constraints: str | None = Field(
         default=None,
         description="Optional design constraints (technology choices, patterns)",
         examples=[
@@ -166,7 +166,7 @@ class APIContract(BaseModel):
         examples=["Register a new user with email and password"],
     )
 
-    request_schema: Optional[dict[str, Any]] = Field(
+    request_schema: dict[str, Any] | None = Field(
         default=None,
         description="JSON schema for request body (None for GET)",
         examples=[
@@ -178,7 +178,7 @@ class APIContract(BaseModel):
         ],
     )
 
-    request_params: Optional[dict[str, str]] = Field(
+    request_params: dict[str, str] | None = Field(
         default=None,
         description="Query parameters or path parameters",
         examples=[{"user_id": "string (UUID, path parameter)"}],
@@ -220,7 +220,7 @@ class APIContract(BaseModel):
         description="Whether endpoint requires authentication",
     )
 
-    rate_limit: Optional[str] = Field(
+    rate_limit: str | None = Field(
         default=None,
         description="Rate limit specification",
         examples=["10 requests per minute per IP"],
@@ -440,7 +440,7 @@ class ComponentLogic(BaseModel):
         ],
     )
 
-    complexity: Optional[int] = Field(
+    complexity: int | None = Field(
         default=None,
         description="Estimated complexity from Planning Agent",
         ge=1,

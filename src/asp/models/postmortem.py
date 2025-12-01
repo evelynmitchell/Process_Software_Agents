@@ -28,7 +28,7 @@ Date: November 19, 2025
 """
 
 from datetime import datetime
-from typing import Dict, List, Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -119,7 +119,7 @@ class DefectLogEntry(BaseModel):
         description="Agent role that found the defect (e.g., Design Review, Test)",
     )
 
-    effort_to_fix_vector: Dict[str, float] = Field(
+    effort_to_fix_vector: dict[str, float] = Field(
         ...,
         description="Cost of correction loop (latency_ms, tokens, api_cost)",
     )
@@ -129,7 +129,7 @@ class DefectLogEntry(BaseModel):
         description="Detailed description of the defect",
     )
 
-    severity: Optional[Literal["Critical", "High", "Medium", "Low"]] = Field(
+    severity: Literal["Critical", "High", "Medium", "Low"] | None = Field(
         default="Medium",
         description="Severity level of the defect",
     )
@@ -161,12 +161,12 @@ class PostmortemInput(BaseModel):
         description="Original project plan from Planning Agent",
     )
 
-    effort_log: List[EffortLogEntry] = Field(
+    effort_log: list[EffortLogEntry] = Field(
         ...,
         description="All effort/cost measurements from telemetry (Table 3)",
     )
 
-    defect_log: List[DefectLogEntry] = Field(
+    defect_log: list[DefectLogEntry] = Field(
         default_factory=list,
         description="All defects found during development (Table 4)",
     )
@@ -308,17 +308,17 @@ class QualityMetrics(BaseModel):
         description="Total number of defects found",
     )
 
-    defect_injection_by_phase: Dict[str, int] = Field(
+    defect_injection_by_phase: dict[str, int] = Field(
         ...,
         description="Count of defects grouped by phase_injected",
     )
 
-    defect_removal_by_phase: Dict[str, int] = Field(
+    defect_removal_by_phase: dict[str, int] = Field(
         ...,
         description="Count of defects grouped by phase_removed",
     )
 
-    phase_yield: Dict[str, float] = Field(
+    phase_yield: dict[str, float] = Field(
         default_factory=dict,
         description="Percentage of defects caught in each phase (not escaped to later phases)",
     )
@@ -386,7 +386,7 @@ class PostmortemReport(BaseModel):
         description="Defect density and phase distribution",
     )
 
-    root_cause_analysis: List[RootCauseItem] = Field(
+    root_cause_analysis: list[RootCauseItem] = Field(
         ...,
         description="Top defect types by effort to fix (sorted by total_effort_to_fix, descending)",
     )
@@ -396,14 +396,14 @@ class PostmortemReport(BaseModel):
         description="Executive summary of findings (2-3 sentences)",
     )
 
-    recommendations: List[str] = Field(
+    recommendations: list[str] = Field(
         default_factory=list,
         description="High-level recommendations for improvement",
     )
 
     @field_validator("root_cause_analysis")
     @classmethod
-    def sort_root_causes(cls, v: List[RootCauseItem]) -> List[RootCauseItem]:
+    def sort_root_causes(cls, v: list[RootCauseItem]) -> list[RootCauseItem]:
         """Ensure root causes are sorted by total effort to fix (descending)."""
         return sorted(v, key=lambda x: x.total_effort_to_fix, reverse=True)
 
@@ -489,7 +489,7 @@ class ProposedChange(BaseModel):
         description="Type of change to make",
     )
 
-    current_content: Optional[str] = Field(
+    current_content: str | None = Field(
         None,
         description="Current content (for modify/remove)",
     )
@@ -533,7 +533,7 @@ class ProcessImprovementProposal(BaseModel):
         description="Analysis of the problem that triggered this PIP (2-4 sentences)",
     )
 
-    proposed_changes: List[ProposedChange] = Field(
+    proposed_changes: list[ProposedChange] = Field(
         ...,
         min_length=1,
         description="List of specific changes to process artifacts",
@@ -549,17 +549,17 @@ class ProcessImprovementProposal(BaseModel):
         description="Human-in-the-Loop approval status",
     )
 
-    hitl_reviewer: Optional[str] = Field(
+    hitl_reviewer: str | None = Field(
         None,
         description="Name/ID of human reviewer",
     )
 
-    hitl_reviewed_at: Optional[datetime] = Field(
+    hitl_reviewed_at: datetime | None = Field(
         None,
         description="When HITL review was completed",
     )
 
-    hitl_feedback: Optional[str] = Field(
+    hitl_feedback: str | None = Field(
         None,
         description="Feedback from human reviewer",
     )

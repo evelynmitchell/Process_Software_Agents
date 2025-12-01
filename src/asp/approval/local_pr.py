@@ -2,7 +2,7 @@
 Local PR-style approval service for HITL quality gate overrides.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from asp.approval.approval_collector import ApprovalCollector
 from asp.approval.base import (
@@ -185,7 +185,7 @@ Quality Report Summary:
             commit_sha=commit_sha, note_content=note_content, notes_ref=self.notes_ref
         )
 
-    def _format_quality_summary(self, quality_report: Dict[str, Any]) -> str:
+    def _format_quality_summary(self, quality_report: dict[str, Any]) -> str:
         """
         Format quality report summary for git notes.
 

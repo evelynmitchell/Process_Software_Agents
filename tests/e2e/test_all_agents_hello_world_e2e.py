@@ -19,15 +19,12 @@ Run with:
     pytest tests/e2e/test_all_agents_hello_world_e2e.py -m e2e -v -s
 """
 
-import os
 from datetime import datetime
-from pathlib import Path
 
 import pytest
 
 from asp.agents.code_agent import CodeAgent
 from asp.agents.design_agent import DesignAgent
-from asp.agents.design_review_agent import DesignReviewAgent
 from asp.agents.planning_agent import PlanningAgent
 from asp.agents.postmortem_agent import PostmortemAgent
 from asp.agents.test_agent import TestAgent
@@ -125,7 +122,7 @@ class TestAllAgentsHelloWorldE2E:
         assert design_review.task_id == "HW-001"
         assert design_review.overall_assessment in ["PASS", "NEEDS_IMPROVEMENT"]
 
-        print(f"\n  ✓ Orchestration complete!")
+        print("\n  ✓ Orchestration complete!")
         print(f"    - Design status: {design_review.overall_assessment}")
         print(f"    - API contracts: {len(design_spec.api_contracts)}")
         for api in design_spec.api_contracts:
@@ -168,7 +165,7 @@ class TestAllAgentsHelloWorldE2E:
         assert len(generated_code.files) > 0
         assert generated_code.total_lines_of_code > 0
 
-        print(f"  ✓ Code generation complete!")
+        print("  ✓ Code generation complete!")
         print(f"    - Files generated: {generated_code.total_files}")
         print(f"    - Total lines of code: {generated_code.total_lines_of_code}")
         print(f"    - Dependencies: {len(generated_code.dependencies)}")
@@ -207,7 +204,7 @@ class TestAllAgentsHelloWorldE2E:
         assert test_report.task_id == "HW-001"
         assert hasattr(test_report, "test_status")
 
-        print(f"  ✓ Test execution complete!")
+        print("  ✓ Test execution complete!")
         print(f"    - Test status: {test_report.test_status}")
         if hasattr(test_report, "test_summary"):
             summary = test_report.test_summary
@@ -367,7 +364,7 @@ class TestAllAgentsHelloWorldE2E:
         assert isinstance(postmortem_report, PostmortemReport)
         assert postmortem_report.task_id == "HW-001"
 
-        print(f"  ✓ Postmortem analysis complete!")
+        print("  ✓ Postmortem analysis complete!")
         if hasattr(postmortem_report, "estimation_accuracy"):
             accuracy = postmortem_report.estimation_accuracy
             if hasattr(accuracy, "api_cost"):
@@ -390,12 +387,12 @@ class TestAllAgentsHelloWorldE2E:
         print(
             f"  2. Design Agent        → {len(design_spec.api_contracts)} API contracts"
         )
-        print(f"  3. Design Review Agent → Review completed")
+        print("  3. Design Review Agent → Review completed")
         print(
             f"  4. Code Agent          → {generated_code.total_files} files, {generated_code.total_lines_of_code} LOC"
         )
         print(f"  5. Test Agent          → {test_report.test_status}")
-        print(f"  6. Postmortem Agent    → Analysis completed")
+        print("  6. Postmortem Agent    → Analysis completed")
         print("\n" + "=" * 80 + "\n")
 
     def test_planning_agent_hello_world(self):
@@ -421,7 +418,7 @@ class TestAllAgentsHelloWorldE2E:
         assert plan.task_id == "HW-PLAN-001"
         assert len(plan.semantic_units) > 0
 
-        print(f"✓ Planning Agent test passed!")
+        print("✓ Planning Agent test passed!")
         print(f"  - Semantic units: {len(plan.semantic_units)}")
         print(f"  - Total complexity: {plan.total_est_complexity}\n")
 
@@ -456,7 +453,7 @@ class TestAllAgentsHelloWorldE2E:
         assert design.task_id == "HW-DESIGN-001"
         assert len(design.api_contracts) > 0
 
-        print(f"✓ Design Agent test passed!")
+        print("✓ Design Agent test passed!")
         print(f"  - API contracts: {len(design.api_contracts)}")
         print(f"  - Components: {len(design.component_logic)}\n")
 
@@ -485,7 +482,7 @@ class TestAllAgentsHelloWorldE2E:
         design = design_agent.execute(design_input)
 
         # Now test code generation
-        code_agent = CodeAgent(use_multi_stage=True, llm_client=llm_client)
+        code_agent = CodeAgent(use_multi_stage=True)
         code_input = CodeInput(
             task_id="HW-CODE-001",
             design_specification=design,
@@ -498,7 +495,7 @@ class TestAllAgentsHelloWorldE2E:
         assert code.task_id == "HW-CODE-001"
         assert len(code.files) > 0
 
-        print(f"✓ Code Agent test passed!")
+        print("✓ Code Agent test passed!")
         print(f"  - Files generated: {code.total_files}")
         print(f"  - Lines of code: {code.total_lines_of_code}\n")
 

@@ -8,9 +8,8 @@ Tests the LLMClient wrapper including:
 - Error handling for various API errors
 """
 
-import json
 import os
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import httpx
 import pytest
@@ -341,9 +340,8 @@ class TestRetryLogic:
             client.client.messages,
             "create",
             side_effect=create_api_connection_error("Persistent network error"),
-        ):
-            with pytest.raises(APIConnectionError):
-                client.call_with_retry(prompt="Test")
+        ), pytest.raises(APIConnectionError):
+            client.call_with_retry(prompt="Test")
 
     def test_no_retry_on_client_error(self):
         """Test that 4xx errors are not retried."""

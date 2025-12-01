@@ -8,7 +8,6 @@ Author: ASP Development Team
 Date: November 17, 2025
 """
 
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -36,11 +35,11 @@ class FileMetadata(BaseModel):
             "'requirements', 'schema'"
         ),
     )
-    semantic_unit_id: Optional[str] = Field(
+    semantic_unit_id: str | None = Field(
         default=None,
         description="Semantic unit ID from planning (for traceability)",
     )
-    component_id: Optional[str] = Field(
+    component_id: str | None = Field(
         default=None,
         description="Component ID from design (for traceability)",
     )
@@ -87,7 +86,7 @@ class FileManifest(BaseModel):
         min_length=3,
         description="Task identifier matching input",
     )
-    project_id: Optional[str] = Field(
+    project_id: str | None = Field(
         default=None,
         min_length=3,
         description="Project identifier (if part of larger project)",
@@ -164,18 +163,18 @@ class CodeInput(BaseModel):
         ...,
         description="Approved design specification from Design Agent",
     )
-    design_review_report: Optional[DesignReviewReport] = Field(
+    design_review_report: DesignReviewReport | None = Field(
         default=None,
         description="Optional design review report with quality feedback",
     )
-    coding_standards: Optional[str] = Field(
+    coding_standards: str | None = Field(
         default=None,
         description=(
             "Project-specific coding standards and conventions "
             "(e.g., from CLAUDE.md, style guides)"
         ),
     )
-    context_files: Optional[list[str]] = Field(
+    context_files: list[str] | None = Field(
         default=None,
         description=(
             "Additional context files (existing code, architectural docs, "
@@ -226,11 +225,11 @@ class GeneratedFile(BaseModel):
             "'requirements', 'schema'"
         ),
     )
-    semantic_unit_id: Optional[str] = Field(
+    semantic_unit_id: str | None = Field(
         default=None,
         description="Semantic unit ID from planning (for traceability)",
     )
-    component_id: Optional[str] = Field(
+    component_id: str | None = Field(
         default=None,
         description="Component ID from design (for traceability)",
     )
@@ -266,7 +265,7 @@ class GeneratedCode(BaseModel):
         min_length=3,
         description="Task identifier matching input",
     )
-    project_id: Optional[str] = Field(
+    project_id: str | None = Field(
         default=None,
         min_length=3,
         description="Project identifier (if part of larger project)",
@@ -304,7 +303,7 @@ class GeneratedCode(BaseModel):
             "Format: 'package==version' (e.g., 'fastapi==0.104.1')"
         ),
     )
-    setup_instructions: Optional[str] = Field(
+    setup_instructions: str | None = Field(
         default=None,
         description=(
             "Step-by-step instructions for setting up and running the generated code "
@@ -323,7 +322,7 @@ class GeneratedCode(BaseModel):
         ge=0,
         description="Total number of files generated",
     )
-    test_coverage_target: Optional[float] = Field(
+    test_coverage_target: float | None = Field(
         default=None,
         ge=0.0,
         le=100.0,
@@ -351,7 +350,7 @@ class GeneratedCode(BaseModel):
         default="1.0.0",
         description="Version of Code Agent that generated this code",
     )
-    generation_timestamp: Optional[str] = Field(
+    generation_timestamp: str | None = Field(
         default=None,
         description="ISO 8601 timestamp of code generation",
     )

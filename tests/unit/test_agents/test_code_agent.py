@@ -14,12 +14,9 @@ Date: November 17, 2025
 """
 
 import json
-from datetime import datetime
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-from pydantic import ValidationError
 
 from asp.agents.base_agent import AgentExecutionError
 from asp.agents.code_agent import CodeAgent
@@ -28,11 +25,9 @@ from asp.models.design import (
     APIContract,
     ComponentLogic,
     DataSchema,
-    DesignInput,
     DesignReviewChecklistItem,
     DesignSpecification,
 )
-from asp.models.planning import ProjectPlan, SemanticUnit
 
 # =============================================================================
 # Test Fixtures
@@ -502,9 +497,8 @@ class TestErrorHandling:
         # Mock prompt loading to fail
         with patch.object(
             agent, "load_prompt", side_effect=FileNotFoundError("Not found")
-        ):
-            with pytest.raises(AgentExecutionError, match="Prompt template not found"):
-                agent.execute(input_data)
+        ), pytest.raises(AgentExecutionError, match="Prompt template not found"):
+            agent.execute(input_data)
 
     @patch("asp.agents.code_agent.CodeAgent.call_llm")
     def test_execute_invalid_llm_response(self, mock_call_llm):

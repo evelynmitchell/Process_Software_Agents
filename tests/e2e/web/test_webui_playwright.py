@@ -10,7 +10,6 @@ Tests the FastHTML-based web interface including:
 
 import re
 
-import pytest
 from playwright.sync_api import Page, expect
 
 

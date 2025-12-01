@@ -10,7 +10,6 @@ Requirements:
 - Real API mode will consume API credits (approximately $0.15-0.25 per test due to 6 specialists)
 """
 
-import os
 from datetime import datetime
 
 import pytest

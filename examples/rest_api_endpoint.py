@@ -109,7 +109,7 @@ def main():
             print(f"   - {rel_path} ({size:,} bytes)")
         print()
 
-    print(f"🔍 View detailed traces at: https://cloud.langfuse.com")
+    print("🔍 View detailed traces at: https://cloud.langfuse.com")
     print()
 
     # Show next steps

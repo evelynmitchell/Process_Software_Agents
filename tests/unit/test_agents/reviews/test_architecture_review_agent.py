@@ -827,7 +827,7 @@ class TestArchitectureReviewAgentEdgeCases:
                     component_name="DataAccessLayer",
                     semantic_unit_id="SU-003",
                     responsibility="Handle database operations and persistence in data layer",
-                    interfaces=[{"method": "save", "method": "find"}],
+                    interfaces=[{"method": "save"}, {"method": "find"}],
                     implementation_notes="Repository pattern for data persistence layer",
                 ),
             ],

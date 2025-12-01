@@ -15,7 +15,7 @@ Aggregates results, deduplicates issues, resolves conflicts, generates CodeRevie
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.agents.code_reviews import (
@@ -48,8 +48,8 @@ class CodeReviewOrchestrator(BaseAgent):
 
     def __init__(
         self,
-        llm_client: Optional[Any] = None,
-        db_path: Optional[str] = None,
+        llm_client: Any | None = None,
+        db_path: str | None = None,
     ):
         """
         Initialize Code Review Orchestrator.
@@ -94,7 +94,7 @@ class CodeReviewOrchestrator(BaseAgent):
     def execute(
         self,
         generated_code: GeneratedCode,
-        quality_standards: Optional[str] = None,
+        quality_standards: str | None = None,
     ) -> CodeReviewReport:
         """
         Execute comprehensive code review using all specialist agents in parallel.
@@ -240,7 +240,7 @@ class CodeReviewOrchestrator(BaseAgent):
 
         results = await asyncio.gather(*tasks)
 
-        return {name: result for name, result in results}
+        return dict(results)
 
     def _normalize_category(self, category: str) -> str:
         """

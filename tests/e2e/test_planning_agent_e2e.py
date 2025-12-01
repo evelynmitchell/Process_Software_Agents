@@ -12,7 +12,6 @@ Note: When running with mock LLM, tests validate the structure and flow,
 but not the actual LLM reasoning quality.
 """
 
-import os
 from pathlib import Path
 
 import pytest
@@ -68,11 +67,11 @@ class TestPlanningAgentE2E:
 
         # Log results for calibration
         print(f"\n{'='*60}")
-        print(f"E2E Test: Simple REST API Endpoint")
+        print("E2E Test: Simple REST API Endpoint")
         print(f"{'='*60}")
         print(f"Units created: {len(plan.semantic_units)}")
         print(f"Total complexity: {plan.total_est_complexity}")
-        print(f"\nSemantic Units:")
+        print("\nSemantic Units:")
         for i, unit in enumerate(plan.semantic_units, 1):
             print(f"\n{i}. {unit.unit_id}: {unit.description}")
             print(f"   Complexity: {unit.est_complexity}")
@@ -117,11 +116,11 @@ class TestPlanningAgentE2E:
 
         # Log results
         print(f"\n{'='*60}")
-        print(f"E2E Test: JWT Authentication System")
+        print("E2E Test: JWT Authentication System")
         print(f"{'='*60}")
         print(f"Units created: {len(plan.semantic_units)}")
         print(f"Total complexity: {plan.total_est_complexity}")
-        print(f"\nSemantic Units:")
+        print("\nSemantic Units:")
         for i, unit in enumerate(plan.semantic_units, 1):
             print(f"\n{i}. {unit.unit_id}: {unit.description}")
             print(f"   Complexity: {unit.est_complexity}")
@@ -167,12 +166,12 @@ class TestPlanningAgentE2E:
 
         # Log results
         print(f"\n{'='*60}")
-        print(f"E2E Test: Add Pagination (with context)")
+        print("E2E Test: Add Pagination (with context)")
         print(f"{'='*60}")
         print(f"Context files: {', '.join(requirements.context_files)}")
         print(f"Units created: {len(plan.semantic_units)}")
         print(f"Total complexity: {plan.total_est_complexity}")
-        print(f"\nSemantic Units:")
+        print("\nSemantic Units:")
         for i, unit in enumerate(plan.semantic_units, 1):
             print(f"\n{i}. {unit.unit_id}: {unit.description}")
             print(f"   Complexity: {unit.est_complexity}")
@@ -220,18 +219,18 @@ class TestPlanningAgentE2E:
 
         # Log results
         print(f"\n{'='*60}")
-        print(f"E2E Test: Complex ETL Data Pipeline")
+        print("E2E Test: Complex ETL Data Pipeline")
         print(f"{'='*60}")
         print(f"Units created: {len(plan.semantic_units)}")
         print(f"Total complexity: {plan.total_est_complexity}")
-        print(f"\nDependency Graph:")
+        print("\nDependency Graph:")
         for i, unit in enumerate(plan.semantic_units, 1):
             print(f"\n{i}. {unit.unit_id}: {unit.description[:60]}...")
             print(f"   Complexity: {unit.est_complexity}")
             if unit.dependencies:
                 print(f"   Depends on: {', '.join(unit.dependencies)}")
             else:
-                print(f"   Dependencies: None (can start immediately)")
+                print("   Dependencies: None (can start immediately)")
 
     def test_telemetry_integration(self, llm_client):
         """Test that telemetry is captured during execution."""
@@ -258,11 +257,11 @@ class TestPlanningAgentE2E:
         assert len(plan.semantic_units) > 0
 
         print(f"\n{'='*60}")
-        print(f"E2E Test: Telemetry Integration")
+        print("E2E Test: Telemetry Integration")
         print(f"{'='*60}")
         print(f"Telemetry captured for task: {requirements.task_id}")
         print(f"Database: {db_path}")
-        print(f"Check Langfuse dashboard for trace data")
+        print("Check Langfuse dashboard for trace data")
         print(
             f"Run: uv run python scripts/query_telemetry.py --task-id {requirements.task_id}"
         )
@@ -290,9 +289,9 @@ class TestComplexityCalibration:
         plan = agent.execute(requirements)
 
         print(f"\n{'='*60}")
-        print(f"Calibration: Trivial Task")
+        print("Calibration: Trivial Task")
         print(f"{'='*60}")
-        print(f"Expected: Complexity < 10")
+        print("Expected: Complexity < 10")
         print(f"Actual: {plan.total_est_complexity}")
         print(f"Result: {' PASS' if plan.total_est_complexity <= 10 else ' FAIL'}")
 
@@ -315,9 +314,9 @@ class TestComplexityCalibration:
         plan = agent.execute(requirements)
 
         print(f"\n{'='*60}")
-        print(f"Calibration: Simple Task")
+        print("Calibration: Simple Task")
         print(f"{'='*60}")
-        print(f"Expected: Complexity 11-30")
+        print("Expected: Complexity 11-30")
         print(f"Actual: {plan.total_est_complexity}")
         print(
             f"Result: {' PASS' if 11 <= plan.total_est_complexity <= 30 else ' FAIL'}"
@@ -345,9 +344,9 @@ class TestComplexityCalibration:
         plan = agent.execute(requirements)
 
         print(f"\n{'='*60}")
-        print(f"Calibration: Moderate Task")
+        print("Calibration: Moderate Task")
         print(f"{'='*60}")
-        print(f"Expected: Complexity 31-60")
+        print("Expected: Complexity 31-60")
         print(f"Actual: {plan.total_est_complexity}")
         print(
             f"Result: {' PASS' if 31 <= plan.total_est_complexity <= 60 else ' FAIL'}"

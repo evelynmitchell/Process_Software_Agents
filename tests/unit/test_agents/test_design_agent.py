@@ -13,10 +13,9 @@ Author: ASP Development Team
 Date: November 13, 2025
 """
 
-import json
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from pydantic import ValidationError
@@ -505,9 +504,8 @@ def test_execute_prompt_not_found():
 
     with patch.object(
         agent, "load_prompt", side_effect=FileNotFoundError("Prompt not found")
-    ):
-        with pytest.raises(AgentExecutionError) as exc_info:
-            agent.execute(design_input)
+    ), pytest.raises(AgentExecutionError) as exc_info:
+        agent.execute(design_input)
 
     assert "Prompt template not found" in str(exc_info.value)
 

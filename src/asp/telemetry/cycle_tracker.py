@@ -22,7 +22,6 @@ Date: November 25, 2025
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -51,7 +50,7 @@ class CycleEvent(BaseModel):
 
     timestamp: datetime = Field(..., description="When this event occurred")
 
-    metadata: Dict[str, str] = Field(
+    metadata: dict[str, str] = Field(
         default_factory=dict, description="Additional event-specific metadata"
     )
 
@@ -73,33 +72,33 @@ class ImprovementCycle(BaseModel):
 
     task_id: str = Field(..., description="Task that triggered this PIP")
 
-    events: List[CycleEvent] = Field(
+    events: list[CycleEvent] = Field(
         default_factory=list, description="Chronological list of cycle events"
     )
 
-    target_artifacts: List[str] = Field(
+    target_artifacts: list[str] = Field(
         default_factory=list, description="Prompts/checklists modified by this PIP"
     )
 
-    defect_types_targeted: List[str] = Field(
+    defect_types_targeted: list[str] = Field(
         default_factory=list, description="Defect types this PIP aims to prevent"
     )
 
-    baseline_defect_count: Optional[int] = Field(
+    baseline_defect_count: int | None = Field(
         None, description="Number of target defects in triggering task"
     )
 
-    post_improvement_defect_count: Optional[int] = Field(
+    post_improvement_defect_count: int | None = Field(
         None, description="Number of target defects in first task after improvement"
     )
 
-    impact_task_id: Optional[str] = Field(
+    impact_task_id: str | None = Field(
         None,
         description="First task executed with updated prompts (for measuring impact)",
     )
 
     @property
-    def review_cycle_time(self) -> Optional[timedelta]:
+    def review_cycle_time(self) -> timedelta | None:
         """Calculate time from PIP creation to approval."""
         created_event = next(
             (e for e in self.events if e.event_type == "pip_created"), None
@@ -113,7 +112,7 @@ class ImprovementCycle(BaseModel):
         return None
 
     @property
-    def total_cycle_time(self) -> Optional[timedelta]:
+    def total_cycle_time(self) -> timedelta | None:
         """Calculate total time from PIP creation to impact measurement."""
         created_event = next(
             (e for e in self.events if e.event_type == "pip_created"), None
@@ -127,7 +126,7 @@ class ImprovementCycle(BaseModel):
         return None
 
     @property
-    def defect_reduction_percent(self) -> Optional[float]:
+    def defect_reduction_percent(self) -> float | None:
         """Calculate percentage reduction in target defects."""
         if (
             self.baseline_defect_count is not None
@@ -189,7 +188,7 @@ class CycleTracker:
     def record_pip_created(
         self,
         pip: ProcessImprovementProposal,
-        defect_count: Optional[int] = None,
+        defect_count: int | None = None,
     ) -> ImprovementCycle:
         """
         Record PIP creation event.
@@ -205,7 +204,7 @@ class CycleTracker:
 
         # Extract defect types from proposed changes
         defect_types = list(
-            set(change.target_artifact for change in pip.proposed_changes)
+            {change.target_artifact for change in pip.proposed_changes}
         )
 
         # Create cycle object
@@ -274,7 +273,7 @@ class CycleTracker:
     def record_prompts_updated(
         self,
         pip_id: str,
-        updated_files: List[str],
+        updated_files: list[str],
     ) -> ImprovementCycle:
         """
         Record prompt update event.
@@ -313,7 +312,7 @@ class CycleTracker:
         pip_id: str,
         impact_task_id: str,
         defect_count: int,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> ImprovementCycle:
         """
         Record impact measurement from first task after improvement.
@@ -385,7 +384,7 @@ class CycleTracker:
         """
         return self._load_cycle(pip_id)
 
-    def get_all_cycles(self) -> List[ImprovementCycle]:
+    def get_all_cycles(self) -> list[ImprovementCycle]:
         """
         Get all improvement cycles.
 
@@ -408,7 +407,7 @@ class CycleTracker:
 
         return cycles
 
-    def generate_report(self) -> Dict[str, any]:
+    def generate_report(self) -> dict[str, any]:
         """
         Generate summary report of all improvement cycles.
 

@@ -7,7 +7,7 @@ Provides server startup/shutdown and browser page fixtures.
 import socket
 import threading
 import time
-from typing import Generator
+from collections.abc import Generator
 
 import pytest
 
@@ -30,7 +30,7 @@ def wait_for_server(port: int, timeout: float = 15.0) -> bool:
                 s.settimeout(1)
                 s.connect(("127.0.0.1", port))
                 return True
-        except (ConnectionRefusedError, socket.timeout, OSError):
+        except (TimeoutError, ConnectionRefusedError, OSError):
             time.sleep(0.2)
     return False
 

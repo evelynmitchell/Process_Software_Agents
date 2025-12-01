@@ -17,14 +17,11 @@ Author: ASP Development Team
 Date: November 25, 2025
 """
 
-import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from rich.console import Console
-from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.table import Table
 
@@ -55,7 +52,7 @@ class PIPReviewCollector:
         >>> print(f"Decision: {updated_pip.hitl_status}")
     """
 
-    def __init__(self, base_path: Optional[str] = None):
+    def __init__(self, base_path: str | None = None):
         """Initialize PIPReviewCollector with rich console."""
         self.console = Console()
         self.base_path = base_path
@@ -63,7 +60,7 @@ class PIPReviewCollector:
     def review_pip(
         self,
         pip: ProcessImprovementProposal,
-        reviewer: Optional[str] = None,
+        reviewer: str | None = None,
     ) -> ProcessImprovementProposal:
         """
         Present PIP for review and collect decision.
@@ -339,7 +336,7 @@ class PIPReviewService:
         >>>     print("PIP approved! Applying changes...")
     """
 
-    def __init__(self, base_path: Optional[str] = None):
+    def __init__(self, base_path: str | None = None):
         """Initialize PIPReviewService."""
         self.collector = PIPReviewCollector(base_path=base_path)
         self.base_path = base_path
@@ -347,7 +344,7 @@ class PIPReviewService:
     def review_pip_by_id(
         self,
         task_id: str,
-        reviewer: Optional[str] = None,
+        reviewer: str | None = None,
     ) -> ProcessImprovementProposal:
         """
         Load and review PIP by task ID.
@@ -375,7 +372,7 @@ class PIPReviewService:
     def review_pip(
         self,
         pip: ProcessImprovementProposal,
-        reviewer: Optional[str] = None,
+        reviewer: str | None = None,
     ) -> ProcessImprovementProposal:
         """
         Review an existing PIP object.
@@ -389,7 +386,7 @@ class PIPReviewService:
         """
         return self.collector.review_pip(pip, reviewer=reviewer)
 
-    def list_pending_pips(self, artifacts_dir: Optional[Path] = None) -> list[str]:
+    def list_pending_pips(self, artifacts_dir: Path | None = None) -> list[str]:
         """
         List all pending PIPs (status = "pending").
 

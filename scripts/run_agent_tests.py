@@ -24,7 +24,6 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Optional
 
 
 class Colors:
@@ -90,8 +89,8 @@ class TestRunner:
     def run_pytest(
         self,
         test_path: str,
-        description: Optional[str] = None,
-        extra_args: Optional[List[str]] = None,
+        description: str | None = None,
+        extra_args: list[str] | None = None,
     ) -> bool:
         """Run pytest with specified path and arguments"""
         if description:

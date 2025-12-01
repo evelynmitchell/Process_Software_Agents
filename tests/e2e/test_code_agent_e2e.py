@@ -10,9 +10,6 @@ Requirements:
 - Real API mode will consume API credits (approximately $0.05-0.10 per test)
 """
 
-import os
-from datetime import datetime
-from pathlib import Path
 
 import pytest
 
@@ -199,7 +196,7 @@ class TestCodeAgentE2E:
         assert len(generated_code.dependencies) > 0
         assert len(generated_code.implementation_notes) >= 50
 
-        print(f" Code generation successful!")
+        print(" Code generation successful!")
         print(
             f"   Generated {generated_code.total_files} files with {generated_code.total_lines_of_code} LOC"
         )
@@ -262,7 +259,7 @@ class TestCodeAgentE2E:
             or "password" in generated_code.implementation_notes.lower()
         ), "Implementation notes should mention password hashing approach"
 
-        print(f"\n All validations passed!")
+        print("\n All validations passed!")
 
     def test_code_generation_includes_tests(self, llm_client):
         """Test that code generation includes test files."""
@@ -310,7 +307,7 @@ class TestCodeAgentE2E:
                 has_test_framework
             ), f"Test file should use a test framework: {test_file.file_path}"
 
-        print(f" All test files valid!")
+        print(" All test files valid!")
 
     def test_code_generation_with_context(self, llm_client):
         """Test code generation with additional context files."""
@@ -342,17 +339,15 @@ class TestCodeAgentE2E:
         # Check that file structure respects context hints
         file_paths = [f.file_path for f in generated_code.files]
         has_structured_paths = any(
-            [
-                "src/" in path
-                or "api/" in path
-                or "service" in path.lower()
-                or "model" in path.lower()
-                for path in file_paths
-            ]
+            "src/" in path
+            or "api/" in path
+            or "service" in path.lower()
+            or "model" in path.lower()
+            for path in file_paths
         )
         assert (
             has_structured_paths
         ), "Should organize files in a structured directory layout"
 
-        print(f" Code generation with context successful!")
+        print(" Code generation with context successful!")
         print(f"   File paths: {', '.join(file_paths[:5])}...")

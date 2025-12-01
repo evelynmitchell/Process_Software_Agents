@@ -12,10 +12,8 @@ Date: 2025-11-19
 import logging
 import sys
 from datetime import datetime
-from typing import Any, Dict
 
 from fastapi import FastAPI, HTTPException, status
-from fastapi.responses import JSONResponse
 
 # Configure logging
 logging.basicConfig(
@@ -44,7 +42,7 @@ class HelloWorldHandler:
     and status fields.
     """
 
-    def get_hello(self) -> Dict[str, str]:
+    def get_hello(self) -> dict[str, str]:
         """
         Returns Hello World response with current timestamp.
 
@@ -63,7 +61,7 @@ class HelloWorldHandler:
             logger.error(f"Error generating hello response: {str(e)}")
             raise
 
-    def format_response(self, message: str) -> Dict[str, str]:
+    def format_response(self, message: str) -> dict[str, str]:
         """
         Formats response with message, timestamp, and status.
 
@@ -95,7 +93,7 @@ hello_handler = HelloWorldHandler()
 
 
 @app.get("/hello")
-async def hello_endpoint() -> Dict[str, str]:
+async def hello_endpoint() -> dict[str, str]:
     """
     Returns a simple Hello World greeting message.
 
@@ -125,7 +123,7 @@ async def hello_endpoint() -> Dict[str, str]:
 
 
 @app.get("/")
-async def root() -> Dict[str, str]:
+async def root() -> dict[str, str]:
     """
     Root endpoint providing API information.
 
@@ -141,7 +139,7 @@ async def root() -> Dict[str, str]:
 
 
 @app.get("/health")
-async def health_check() -> Dict[str, str]:
+async def health_check() -> dict[str, str]:
     """
     Health check endpoint.
 

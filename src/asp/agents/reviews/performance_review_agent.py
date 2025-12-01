@@ -11,7 +11,7 @@ This agent focuses exclusively on performance aspects of design specifications:
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.models.design import DesignSpecification
@@ -30,8 +30,8 @@ class PerformanceReviewAgent(BaseAgent):
 
     def __init__(
         self,
-        llm_client: Optional[Any] = None,
-        db_path: Optional[str] = None,
+        llm_client: Any | None = None,
+        db_path: str | None = None,
     ):
         """
         Initialize Performance Review Agent.

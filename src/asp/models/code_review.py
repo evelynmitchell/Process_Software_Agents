@@ -8,8 +8,7 @@ Author: ASP Development Team
 Date: November 17, 2025
 """
 
-from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -81,22 +80,22 @@ class CodeIssue(BaseModel):
         min_length=1,
         description="File path where the issue occurs (e.g., 'src/api/auth.py')",
     )
-    line_number: Optional[int] = Field(
+    line_number: int | None = Field(
         default=None,
         ge=1,
         description="Line number where the issue occurs (if applicable)",
     )
-    code_snippet: Optional[str] = Field(
+    code_snippet: str | None = Field(
         default=None,
         description="Code snippet showing the problematic code",
     )
 
     # Traceability (optional)
-    semantic_unit_id: Optional[str] = Field(
+    semantic_unit_id: str | None = Field(
         default=None,
         description="Semantic unit ID from planning (for traceability)",
     )
-    component_id: Optional[str] = Field(
+    component_id: str | None = Field(
         default=None,
         description="Component ID from design (for traceability)",
     )
@@ -146,7 +145,7 @@ class CodeImprovementSuggestion(BaseModel):
         description="Unique identifier for the suggestion (e.g., 'CODE-IMPROVE-001')",
         pattern=r"^CODE-IMPROVE-\d{3}$",
     )
-    related_issue_id: Optional[str] = Field(
+    related_issue_id: str | None = Field(
         None,
         description="Issue ID this suggestion addresses (if applicable)",
         pattern=r"^CODE-ISSUE-\d{3}$",
@@ -182,11 +181,11 @@ class CodeImprovementSuggestion(BaseModel):
     )
 
     # Code-specific fields
-    file_path: Optional[str] = Field(
+    file_path: str | None = Field(
         default=None,
         description="File to modify (if applicable)",
     )
-    suggested_code: Optional[str] = Field(
+    suggested_code: str | None = Field(
         default=None,
         description="Code example showing the fix or improvement",
     )
@@ -246,7 +245,7 @@ class ChecklistItemReview(BaseModel):
         ...,
         description="Review status for this item",
     )
-    notes: Optional[str] = Field(
+    notes: str | None = Field(
         default=None,
         description="Additional notes or findings",
     )
@@ -391,7 +390,7 @@ class CodeReviewReport(BaseModel):
         ...,
         description="ISO 8601 timestamp of review completion",
     )
-    review_duration_seconds: Optional[float] = Field(
+    review_duration_seconds: float | None = Field(
         default=None,
         ge=0,
         description="Duration of review in seconds",

@@ -5,7 +5,7 @@ Branch management for local PR-style HITL workflow.
 import json
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class BranchManager:
@@ -42,7 +42,7 @@ class BranchManager:
         )
 
     def commit_output(
-        self, branch_name: str, output: Dict[str, Any], task_id: str, gate_type: str
+        self, branch_name: str, output: dict[str, Any], task_id: str, gate_type: str
     ) -> str:
         """
         Commit agent output to branch.
@@ -138,7 +138,7 @@ Requires HITL approval"""
         )
         return result.stdout
 
-    def get_diff_stats(self, base_branch: str, feature_branch: str) -> Dict[str, Any]:
+    def get_diff_stats(self, base_branch: str, feature_branch: str) -> dict[str, Any]:
         """
         Get diff statistics between branches.
 
@@ -260,7 +260,7 @@ Requires HITL approval"""
         )
         return result.returncode == 0
 
-    def list_branches(self, pattern: Optional[str] = None) -> List[str]:
+    def list_branches(self, pattern: str | None = None) -> list[str]:
         """
         List branches matching pattern.
 
@@ -287,7 +287,7 @@ Requires HITL approval"""
 
         return branches
 
-    def _write_output_files(self, output: Dict[str, Any]) -> None:
+    def _write_output_files(self, output: dict[str, Any]) -> None:
         """
         Write agent output to files.
 

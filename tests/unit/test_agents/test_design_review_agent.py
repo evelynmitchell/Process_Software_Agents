@@ -16,10 +16,9 @@ Date: November 16, 2025
 
 import json
 from datetime import datetime
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
-from pydantic import ValidationError
 
 from asp.agents.base_agent import AgentExecutionError
 from asp.agents.design_review_orchestrator import DesignReviewOrchestrator
@@ -35,15 +34,12 @@ from asp.models.design import (
     APIContract,
     ComponentLogic,
     DataSchema,
-    DesignInput,
     DesignReviewChecklistItem,
     DesignSpecification,
 )
 from asp.models.design_review import (
     ChecklistItemReview,
-    DesignIssue,
     DesignReviewReport,
-    ImprovementSuggestion,
 )
 from asp.models.planning import PROBEAIPrediction, ProjectPlan, SemanticUnit
 

@@ -20,11 +20,8 @@ Requirements:
 - Real API mode will consume API credits (approximately $0.02-0.05 per test)
 """
 
-import json
-import os
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -35,7 +32,6 @@ from asp.models.planning import (
     ProjectPlan,
     SemanticUnit,
 )
-from asp.parsers.design_markdown_parser import DesignMarkdownParser
 
 # Skip all tests if no API key is available
 
@@ -209,18 +205,18 @@ def validate_design_specification(
 
 
 def print_test_summary(
-    title: str, design: DesignSpecification, metrics: Dict[str, Any]
+    title: str, design: DesignSpecification, metrics: dict[str, Any]
 ):
     """Print formatted test summary."""
     print(f"\n{'='*80}")
     print(f"{title}")
     print(f"{'='*80}")
     print(f"Task ID: {design.task_id}")
-    print(f"\nMetrics:")
+    print("\nMetrics:")
     for key, value in metrics.items():
         print(f"  - {key}: {value}")
     print(f"\nArchitecture: {design.architecture_overview[:100]}...")
-    print(f"\nTechnology Stack:")
+    print("\nTechnology Stack:")
     for key, value in design.technology_stack.items():
         print(f"  - {key}: {value}")
     print(f"\nAPI Contracts: {len(design.api_contracts)}")
@@ -514,22 +510,22 @@ class TestDesignAgentMarkdownComparison:
         print("\n" + "=" * 80)
         print("Comparison: JSON vs Markdown (Sonnet 4.5)")
         print("=" * 80)
-        print(f"\nExecution Time:")
+        print("\nExecution Time:")
         print(f"  JSON:     {time_json:.2f}s")
         print(f"  Markdown: {time_md:.2f}s")
         print(
             f"  Delta:    {abs(time_json - time_md):.2f}s ({'+' if time_md > time_json else '-'}{abs(1 - time_md/time_json)*100:.1f}%)"
         )
 
-        print(f"\nAPI Contracts:")
+        print("\nAPI Contracts:")
         print(f"  JSON:     {len(design_json.api_contracts)}")
         print(f"  Markdown: {len(design_md.api_contracts)}")
 
-        print(f"\nComponents:")
+        print("\nComponents:")
         print(f"  JSON:     {len(design_json.component_logic)}")
         print(f"  Markdown: {len(design_md.component_logic)}")
 
-        print(f"\nReview Items:")
+        print("\nReview Items:")
         print(f"  JSON:     {len(design_json.design_review_checklist)}")
         print(f"  Markdown: {len(design_md.design_review_checklist)}")
         print("=" * 80 + "\n")
@@ -592,22 +588,22 @@ class TestDesignAgentMarkdownComparison:
         print("\n" + "=" * 80)
         print("Comparison: JSON vs Markdown (Haiku 4.5)")
         print("=" * 80)
-        print(f"\nExecution Time:")
+        print("\nExecution Time:")
         print(f"  JSON:     {time_json:.2f}s")
         print(f"  Markdown: {time_md:.2f}s")
         print(
             f"  Delta:    {abs(time_json - time_md):.2f}s ({'+' if time_md > time_json else '-'}{abs(1 - time_md/time_json)*100:.1f}%)"
         )
 
-        print(f"\nAPI Contracts:")
+        print("\nAPI Contracts:")
         print(f"  JSON:     {len(design_json.api_contracts)}")
         print(f"  Markdown: {len(design_md.api_contracts)}")
 
-        print(f"\nComponents:")
+        print("\nComponents:")
         print(f"  JSON:     {len(design_json.component_logic)}")
         print(f"  Markdown: {len(design_md.component_logic)}")
 
-        print(f"\nReview Items:")
+        print("\nReview Items:")
         print(f"  JSON:     {len(design_json.design_review_checklist)}")
         print(f"  Markdown: {len(design_md.design_review_checklist)}")
         print("=" * 80 + "\n")
@@ -646,9 +642,9 @@ class TestDesignAgentMarkdownParsing:
         assert "design_review_checklist" in design_dict
 
         print(f"\n{'='*80}")
-        print(f"Markdown Parsing Validation")
+        print("Markdown Parsing Validation")
         print(f"{'='*80}")
-        print(f"Successfully parsed and validated markdown output")
+        print("Successfully parsed and validated markdown output")
         print(f"Design dict keys: {list(design_dict.keys())}")
         print(f"{'='*80}\n")
 

@@ -14,9 +14,7 @@ Usage:
 
 import argparse
 import sqlite3
-from datetime import datetime
 from pathlib import Path
-from typing import List, Tuple
 
 # ============================================================================
 # Configuration
@@ -37,7 +35,7 @@ def get_connection(db_path: Path) -> sqlite3.Connection:
     return conn
 
 
-def query_agent_costs(conn: sqlite3.Connection, limit: int = 20) -> List[sqlite3.Row]:
+def query_agent_costs(conn: sqlite3.Connection, limit: int = 20) -> list[sqlite3.Row]:
     """
     Query recent agent cost records.
 
@@ -65,7 +63,7 @@ def query_agent_costs(conn: sqlite3.Connection, limit: int = 20) -> List[sqlite3
 
 def query_agent_costs_by_task(
     conn: sqlite3.Connection, task_id: str
-) -> List[sqlite3.Row]:
+) -> list[sqlite3.Row]:
     """
     Query all agent costs for a specific task.
 
@@ -90,7 +88,7 @@ def query_agent_costs_by_task(
     return cursor.fetchall()
 
 
-def query_agent_cost_summary(conn: sqlite3.Connection) -> List[sqlite3.Row]:
+def query_agent_cost_summary(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """
     Aggregate agent costs by role and metric type.
 
@@ -116,7 +114,7 @@ def query_agent_cost_summary(conn: sqlite3.Connection) -> List[sqlite3.Row]:
     return cursor.fetchall()
 
 
-def query_defects(conn: sqlite3.Connection, limit: int = 20) -> List[sqlite3.Row]:
+def query_defects(conn: sqlite3.Connection, limit: int = 20) -> list[sqlite3.Row]:
     """
     Query recent defect records.
 
@@ -144,7 +142,7 @@ def query_defects(conn: sqlite3.Connection, limit: int = 20) -> List[sqlite3.Row
     return cursor.fetchall()
 
 
-def query_defects_by_type(conn: sqlite3.Connection) -> List[sqlite3.Row]:
+def query_defects_by_type(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """
     Aggregate defects by type and severity.
 
@@ -167,7 +165,7 @@ def query_defects_by_type(conn: sqlite3.Connection) -> List[sqlite3.Row]:
     return cursor.fetchall()
 
 
-def query_defects_by_phase(conn: sqlite3.Connection) -> List[sqlite3.Row]:
+def query_defects_by_phase(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """
     Aggregate defects by injection and removal phases.
 
@@ -195,7 +193,7 @@ def query_defects_by_phase(conn: sqlite3.Connection) -> List[sqlite3.Row]:
     return cursor.fetchall()
 
 
-def query_task_summary(conn: sqlite3.Connection) -> List[sqlite3.Row]:
+def query_task_summary(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """
     Get summary of all tasks with cost and defect counts.
 
@@ -225,7 +223,7 @@ def query_task_summary(conn: sqlite3.Connection) -> List[sqlite3.Row]:
 
 def query_probe_ai_data(
     conn: sqlite3.Connection, agent_role: str = "Planning"
-) -> List[sqlite3.Row]:
+) -> list[sqlite3.Row]:
     """
     Query data for PROBE-AI estimation model.
 
@@ -293,7 +291,7 @@ def print_header(title: str):
     print("=" * 80)
 
 
-def print_rows(rows: List[sqlite3.Row], title: str = None):
+def print_rows(rows: list[sqlite3.Row], title: str = None):
     """Print query results in a formatted table."""
     if title:
         print_header(title)

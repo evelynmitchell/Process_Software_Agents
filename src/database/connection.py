@@ -12,8 +12,8 @@ Author: ASP Code Agent
 
 import logging
 import os
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator, Optional
 
 from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.exc import SQLAlchemyError
@@ -28,8 +28,8 @@ logger = logging.getLogger(__name__)
 Base = declarative_base()
 
 # Global database engine and session factory
-_engine: Optional[Engine] = None
-_session_factory: Optional[sessionmaker] = None
+_engine: Engine | None = None
+_session_factory: sessionmaker | None = None
 
 
 class DatabaseConfig:
@@ -72,7 +72,7 @@ class DatabaseConfig:
         return kwargs
 
 
-def create_database_engine(config: Optional[DatabaseConfig] = None) -> Engine:
+def create_database_engine(config: DatabaseConfig | None = None) -> Engine:
     """
     Create and configure SQLAlchemy database engine.
 
@@ -119,7 +119,7 @@ def _setup_engine_events(engine: Engine) -> None:
         logger.debug("Database connection established")
 
 
-def initialize_database(config: Optional[DatabaseConfig] = None) -> None:
+def initialize_database(config: DatabaseConfig | None = None) -> None:
     """
     Initialize global database engine and session factory.
 

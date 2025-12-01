@@ -5,10 +5,9 @@ This agent performs automated validation checks and LLM-based deep review to ens
 design quality before code generation.
 """
 
-import json
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.models.design import DesignSpecification
@@ -39,8 +38,8 @@ class DesignReviewAgent(BaseAgent):
 
     def __init__(
         self,
-        llm_client: Optional[Any] = None,
-        db_path: Optional[str] = None,
+        llm_client: Any | None = None,
+        db_path: str | None = None,
     ):
         """
         Initialize Design Review Agent.
@@ -63,7 +62,7 @@ class DesignReviewAgent(BaseAgent):
     def execute(
         self,
         design_spec: DesignSpecification,
-        quality_standards: Optional[str] = None,
+        quality_standards: str | None = None,
     ) -> DesignReviewReport:
         """
         Execute design review on a design specification.
@@ -323,7 +322,7 @@ class DesignReviewAgent(BaseAgent):
     def _run_llm_review(
         self,
         design_spec: DesignSpecification,
-        quality_standards: Optional[str] = None,
+        quality_standards: str | None = None,
     ) -> dict[str, Any]:
         """
         Run LLM-based deep review of the design specification.

@@ -12,7 +12,7 @@ Date: November 21, 2025
 import json
 import re
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 
 class DesignMarkdownParser:
@@ -116,7 +116,7 @@ class DesignMarkdownParser:
             "Task ID not found in markdown (expected in title or metadata)"
         )
 
-    def _extract_timestamp(self, markdown: str) -> Optional[datetime]:
+    def _extract_timestamp(self, markdown: str) -> datetime | None:
         """Extract timestamp from metadata."""
         match = re.search(r"\*\*Timestamp:\*\* (.+?)$", markdown, re.MULTILINE)
         if match:
@@ -422,7 +422,7 @@ class DesignMarkdownParser:
         match = re.search(pattern, content, re.MULTILINE)
         return match.group(1).strip() if match else ""
 
-    def _parse_json_block(self, content: str, header: str) -> Optional[dict[str, Any]]:
+    def _parse_json_block(self, content: str, header: str) -> dict[str, Any] | None:
         """Parse JSON from code block after header."""
         # Pattern: header followed by ```json ... ```
         # Header may be surrounded by ** for bold
@@ -444,7 +444,7 @@ class DesignMarkdownParser:
 
         return None
 
-    def _parse_request_params(self, content: str) -> Optional[dict[str, str]]:
+    def _parse_request_params(self, content: str) -> dict[str, str] | None:
         """
         Parse request parameters section.
 
@@ -694,7 +694,7 @@ class DesignMarkdownParser:
 
         return ""
 
-    def _extract_complexity(self, content: str) -> Optional[int]:
+    def _extract_complexity(self, content: str) -> int | None:
         """Extract estimated complexity value."""
         pattern = r"\*\*Estimated Complexity:\*\*\s*(\d+)"
         match = re.search(pattern, content)

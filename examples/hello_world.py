@@ -100,7 +100,7 @@ def main():
         print("   ⚠️  Artifacts directory not found")
 
     print()
-    print(f"🔍 View detailed traces at: https://cloud.langfuse.com")
+    print("🔍 View detailed traces at: https://cloud.langfuse.com")
     print()
     print("=" * 70)
     print("Example complete!")

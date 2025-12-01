@@ -35,7 +35,7 @@ def read_sql_file(file_path: Path) -> str:
     if not file_path.exists():
         raise FileNotFoundError(f"SQL file not found: {file_path}")
 
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         return f.read()
 
 
@@ -154,7 +154,7 @@ def initialize_database(
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     print(f"\n{'='*50}")
-    print(f"Initializing ASP Telemetry Database")
+    print("Initializing ASP Telemetry Database")
     print(f"{'='*50}")
     print(f"Database: {db_path}")
     print(f"SQL Directory: {sql_dir}\n")

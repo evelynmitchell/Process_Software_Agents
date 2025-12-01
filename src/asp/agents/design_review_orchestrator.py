@@ -15,7 +15,7 @@ Aggregates results, deduplicates issues, resolves conflicts, generates DesignRev
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.agents.reviews import (
@@ -48,8 +48,8 @@ class DesignReviewOrchestrator(BaseAgent):
 
     def __init__(
         self,
-        llm_client: Optional[Any] = None,
-        db_path: Optional[str] = None,
+        llm_client: Any | None = None,
+        db_path: str | None = None,
     ):
         """
         Initialize Design Review Orchestrator.
@@ -90,7 +90,7 @@ class DesignReviewOrchestrator(BaseAgent):
     def execute(
         self,
         design_spec: DesignSpecification,
-        quality_standards: Optional[str] = None,
+        quality_standards: str | None = None,
     ) -> DesignReviewReport:
         """
         Execute comprehensive design review using all specialist agents in parallel.
@@ -226,7 +226,7 @@ class DesignReviewOrchestrator(BaseAgent):
 
         results = await asyncio.gather(*tasks)
 
-        return {name: result for name, result in results}
+        return dict(results)
 
     def _normalize_category(self, category: str) -> str:
         """
@@ -687,7 +687,7 @@ class DesignReviewOrchestrator(BaseAgent):
         return checklist_review
 
     def _generate_review_id(self, task_id: str, timestamp: datetime) -> str:
-        """Generate unique review ID matching pattern ^REVIEW-[A-Z0-9]+-\d{8}-\d{6}$"""
+        r"""Generate unique review ID matching pattern ^REVIEW-[A-Z0-9]+-\d{8}-\d{6}$"""
         # Remove all non-alphanumeric characters (including hyphens and underscores)
         clean_task_id = "".join(c if c.isalnum() else "" for c in task_id).upper()
 

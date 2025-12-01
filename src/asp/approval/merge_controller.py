@@ -4,7 +4,6 @@ Merge and tag operations for approved/rejected reviews.
 
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 from asp.approval.base import ApprovalResponse
 
@@ -26,7 +25,7 @@ class MergeController:
         branch_name: str,
         base_branch: str,
         review_metadata: ApprovalResponse,
-        task_id: Optional[str] = None,
+        task_id: str | None = None,
     ) -> str:
         """
         Merge branch with --no-ff, return merge commit SHA.
@@ -88,7 +87,7 @@ Justification: {review_metadata.justification}
         self,
         branch_name: str,
         review_metadata: ApprovalResponse,
-        task_id: Optional[str] = None,
+        task_id: str | None = None,
     ) -> None:
         """
         Tag rejected branch for historical record.
@@ -122,7 +121,7 @@ Reason: {review_metadata.justification}
         self,
         branch_name: str,
         review_metadata: ApprovalResponse,
-        task_id: Optional[str] = None,
+        task_id: str | None = None,
     ) -> None:
         """
         Tag deferred branch for later review.

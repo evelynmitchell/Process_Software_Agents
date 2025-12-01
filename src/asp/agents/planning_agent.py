@@ -14,7 +14,6 @@ Date: November 13, 2025
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.models.planning import ProjectPlan, SemanticUnit, TaskRequirements
@@ -54,8 +53,8 @@ class PlanningAgent(BaseAgent):
 
     def __init__(
         self,
-        db_path: Optional[Path] = None,
-        llm_client: Optional[any] = None,
+        db_path: Path | None = None,
+        llm_client: any | None = None,
     ):
         """
         Initialize Planning Agent.
@@ -75,7 +74,7 @@ class PlanningAgent(BaseAgent):
         agent_version="1.0.0",
     )
     def execute(
-        self, input_data: TaskRequirements, feedback: Optional[list] = None
+        self, input_data: TaskRequirements, feedback: list | None = None
     ) -> ProjectPlan:
         """
         Execute Planning Agent logic with optional feedback.

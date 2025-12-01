@@ -176,8 +176,21 @@ ignore = [
     "B008",  # do not perform function calls in argument defaults
     "C901",  # too complex
     "W191",  # indentation contains tabs
+    "SIM117",  # nested with statements (sometimes clearer)
+    "SIM102",  # nested if statements (sometimes clearer)
+    "SIM108",  # ternary operator (not always clearer)
+    "SIM103",  # return bool directly (not always clearer)
+    "SIM118",  # use key in dict (sometimes clearer with .keys())
+    "B904",  # raise from err (not critical for now)
+    "B007",  # unused loop variable (use _ prefix)
+    "B017",  # assert blind exception in tests
+    "F841",  # unused variable (cleanup later)
+    "ARG001",  # unused function argument
+    "ARG002",  # unused method argument
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # unused imports
 "tests/**/*.py" = ["ARG", "S101"]  # unused arguments and assert usage in tests
+"src/asp/web/*.py" = ["F403", "F405"]  # star imports are standard for FastHTML
+"examples/*.py" = ["ARG001", "F841", "B007"]  # examples may have unused vars for demonstration

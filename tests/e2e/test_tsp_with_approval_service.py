@@ -19,10 +19,7 @@ Run with:
     pytest tests/e2e/test_tsp_with_approval_service.py -m e2e -v -s
 """
 
-import os
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict
 
 import pytest
 
@@ -82,7 +79,7 @@ class MockApprovalService(ApprovalService):
 
         # Print approval simulation
         print(f"\n{'='*80}")
-        print(f"MOCK APPROVAL SERVICE: Simulating HITL Review")
+        print("MOCK APPROVAL SERVICE: Simulating HITL Review")
         print(f"{'='*80}")
         print(f"Task ID: {request.task_id}")
         print(f"Gate Type: {request.gate_type}")
@@ -326,7 +323,7 @@ class TestTSPWithApprovalService:
 
         except QualityGateFailure as e:
             # Expected when quality gate fails and rejection occurs
-            print(f"\n[EXPECTED] Quality gate failed and rejection halted pipeline")
+            print("\n[EXPECTED] Quality gate failed and rejection halted pipeline")
             print(f"  Error: {e}")
             print("  ✓ Rejection properly halts pipeline")
 
@@ -392,7 +389,7 @@ class TestTSPWithApprovalService:
         assert result.overall_status in ["PASS", "CONDITIONAL_PASS", "NEEDS_REVIEW"]
 
         # Validate priority: ApprovalService should be used, NOT callable
-        print(f"\n[VALIDATION] Priority Ordering:")
+        print("\n[VALIDATION] Priority Ordering:")
         print(f"  ApprovalService calls: {len(approval_service.approval_requests)}")
         print(f"  Legacy callable calls: {len(callable_called)}")
 
@@ -448,7 +445,7 @@ class TestTSPWithApprovalService:
         )
 
         # Validate audit trail
-        print(f"\n[AUDIT TRAIL] Analysis:")
+        print("\n[AUDIT TRAIL] Analysis:")
         print(f"  Total HITL overrides: {len(result.hitl_overrides)}")
 
         if len(result.hitl_overrides) > 0:

@@ -12,7 +12,6 @@ Cost: $0 (no API calls)
 Time: < 1 second
 """
 
-import json
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -157,7 +156,7 @@ def main():
     print(f"PROBE-AI Threshold: {probe_ai_threshold} tasks")
 
     if total_tasks >= probe_ai_threshold:
-        print(f"✅ Bootstrap complete! PROBE-AI can be enabled.")
+        print("✅ Bootstrap complete! PROBE-AI can be enabled.")
     else:
         remaining = probe_ai_threshold - total_tasks
         print(f"⏳ Bootstrap in progress. {remaining} more tasks needed for PROBE-AI.")

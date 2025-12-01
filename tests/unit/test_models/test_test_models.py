@@ -9,7 +9,6 @@ Tests cover:
 - JSON serialization/deserialization
 """
 
-from datetime import datetime
 
 import pytest
 from pydantic import ValidationError

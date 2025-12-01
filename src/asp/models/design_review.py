@@ -6,7 +6,7 @@ including issues, improvement suggestions, and review reports.
 """
 
 from datetime import datetime
-from typing import Any, Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -111,7 +111,7 @@ class ImprovementSuggestion(BaseModel):
         description="Unique identifier for the suggestion (e.g., 'IMPROVE-001')",
         pattern=r"^IMPROVE-\d{3}$",
     )
-    related_issue_id: Optional[str] = Field(
+    related_issue_id: str | None = Field(
         None,
         description="Issue ID this suggestion addresses (if applicable)",
         pattern=r"^ISSUE-\d{3}$",
@@ -162,7 +162,7 @@ class ImprovementSuggestion(BaseModel):
 
     @field_validator("related_issue_id")
     @classmethod
-    def validate_related_issue_id(cls, v: Optional[str]) -> Optional[str]:
+    def validate_related_issue_id(cls, v: str | None) -> str | None:
         """Validate related issue ID format."""
         if v is not None and not v.startswith("ISSUE-"):
             raise ValueError("Related issue ID must start with 'ISSUE-'")

@@ -4,7 +4,6 @@ Approval decision collection from user input.
 
 import getpass
 from datetime import datetime
-from typing import Optional
 
 from rich.console import Console
 
@@ -18,7 +17,7 @@ class ApprovalCollector:
         """Initialize ApprovalCollector."""
         self.console = Console()
 
-    def collect_decision(self, task_id: Optional[str] = None) -> ApprovalResponse:
+    def collect_decision(self, task_id: str | None = None) -> ApprovalResponse:
         """
         Collect approval decision from user.
 

@@ -23,14 +23,12 @@ Date: November 25, 2025
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 from asp.agents.postmortem_agent import PostmortemAgent
 from asp.approval.pip_review_service import PIPReviewService
 from asp.models.postmortem import (
     PostmortemInput,
     PostmortemReport,
-    ProcessImprovementProposal,
 )
 from asp.prompts.prompt_versioner import PromptVersioner
 from asp.telemetry.cycle_tracker import CycleTracker
@@ -230,7 +228,7 @@ class ImprovementLoopOrchestrator:
         pip_id: str,
         impact_task_id: str,
         new_defect_count: int,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> dict:
         """
         Measure impact of PIP on subsequent task.

@@ -13,7 +13,7 @@ Date: November 19, 2025
 
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from asp.agents.base_agent import AgentExecutionError
 from asp.agents.design_agent import DesignAgent
@@ -60,8 +60,8 @@ class PlanningDesignOrchestrator:
 
     def __init__(
         self,
-        db_path: Optional[Path] = None,
-        llm_client: Optional[Any] = None,
+        db_path: Path | None = None,
+        llm_client: Any | None = None,
     ):
         """
         Initialize orchestrator with agents.
@@ -74,9 +74,9 @@ class PlanningDesignOrchestrator:
         self.llm_client = llm_client
 
         # Initialize agents (lazy - only create when needed)
-        self._planning_agent: Optional[PlanningAgent] = None
-        self._design_agent: Optional[DesignAgent] = None
-        self._design_review_agent: Optional[DesignReviewAgent] = None
+        self._planning_agent: PlanningAgent | None = None
+        self._design_agent: DesignAgent | None = None
+        self._design_review_agent: DesignReviewAgent | None = None
 
         logger.info("PlanningDesignOrchestrator initialized")
 
@@ -113,7 +113,7 @@ class PlanningDesignOrchestrator:
     def execute(
         self,
         requirements: TaskRequirements,
-        design_constraints: Optional[str] = None,
+        design_constraints: str | None = None,
     ) -> PlanningDesignResult:
         """
         Execute Planning → Design → Design Review with feedback loops.
@@ -260,7 +260,7 @@ class PlanningDesignOrchestrator:
                 total_iterations += 1
 
                 if review_report.overall_assessment in ["PASS", "NEEDS_IMPROVEMENT"]:
-                    logger.info(f"Design passed review after redesign")
+                    logger.info("Design passed review after redesign")
                     return PlanningDesignResult(
                         project_plan=project_plan,
                         design_specification=design_spec,
@@ -293,7 +293,7 @@ class PlanningDesignOrchestrator:
     def _execute_planning(
         self,
         requirements: TaskRequirements,
-        feedback: Optional[list] = None,
+        feedback: list | None = None,
     ) -> ProjectPlan:
         """Execute Planning Agent with optional feedback."""
         try:
@@ -302,7 +302,7 @@ class PlanningDesignOrchestrator:
                     f"Planning Agent: executing with {len(feedback)} feedback items"
                 )
             else:
-                logger.info(f"Planning Agent: executing initial planning")
+                logger.info("Planning Agent: executing initial planning")
 
             project_plan = self.planning_agent.execute(requirements, feedback=feedback)
 
@@ -320,8 +320,8 @@ class PlanningDesignOrchestrator:
         self,
         requirements: TaskRequirements,
         project_plan: ProjectPlan,
-        design_constraints: Optional[str],
-        feedback: Optional[list] = None,
+        design_constraints: str | None,
+        feedback: list | None = None,
     ) -> DesignSpecification:
         """Execute Design Agent with optional feedback."""
         try:
@@ -330,7 +330,7 @@ class PlanningDesignOrchestrator:
                     f"Design Agent: executing with {len(feedback)} feedback items"
                 )
             else:
-                logger.info(f"Design Agent: executing initial design")
+                logger.info("Design Agent: executing initial design")
 
             design_input = DesignInput(
                 task_id=requirements.task_id,

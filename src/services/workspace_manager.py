@@ -17,7 +17,6 @@ import subprocess
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 
 @dataclass
@@ -59,7 +58,7 @@ class WorkspaceManager:
         >>> manager.cleanup_workspace(workspace)
     """
 
-    def __init__(self, base_path: Optional[Path] = None):
+    def __init__(self, base_path: Path | None = None):
         """Initialize WorkspaceManager.
 
         Args:
@@ -117,7 +116,7 @@ class WorkspaceManager:
         return workspace
 
     def clone_repository(
-        self, workspace: Workspace, repo_url: str, branch: Optional[str] = None
+        self, workspace: Workspace, repo_url: str, branch: str | None = None
     ) -> Path:
         """Clone a repository into the workspace.
 
@@ -155,7 +154,7 @@ class WorkspaceManager:
             ) from e
 
     def initialize_git_repo(
-        self, workspace: Workspace, initial_files: Optional[dict] = None
+        self, workspace: Workspace, initial_files: dict | None = None
     ) -> Path:
         """Initialize a new git repository in the workspace (for testing/new projects).
 

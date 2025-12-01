@@ -10,7 +10,6 @@ Author: ASP Development Team
 Date: November 13, 2025
 """
 
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -29,7 +28,7 @@ class TaskRequirements(BaseModel):
         min_length=1,
     )
 
-    project_id: Optional[str] = Field(
+    project_id: str | None = Field(
         None,
         description="Project identifier for grouping related tasks",
     )
@@ -46,7 +45,7 @@ class TaskRequirements(BaseModel):
         min_length=20,
     )
 
-    context_files: Optional[list[str]] = Field(
+    context_files: list[str] | None = Field(
         default=None,
         description="Paths to context files (architecture docs, design specs, etc.)",
     )
@@ -215,7 +214,7 @@ class ProjectPlan(BaseModel):
     optional PROBE-AI predictions (Phase 2).
     """
 
-    project_id: Optional[str] = Field(
+    project_id: str | None = Field(
         None,
         description="Project identifier",
     )
@@ -239,7 +238,7 @@ class ProjectPlan(BaseModel):
     )
 
     # PROBE-AI predictions (None until Phase 2)
-    probe_ai_prediction: Optional[PROBEAIPrediction] = Field(
+    probe_ai_prediction: PROBEAIPrediction | None = Field(
         None,
         description="PROBE-AI predictions (None if insufficient historical data)",
     )

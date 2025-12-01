@@ -8,10 +8,7 @@ Author: ASP Code Agent
 """
 
 import os
-import tempfile
-from datetime import datetime, timezone
-from typing import Any, Dict, Generator
-from unittest.mock import Mock, patch
+from typing import Any
 
 import pytest
 
@@ -78,7 +75,7 @@ class MockLLMClient:
         temperature: float = 0.0,
         system: str = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Mock LLM API call that returns realistic responses.
 

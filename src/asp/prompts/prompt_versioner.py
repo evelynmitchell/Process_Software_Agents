@@ -24,7 +24,6 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 from asp.models.postmortem import ProcessImprovementProposal, ProposedChange
 from asp.utils.git_utils import git_commit_artifact, is_git_repository
@@ -76,7 +75,7 @@ class PromptVersioner:
         self,
         pip: ProcessImprovementProposal,
         dry_run: bool = False,
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """
         Apply approved PIP changes to prompts.
 
@@ -190,7 +189,7 @@ class PromptVersioner:
 
         return new_file
 
-    def _find_prompt_file(self, artifact_name: str) -> Tuple[Path, int]:
+    def _find_prompt_file(self, artifact_name: str) -> tuple[Path, int]:
         """
         Find the latest version of a prompt file.
 
@@ -371,7 +370,7 @@ class PromptVersioner:
     def _update_version_history(
         self,
         pip: ProcessImprovementProposal,
-        results: Dict[str, str],
+        results: dict[str, str],
     ) -> None:
         """
         Update VERSION_HISTORY.md with PIP application record.

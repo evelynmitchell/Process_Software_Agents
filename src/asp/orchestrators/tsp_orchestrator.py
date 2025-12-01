@@ -21,7 +21,7 @@ Date: November 22, 2025
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from asp.agents.base_agent import AgentExecutionError
 from asp.agents.code_agent import CodeAgent
@@ -106,9 +106,9 @@ class TSPOrchestrator:
 
     def __init__(
         self,
-        db_path: Optional[Path] = None,
-        llm_client: Optional[Any] = None,
-        approval_service: Optional[ApprovalService] = None,
+        db_path: Path | None = None,
+        llm_client: Any | None = None,
+        approval_service: ApprovalService | None = None,
     ):
         """
         Initialize TSP Orchestrator.
@@ -123,13 +123,13 @@ class TSPOrchestrator:
         self.approval_service = approval_service
 
         # Initialize agents (lazy-loaded)
-        self._planning_agent: Optional[PlanningAgent] = None
-        self._design_agent: Optional[DesignAgent] = None
-        self._design_review_orchestrator: Optional[DesignReviewOrchestrator] = None
-        self._code_agent: Optional[CodeAgent] = None
-        self._code_review_orchestrator: Optional[CodeReviewOrchestrator] = None
-        self._test_agent: Optional[TestAgent] = None
-        self._postmortem_agent: Optional[PostmortemAgent] = None
+        self._planning_agent: PlanningAgent | None = None
+        self._design_agent: DesignAgent | None = None
+        self._design_review_orchestrator: DesignReviewOrchestrator | None = None
+        self._code_agent: CodeAgent | None = None
+        self._code_review_orchestrator: CodeReviewOrchestrator | None = None
+        self._test_agent: TestAgent | None = None
+        self._postmortem_agent: PostmortemAgent | None = None
 
         # Execution state
         self.execution_log: list[dict[str, Any]] = []
@@ -219,9 +219,9 @@ class TSPOrchestrator:
     def execute(
         self,
         requirements: TaskRequirements,
-        design_constraints: Optional[str] = None,
-        coding_standards: Optional[str] = None,
-        hitl_approver: Optional[callable] = None,
+        design_constraints: str | None = None,
+        coding_standards: str | None = None,
+        hitl_approver: callable | None = None,
     ) -> TSPExecutionResult:
         """
         Execute complete TSP autonomous development pipeline.
@@ -253,7 +253,7 @@ class TSPOrchestrator:
             AgentExecutionError: If agent execution fails
         """
         logger.info(
-            f"=" * 80 + "\n"
+            "=" * 80 + "\n"
             f"TSP ORCHESTRATOR: Starting autonomous pipeline\n"
             f"Task: {requirements.task_id} - {requirements.description}\n"
             f"=" * 80
@@ -333,7 +333,7 @@ class TSPOrchestrator:
             passed_tests = test_report.test_summary.get("passed", 0)
 
             logger.info(
-                f"\n" + "=" * 80 + "\n"
+                "\n" + "=" * 80 + "\n"
                 f"TSP ORCHESTRATOR: Pipeline COMPLETE\n"
                 f"Overall Status: {overall_status}\n"
                 f"Duration: {duration_seconds:.1f}s\n"
@@ -391,8 +391,8 @@ class TSPOrchestrator:
         self,
         requirements: TaskRequirements,
         project_plan: ProjectPlan,
-        design_constraints: Optional[str],
-        hitl_approver: Optional[callable],
+        design_constraints: str | None,
+        hitl_approver: callable | None,
     ) -> tuple[DesignSpecification, DesignReviewReport]:
         """
         Execute Design Agent with Design Review quality gate.
@@ -465,7 +465,7 @@ class TSPOrchestrator:
 
                 # No HITL or rejected - attempt correction if iterations remain
                 if design_iterations < self.MAX_DESIGN_ITERATIONS:
-                    logger.info(f"Retrying design with feedback from review...")
+                    logger.info("Retrying design with feedback from review...")
                     # In a full implementation, would pass feedback to design agent
                     # For now, just retry
                     continue
@@ -486,8 +486,8 @@ class TSPOrchestrator:
         self,
         requirements: TaskRequirements,
         design_spec: DesignSpecification,
-        coding_standards: Optional[str],
-        hitl_approver: Optional[callable],
+        coding_standards: str | None,
+        hitl_approver: callable | None,
     ) -> tuple[GeneratedCode, CodeReviewReport]:
         """
         Execute Code Agent with Code Review quality gate.
@@ -561,7 +561,7 @@ class TSPOrchestrator:
                 # No HITL or rejected - attempt correction if iterations remain
                 if code_iterations < self.MAX_CODE_ITERATIONS:
                     logger.info(
-                        f"Retrying code generation with feedback from review..."
+                        "Retrying code generation with feedback from review..."
                     )
                     continue
                 else:
@@ -581,7 +581,7 @@ class TSPOrchestrator:
         requirements: TaskRequirements,
         design_spec: DesignSpecification,
         generated_code: GeneratedCode,
-        coding_standards: Optional[str],
+        coding_standards: str | None,
     ) -> TestReport:
         """
         Execute Test Agent with retry loop for test failures.
@@ -693,7 +693,7 @@ class TSPOrchestrator:
         gate_type: str,
         gate_name: str,
         report: Any,
-        hitl_approver: Optional[callable],
+        hitl_approver: callable | None,
     ) -> bool:
         """
         Request approval for quality gate failure.

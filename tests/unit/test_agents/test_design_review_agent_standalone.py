@@ -16,11 +16,9 @@ Date: November 19, 2025
 
 import json
 from datetime import datetime
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-from pydantic import ValidationError
 
 from asp.agents.base_agent import AgentExecutionError
 from asp.agents.design_review_agent import DesignReviewAgent
@@ -32,10 +30,7 @@ from asp.models.design import (
     DesignSpecification,
 )
 from asp.models.design_review import (
-    ChecklistItemReview,
-    DesignIssue,
     DesignReviewReport,
-    ImprovementSuggestion,
 )
 
 # =============================================================================
@@ -578,9 +573,8 @@ class TestLLMReview:
 
         with patch.object(
             agent, "load_prompt", side_effect=FileNotFoundError("Missing")
-        ):
-            with pytest.raises(AgentExecutionError, match="Prompt template not found"):
-                agent._run_llm_review(design_spec, None)
+        ), pytest.raises(AgentExecutionError, match="Prompt template not found"):
+            agent._run_llm_review(design_spec, None)
 
     @patch("asp.agents.design_review_agent.DesignReviewAgent.call_llm")
     def test_llm_review_fails_on_invalid_json(self, mock_call_llm):

@@ -22,7 +22,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from asp.agents.base_agent import AgentExecutionError
 from asp.agents.postmortem_agent import PostmortemAgent
 from asp.models.planning import PROBEAIPrediction, ProjectPlan, SemanticUnit
 from asp.models.postmortem import (

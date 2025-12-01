@@ -16,8 +16,7 @@ Date: 2025-11-18
 
 import json
 from datetime import datetime
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 

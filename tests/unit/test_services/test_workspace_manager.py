@@ -12,13 +12,12 @@ See: design/ADR_001_workspace_isolation_and_execution_tracking.md
 """
 
 import subprocess
-import tempfile
 from datetime import datetime
 from pathlib import Path
 
 import pytest
 
-from src.services.workspace_manager import Workspace, WorkspaceManager
+from src.services.workspace_manager import WorkspaceManager
 
 
 @pytest.fixture

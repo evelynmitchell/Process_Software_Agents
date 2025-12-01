@@ -18,11 +18,12 @@ import functools
 import os
 import sqlite3
 import time
+from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any
 
 from langfuse import Langfuse
 
@@ -54,7 +55,7 @@ class DefectType(StrEnum):
 
 
 # Langfuse client (initialized lazily)
-_langfuse_client: Optional[Langfuse] = None
+_langfuse_client: Langfuse | None = None
 
 
 def get_langfuse_client() -> Langfuse:
@@ -111,7 +112,7 @@ def get_user_id() -> str:
 
 
 @contextmanager
-def get_db_connection(db_path: Optional[Path] = None):
+def get_db_connection(db_path: Path | None = None):
     """
     Context manager for database connections.
 
@@ -140,15 +141,15 @@ def insert_agent_cost(
     metric_type: str,
     metric_value: float,
     metric_unit: str,
-    subtask_id: Optional[str] = None,
-    project_id: Optional[str] = None,
-    user_id: Optional[str] = None,
-    agent_version: Optional[str] = None,
+    subtask_id: str | None = None,
+    project_id: str | None = None,
+    user_id: str | None = None,
+    agent_version: str | None = None,
     agent_iteration: int = 1,
-    llm_model: Optional[str] = None,
-    llm_provider: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None,
-    db_path: Optional[Path] = None,
+    llm_model: str | None = None,
+    llm_provider: str | None = None,
+    metadata: dict[str, Any] | None = None,
+    db_path: Path | None = None,
 ) -> int:
     """
     Insert agent cost record into database.
@@ -216,16 +217,16 @@ def insert_defect(
     phase_injected: str,
     phase_removed: str,
     description: str,
-    project_id: Optional[str] = None,
-    user_id: Optional[str] = None,
-    component_path: Optional[str] = None,
-    function_name: Optional[str] = None,
-    line_number: Optional[int] = None,
-    root_cause: Optional[str] = None,
-    resolution_notes: Optional[str] = None,
+    project_id: str | None = None,
+    user_id: str | None = None,
+    component_path: str | None = None,
+    function_name: str | None = None,
+    line_number: int | None = None,
+    root_cause: str | None = None,
+    resolution_notes: str | None = None,
     flagged_by_agent: bool = False,
-    metadata: Optional[Dict[str, Any]] = None,
-    db_path: Optional[Path] = None,
+    metadata: dict[str, Any] | None = None,
+    db_path: Path | None = None,
 ) -> str:
     """
     Insert defect record into database.
@@ -303,9 +304,9 @@ def insert_defect(
 def track_agent_cost(
     agent_role: str,
     task_id_param: str = "task_id",
-    llm_model: Optional[str] = None,
-    llm_provider: Optional[str] = None,
-    agent_version: Optional[str] = None,
+    llm_model: str | None = None,
+    llm_provider: str | None = None,
+    agent_version: str | None = None,
 ):
     """
     Decorator to track agent execution costs.

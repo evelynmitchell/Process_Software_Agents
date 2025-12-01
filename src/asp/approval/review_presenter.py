@@ -2,10 +2,9 @@
 Review presentation with rich terminal UI.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from rich.console import Console
-from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
@@ -22,10 +21,10 @@ class ReviewPresenter:
         self,
         task_id: str,
         gate_type: str,
-        quality_report: Dict[str, Any],
+        quality_report: dict[str, Any],
         diff: str,
         branch_name: str,
-        diff_stats: Optional[Dict[str, Any]] = None,
+        diff_stats: dict[str, Any] | None = None,
     ) -> None:
         """
         Display review information in terminal.
@@ -65,8 +64,8 @@ class ReviewPresenter:
         task_id: str,
         gate_type: str,
         branch_name: str,
-        quality_report: Dict[str, Any],
-        diff_stats: Optional[Dict[str, Any]],
+        quality_report: dict[str, Any],
+        diff_stats: dict[str, Any] | None,
     ) -> None:
         """Display summary information."""
         summary = Table.grid(padding=(0, 2))
@@ -81,7 +80,7 @@ class ReviewPresenter:
         total_issues = quality_report.get("total_issues", 0)
         passed = quality_report.get("passed", False)
         if passed:
-            status = f"[green]✓ PASSED[/green]"
+            status = "[green]✓ PASSED[/green]"
         else:
             status = f"[red]✗ FAILED ({total_issues} issues)[/red]"
         summary.add_row("Status:", status)
@@ -100,7 +99,7 @@ class ReviewPresenter:
         )
         self.console.print()
 
-    def _display_quality_report(self, report: Dict[str, Any]) -> None:
+    def _display_quality_report(self, report: dict[str, Any]) -> None:
         """Display quality issues in table."""
         issues = report.get("issues", [])
         if not issues:
@@ -144,7 +143,7 @@ class ReviewPresenter:
         # Summary by severity
         self._display_severity_summary(report)
 
-    def _display_severity_summary(self, report: Dict[str, Any]) -> None:
+    def _display_severity_summary(self, report: dict[str, Any]) -> None:
         """Display issue count summary by severity."""
         issues = report.get("issues", [])
         severity_counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0}
@@ -172,13 +171,13 @@ class ReviewPresenter:
             self.console.print("Issue Breakdown: " + " | ".join(summary_parts))
             self.console.print()
 
-    def _display_diff_stats(self, diff_stats: Dict[str, Any]) -> None:
+    def _display_diff_stats(self, diff_stats: dict[str, Any]) -> None:
         """Display diff statistics."""
         files_changed = diff_stats.get("files_changed", 0)
         insertions = diff_stats.get("insertions", 0)
         deletions = diff_stats.get("deletions", 0)
 
-        self.console.print(f"[bold]Diff Statistics:[/bold]")
+        self.console.print("[bold]Diff Statistics:[/bold]")
         self.console.print(f"  Files changed: {files_changed}")
         self.console.print(f"  [green]+{insertions}[/green] insertions")
         self.console.print(f"  [red]-{deletions}[/red] deletions")
@@ -218,7 +217,7 @@ class ReviewPresenter:
         self.console.print()
 
     def display_approval_result(
-        self, decision: str, merge_commit: Optional[str] = None
+        self, decision: str, merge_commit: str | None = None
     ) -> None:
         """
         Display approval result.

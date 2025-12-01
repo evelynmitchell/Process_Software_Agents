@@ -14,15 +14,13 @@ import os
 import sqlite3
 import tempfile
 import time
-from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from asp.telemetry.telemetry import (
-    DefectType,
     get_db_connection,
     get_langfuse_client,
     get_user_id,

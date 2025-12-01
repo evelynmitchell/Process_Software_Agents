@@ -10,10 +10,8 @@ Tests the orchestration of 6 specialist review agents including:
 - Telemetry integration
 """
 
-import asyncio
 from datetime import datetime
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -27,10 +25,7 @@ from asp.models.design import (
     DesignSpecification,
 )
 from asp.models.design_review import (
-    ChecklistItemReview,
-    DesignIssue,
     DesignReviewReport,
-    ImprovementSuggestion,
 )
 
 # Helper functions for creating test data

@@ -8,7 +8,7 @@ Connects to the telemetry database to fetch real-time metrics.
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # Database path (same as telemetry module)
 DEFAULT_DB_PATH = (
@@ -16,7 +16,7 @@ DEFAULT_DB_PATH = (
 )
 
 
-def get_db_connection(db_path: Optional[Path] = None):
+def get_db_connection(db_path: Path | None = None):
     """Get a database connection."""
     db_path = db_path or DEFAULT_DB_PATH
     if not db_path.exists():
@@ -26,7 +26,7 @@ def get_db_connection(db_path: Optional[Path] = None):
     return conn
 
 
-def get_recent_agent_activity(limit: int = 10) -> List[Dict[str, Any]]:
+def get_recent_agent_activity(limit: int = 10) -> list[dict[str, Any]]:
     """
     Get recent agent activity from telemetry.
 
@@ -76,7 +76,7 @@ def get_recent_agent_activity(limit: int = 10) -> List[Dict[str, Any]]:
         conn.close()
 
 
-def get_defect_summary() -> Dict[str, Any]:
+def get_defect_summary() -> dict[str, Any]:
     """
     Get defect summary statistics.
 
@@ -126,7 +126,7 @@ def get_defect_summary() -> Dict[str, Any]:
         conn.close()
 
 
-def get_cost_summary(days: int = 7) -> Dict[str, Any]:
+def get_cost_summary(days: int = 7) -> dict[str, Any]:
     """
     Get API cost summary for the specified period.
 
@@ -191,7 +191,7 @@ def get_cost_summary(days: int = 7) -> Dict[str, Any]:
         conn.close()
 
 
-def get_user_performance(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+def get_user_performance(user_id: str | None = None) -> list[dict[str, Any]]:
     """
     Get performance metrics grouped by user.
 
@@ -240,7 +240,7 @@ def get_user_performance(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
         conn.close()
 
 
-def get_tasks_pending_approval() -> List[Dict[str, Any]]:
+def get_tasks_pending_approval() -> list[dict[str, Any]]:
     """
     Get tasks that are pending approval (stub for HITL workflow).
 
@@ -261,7 +261,7 @@ def get_tasks_pending_approval() -> List[Dict[str, Any]]:
     ]
 
 
-def get_project_progress() -> Dict[str, Any]:
+def get_project_progress() -> dict[str, Any]:
     """
     Get overall project progress metrics.
 
