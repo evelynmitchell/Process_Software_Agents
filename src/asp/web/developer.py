@@ -146,22 +146,21 @@ def developer_routes(app, rt):
     @rt('/developer/api/stats')
     def get_developer_stats():
         """Return developer stats HTML fragment."""
-        activities = get_recent_agent_activity(limit=100)
+        activities = get_recent_activity(limit=100)
 
         # Calculate stats from activities
         total_executions = len(activities)
-        avg_latency = sum(a["latency_ms"] for a in activities) / total_executions if activities else 0
 
         return Div(
             P(Small("Today's Executions: "), Strong(str(min(total_executions, 50)))),
-            P(Small("Avg Response: "), Strong(f"{avg_latency:.0f}ms")),
+            P(Small("Recent Activity: "), Strong(f"{total_executions} items")),
             P(Small("Tests Passed: "), Strong("28/28", cls="pico-color-green")),
         )
 
     @rt('/developer/api/activity')
     def get_developer_activity():
         """Return recent activity HTML fragment."""
-        activities = get_recent_agent_activity(limit=8)
+        activities = get_recent_activity(limit=8)
 
         if not activities:
             return P("No recent activity. Start a task to see activity here.", cls="pico-color-grey")
@@ -171,11 +170,11 @@ def developer_routes(app, rt):
             Tbody(
                 *[
                     Tr(
-                        Td(Small(act["timestamp"][11:19] if act["timestamp"] else "-")),
-                        Td(f"{act['agent_role']}: {act['task_id'][:12] if act['task_id'] else '-'}"),
+                        Td(Small(act["time"] if act.get("time") else "-")),
+                        Td(f"{act['action'][:40]}..." if len(act.get('action', '')) > 40 else act.get('action', '-')),
                         Td(
-                            "Success" if act["latency_ms"] and act["latency_ms"] < 30000 else "Slow",
-                            cls="pico-color-green" if act["latency_ms"] and act["latency_ms"] < 30000 else "pico-color-amber"
+                            act.get("status", "Unknown"),
+                            cls="pico-color-green" if act.get("status") == "Success" else "pico-color-amber"
                         ),
                     )
                     for act in activities
