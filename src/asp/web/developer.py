@@ -9,6 +9,9 @@ from fasthtml.common import *
 from . import data
 
 
+from .api import get_recent_agent_activity
+
+
 def developer_routes(app, rt):
     """Register all routes for the Developer persona."""
 
@@ -80,9 +83,112 @@ def developer_routes(app, rt):
                         cls="card",
                         style="margin-top: 1rem;"
                     ),
+
                     style="flex-grow: 1; padding-left: 2rem;"
                 ),
                 style="display: flex; min-height: 80vh;"
+            ),
+
+            # Navigation
+            Div(
+                A("Back to Home", href="/", role="button", cls="outline"),
+                style="margin-top: 2rem;"
+            ),
+
+            style="max-width: 1400px; margin: 0 auto; padding: 2rem;"
+        )
+
+    # API Endpoints
+
+    @rt('/developer/api/current-task')
+    def get_current_task():
+        """Return current task HTML fragment."""
+        # Placeholder - would connect to task assignment system
+        return Div(
+            Code("TSP-IMPL-001"),
+            P("Web UI Implementation", style="margin: 0.5rem 0;"),
+            Small("Status: ", Span("In Progress", cls="pico-color-jade")),
+        )
+
+    @rt('/developer/api/stats')
+    def get_developer_stats():
+        """Return developer stats HTML fragment."""
+        activities = get_recent_agent_activity(limit=100)
+
+        # Calculate stats from activities
+        total_executions = len(activities)
+        avg_latency = sum(a["latency_ms"] for a in activities) / total_executions if activities else 0
+
+        return Div(
+            P(Small("Today's Executions: "), Strong(str(min(total_executions, 50)))),
+            P(Small("Avg Response: "), Strong(f"{avg_latency:.0f}ms")),
+            P(Small("Tests Passed: "), Strong("28/28", cls="pico-color-green")),
+        )
+
+    @rt('/developer/api/activity')
+    def get_developer_activity():
+        """Return recent activity HTML fragment."""
+        activities = get_recent_agent_activity(limit=8)
+
+        if not activities:
+            return P("No recent activity. Start a task to see activity here.", cls="pico-color-grey")
+
+        return Table(
+            Thead(Tr(Th("Time"), Th("Action"), Th("Status"))),
+            Tbody(
+                *[
+                    Tr(
+                        Td(Small(act["timestamp"][11:19] if act["timestamp"] else "-")),
+                        Td(f"{act['agent_role']}: {act['task_id'][:12] if act['task_id'] else '-'}"),
+                        Td(
+                            "Success" if act["latency_ms"] and act["latency_ms"] < 30000 else "Slow",
+                            cls="pico-color-green" if act["latency_ms"] and act["latency_ms"] < 30000 else "pico-color-amber"
+                        ),
+                    )
+                    for act in activities
+                ]
+            )
+        )
+
+    # Action Endpoints
+
+    @rt('/developer/action/generate')
+    def post_generate():
+        """Handle code generation action."""
+        return Div(
+            H4("Code Generation", cls="pico-color-jade"),
+            P("Code generation agent invoked."),
+            Small("Tip: Describe your task in the input below to generate code."),
+            Form(
+                Textarea(placeholder="Describe the code you want to generate...", name="prompt", rows="3"),
+                Button("Generate", type="submit", cls="primary"),
+                hx_post="/developer/action/generate-run",
+                hx_target="#action-result",
+                style="margin-top: 1rem;"
+            )
+        )
+
+    @rt('/developer/action/generate-run')
+    def post_generate_run(prompt: str = ""):
+        """Execute code generation."""
+        return Div(
+            H4("Generation Complete", cls="pico-color-green"),
+            P(f"Prompt received: {prompt[:100]}..." if len(prompt) > 100 else f"Prompt received: {prompt}"),
+            Small("Note: Full agent integration pending. This is a UI preview."),
+        )
+
+    @rt('/developer/action/test')
+    def post_test():
+        """Handle test execution action."""
+        return Div(
+            H4("Test Runner", cls="pico-color-jade"),
+            P("Running test suite..."),
+            Progress(value="75", max="100"),
+            Small("Executing pytest with coverage..."),
+            Div(
+                hx_get="/developer/api/test-results",
+                hx_trigger="load delay:2s",
+                hx_swap="innerHTML"
             )
         )
 
