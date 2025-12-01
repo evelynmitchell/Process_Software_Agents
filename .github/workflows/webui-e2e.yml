@@ -1,0 +1,104 @@
+name: Web UI E2E Tests
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'src/asp/web/**'
+      - 'tests/e2e/web/**'
+      - '.github/workflows/webui-e2e.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'src/asp/web/**'
+      - 'tests/e2e/web/**'
+      - '.github/workflows/webui-e2e.yml'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  playwright-tests:
+    name: Playwright E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install dependencies with uv
+      run: |
+        uv pip install --system -e ".[dev]"
+
+    - name: Install Playwright browsers
+      run: |
+        playwright install chromium --with-deps
+
+    - name: Run Playwright tests
+      run: |
+        pytest tests/e2e/web/ -v --browser chromium --headed=false
+
+    - name: Upload Playwright test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-results
+        path: |
+          test-results/
+          playwright-report/
+        retention-days: 7
+
+  playwright-multi-browser:
+    name: Multi-Browser Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: playwright-tests  # Only run after basic tests pass
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install dependencies with uv
+      run: |
+        uv pip install --system -e ".[dev]"
+
+    - name: Install Playwright browsers
+      run: |
+        playwright install ${{ matrix.browser }} --with-deps
+
+    - name: Run Playwright tests on ${{ matrix.browser }}
+      run: |
+        pytest tests/e2e/web/ -v --browser ${{ matrix.browser }} --headed=false
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-results-${{ matrix.browser }}
+        path: |
+          test-results/
+          playwright-report/
+        retention-days: 7
