@@ -8,12 +8,12 @@ Tests the LLMClient wrapper including:
 - Error handling for various API errors
 """
 
-import json
-import pytest
 import os
-from unittest.mock import Mock, MagicMock, patch
-from anthropic import APIConnectionError, RateLimitError, APIStatusError
+from unittest.mock import Mock, patch
+
 import httpx
+import pytest
+from anthropic import APIConnectionError, APIStatusError, RateLimitError
 
 from asp.utils.llm_client import LLMClient
 
@@ -88,12 +88,12 @@ class TestCallWithRetry:
         mock_response.model = "claude-sonnet-4-20250514"
         mock_response.stop_reason = "end_turn"
 
-        with patch.object(client.client.messages, 'create', return_value=mock_response):
+        with patch.object(client.client.messages, "create", return_value=mock_response):
             result = client.call_with_retry(
                 prompt="Test prompt",
                 model="claude-sonnet-4-20250514",
                 max_tokens=2048,
-                temperature=0.5
+                temperature=0.5,
             )
 
         assert result["content"] == "This is the response"
@@ -113,7 +113,9 @@ class TestCallWithRetry:
         mock_response.model = "claude-sonnet-4-20250514"
         mock_response.stop_reason = "end_turn"
 
-        with patch.object(client.client.messages, 'create', return_value=mock_response) as mock_create:
+        with patch.object(
+            client.client.messages, "create", return_value=mock_response
+        ) as mock_create:
             result = client.call_with_retry(prompt="Test")
 
             # Verify defaults were used
@@ -130,18 +132,21 @@ class TestCallWithRetry:
         input_tokens, output_tokens = 1000, 500
         mock_response = Mock()
         mock_response.content = [Mock(text="Response")]
-        mock_response.usage = Mock(input_tokens=input_tokens, output_tokens=output_tokens)
+        mock_response.usage = Mock(
+            input_tokens=input_tokens, output_tokens=output_tokens
+        )
         mock_response.model = "claude-sonnet-4-20250514"
         mock_response.stop_reason = "end_turn"
 
-        with patch.object(client.client.messages, 'create', return_value=mock_response):
+        with patch.object(client.client.messages, "create", return_value=mock_response):
             result = client.call_with_retry(prompt="Test")
 
         # Calculate expected cost from class constants
         expected_cost = (
-            (input_tokens / 1_000_000) * client.COST_PER_MILLION_INPUT_TOKENS +
-            (output_tokens / 1_000_000) * client.COST_PER_MILLION_OUTPUT_TOKENS
-        )
+            input_tokens / 1_000_000
+        ) * client.COST_PER_MILLION_INPUT_TOKENS + (
+            output_tokens / 1_000_000
+        ) * client.COST_PER_MILLION_OUTPUT_TOKENS
         assert result["cost"] == pytest.approx(expected_cost, rel=1e-9)
 
     def test_with_system_prompt(self):
@@ -154,11 +159,10 @@ class TestCallWithRetry:
         mock_response.model = "claude-sonnet-4-20250514"
         mock_response.stop_reason = "end_turn"
 
-        with patch.object(client.client.messages, 'create', return_value=mock_response) as mock_create:
-            client.call_with_retry(
-                prompt="Test",
-                system="You are a helpful assistant"
-            )
+        with patch.object(
+            client.client.messages, "create", return_value=mock_response
+        ) as mock_create:
+            client.call_with_retry(prompt="Test", system="You are a helpful assistant")
 
             call_kwargs = mock_create.call_args[1]
             assert call_kwargs["system"] == "You are a helpful assistant"
@@ -173,11 +177,10 @@ class TestCallWithRetry:
         mock_response.model = "claude-sonnet-4-20250514"
         mock_response.stop_reason = "end_turn"
 
-        with patch.object(client.client.messages, 'create', return_value=mock_response) as mock_create:
-            client.call_with_retry(
-                prompt="Test",
-                custom_param="custom_value"
-            )
+        with patch.object(
+            client.client.messages, "create", return_value=mock_response
+        ) as mock_create:
+            client.call_with_retry(prompt="Test", custom_param="custom_value")
 
             call_kwargs = mock_create.call_args[1]
             assert call_kwargs["custom_param"] == "custom_value"
@@ -197,7 +200,7 @@ class TestJSONParsing:
         mock_response.model = "claude-sonnet-4-20250514"
         mock_response.stop_reason = "end_turn"
 
-        with patch.object(client.client.messages, 'create', return_value=mock_response):
+        with patch.object(client.client.messages, "create", return_value=mock_response):
             result = client.call_with_retry(prompt="Test")
 
         assert isinstance(result["content"], dict)
@@ -216,7 +219,7 @@ class TestJSONParsing:
         mock_response.model = "claude-sonnet-4-20250514"
         mock_response.stop_reason = "end_turn"
 
-        with patch.object(client.client.messages, 'create', return_value=mock_response):
+        with patch.object(client.client.messages, "create", return_value=mock_response):
             result = client.call_with_retry(prompt="Test")
 
         assert isinstance(result["content"], dict)
@@ -234,7 +237,7 @@ class TestJSONParsing:
         mock_response.model = "claude-sonnet-4-20250514"
         mock_response.stop_reason = "end_turn"
 
-        with patch.object(client.client.messages, 'create', return_value=mock_response):
+        with patch.object(client.client.messages, "create", return_value=mock_response):
             result = client.call_with_retry(prompt="Test")
 
         assert isinstance(result["content"], list)
@@ -252,7 +255,7 @@ class TestJSONParsing:
         mock_response.model = "claude-sonnet-4-20250514"
         mock_response.stop_reason = "end_turn"
 
-        with patch.object(client.client.messages, 'create', return_value=mock_response):
+        with patch.object(client.client.messages, "create", return_value=mock_response):
             result = client.call_with_retry(prompt="Test")
 
         assert result["content"] == text_response
@@ -262,14 +265,14 @@ class TestJSONParsing:
         """Test handling of malformed JSON in code block."""
         client = LLMClient(api_key="test-key")
 
-        malformed_response = '```json\n{invalid json\n```'
+        malformed_response = "```json\n{invalid json\n```"
         mock_response = Mock()
         mock_response.content = [Mock(text=malformed_response)]
         mock_response.usage = Mock(input_tokens=50, output_tokens=25)
         mock_response.model = "claude-sonnet-4-20250514"
         mock_response.stop_reason = "end_turn"
 
-        with patch.object(client.client.messages, 'create', return_value=mock_response):
+        with patch.object(client.client.messages, "create", return_value=mock_response):
             result = client.call_with_retry(prompt="Test")
 
         # Should fall back to returning raw text
@@ -292,13 +295,14 @@ class TestRetryLogic:
 
         # First call fails, second succeeds
         call_count = [0]
+
         def side_effect(*args, **kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
                 raise create_api_connection_error("Network error")
             return mock_response
 
-        with patch.object(client.client.messages, 'create', side_effect=side_effect):
+        with patch.object(client.client.messages, "create", side_effect=side_effect):
             result = client.call_with_retry(prompt="Test")
 
         assert result["content"] == "Success after retry"
@@ -315,13 +319,14 @@ class TestRetryLogic:
 
         # First call rate limited, second succeeds
         call_count = [0]
+
         def side_effect(*args, **kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
                 raise create_rate_limit_error("Rate limit exceeded")
             return mock_response
 
-        with patch.object(client.client.messages, 'create', side_effect=side_effect):
+        with patch.object(client.client.messages, "create", side_effect=side_effect):
             result = client.call_with_retry(prompt="Test")
 
         assert result["content"] == "Success after rate limit"
@@ -333,11 +338,10 @@ class TestRetryLogic:
         # All attempts fail
         with patch.object(
             client.client.messages,
-            'create',
-            side_effect=create_api_connection_error("Persistent network error")
-        ):
-            with pytest.raises(APIConnectionError):
-                client.call_with_retry(prompt="Test")
+            "create",
+            side_effect=create_api_connection_error("Persistent network error"),
+        ), pytest.raises(APIConnectionError):
+            client.call_with_retry(prompt="Test")
 
     def test_no_retry_on_client_error(self):
         """Test that 4xx errors are not retried."""
@@ -346,7 +350,7 @@ class TestRetryLogic:
         # Create properly formatted APIStatusError for 400
         error = create_api_status_error(400, "Bad request")
 
-        with patch.object(client.client.messages, 'create', side_effect=error):
+        with patch.object(client.client.messages, "create", side_effect=error):
             with pytest.raises(APIStatusError) as exc_info:
                 client.call_with_retry(prompt="Test")
 
@@ -366,13 +370,14 @@ class TestRetryLogic:
 
         # First call 500 error, second succeeds
         call_count = [0]
+
         def side_effect(*args, **kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
                 raise create_api_status_error(500, "Internal server error")
             return mock_response
 
-        with patch.object(client.client.messages, 'create', side_effect=side_effect):
+        with patch.object(client.client.messages, "create", side_effect=side_effect):
             result = client.call_with_retry(prompt="Test")
 
         assert result["content"] == "Success after server error"
@@ -386,13 +391,14 @@ class TestEstimateCost:
         client = LLMClient(api_key="test-key")
 
         input_tokens, output_tokens = 1000, 500
-        cost = client.estimate_cost(input_tokens=input_tokens, output_tokens=output_tokens)
+        cost = client.estimate_cost(
+            input_tokens=input_tokens, output_tokens=output_tokens
+        )
 
         # Calculate expected cost from class constants (formula validation, not hardcoded values)
-        expected = (
-            (input_tokens / 1_000_000) * client.COST_PER_MILLION_INPUT_TOKENS +
-            (output_tokens / 1_000_000) * client.COST_PER_MILLION_OUTPUT_TOKENS
-        )
+        expected = (input_tokens / 1_000_000) * client.COST_PER_MILLION_INPUT_TOKENS + (
+            output_tokens / 1_000_000
+        ) * client.COST_PER_MILLION_OUTPUT_TOKENS
         assert cost == pytest.approx(expected, rel=1e-9)
 
     def test_estimate_cost_large_values(self):
@@ -400,13 +406,14 @@ class TestEstimateCost:
         client = LLMClient(api_key="test-key")
 
         input_tokens, output_tokens = 1_000_000, 500_000
-        cost = client.estimate_cost(input_tokens=input_tokens, output_tokens=output_tokens)
+        cost = client.estimate_cost(
+            input_tokens=input_tokens, output_tokens=output_tokens
+        )
 
         # Calculate expected cost from class constants
-        expected = (
-            (input_tokens / 1_000_000) * client.COST_PER_MILLION_INPUT_TOKENS +
-            (output_tokens / 1_000_000) * client.COST_PER_MILLION_OUTPUT_TOKENS
-        )
+        expected = (input_tokens / 1_000_000) * client.COST_PER_MILLION_INPUT_TOKENS + (
+            output_tokens / 1_000_000
+        ) * client.COST_PER_MILLION_OUTPUT_TOKENS
         assert cost == pytest.approx(expected, rel=1e-9)
 
     def test_estimate_cost_zero_tokens(self):
@@ -421,7 +428,9 @@ class TestEstimateCost:
         client = LLMClient(api_key="test-key")
 
         input_tokens, output_tokens = 1000, 0
-        cost = client.estimate_cost(input_tokens=input_tokens, output_tokens=output_tokens)
+        cost = client.estimate_cost(
+            input_tokens=input_tokens, output_tokens=output_tokens
+        )
 
         # Calculate expected cost from class constants
         expected = (input_tokens / 1_000_000) * client.COST_PER_MILLION_INPUT_TOKENS
@@ -432,7 +441,9 @@ class TestEstimateCost:
         client = LLMClient(api_key="test-key")
 
         input_tokens, output_tokens = 0, 500
-        cost = client.estimate_cost(input_tokens=input_tokens, output_tokens=output_tokens)
+        cost = client.estimate_cost(
+            input_tokens=input_tokens, output_tokens=output_tokens
+        )
 
         # Calculate expected cost from class constants
         expected = (output_tokens / 1_000_000) * client.COST_PER_MILLION_OUTPUT_TOKENS
@@ -501,7 +512,7 @@ class TestTryParseJSON:
         """Test parsing valid JSON array."""
         client = LLMClient(api_key="test-key")
 
-        result = client._try_parse_json('[1, 2, 3]')
+        result = client._try_parse_json("[1, 2, 3]")
         assert isinstance(result, list)
         assert result == [1, 2, 3]
 

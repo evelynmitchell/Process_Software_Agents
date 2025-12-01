@@ -14,16 +14,18 @@ Date: November 13, 2025
 
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Any
 
-from asp.agents.base_agent import BaseAgent, AgentExecutionError
-from asp.models.planning import TaskRequirements, ProjectPlan, SemanticUnit
-from asp.utils.semantic_complexity import calculate_semantic_complexity, ComplexityFactors
+from asp.agents.base_agent import AgentExecutionError, BaseAgent
+from asp.models.planning import ProjectPlan, SemanticUnit, TaskRequirements
 from asp.telemetry import track_agent_cost
 from asp.utils.artifact_io import write_artifact_json, write_artifact_markdown
 from asp.utils.git_utils import git_commit_artifact, is_git_repository
 from asp.utils.markdown_renderer import render_plan_markdown
-
+from asp.utils.semantic_complexity import (
+    ComplexityFactors,
+    calculate_semantic_complexity,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,8 +54,8 @@ class PlanningAgent(BaseAgent):
 
     def __init__(
         self,
-        db_path: Optional[Path] = None,
-        llm_client: Optional[any] = None,
+        db_path: Path | None = None,
+        llm_client: Any | None = None,
     ):
         """
         Initialize Planning Agent.
@@ -72,7 +74,9 @@ class PlanningAgent(BaseAgent):
         llm_provider="anthropic",
         agent_version="1.0.0",
     )
-    def execute(self, input_data: TaskRequirements, feedback: Optional[list] = None) -> ProjectPlan:
+    def execute(
+        self, input_data: TaskRequirements, feedback: list | None = None
+    ) -> ProjectPlan:
         """
         Execute Planning Agent logic with optional feedback.
 
@@ -267,11 +271,12 @@ class PlanningAgent(BaseAgent):
 
             except Exception as e:
                 raise AgentExecutionError(
-                    f"Failed to validate semantic unit {i}: {e}\n"
-                    f"Data: {unit_data}"
+                    f"Failed to validate semantic unit {i}: {e}\n" f"Data: {unit_data}"
                 ) from e
 
-        logger.info(f"Successfully decomposed into {len(semantic_units)} semantic units")
+        logger.info(
+            f"Successfully decomposed into {len(semantic_units)} semantic units"
+        )
         return semantic_units
 
     def decompose_task_with_feedback(

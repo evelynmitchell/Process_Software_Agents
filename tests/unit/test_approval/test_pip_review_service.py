@@ -7,10 +7,10 @@ Author: ASP Development Team
 Date: November 25, 2025
 """
 
-import pytest
 from datetime import datetime
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
+
+import pytest
 
 from asp.approval.pip_review_service import PIPReviewCollector, PIPReviewService
 from asp.models.postmortem import ProcessImprovementProposal, ProposedChange
@@ -29,7 +29,7 @@ def sample_pip():
                 target_artifact="code_agent_prompt",
                 change_type="add",
                 proposed_content="SECURITY: Use parameterized queries for all SQL",
-                rationale="Prevent SQL injection vulnerabilities"
+                rationale="Prevent SQL injection vulnerabilities",
             )
         ],
         expected_impact="Reduce security vulnerabilities by 70%",
@@ -43,13 +43,13 @@ class TestPIPReviewCollector:
     def test_review_pip_approve(self, sample_pip, tmp_path, monkeypatch):
         """Test approving a PIP."""
         # Mock user input
-        inputs = iter(['1', 'Looks good, security improvement needed'])
-        monkeypatch.setattr('builtins.input', lambda *_: next(inputs))
+        inputs = iter(["1", "Looks good, security improvement needed"])
+        monkeypatch.setattr("builtins.input", lambda *_: next(inputs))
 
         # Mock git config
         mock_run = Mock()
         mock_run.stdout = "reviewer@example.com\n"
-        monkeypatch.setattr('subprocess.run', lambda *args, **kwargs: mock_run)
+        monkeypatch.setattr("subprocess.run", lambda *args, **kwargs: mock_run)
 
         # Mock artifacts directory
         artifacts_dir = tmp_path / "artifacts"
@@ -61,7 +61,7 @@ class TestPIPReviewCollector:
         collector = PIPReviewCollector(base_path=str(tmp_path))
 
         # Review PIP
-        with patch('asp.utils.artifact_io.write_artifact_json'):
+        with patch("asp.utils.artifact_io.write_artifact_json"):
             updated_pip = collector.review_pip(sample_pip)
 
         # Verify decision
@@ -73,22 +73,23 @@ class TestPIPReviewCollector:
     def test_review_pip_reject(self, sample_pip, monkeypatch, tmp_path):
         """Test rejecting a PIP."""
         # Mock user input
-        inputs = iter(['2', 'Not enough evidence for 70% reduction'])
-        monkeypatch.setattr('builtins.input', lambda *_: next(inputs))
+        inputs = iter(["2", "Not enough evidence for 70% reduction"])
+        monkeypatch.setattr("builtins.input", lambda *_: next(inputs))
 
         # Mock git config failure (use fallback)
         def mock_subprocess_run(*args, **kwargs):
             from subprocess import CalledProcessError
-            raise CalledProcessError(1, 'git')
 
-        monkeypatch.setattr('subprocess.run', mock_subprocess_run)
-        monkeypatch.setattr('getpass.getuser', lambda: 'testuser')
+            raise CalledProcessError(1, "git")
+
+        monkeypatch.setattr("subprocess.run", mock_subprocess_run)
+        monkeypatch.setattr("getpass.getuser", lambda: "testuser")
 
         # Create collector
         collector = PIPReviewCollector(base_path=str(tmp_path))
 
         # Review PIP
-        with patch('asp.utils.artifact_io.write_artifact_json'):
+        with patch("asp.utils.artifact_io.write_artifact_json"):
             updated_pip = collector.review_pip(sample_pip)
 
         # Verify decision
@@ -99,14 +100,14 @@ class TestPIPReviewCollector:
     def test_review_pip_needs_revision(self, sample_pip, monkeypatch, tmp_path):
         """Test requesting revision for a PIP."""
         # Mock user input
-        inputs = iter(['3', 'Please add more specific security examples'])
-        monkeypatch.setattr('builtins.input', lambda *_: next(inputs))
+        inputs = iter(["3", "Please add more specific security examples"])
+        monkeypatch.setattr("builtins.input", lambda *_: next(inputs))
 
         # Mock reviewer
         collector = PIPReviewCollector(base_path=str(tmp_path))
 
         # Review PIP
-        with patch('asp.utils.artifact_io.write_artifact_json'):
+        with patch("asp.utils.artifact_io.write_artifact_json"):
             updated_pip = collector.review_pip(sample_pip, reviewer="test@example.com")
 
         # Verify decision
@@ -129,8 +130,8 @@ class TestPIPReviewService:
         pip_file.write_text(sample_pip.model_dump_json())
 
         # Mock user input
-        inputs = iter(['1', 'Approved'])
-        monkeypatch.setattr('builtins.input', lambda *_: next(inputs))
+        inputs = iter(["1", "Approved"])
+        monkeypatch.setattr("builtins.input", lambda *_: next(inputs))
 
         # Create service
         service = PIPReviewService(base_path=str(tmp_path))
@@ -161,7 +162,7 @@ class TestPIPReviewService:
                     target_artifact="test",
                     change_type="add",
                     proposed_content="Test",
-                    rationale="Test"
+                    rationale="Test",
                 )
             ],
             expected_impact="Test",
@@ -182,7 +183,7 @@ class TestPIPReviewService:
                     target_artifact="test",
                     change_type="add",
                     proposed_content="Test",
-                    rationale="Test"
+                    rationale="Test",
                 )
             ],
             expected_impact="Test",
@@ -228,16 +229,15 @@ class TestPIPReviewIntegration:
         pip_file.write_text(sample_pip.model_dump_json())
 
         # Mock user input (approve)
-        inputs = iter(['1', 'Security improvement approved'])
-        monkeypatch.setattr('builtins.input', lambda *_: next(inputs))
+        inputs = iter(["1", "Security improvement approved"])
+        monkeypatch.setattr("builtins.input", lambda *_: next(inputs))
 
         # Create service
         service = PIPReviewService(base_path=str(tmp_path))
 
         # Review PIP
         updated_pip = service.review_pip_by_id(
-            sample_pip.task_id,
-            reviewer="security@example.com"
+            sample_pip.task_id, reviewer="security@example.com"
         )
 
         # Verify workflow

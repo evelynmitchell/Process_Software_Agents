@@ -35,7 +35,7 @@ def read_sql_file(file_path: Path) -> str:
     if not file_path.exists():
         raise FileNotFoundError(f"SQL file not found: {file_path}")
 
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         return f.read()
 
 
@@ -97,7 +97,8 @@ def print_database_stats(conn: sqlite3.Connection):
     if cursor.fetchone()[0] > 0:
         print("\nTask Summary:")
         print("-" * 50)
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 task_id,
                 task_type,
@@ -107,7 +108,8 @@ def print_database_stats(conn: sqlite3.Connection):
                 defect_count
             FROM task_metadata
             ORDER BY created_at
-        """)
+        """
+        )
 
         for row in cursor.fetchall():
             task_id, task_type, status, est_cplx, act_cplx, defects = row
@@ -152,7 +154,7 @@ def initialize_database(
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     print(f"\n{'='*50}")
-    print(f"Initializing ASP Telemetry Database")
+    print("Initializing ASP Telemetry Database")
     print(f"{'='*50}")
     print(f"Database: {db_path}")
     print(f"SQL Directory: {sql_dir}\n")

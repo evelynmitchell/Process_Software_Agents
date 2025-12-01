@@ -6,8 +6,9 @@ Focuses on: RESTful principles, HTTP methods, status codes, error handling, vers
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
+from pydantic import BaseModel
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.models.design import DesignSpecification
 from asp.telemetry.telemetry import track_agent_cost
@@ -20,8 +21,8 @@ class APIDesignReviewAgent(BaseAgent):
 
     def __init__(
         self,
-        llm_client: Optional[Any] = None,
-        db_path: Optional[str] = None,
+        llm_client: Any | None = None,
+        db_path: str | None = None,
     ):
         super().__init__(
             llm_client=llm_client,
@@ -29,7 +30,7 @@ class APIDesignReviewAgent(BaseAgent):
         )
         self.agent_version = "1.0.0"
 
-    @track_agent_cost(
+    @track_agent_cost(  # type: ignore
         agent_role="APIDesignReview",
         agent_version="1.0.0",
         task_id_param="design_spec.task_id",
@@ -37,10 +38,8 @@ class APIDesignReviewAgent(BaseAgent):
     def execute(
         self,
         design_spec: DesignSpecification,
-    ) -> dict[str, Any]:
-        logger.info(
-            f"Starting API design review for task {design_spec.task_id}"
-        )
+    ) -> BaseModel:
+        logger.info(f"Starting API design review for task {design_spec.task_id}")
 
         try:
             prompt_template = self.load_prompt("api_design_review_agent_v1")
@@ -55,7 +54,10 @@ class APIDesignReviewAgent(BaseAgent):
             if isinstance(content, str):
                 content = json.loads(content)
 
-            if "issues_found" not in content or "improvement_suggestions" not in content:
+            if (
+                "issues_found" not in content
+                or "improvement_suggestions" not in content
+            ):
                 raise ValueError("Response missing required fields")
 
             logger.info(

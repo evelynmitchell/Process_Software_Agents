@@ -19,29 +19,26 @@ Run with:
     pytest tests/e2e/test_all_agents_hello_world_e2e.py -m e2e -v -s
 """
 
-import os
-import pytest
 from datetime import datetime
-from pathlib import Path
 
-from asp.agents.planning_agent import PlanningAgent
-from asp.agents.design_agent import DesignAgent
-from asp.agents.design_review_agent import DesignReviewAgent
+import pytest
+
 from asp.agents.code_agent import CodeAgent
-from asp.agents.test_agent import TestAgent
+from asp.agents.design_agent import DesignAgent
+from asp.agents.planning_agent import PlanningAgent
 from asp.agents.postmortem_agent import PostmortemAgent
-from asp.orchestrators import PlanningDesignOrchestrator, PlanningDesignResult
-
-from asp.models.planning import TaskRequirements, ProjectPlan
-from asp.models.design import DesignInput, DesignSpecification
+from asp.agents.test_agent import TestAgent
 from asp.models.code import CodeInput, GeneratedCode
-from asp.models.test import TestInput, TestReport
+from asp.models.design import DesignInput, DesignSpecification
+from asp.models.planning import ProjectPlan, TaskRequirements
 from asp.models.postmortem import (
+    DefectLogEntry,
+    EffortLogEntry,
     PostmortemInput,
     PostmortemReport,
-    EffortLogEntry,
-    DefectLogEntry,
 )
+from asp.models.test import TestInput, TestReport
+from asp.orchestrators import PlanningDesignOrchestrator, PlanningDesignResult
 
 
 @pytest.mark.e2e
@@ -60,9 +57,9 @@ class TestAllAgentsHelloWorldE2E:
         5. Creates and validates tests
         6. Performs postmortem analysis
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("STARTING COMPLETE AGENT PIPELINE TEST: Hello World API")
-        print("="*80)
+        print("=" * 80)
 
         # =====================================================================
         # STEPS 1-3: Planning → Design → Review with Orchestrator
@@ -125,7 +122,7 @@ class TestAllAgentsHelloWorldE2E:
         assert design_review.task_id == "HW-001"
         assert design_review.overall_assessment in ["PASS", "NEEDS_IMPROVEMENT"]
 
-        print(f"\n  ✓ Orchestration complete!")
+        print("\n  ✓ Orchestration complete!")
         print(f"    - Design status: {design_review.overall_assessment}")
         print(f"    - API contracts: {len(design_spec.api_contracts)}")
         for api in design_spec.api_contracts:
@@ -168,7 +165,7 @@ class TestAllAgentsHelloWorldE2E:
         assert len(generated_code.files) > 0
         assert generated_code.total_lines_of_code > 0
 
-        print(f"  ✓ Code generation complete!")
+        print("  ✓ Code generation complete!")
         print(f"    - Files generated: {generated_code.total_files}")
         print(f"    - Total lines of code: {generated_code.total_lines_of_code}")
         print(f"    - Dependencies: {len(generated_code.dependencies)}")
@@ -205,16 +202,16 @@ class TestAllAgentsHelloWorldE2E:
         # Validate test report output
         assert isinstance(test_report, TestReport)
         assert test_report.task_id == "HW-001"
-        assert hasattr(test_report, 'test_status')
+        assert hasattr(test_report, "test_status")
 
-        print(f"  ✓ Test execution complete!")
+        print("  ✓ Test execution complete!")
         print(f"    - Test status: {test_report.test_status}")
-        if hasattr(test_report, 'test_summary'):
+        if hasattr(test_report, "test_summary"):
             summary = test_report.test_summary
             print(f"    - Total tests: {summary.get('total_tests', 'N/A')}")
             print(f"    - Passed: {summary.get('passed', 'N/A')}")
             print(f"    - Failed: {summary.get('failed', 'N/A')}")
-            if 'coverage_percent' in summary:
+            if "coverage_percent" in summary:
                 print(f"    - Coverage: {summary.get('coverage_percent', 'N/A')}%")
 
         # =====================================================================
@@ -330,29 +327,34 @@ class TestAllAgentsHelloWorldE2E:
         ]
 
         # DefectLogEntry uses AI Defect Taxonomy format
-        defect_log = [
-            DefectLogEntry(
-                defect_id="DEF-001",
-                task_id="HW-001",
-                defect_type="Conventional_Code_Bug",
-                phase_injected="Code",
-                phase_removed="Code Review",
-                effort_to_fix_vector={
-                    "latency_ms": 1500.0,
-                    "tokens": 800.0,
-                    "api_cost": 0.005,
-                },
-                description="Missing validation for empty name parameter",
-                severity="Medium",
-            ),
-        ] if hasattr(test_report, 'defects') and len(test_report.defects) > 0 else []
+        defect_log = (
+            [
+                DefectLogEntry(
+                    defect_id="DEF-001",
+                    task_id="HW-001",
+                    defect_type="Conventional_Code_Bug",
+                    phase_injected="Code",
+                    phase_removed="Code Review",
+                    effort_to_fix_vector={
+                        "latency_ms": 1500.0,
+                        "tokens": 800.0,
+                        "api_cost": 0.005,
+                    },
+                    description="Missing validation for empty name parameter",
+                    severity="Medium",
+                ),
+            ]
+            if hasattr(test_report, "defects") and len(test_report.defects) > 0
+            else []
+        )
 
         postmortem_input = PostmortemInput(
             task_id="HW-001",
             project_plan=project_plan,
             effort_log=effort_log,
             defect_log=defect_log,
-            actual_semantic_complexity=project_plan.total_est_complexity * 1.1,  # Simulate 10% variance
+            actual_semantic_complexity=project_plan.total_est_complexity
+            * 1.1,  # Simulate 10% variance
         )
 
         print("  Calling Postmortem Agent...")
@@ -362,36 +364,42 @@ class TestAllAgentsHelloWorldE2E:
         assert isinstance(postmortem_report, PostmortemReport)
         assert postmortem_report.task_id == "HW-001"
 
-        print(f"  ✓ Postmortem analysis complete!")
-        if hasattr(postmortem_report, 'estimation_accuracy'):
+        print("  ✓ Postmortem analysis complete!")
+        if hasattr(postmortem_report, "estimation_accuracy"):
             accuracy = postmortem_report.estimation_accuracy
-            if hasattr(accuracy, 'api_cost'):
+            if hasattr(accuracy, "api_cost"):
                 print(f"    - Cost variance: {accuracy.api_cost.variance_percent:.1f}%")
-        if hasattr(postmortem_report, 'quality_metrics'):
+        if hasattr(postmortem_report, "quality_metrics"):
             metrics = postmortem_report.quality_metrics
-            if hasattr(metrics, 'defect_density'):
+            if hasattr(metrics, "defect_density"):
                 print(f"    - Defect density: {metrics.defect_density:.2f}")
 
         # =====================================================================
         # FINAL SUMMARY
         # =====================================================================
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("✓ ALL AGENTS EXECUTED SUCCESSFULLY!")
-        print("="*80)
+        print("=" * 80)
         print("\nPipeline Summary:")
-        print(f"  1. Planning Agent      → {len(project_plan.semantic_units)} semantic units")
-        print(f"  2. Design Agent        → {len(design_spec.api_contracts)} API contracts")
-        print(f"  3. Design Review Agent → Review completed")
-        print(f"  4. Code Agent          → {generated_code.total_files} files, {generated_code.total_lines_of_code} LOC")
+        print(
+            f"  1. Planning Agent      → {len(project_plan.semantic_units)} semantic units"
+        )
+        print(
+            f"  2. Design Agent        → {len(design_spec.api_contracts)} API contracts"
+        )
+        print("  3. Design Review Agent → Review completed")
+        print(
+            f"  4. Code Agent          → {generated_code.total_files} files, {generated_code.total_lines_of_code} LOC"
+        )
         print(f"  5. Test Agent          → {test_report.test_status}")
-        print(f"  6. Postmortem Agent    → Analysis completed")
-        print("\n" + "="*80 + "\n")
+        print("  6. Postmortem Agent    → Analysis completed")
+        print("\n" + "=" * 80 + "\n")
 
     def test_planning_agent_hello_world(self):
         """Test just the Planning Agent with Hello World task."""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TESTING: Planning Agent Only - Hello World")
-        print("="*80 + "\n")
+        print("=" * 80 + "\n")
 
         agent = PlanningAgent()
 
@@ -410,15 +418,15 @@ class TestAllAgentsHelloWorldE2E:
         assert plan.task_id == "HW-PLAN-001"
         assert len(plan.semantic_units) > 0
 
-        print(f"✓ Planning Agent test passed!")
+        print("✓ Planning Agent test passed!")
         print(f"  - Semantic units: {len(plan.semantic_units)}")
         print(f"  - Total complexity: {plan.total_est_complexity}\n")
 
     def test_design_agent_hello_world(self):
         """Test just the Design Agent with Hello World task."""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TESTING: Design Agent Only - Hello World")
-        print("="*80 + "\n")
+        print("=" * 80 + "\n")
 
         # First get a plan
         planning_agent = PlanningAgent()
@@ -445,15 +453,15 @@ class TestAllAgentsHelloWorldE2E:
         assert design.task_id == "HW-DESIGN-001"
         assert len(design.api_contracts) > 0
 
-        print(f"✓ Design Agent test passed!")
+        print("✓ Design Agent test passed!")
         print(f"  - API contracts: {len(design.api_contracts)}")
         print(f"  - Components: {len(design.component_logic)}\n")
 
     def test_code_agent_hello_world(self):
         """Test just the Code Agent with Hello World task."""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TESTING: Code Agent Only - Hello World")
-        print("="*80 + "\n")
+        print("=" * 80 + "\n")
 
         # Get plan and design first
         planning_agent = PlanningAgent()
@@ -487,7 +495,7 @@ class TestAllAgentsHelloWorldE2E:
         assert code.task_id == "HW-CODE-001"
         assert len(code.files) > 0
 
-        print(f"✓ Code Agent test passed!")
+        print("✓ Code Agent test passed!")
         print(f"  - Files generated: {code.total_files}")
         print(f"  - Lines of code: {code.total_lines_of_code}\n")
 

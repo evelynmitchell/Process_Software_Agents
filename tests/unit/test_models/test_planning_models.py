@@ -10,21 +10,22 @@ Tests the Pydantic models for Planning Agent including:
 - Edge cases and error handling
 """
 
-import pytest
 import json
+
+import pytest
 from pydantic import ValidationError
 
 from asp.models.planning import (
-    TaskRequirements,
-    SemanticUnit,
     PROBEAIPrediction,
     ProjectPlan,
+    SemanticUnit,
+    TaskRequirements,
 )
-
 
 # =============================================================================
 # TaskRequirements Tests
 # =============================================================================
+
 
 class TestTaskRequirements:
     """Test TaskRequirements model."""
@@ -34,12 +35,15 @@ class TestTaskRequirements:
         requirements = TaskRequirements(
             task_id="TASK-001",
             description="Build authentication system",
-            requirements="User registration with email and password validation"
+            requirements="User registration with email and password validation",
         )
 
         assert requirements.task_id == "TASK-001"
         assert requirements.description == "Build authentication system"
-        assert requirements.requirements == "User registration with email and password validation"
+        assert (
+            requirements.requirements
+            == "User registration with email and password validation"
+        )
         assert requirements.project_id is None
         assert requirements.context_files is None
 
@@ -54,7 +58,7 @@ class TestTaskRequirements:
                 - Login endpoint with JWT generation
                 - Token validation middleware
             """,
-            context_files=["docs/architecture.md", "docs/api_spec.md"]
+            context_files=["docs/architecture.md", "docs/api_spec.md"],
         )
 
         assert requirements.task_id == "TASK-2025-001"
@@ -67,12 +71,12 @@ class TestTaskRequirements:
             TaskRequirements(
                 task_id="TASK-001",
                 description="Short",  # Too short
-                requirements="Valid requirements text here"
+                requirements="Valid requirements text here",
             )
 
         error = exc_info.value.errors()[0]
-        assert error['loc'] == ('description',)
-        assert 'at least 10 characters' in str(error['msg'])
+        assert error["loc"] == ("description",)
+        assert "at least 10 characters" in str(error["msg"])
 
     def test_task_requirements_requirements_too_short(self):
         """Test that requirements must be at least 20 characters."""
@@ -80,12 +84,12 @@ class TestTaskRequirements:
             TaskRequirements(
                 task_id="TASK-001",
                 description="Build authentication system",
-                requirements="Short"  # Too short
+                requirements="Short",  # Too short
             )
 
         error = exc_info.value.errors()[0]
-        assert error['loc'] == ('requirements',)
-        assert 'at least 20 characters' in str(error['msg'])
+        assert error["loc"] == ("requirements",)
+        assert "at least 20 characters" in str(error["msg"])
 
     def test_task_requirements_missing_required_fields(self):
         """Test that required fields cannot be omitted."""
@@ -105,7 +109,7 @@ class TestTaskRequirements:
             project_id="PROJ-001",
             description="Test task description",
             requirements="Test requirements with sufficient length",
-            context_files=["file1.md", "file2.md"]
+            context_files=["file1.md", "file2.md"],
         )
 
         # Serialize to JSON
@@ -113,9 +117,9 @@ class TestTaskRequirements:
         json_data = json.loads(json_str)
 
         # Verify structure
-        assert json_data['task_id'] == "TASK-001"
-        assert json_data['project_id'] == "PROJ-001"
-        assert len(json_data['context_files']) == 2
+        assert json_data["task_id"] == "TASK-001"
+        assert json_data["project_id"] == "PROJ-001"
+        assert len(json_data["context_files"]) == 2
 
         # Deserialize back
         restored = TaskRequirements.model_validate_json(json_str)
@@ -125,6 +129,7 @@ class TestTaskRequirements:
 # =============================================================================
 # SemanticUnit Tests
 # =============================================================================
+
 
 class TestSemanticUnit:
     """Test SemanticUnit model."""
@@ -139,7 +144,7 @@ class TestSemanticUnit:
             logical_branches=4,
             code_entities_modified=3,
             novelty_multiplier=1.0,
-            est_complexity=43
+            est_complexity=43,
         )
 
         assert unit.unit_id == "SU-001"
@@ -158,7 +163,7 @@ class TestSemanticUnit:
             code_entities_modified=2,
             novelty_multiplier=1.0,
             est_complexity=26,
-            dependencies=["SU-001"]
+            dependencies=["SU-001"],
         )
 
         assert unit.dependencies == ["SU-001"]
@@ -174,7 +179,7 @@ class TestSemanticUnit:
             logical_branches=1,
             code_entities_modified=1,
             novelty_multiplier=1.0,
-            est_complexity=10
+            est_complexity=10,
         )
         assert unit.unit_id == "SU-123"
 
@@ -190,7 +195,7 @@ class TestSemanticUnit:
                     logical_branches=1,
                     code_entities_modified=1,
                     novelty_multiplier=1.0,
-                    est_complexity=10
+                    est_complexity=10,
                 )
 
     def test_semantic_unit_factor_range_validation(self):
@@ -205,7 +210,7 @@ class TestSemanticUnit:
                 logical_branches=1,
                 code_entities_modified=1,
                 novelty_multiplier=1.0,
-                est_complexity=10
+                est_complexity=10,
             )
 
         # Test novelty_multiplier out of range
@@ -218,7 +223,7 @@ class TestSemanticUnit:
                 logical_branches=1,
                 code_entities_modified=1,
                 novelty_multiplier=2.5,  # Max is 2.0
-                est_complexity=10
+                est_complexity=10,
             )
 
     def test_semantic_unit_complexity_range_validation(self):
@@ -232,7 +237,7 @@ class TestSemanticUnit:
             logical_branches=1,
             code_entities_modified=1,
             novelty_multiplier=1.0,
-            est_complexity=50
+            est_complexity=50,
         )
         assert unit.est_complexity == 50
 
@@ -246,7 +251,7 @@ class TestSemanticUnit:
                 logical_branches=1,
                 code_entities_modified=1,
                 novelty_multiplier=1.0,
-                est_complexity=150  # Max is 100
+                est_complexity=150,  # Max is 100
             )
 
     def test_semantic_unit_json_serialization(self):
@@ -260,16 +265,16 @@ class TestSemanticUnit:
             code_entities_modified=3,
             novelty_multiplier=1.5,
             est_complexity=55,
-            dependencies=["SU-000"]
+            dependencies=["SU-000"],
         )
 
         # Serialize
         json_str = unit.model_dump_json()
         json_data = json.loads(json_str)
 
-        assert json_data['unit_id'] == "SU-001"
-        assert json_data['novelty_multiplier'] == 1.5
-        assert json_data['dependencies'] == ["SU-000"]
+        assert json_data["unit_id"] == "SU-001"
+        assert json_data["novelty_multiplier"] == 1.5
+        assert json_data["dependencies"] == ["SU-000"]
 
         # Deserialize
         restored = SemanticUnit.model_validate_json(json_str)
@@ -280,6 +285,7 @@ class TestSemanticUnit:
 # PROBEAIPrediction Tests
 # =============================================================================
 
+
 class TestPROBEAIPrediction:
     """Test PROBEAIPrediction model."""
 
@@ -289,7 +295,7 @@ class TestPROBEAIPrediction:
             total_est_latency_ms=45000.0,
             total_est_tokens=8500,
             total_est_api_cost=0.15,
-            confidence=0.82
+            confidence=0.82,
         )
 
         assert prediction.total_est_latency_ms == 45000.0
@@ -304,7 +310,7 @@ class TestPROBEAIPrediction:
                 total_est_latency_ms=-1000.0,  # Negative
                 total_est_tokens=8500,
                 total_est_api_cost=0.15,
-                confidence=0.82
+                confidence=0.82,
             )
 
     def test_probe_ai_prediction_confidence_range(self):
@@ -314,7 +320,7 @@ class TestPROBEAIPrediction:
             total_est_latency_ms=45000.0,
             total_est_tokens=8500,
             total_est_api_cost=0.15,
-            confidence=0.95
+            confidence=0.95,
         )
         assert prediction.confidence == 0.95
 
@@ -324,7 +330,7 @@ class TestPROBEAIPrediction:
                 total_est_latency_ms=45000.0,
                 total_est_tokens=8500,
                 total_est_api_cost=0.15,
-                confidence=1.5  # Max is 1.0
+                confidence=1.5,  # Max is 1.0
             )
 
     def test_probe_ai_prediction_json_serialization(self):
@@ -333,15 +339,15 @@ class TestPROBEAIPrediction:
             total_est_latency_ms=45000.0,
             total_est_tokens=8500,
             total_est_api_cost=0.15,
-            confidence=0.82
+            confidence=0.82,
         )
 
         # Serialize
         json_str = prediction.model_dump_json()
         json_data = json.loads(json_str)
 
-        assert json_data['total_est_latency_ms'] == 45000.0
-        assert json_data['confidence'] == 0.82
+        assert json_data["total_est_latency_ms"] == 45000.0
+        assert json_data["confidence"] == 0.82
 
         # Deserialize
         restored = PROBEAIPrediction.model_validate_json(json_str)
@@ -351,6 +357,7 @@ class TestPROBEAIPrediction:
 # =============================================================================
 # ProjectPlan Tests
 # =============================================================================
+
 
 class TestProjectPlan:
     """Test ProjectPlan model."""
@@ -365,13 +372,11 @@ class TestProjectPlan:
             logical_branches=2,
             code_entities_modified=2,
             novelty_multiplier=1.0,
-            est_complexity=26
+            est_complexity=26,
         )
 
         plan = ProjectPlan(
-            task_id="TASK-001",
-            semantic_units=[unit],
-            total_est_complexity=26
+            task_id="TASK-001", semantic_units=[unit], total_est_complexity=26
         )
 
         assert plan.task_id == "TASK-001"
@@ -391,7 +396,7 @@ class TestProjectPlan:
                 logical_branches=2,
                 code_entities_modified=2,
                 novelty_multiplier=1.0,
-                est_complexity=20
+                est_complexity=20,
             ),
             SemanticUnit(
                 unit_id="SU-002",
@@ -401,15 +406,15 @@ class TestProjectPlan:
                 logical_branches=3,
                 code_entities_modified=3,
                 novelty_multiplier=1.0,
-                est_complexity=30
-            )
+                est_complexity=30,
+            ),
         ]
 
         prediction = PROBEAIPrediction(
             total_est_latency_ms=60000.0,
             total_est_tokens=10000,
             total_est_api_cost=0.20,
-            confidence=0.85
+            confidence=0.85,
         )
 
         plan = ProjectPlan(
@@ -418,7 +423,7 @@ class TestProjectPlan:
             semantic_units=units,
             total_est_complexity=50,
             probe_ai_prediction=prediction,
-            probe_ai_enabled=True
+            probe_ai_enabled=True,
         )
 
         assert plan.project_id == "PROJ-001"
@@ -438,22 +443,18 @@ class TestProjectPlan:
             logical_branches=1,
             code_entities_modified=1,
             novelty_multiplier=1.0,
-            est_complexity=10
+            est_complexity=10,
         )
 
         plan = ProjectPlan(
-            task_id="TASK-001",
-            semantic_units=[unit],
-            total_est_complexity=10
+            task_id="TASK-001", semantic_units=[unit], total_est_complexity=10
         )
         assert len(plan.semantic_units) == 1
 
         # Invalid: empty list
         with pytest.raises(ValidationError):
             ProjectPlan(
-                task_id="TASK-001",
-                semantic_units=[],  # Empty
-                total_est_complexity=0
+                task_id="TASK-001", semantic_units=[], total_est_complexity=0  # Empty
             )
 
         # Invalid: too many units (more than 15)
@@ -466,7 +467,7 @@ class TestProjectPlan:
                 logical_branches=1,
                 code_entities_modified=1,
                 novelty_multiplier=1.0,
-                est_complexity=10
+                est_complexity=10,
             )
             for i in range(20)  # 20 units > max of 15
         ]
@@ -475,7 +476,7 @@ class TestProjectPlan:
             ProjectPlan(
                 task_id="TASK-001",
                 semantic_units=too_many_units,
-                total_est_complexity=200
+                total_est_complexity=200,
             )
 
     def test_project_plan_json_serialization(self):
@@ -489,7 +490,7 @@ class TestProjectPlan:
                 logical_branches=2,
                 code_entities_modified=2,
                 novelty_multiplier=1.0,
-                est_complexity=20
+                est_complexity=20,
             ),
             SemanticUnit(
                 unit_id="SU-002",
@@ -500,8 +501,8 @@ class TestProjectPlan:
                 code_entities_modified=3,
                 novelty_multiplier=1.5,
                 est_complexity=45,
-                dependencies=["SU-001"]
-            )
+                dependencies=["SU-001"],
+            ),
         ]
 
         plan = ProjectPlan(
@@ -509,17 +510,17 @@ class TestProjectPlan:
             task_id="TASK-001",
             semantic_units=units,
             total_est_complexity=65,
-            agent_version="1.0.0"
+            agent_version="1.0.0",
         )
 
         # Serialize
         json_str = plan.model_dump_json()
         json_data = json.loads(json_str)
 
-        assert json_data['task_id'] == "TASK-001"
-        assert len(json_data['semantic_units']) == 2
-        assert json_data['total_est_complexity'] == 65
-        assert json_data['semantic_units'][1]['dependencies'] == ["SU-001"]
+        assert json_data["task_id"] == "TASK-001"
+        assert len(json_data["semantic_units"]) == 2
+        assert json_data["total_est_complexity"] == 65
+        assert json_data["semantic_units"][1]["dependencies"] == ["SU-001"]
 
         # Deserialize
         restored = ProjectPlan.model_validate_json(json_str)
@@ -536,13 +537,11 @@ class TestProjectPlan:
             logical_branches=1,
             code_entities_modified=1,
             novelty_multiplier=1.0,
-            est_complexity=10
+            est_complexity=10,
         )
 
         plan = ProjectPlan(
-            task_id="TASK-001",
-            semantic_units=[unit],
-            total_est_complexity=10
+            task_id="TASK-001", semantic_units=[unit], total_est_complexity=10
         )
 
         # Check defaults
@@ -555,6 +554,7 @@ class TestProjectPlan:
 # =============================================================================
 # Edge Cases and Integration Tests
 # =============================================================================
+
 
 class TestEdgeCases:
     """Test edge cases and integration scenarios."""
@@ -570,15 +570,13 @@ class TestEdgeCases:
                 logical_branches=2,
                 code_entities_modified=2,
                 novelty_multiplier=1.0,
-                est_complexity=20
+                est_complexity=20,
             )
             for i in range(1, 16)  # 15 units (maximum)
         ]
 
         plan = ProjectPlan(
-            task_id="LARGE-TASK",
-            semantic_units=units,
-            total_est_complexity=300
+            task_id="LARGE-TASK", semantic_units=units, total_est_complexity=300
         )
 
         assert len(plan.semantic_units) == 15
@@ -596,7 +594,7 @@ class TestEdgeCases:
                 code_entities_modified=1,
                 novelty_multiplier=1.0,
                 est_complexity=10,
-                dependencies=[]
+                dependencies=[],
             ),
             SemanticUnit(
                 unit_id="SU-002",
@@ -607,7 +605,7 @@ class TestEdgeCases:
                 code_entities_modified=1,
                 novelty_multiplier=1.0,
                 est_complexity=10,
-                dependencies=["SU-001"]
+                dependencies=["SU-001"],
             ),
             SemanticUnit(
                 unit_id="SU-003",
@@ -618,14 +616,12 @@ class TestEdgeCases:
                 code_entities_modified=1,
                 novelty_multiplier=1.0,
                 est_complexity=10,
-                dependencies=["SU-001", "SU-002"]
-            )
+                dependencies=["SU-001", "SU-002"],
+            ),
         ]
 
         plan = ProjectPlan(
-            task_id="TASK-001",
-            semantic_units=units,
-            total_est_complexity=30
+            task_id="TASK-001", semantic_units=units, total_est_complexity=30
         )
 
         assert plan.semantic_units[0].dependencies == []
@@ -642,7 +638,7 @@ class TestEdgeCases:
             logical_branches=10,  # Max
             code_entities_modified=10,  # Max
             novelty_multiplier=2.0,  # Max
-            est_complexity=100  # Max
+            est_complexity=100,  # Max
         )
 
         assert unit.api_interactions == 10

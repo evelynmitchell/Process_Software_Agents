@@ -4,7 +4,6 @@ Merge and tag operations for approved/rejected reviews.
 
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 from asp.approval.base import ApprovalResponse
 
@@ -26,7 +25,7 @@ class MergeController:
         branch_name: str,
         base_branch: str,
         review_metadata: ApprovalResponse,
-        task_id: Optional[str] = None
+        task_id: str | None = None,
     ) -> str:
         """
         Merge branch with --no-ff, return merge commit SHA.
@@ -45,7 +44,7 @@ class MergeController:
             ["git", "checkout", base_branch],
             cwd=self.repo_path,
             check=True,
-            capture_output=True
+            capture_output=True,
         )
 
         # Create merge commit message
@@ -64,7 +63,7 @@ Justification: {review_metadata.justification}
             ["git", "merge", "--no-ff", branch_name, "-m", merge_msg],
             cwd=self.repo_path,
             check=True,
-            capture_output=True
+            capture_output=True,
         )
 
         # Get merge commit SHA
@@ -73,7 +72,7 @@ Justification: {review_metadata.justification}
             cwd=self.repo_path,
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
         merge_sha = result.stdout.strip()
 
@@ -88,7 +87,7 @@ Justification: {review_metadata.justification}
         self,
         branch_name: str,
         review_metadata: ApprovalResponse,
-        task_id: Optional[str] = None
+        task_id: str | None = None,
     ) -> None:
         """
         Tag rejected branch for historical record.
@@ -115,14 +114,14 @@ Reason: {review_metadata.justification}
             ["git", "tag", "-a", tag_name, branch_name, "-m", tag_msg],
             cwd=self.repo_path,
             check=True,
-            capture_output=True
+            capture_output=True,
         )
 
     def tag_deferred(
         self,
         branch_name: str,
         review_metadata: ApprovalResponse,
-        task_id: Optional[str] = None
+        task_id: str | None = None,
     ) -> None:
         """
         Tag deferred branch for later review.
@@ -149,14 +148,11 @@ Reason: {review_metadata.justification}
             ["git", "tag", "-a", tag_name, branch_name, "-m", tag_msg],
             cwd=self.repo_path,
             check=True,
-            capture_output=True
+            capture_output=True,
         )
 
     def create_tag(
-        self,
-        tag_name: str,
-        commit_sha: str,
-        review_metadata: ApprovalResponse
+        self, tag_name: str, commit_sha: str, review_metadata: ApprovalResponse
     ) -> None:
         """
         Create annotated tag.
@@ -177,7 +173,7 @@ Justification: {review_metadata.justification}
             ["git", "tag", "-a", tag_name, commit_sha, "-m", tag_msg],
             cwd=self.repo_path,
             check=True,
-            capture_output=True
+            capture_output=True,
         )
 
     def tag_exists(self, tag_name: str) -> bool:
@@ -191,9 +187,7 @@ Justification: {review_metadata.justification}
             True if tag exists
         """
         result = subprocess.run(
-            ["git", "rev-parse", tag_name],
-            cwd=self.repo_path,
-            capture_output=True
+            ["git", "rev-parse", tag_name], cwd=self.repo_path, capture_output=True
         )
         return result.returncode == 0
 
@@ -208,5 +202,5 @@ Justification: {review_metadata.justification}
             ["git", "tag", "-d", tag_name],
             cwd=self.repo_path,
             check=True,
-            capture_output=True
+            capture_output=True,
         )

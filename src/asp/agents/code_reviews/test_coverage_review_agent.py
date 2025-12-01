@@ -12,8 +12,9 @@ This agent focuses exclusively on testing aspects of generated code:
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
+from pydantic import BaseModel
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.models.code import GeneratedCode
 from asp.telemetry.telemetry import track_agent_cost
@@ -31,8 +32,8 @@ class TestCoverageReviewAgent(BaseAgent):
 
     def __init__(
         self,
-        llm_client: Optional[Any] = None,
-        db_path: Optional[str] = None,
+        llm_client: Any | None = None,
+        db_path: str | None = None,
     ):
         """
         Initialize Test Coverage Review Agent.
@@ -47,7 +48,7 @@ class TestCoverageReviewAgent(BaseAgent):
         )
         self.agent_version = "1.0.0"
 
-    @track_agent_cost(
+    @track_agent_cost(  # type: ignore
         agent_role="TestCoverageReview",
         agent_version="1.0.0",
         task_id_param="generated_code.task_id",
@@ -55,7 +56,7 @@ class TestCoverageReviewAgent(BaseAgent):
     def execute(
         self,
         generated_code: GeneratedCode,
-    ) -> dict[str, Any]:
+    ) -> BaseModel:
         """
         Execute test coverage review on generated code.
 
@@ -68,9 +69,7 @@ class TestCoverageReviewAgent(BaseAgent):
         Raises:
             AgentExecutionError: If review fails
         """
-        logger.info(
-            f"Starting test coverage review for task {generated_code.task_id}"
-        )
+        logger.info(f"Starting test coverage review for task {generated_code.task_id}")
 
         try:
             # Load and format prompt
@@ -94,9 +93,7 @@ class TestCoverageReviewAgent(BaseAgent):
                 if "issues_found" not in content:
                     raise ValueError("Response missing 'issues_found' field")
                 if "improvement_suggestions" not in content:
-                    raise ValueError(
-                        "Response missing 'improvement_suggestions' field"
-                    )
+                    raise ValueError("Response missing 'improvement_suggestions' field")
 
                 logger.info(
                     f"Test coverage review completed: {len(content['issues_found'])} issues, "
@@ -110,12 +107,8 @@ class TestCoverageReviewAgent(BaseAgent):
                     f"Failed to parse LLM response as JSON: {e}"
                 ) from e
             except ValueError as e:
-                raise AgentExecutionError(
-                    f"Invalid response structure: {e}"
-                ) from e
+                raise AgentExecutionError(f"Invalid response structure: {e}") from e
 
         except Exception as e:
             logger.error(f"Test coverage review failed: {e}")
-            raise AgentExecutionError(
-                f"TestCoverageReviewAgent failed: {e}"
-            ) from e
+            raise AgentExecutionError(f"TestCoverageReviewAgent failed: {e}") from e

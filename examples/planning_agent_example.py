@@ -58,7 +58,7 @@ def print_project_plan(plan):
         print(f"Unit {i}: {unit.unit_id}")
         print(f"  Description: {unit.description}")
         print(f"  Complexity: {unit.est_complexity} ({complexity_band})")
-        print(f"  Factors:")
+        print("  Factors:")
         print(f"    - API Interactions: {unit.api_interactions}")
         print(f"    - Data Transformations: {unit.data_transformations}")
         print(f"    - Logical Branches: {unit.logical_branches}")
@@ -283,7 +283,9 @@ def main():
     try:
         # Custom task mode
         if args.task_id and args.description and args.requirements:
-            plan = example_custom_task(args.task_id, args.description, args.requirements)
+            plan = example_custom_task(
+                args.task_id, args.description, args.requirements
+            )
             if args.output:
                 save_plan_to_file(plan, args.output)
             return 0
@@ -315,8 +317,12 @@ def main():
         print("=" * 80)
         print()
         print("Next steps:")
-        print("  1. Check Langfuse dashboard for telemetry: https://us.cloud.langfuse.com")
-        print("  2. Query SQLite for cost data: uv run python scripts/query_telemetry.py")
+        print(
+            "  1. Check Langfuse dashboard for telemetry: https://us.cloud.langfuse.com"
+        )
+        print(
+            "  2. Query SQLite for cost data: uv run python scripts/query_telemetry.py"
+        )
         print("  3. Calibrate complexity scores after completing actual tasks")
         print()
         print("=" * 80)
@@ -337,6 +343,7 @@ def main():
         print("  - Rate limit exceeded")
         print()
         import traceback
+
         traceback.print_exc()
         return 1
 

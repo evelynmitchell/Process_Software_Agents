@@ -15,7 +15,7 @@ Aggregates results, deduplicates issues, resolves conflicts, generates CodeRevie
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.agents.code_reviews import (
@@ -48,8 +48,8 @@ class CodeReviewOrchestrator(BaseAgent):
 
     def __init__(
         self,
-        llm_client: Optional[Any] = None,
-        db_path: Optional[str] = None,
+        llm_client: Any | None = None,
+        db_path: str | None = None,
     ):
         """
         Initialize Code Review Orchestrator.
@@ -66,12 +66,24 @@ class CodeReviewOrchestrator(BaseAgent):
 
         # Initialize specialist agents
         self.specialists = {
-            "code_quality": CodeQualityReviewAgent(llm_client=llm_client, db_path=db_path),
-            "code_security": CodeSecurityReviewAgent(llm_client=llm_client, db_path=db_path),
-            "code_performance": CodePerformanceReviewAgent(llm_client=llm_client, db_path=db_path),
-            "test_coverage": TestCoverageReviewAgent(llm_client=llm_client, db_path=db_path),
-            "documentation": DocumentationReviewAgent(llm_client=llm_client, db_path=db_path),
-            "best_practices": BestPracticesReviewAgent(llm_client=llm_client, db_path=db_path),
+            "code_quality": CodeQualityReviewAgent(
+                llm_client=llm_client, db_path=db_path
+            ),
+            "code_security": CodeSecurityReviewAgent(
+                llm_client=llm_client, db_path=db_path
+            ),
+            "code_performance": CodePerformanceReviewAgent(
+                llm_client=llm_client, db_path=db_path
+            ),
+            "test_coverage": TestCoverageReviewAgent(
+                llm_client=llm_client, db_path=db_path
+            ),
+            "documentation": DocumentationReviewAgent(
+                llm_client=llm_client, db_path=db_path
+            ),
+            "best_practices": BestPracticesReviewAgent(
+                llm_client=llm_client, db_path=db_path
+            ),
         }
 
     @track_agent_cost(
@@ -82,7 +94,7 @@ class CodeReviewOrchestrator(BaseAgent):
     def execute(
         self,
         generated_code: GeneratedCode,
-        quality_standards: Optional[str] = None,
+        quality_standards: str | None = None,
     ) -> CodeReviewReport:
         """
         Execute comprehensive code review using all specialist agents in parallel.
@@ -97,7 +109,9 @@ class CodeReviewOrchestrator(BaseAgent):
         Raises:
             AgentExecutionError: If orchestration fails
         """
-        logger.info(f"Starting orchestrated code review for task {generated_code.task_id}")
+        logger.info(
+            f"Starting orchestrated code review for task {generated_code.task_id}"
+        )
         start_time = datetime.now()
 
         try:
@@ -123,14 +137,17 @@ class CodeReviewOrchestrator(BaseAgent):
             # Step 5: Convert to Pydantic models
             issues_list = [CodeIssue(**issue) for issue in aggregated_issues]
             suggestions_list = [
-                CodeImprovementSuggestion(**suggestion) for suggestion in aggregated_suggestions
+                CodeImprovementSuggestion(**suggestion)
+                for suggestion in aggregated_suggestions
             ]
             checklist_review_list = [
                 ChecklistItemReview(**item) for item in checklist_review
             ]
 
             # Step 6: Calculate issue counts
-            critical_count = sum(1 for issue in issues_list if issue.severity == "Critical")
+            critical_count = sum(
+                1 for issue in issues_list if issue.severity == "Critical"
+            )
             high_count = sum(1 for issue in issues_list if issue.severity == "High")
             medium_count = sum(1 for issue in issues_list if issue.severity == "Medium")
             low_count = sum(1 for issue in issues_list if issue.severity == "Low")
@@ -201,7 +218,10 @@ class CodeReviewOrchestrator(BaseAgent):
         Returns:
             Dictionary mapping specialist name to review results
         """
-        async def run_specialist(name: str, agent: BaseAgent) -> tuple[str, dict[str, Any]]:
+
+        async def run_specialist(
+            name: str, agent: BaseAgent
+        ) -> tuple[str, dict[str, Any]]:
             """Run a single specialist review (async wrapper)."""
             try:
                 # Run in thread pool since agents are synchronous
@@ -215,8 +235,7 @@ class CodeReviewOrchestrator(BaseAgent):
 
         # Launch all specialists in parallel
         tasks = [
-            run_specialist(name, agent)
-            for name, agent in self.specialists.items()
+            run_specialist(name, agent) for name, agent in self.specialists.items()
         ]
 
         results = await asyncio.gather(*tasks)
@@ -245,7 +264,6 @@ class CodeReviewOrchestrator(BaseAgent):
             "csrf": "Security",
             "crypto": "Security",
             "encryption": "Security",
-
             # Code Quality variations
             "code quality": "Code Quality",
             "quality": "Code Quality",
@@ -254,7 +272,6 @@ class CodeReviewOrchestrator(BaseAgent):
             "code smell": "Code Quality",
             "complexity": "Code Quality",
             "duplication": "Code Quality",
-
             # Performance variations
             "performance": "Performance",
             "optimization": "Performance",
@@ -262,26 +279,22 @@ class CodeReviewOrchestrator(BaseAgent):
             "scalability": "Performance",
             "memory": "Performance",
             "cpu": "Performance",
-
             # Standards variations
             "standards": "Standards",
             "coding standards": "Standards",
             "style": "Standards",
             "conventions": "Standards",
             "pep 8": "Standards",
-
             # Testing variations
             "testing": "Testing",
             "tests": "Testing",
             "test coverage": "Testing",
             "unit tests": "Testing",
-
             # Error Handling variations
             "error handling": "Error Handling",
             "error": "Error Handling",
             "exception": "Error Handling",
             "exception handling": "Error Handling",
-
             # Data Integrity variations
             "data integrity": "Data Integrity",
             "data": "Data Integrity",
@@ -292,11 +305,19 @@ class CodeReviewOrchestrator(BaseAgent):
 
         # If still not a valid category, default to best guess
         valid_categories = [
-            "Security", "Code Quality", "Performance", "Standards",
-            "Testing", "Maintainability", "Error Handling", "Data Integrity"
+            "Security",
+            "Code Quality",
+            "Performance",
+            "Standards",
+            "Testing",
+            "Maintainability",
+            "Error Handling",
+            "Data Integrity",
         ]
         if normalized not in valid_categories:
-            logger.warning(f"Unknown category '{category}', defaulting to 'Code Quality'")
+            logger.warning(
+                f"Unknown category '{category}', defaulting to 'Code Quality'"
+            )
             return "Code Quality"
 
         return normalized
@@ -334,7 +355,9 @@ class CodeReviewOrchestrator(BaseAgent):
         # Ensure evidence meets minimum length requirement (10 chars)
         if len(normalized["evidence"]) < 10:
             # Pad short evidence strings with context
-            normalized["evidence"] = f"File {normalized['evidence']}: {normalized.get('description', 'Issue identified in code')}"
+            normalized["evidence"] = (
+                f"File {normalized['evidence']}: {normalized.get('description', 'Issue identified in code')}"
+            )
 
         if "impact" not in normalized:
             normalized["impact"] = "Requires code review and remediation"
@@ -377,11 +400,15 @@ class CodeReviewOrchestrator(BaseAgent):
 
         # Ensure required fields
         if "description" not in normalized:
-            normalized["description"] = "Review and improve code quality based on specialist feedback"
+            normalized["description"] = (
+                "Review and improve code quality based on specialist feedback"
+            )
         elif len(normalized["description"]) < 30:
             # Pad short descriptions to meet minimum length requirement
             desc = normalized["description"]
-            normalized["description"] = f"{desc} to improve code quality and maintainability"
+            normalized["description"] = (
+                f"{desc} to improve code quality and maintainability"
+            )
 
         if "implementation_notes" not in normalized:
             # Some LLMs might use different field names
@@ -390,12 +417,16 @@ class CodeReviewOrchestrator(BaseAgent):
             elif "notes" in normalized:
                 normalized["implementation_notes"] = normalized["notes"]
             else:
-                normalized["implementation_notes"] = "Review code and implement recommended changes following best practices"
+                normalized["implementation_notes"] = (
+                    "Review code and implement recommended changes following best practices"
+                )
 
         # Ensure implementation_notes meets minimum length
         if len(normalized["implementation_notes"]) < 20:
             notes = normalized["implementation_notes"]
-            normalized["implementation_notes"] = f"{notes} to address code quality issues"
+            normalized["implementation_notes"] = (
+                f"{notes} to address code quality issues"
+            )
 
         if "priority" not in normalized:
             normalized["priority"] = "Medium"
@@ -427,7 +458,9 @@ class CodeReviewOrchestrator(BaseAgent):
 
             # Normalize each issue and suggestion
             all_issues.extend([self._normalize_issue(issue) for issue in issues])
-            all_suggestions.extend([self._normalize_suggestion(sug) for sug in suggestions])
+            all_suggestions.extend(
+                [self._normalize_suggestion(sug) for sug in suggestions]
+            )
 
         # Deduplicate issues (simple approach: by file_path + line_number similarity)
         deduplicated_issues = self._deduplicate_issues(all_issues)
@@ -486,7 +519,9 @@ class CodeReviewOrchestrator(BaseAgent):
 
             if location_key in location_map:
                 # Keep issue with higher severity
-                existing_severity = severity_order.get(location_map[location_key]["severity"], 0)
+                existing_severity = severity_order.get(
+                    location_map[location_key]["severity"], 0
+                )
                 new_severity = severity_order.get(issue["severity"], 0)
                 if new_severity > existing_severity:
                     location_map[location_key] = issue
@@ -517,9 +552,7 @@ class CodeReviewOrchestrator(BaseAgent):
 
         return list(desc_map.values())
 
-    def _run_automated_checks(
-        self, generated_code: GeneratedCode
-    ) -> dict[str, bool]:
+    def _run_automated_checks(self, generated_code: GeneratedCode) -> dict[str, bool]:
         """
         Run automated validation checks on the generated code.
 
@@ -630,25 +663,27 @@ class CodeReviewOrchestrator(BaseAgent):
             # Build notes with category and related issues
             notes_parts = [f"Category: {item['category']}"]
             if related_issues:
-                notes_parts.append(f"Found {len(related_issues)} related issue(s): {', '.join(related_issues)}")
+                notes_parts.append(
+                    f"Found {len(related_issues)} related issue(s): {', '.join(related_issues)}"
+                )
             else:
                 notes_parts.append("No issues found for this checklist item")
 
-            checklist_review.append({
-                "item_id": f"CODE-CHECK-{i+1:03d}",
-                "item_description": item["description"],
-                "status": status,
-                "notes": " | ".join(notes_parts),
-            })
+            checklist_review.append(
+                {
+                    "item_id": f"CODE-CHECK-{i+1:03d}",
+                    "item_description": item["description"],
+                    "status": status,
+                    "notes": " | ".join(notes_parts),
+                }
+            )
 
         return checklist_review
 
     def _generate_review_id(self, task_id: str, timestamp: datetime) -> str:
         """Generate unique review ID matching pattern ^CODE-REVIEW-[A-Z0-9]+-\\d{8}-\\d{6}$"""
         # Remove all non-alphanumeric characters (including hyphens and underscores)
-        clean_task_id = "".join(
-            c if c.isalnum() else "" for c in task_id
-        ).upper()
+        clean_task_id = "".join(c if c.isalnum() else "" for c in task_id).upper()
 
         date_str = timestamp.strftime("%Y%m%d")
         time_str = timestamp.strftime("%H%M%S")

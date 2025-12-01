@@ -24,11 +24,9 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 from asp.models.postmortem import ProcessImprovementProposal, ProposedChange
 from asp.utils.git_utils import git_commit_artifact, is_git_repository
-
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +75,7 @@ class PromptVersioner:
         self,
         pip: ProcessImprovementProposal,
         dry_run: bool = False,
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """
         Apply approved PIP changes to prompts.
 
@@ -113,7 +111,7 @@ class PromptVersioner:
             except Exception as e:
                 logger.error(
                     f"Failed to apply change to {change.target_artifact}: {e}",
-                    exc_info=True
+                    exc_info=True,
                 )
                 # Continue with other changes rather than failing completely
                 results[change.target_artifact] = f"ERROR: {e}"
@@ -136,9 +134,7 @@ class PromptVersioner:
                     message=f"Apply PIP-{pip.proposal_id}: {pip.analysis[:50]}...",
                 )
 
-        logger.info(
-            f"PIP {pip.proposal_id} applied: {len(results)} prompts updated"
-        )
+        logger.info(f"PIP {pip.proposal_id} applied: {len(results)} prompts updated")
         return results
 
     def _apply_change(
@@ -193,7 +189,7 @@ class PromptVersioner:
 
         return new_file
 
-    def _find_prompt_file(self, artifact_name: str) -> Tuple[Path, int]:
+    def _find_prompt_file(self, artifact_name: str) -> tuple[Path, int]:
         """
         Find the latest version of a prompt file.
 
@@ -235,7 +231,7 @@ class PromptVersioner:
 
         for file_path in matching_files:
             # Extract version number (e.g., "code_agent_v2_generation.txt" → 2)
-            match = re.search(r'_v(\d+)', file_path.name)
+            match = re.search(r"_v(\d+)", file_path.name)
             if match:
                 version = int(match.group(1))
                 if version > latest_version:
@@ -289,8 +285,7 @@ class PromptVersioner:
 
         # Replace current content with proposed content
         new_content = current_content.replace(
-            change.current_content,
-            change.proposed_content
+            change.current_content, change.proposed_content
         )
 
         return new_content
@@ -324,7 +319,7 @@ class PromptVersioner:
         new_content = current_content.replace(content_to_remove, "")
 
         # Clean up extra whitespace
-        new_content = re.sub(r'\n\n\n+', '\n\n', new_content)
+        new_content = re.sub(r"\n\n\n+", "\n\n", new_content)
 
         return new_content
 
@@ -341,11 +336,7 @@ class PromptVersioner:
         """
         # Replace version number in filename
         # Example: "code_agent_v1_generation.txt" → "code_agent_v2_generation.txt"
-        new_name = re.sub(
-            r'_v\d+',
-            f'_v{new_version}',
-            current_file.name
-        )
+        new_name = re.sub(r"_v\d+", f"_v{new_version}", current_file.name)
 
         return current_file.parent / new_name
 
@@ -379,7 +370,7 @@ class PromptVersioner:
     def _update_version_history(
         self,
         pip: ProcessImprovementProposal,
-        results: Dict[str, str],
+        results: dict[str, str],
     ) -> None:
         """
         Update VERSION_HISTORY.md with PIP application record.

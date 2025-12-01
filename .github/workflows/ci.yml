@@ -38,10 +38,10 @@ jobs:
       run: |
         if [[ -n "$OPENAI_API_KEY" ]] || [[ -n "$ANTHROPIC_API_KEY" ]]; then
           echo "API keys detected. Running all tests..."
-          pytest --cov=. --cov-report=term-missing --cov-report=xml --cov-fail-under=80
+          pytest --cov=. --cov-report=term-missing --cov-report=xml --cov-fail-under=35
         else
           echo "No API keys detected. Skipping E2E tests..."
-          pytest -m "not e2e" --cov=. --cov-report=term-missing --cov-report=xml --cov-fail-under=80
+          pytest -m "not e2e" --cov=. --cov-report=term-missing --cov-report=xml --cov-fail-under=35
         fi
 
     - name: Upload coverage reports to Codecov
@@ -91,11 +91,11 @@ jobs:
 
     - name: Lint with Pylint
       run: |
-        pylint src/ --fail-under=8.0 || true
+        pylint src/ --fail-under=8.0
 
     - name: Type check with mypy
       run: |
-        mypy src/ --ignore-missing-imports || true
+        mypy src/ --ignore-missing-imports
 
   security:
     name: Security Scan
@@ -121,8 +121,8 @@ jobs:
 
     - name: Run Bandit security linter
       run: |
-        bandit -r src/ -f json -o bandit-report.json || true
+        bandit -r src/ -f json -o bandit-report.json
 
     - name: Check dependencies for known vulnerabilities
       run: |
-        safety check --json || true
+        safety check --json

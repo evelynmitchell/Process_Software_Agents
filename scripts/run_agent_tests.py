@@ -21,19 +21,19 @@ Commands:
 """
 
 import os
-import sys
 import subprocess
+import sys
 from pathlib import Path
-from typing import List, Optional
 
 
 class Colors:
     """ANSI color codes for terminal output"""
-    RED = '\033[0;31m'
-    GREEN = '\033[0;32m'
-    YELLOW = '\033[1;33m'
-    BLUE = '\033[0;34m'
-    NC = '\033[0m'  # No Color
+
+    RED = "\033[0;31m"
+    GREEN = "\033[0;32m"
+    YELLOW = "\033[1;33m"
+    BLUE = "\033[0;34m"
+    NC = "\033[0m"  # No Color
 
 
 class TestRunner:
@@ -75,16 +75,23 @@ class TestRunner:
         missing_vars = [var for var in required_vars if not os.getenv(var)]
 
         if missing_vars:
-            self.print_error(f"Missing environment variables: {', '.join(missing_vars)}")
+            self.print_error(
+                f"Missing environment variables: {', '.join(missing_vars)}"
+            )
             self.print_info("Please set the following variables:")
             for var in missing_vars:
-                print(f"  export {var}=\"your_key_here\"")
+                print(f'  export {var}="your_key_here"')
             return False
 
         self.print_success("All environment variables set")
         return True
 
-    def run_pytest(self, test_path: str, description: Optional[str] = None, extra_args: Optional[List[str]] = None) -> bool:
+    def run_pytest(
+        self,
+        test_path: str,
+        description: str | None = None,
+        extra_args: list[str] | None = None,
+    ) -> bool:
         """Run pytest with specified path and arguments"""
         if description:
             self.print_info(description)
@@ -110,17 +117,41 @@ class TestRunner:
         self.print_header("Phase 1: Core Agents (7 Agents)")
 
         tests = [
-            ("tests/unit/test_agents/test_planning_agent.py", "Testing Planning Agent (FR-1)..."),
+            (
+                "tests/unit/test_agents/test_planning_agent.py",
+                "Testing Planning Agent (FR-1)...",
+            ),
             ("tests/e2e/test_planning_agent_e2e.py", "Testing Planning Agent E2E..."),
-            ("tests/unit/test_agents/test_design_agent.py", "Testing Design Agent (FR-2)..."),
+            (
+                "tests/unit/test_agents/test_design_agent.py",
+                "Testing Design Agent (FR-2)...",
+            ),
             ("tests/e2e/test_design_agent_e2e.py", "Testing Design Agent E2E..."),
-            ("tests/unit/test_agents/test_design_review_agent.py", "Testing Design Review Agent (FR-3)..."),
-            ("tests/e2e/test_design_review_agent_e2e.py", "Testing Design Review Agent E2E..."),
-            ("tests/unit/test_agents/test_code_agent.py", "Testing Code Agent (FR-4)..."),
+            (
+                "tests/unit/test_agents/test_design_review_agent.py",
+                "Testing Design Review Agent (FR-3)...",
+            ),
+            (
+                "tests/e2e/test_design_review_agent_e2e.py",
+                "Testing Design Review Agent E2E...",
+            ),
+            (
+                "tests/unit/test_agents/test_code_agent.py",
+                "Testing Code Agent (FR-4)...",
+            ),
             ("tests/e2e/test_code_agent_e2e.py", "Testing Code Agent E2E..."),
-            ("tests/unit/test_agents/test_code_review_orchestrator.py", "Testing Code Review Agent (FR-5)..."),
-            ("tests/unit/test_agents/test_test_agent.py", "Testing Test Agent (FR-6)..."),
-            ("tests/unit/test_agents/test_postmortem_agent.py", "Testing Postmortem Agent (FR-7)..."),
+            (
+                "tests/unit/test_agents/test_code_review_orchestrator.py",
+                "Testing Code Review Agent (FR-5)...",
+            ),
+            (
+                "tests/unit/test_agents/test_test_agent.py",
+                "Testing Test Agent (FR-6)...",
+            ),
+            (
+                "tests/unit/test_agents/test_postmortem_agent.py",
+                "Testing Postmortem Agent (FR-7)...",
+            ),
         ]
 
         for test_path, description in tests:
@@ -140,8 +171,14 @@ class TestRunner:
         self.print_header("Phase 2: Orchestrator Agents (2 Agents)")
 
         tests = [
-            ("tests/unit/test_agents/test_design_review_orchestrator.py", "Testing Design Review Orchestrator..."),
-            ("tests/unit/test_agents/test_code_review_orchestrator.py", "Testing Code Review Orchestrator..."),
+            (
+                "tests/unit/test_agents/test_design_review_orchestrator.py",
+                "Testing Design Review Orchestrator...",
+            ),
+            (
+                "tests/unit/test_agents/test_code_review_orchestrator.py",
+                "Testing Code Review Orchestrator...",
+            ),
         ]
 
         for test_path, description in tests:

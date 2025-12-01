@@ -6,10 +6,10 @@ overrides in the TSP Orchestrator.
 """
 
 from asp.approval.base import (
-    ApprovalService,
     ApprovalRequest,
     ApprovalResponse,
-    ReviewDecision
+    ApprovalService,
+    ReviewDecision,
 )
 from asp.approval.local_pr import LocalPRApprovalService
 
@@ -18,5 +18,5 @@ __all__ = [
     "ApprovalRequest",
     "ApprovalResponse",
     "ReviewDecision",
-    "LocalPRApprovalService"
+    "LocalPRApprovalService",
 ]

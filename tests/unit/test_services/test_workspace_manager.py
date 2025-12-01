@@ -11,13 +11,13 @@ Tests cover:
 See: design/ADR_001_workspace_isolation_and_execution_tracking.md
 """
 
-import pytest
 import subprocess
-import tempfile
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
-from src.services.workspace_manager import WorkspaceManager, Workspace
+import pytest
+
+from src.services.workspace_manager import WorkspaceManager
 
 
 @pytest.fixture
@@ -35,7 +35,9 @@ def manager(temp_base_path):
 class TestWorkspaceCreation:
     """Test workspace creation and structure."""
 
-    def test_create_workspace_creates_directory_structure(self, manager, temp_base_path):
+    def test_create_workspace_creates_directory_structure(
+        self, manager, temp_base_path
+    ):
         """Test that create_workspace creates correct directory structure."""
         workspace = manager.create_workspace("task-001")
 
@@ -84,7 +86,7 @@ class TestGitRepositoryInitialization:
         workspace = manager.create_workspace("task-006")
         initial_files = {
             "README.md": "# Hello Git\n",
-            "src/main.py": "print('hello')\n"
+            "src/main.py": "print('hello')\n",
         }
 
         repo_path = manager.initialize_git_repo(workspace, initial_files=initial_files)
@@ -100,7 +102,7 @@ class TestGitRepositoryInitialization:
             cwd=str(repo_path),
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
         assert "Initial commit" in result.stdout
 
@@ -115,7 +117,7 @@ class TestGitRepositoryInitialization:
             cwd=str(repo_path),
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
         assert result.stdout.strip() == "asp@example.com"
 
@@ -123,7 +125,9 @@ class TestGitRepositoryInitialization:
 class TestRepositoryCloning:
     """Test repository cloning from remote URLs."""
 
-    @pytest.mark.skip(reason="Requires network access - test with real repo URL manually")
+    @pytest.mark.skip(
+        reason="Requires network access - test with real repo URL manually"
+    )
     def test_clone_repository_from_github(self, manager):
         """Test cloning a real repository from GitHub.
 
@@ -144,7 +148,9 @@ class TestRepositoryCloning:
         workspace = manager.create_workspace("task-clone-fail")
 
         with pytest.raises(RuntimeError, match="Failed to clone repository"):
-            manager.clone_repository(workspace, "https://invalid-url-12345.com/repo.git")
+            manager.clone_repository(
+                workspace, "https://invalid-url-12345.com/repo.git"
+            )
 
 
 class TestWorkspaceCleanup:
@@ -185,6 +191,7 @@ class TestWorkspaceCleanup:
     def test_cleanup_nonexistent_workspace_succeeds(self, manager):
         """Test that cleaning up non-existent workspace doesn't error."""
         import shutil
+
         workspace = manager.create_workspace("task-011")
         shutil.rmtree(workspace.path)  # Manually delete entire workspace
 
@@ -215,6 +222,7 @@ class TestWorkspaceListing:
     def test_list_workspaces_sorted_by_creation_time(self, manager):
         """Test that workspaces are sorted by creation time (newest first)."""
         import time
+
         ws1 = manager.create_workspace("task-015")
         time.sleep(0.01)  # Ensure different creation times
         ws2 = manager.create_workspace("task-016")
@@ -258,8 +266,7 @@ class TestWorkspaceIntegration:
 
         # Initialize git repo
         repo_path = manager.initialize_git_repo(
-            workspace,
-            initial_files={"README.md": "# Test Project\n"}
+            workspace, initial_files={"README.md": "# Test Project\n"}
         )
         assert (repo_path / "README.md").exists()
 
@@ -267,9 +274,7 @@ class TestWorkspaceIntegration:
         (repo_path / "new_feature.py").write_text("def hello(): pass\n")
         subprocess.run(["git", "add", "."], cwd=str(repo_path), check=True)
         subprocess.run(
-            ["git", "commit", "-m", "Add new feature"],
-            cwd=str(repo_path),
-            check=True
+            ["git", "commit", "-m", "Add new feature"], cwd=str(repo_path), check=True
         )
 
         # Verify clean state
@@ -278,7 +283,7 @@ class TestWorkspaceIntegration:
             cwd=str(repo_path),
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
         assert result.stdout.strip() == ""
 

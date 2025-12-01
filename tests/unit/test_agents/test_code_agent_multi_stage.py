@@ -13,7 +13,7 @@ Date: November 20, 2025
 """
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from pydantic import ValidationError
@@ -24,10 +24,8 @@ from asp.models.code import CodeInput, FileManifest, FileMetadata
 from asp.models.design import (
     APIContract,
     ComponentLogic,
-    DataSchema,
     DesignSpecification,
 )
-
 
 # =============================================================================
 # Test Fixtures
@@ -241,9 +239,7 @@ def test_generate_file_manifest_with_markdown_fence(mock_call_llm, mock_load_pro
     # Mock LLM response with JSON in markdown fence
     mock_response = create_mock_manifest_response()
     json_string = json.dumps(mock_response, indent=2)
-    mock_call_llm.return_value = {
-        "content": f"```json\n{json_string}\n```"
-    }
+    mock_call_llm.return_value = {"content": f"```json\n{json_string}\n```"}
 
     # Execute
     manifest = agent._generate_file_manifest(input_data)
@@ -298,7 +294,9 @@ def test_generate_file_manifest_invalid_json(mock_call_llm, mock_load_prompt):
 
 @patch("asp.agents.code_agent.CodeAgent.load_prompt")
 @patch("asp.agents.code_agent.CodeAgent.call_llm")
-def test_generate_file_manifest_missing_required_fields(mock_call_llm, mock_load_prompt):
+def test_generate_file_manifest_missing_required_fields(
+    mock_call_llm, mock_load_prompt
+):
     """Test error handling when manifest response is missing required fields."""
     # Setup
     agent = CodeAgent()
@@ -336,7 +334,9 @@ def test_generate_file_manifest_prompt_not_found(mock_load_prompt):
 
 @patch("asp.agents.code_agent.CodeAgent.load_prompt")
 @patch("asp.agents.code_agent.CodeAgent.call_llm")
-def test_generate_file_manifest_validates_file_metadata(mock_call_llm, mock_load_prompt):
+def test_generate_file_manifest_validates_file_metadata(
+    mock_call_llm, mock_load_prompt
+):
     """Test that manifest validates FileMetadata structure."""
     # Setup
     agent = CodeAgent()
@@ -362,7 +362,9 @@ def test_generate_file_manifest_validates_file_metadata(mock_call_llm, mock_load
 
 @patch("asp.agents.code_agent.CodeAgent.load_prompt")
 @patch("asp.agents.code_agent.CodeAgent.call_llm")
-def test_generate_file_manifest_handles_malformed_json_fence(mock_call_llm, mock_load_prompt):
+def test_generate_file_manifest_handles_malformed_json_fence(
+    mock_call_llm, mock_load_prompt
+):
     """Test error handling when JSON in markdown fence is malformed."""
     # Setup
     agent = CodeAgent()
@@ -371,7 +373,7 @@ def test_generate_file_manifest_handles_malformed_json_fence(mock_call_llm, mock
 
     # Mock LLM response with malformed JSON in markdown fence
     mock_call_llm.return_value = {
-        "content": "```json\n{\"task_id\": \"TEST\", \"files\": [invalid json\n```"
+        "content": '```json\n{"task_id": "TEST", "files": [invalid json\n```'
     }
 
     # Execute and verify error

@@ -6,11 +6,13 @@ This module implements the web UI for the Senior Developer persona.
 
 from fasthtml.common import *
 
+
 def developer_routes(app, rt):
 
-    @rt('/developer')
+    @rt("/developer")
     def get_developer():
-        return Titled("Flow State Canvas - Alex",
+        return Titled(
+            "Flow State Canvas - Alex",
             Div(
                 # Sidebar / Navigation
                 Div(
@@ -27,7 +29,7 @@ def developer_routes(app, rt):
                         Li(A("View Traces", href="#")),
                     ),
                     cls="sidebar",
-                    style="width: 250px; border-right: 1px solid var(--pico-muted-border-color); padding-right: 1rem;"
+                    style="width: 250px; border-right: 1px solid var(--pico-muted-border-color); padding-right: 1rem;",
                 ),
                 # Main Content Area
                 Div(
@@ -39,26 +41,38 @@ def developer_routes(app, rt):
                             Table(
                                 Thead(Tr(Th("Time"), Th("Action"), Th("Status"))),
                                 Tbody(
-                                    Tr(Td("10:05"), Td("Updated telemetry.py"), Td("Success", cls="pico-color-green")),
-                                    Tr(Td("10:02"), Td("Ran migration"), Td("Success", cls="pico-color-green")),
-                                    Tr(Td("09:55"), Td("Failed test execution"), Td("Failed", cls="pico-color-red")),
-                                )
+                                    Tr(
+                                        Td("10:05"),
+                                        Td("Updated telemetry.py"),
+                                        Td("Success", cls="pico-color-green"),
+                                    ),
+                                    Tr(
+                                        Td("10:02"),
+                                        Td("Ran migration"),
+                                        Td("Success", cls="pico-color-green"),
+                                    ),
+                                    Tr(
+                                        Td("09:55"),
+                                        Td("Failed test execution"),
+                                        Td("Failed", cls="pico-color-red"),
+                                    ),
+                                ),
                             ),
-                            cls="card"
+                            cls="card",
                         ),
                         Div(
                             H4("Quick Actions"),
                             Div(
                                 Button("Run Unit Tests", cls="secondary"),
                                 Button("Generate PR Description", cls="secondary"),
-                                cls="grid"
+                                cls="grid",
                             ),
                             cls="card",
-                            style="margin-top: 1rem;"
-                        )
+                            style="margin-top: 1rem;",
+                        ),
                     ),
-                    style="flex-grow: 1; padding-left: 2rem;"
+                    style="flex-grow: 1; padding-left: 2rem;",
                 ),
-                style="display: flex; min-height: 80vh;"
-            )
+                style="display: flex; min-height: 80vh;",
+            ),
         )

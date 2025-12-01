@@ -23,10 +23,9 @@ Date: November 19, 2025
 """
 
 import json
+from unittest.mock import Mock
+
 import pytest
-from datetime import datetime
-from unittest.mock import Mock, MagicMock, patch
-from pathlib import Path
 
 from asp.agents.base_agent import AgentExecutionError
 from asp.agents.code_reviews import (
@@ -38,7 +37,6 @@ from asp.agents.code_reviews import (
     TestCoverageReviewAgent,
 )
 from asp.models.code import GeneratedCode, GeneratedFile
-
 
 # =============================================================================
 # Test Fixtures
@@ -115,10 +113,12 @@ def test_login():
 def create_mock_llm_response(issues_found, suggestions):
     """Create a mock LLM response with issues and suggestions."""
     return {
-        "content": json.dumps({
-            "issues_found": issues_found,
-            "improvement_suggestions": suggestions,
-        }),
+        "content": json.dumps(
+            {
+                "issues_found": issues_found,
+                "improvement_suggestions": suggestions,
+            }
+        ),
         "usage": {
             "input_tokens": 100,
             "output_tokens": 50,
@@ -222,7 +222,9 @@ class TestCodeQualityReviewAgent:
         agent = CodeQualityReviewAgent(llm_client=mock_llm)
         generated_code = create_test_generated_code_with_issues()
 
-        with pytest.raises(AgentExecutionError, match="Failed to parse LLM response as JSON"):
+        with pytest.raises(
+            AgentExecutionError, match="Failed to parse LLM response as JSON"
+        ):
             agent.execute(generated_code)
 
 
@@ -351,7 +353,10 @@ class TestCodePerformanceReviewAgent:
         result = agent.execute(generated_code)
 
         assert len(result["issues_found"]) == 1
-        assert "N+1" in result["issues_found"][0]["description"] or "N plus 1" in result["issues_found"][0]["description"].lower()
+        assert (
+            "N+1" in result["issues_found"][0]["description"]
+            or "N plus 1" in result["issues_found"][0]["description"].lower()
+        )
 
 
 # =============================================================================

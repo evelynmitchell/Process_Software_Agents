@@ -13,20 +13,18 @@ Author: ASP Development Team
 Date: November 13, 2025
 """
 
-import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
-from asp.agents.base_agent import BaseAgent, AgentExecutionError
+from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.models.design import DesignInput, DesignSpecification
 from asp.parsers.design_markdown_parser import DesignMarkdownParser
 from asp.telemetry import track_agent_cost
 from asp.utils.artifact_io import write_artifact_json, write_artifact_markdown
 from asp.utils.git_utils import git_commit_artifact, is_git_repository
 from asp.utils.markdown_renderer import render_design_markdown
-
 
 logger = logging.getLogger(__name__)
 
@@ -65,10 +63,10 @@ class DesignAgent(BaseAgent):
 
     def __init__(
         self,
-        db_path: Optional[Path] = None,
-        llm_client: Optional[Any] = None,
-        use_markdown: Optional[bool] = None,
-        model: Optional[str] = None,
+        db_path: Path | None = None,
+        llm_client: Any | None = None,
+        use_markdown: bool | None = None,
+        model: str | None = None,
     ):
         """
         Initialize Design Agent.
@@ -107,7 +105,9 @@ class DesignAgent(BaseAgent):
         llm_provider="anthropic",
         agent_version="1.0.0",
     )
-    def execute(self, input_data: DesignInput, feedback: Optional[list] = None) -> DesignSpecification:
+    def execute(
+        self, input_data: DesignInput, feedback: list | None = None
+    ) -> DesignSpecification:
         """
         Execute the Design Agent to generate a technical design with optional feedback.
 
@@ -239,7 +239,11 @@ class DesignAgent(BaseAgent):
             prompt_template,
             requirements=input_data.requirements,
             project_plan=input_data.project_plan.model_dump_json(indent=2),
-            context_files="\n".join(input_data.context_files) if input_data.context_files else "None",
+            context_files=(
+                "\n".join(input_data.context_files)
+                if input_data.context_files
+                else "None"
+            ),
             design_constraints=input_data.design_constraints or "None",
         )
 
@@ -265,7 +269,9 @@ class DesignAgent(BaseAgent):
 
         # Fix: Coerce technology_stack boolean values to strings
         # LLM sometimes returns {"standard_library_only": true} instead of "yes"/"no"
-        if "technology_stack" in content and isinstance(content["technology_stack"], dict):
+        if "technology_stack" in content and isinstance(
+            content["technology_stack"], dict
+        ):
             for key, value in content["technology_stack"].items():
                 if isinstance(value, bool):
                     content["technology_stack"][key] = "yes" if value else "no"
@@ -279,11 +285,16 @@ class DesignAgent(BaseAgent):
 
         except Exception as e:
             logger.error(f"Failed to validate design specification: {e}")
-            logger.debug(f"Response content keys: {content.keys() if isinstance(content, dict) else 'not a dict'}")
+            logger.debug(
+                f"Response content keys: {content.keys() if isinstance(content, dict) else 'not a dict'}"
+            )
             # Debug: dump the problematic field
             if isinstance(content, dict) and "api_contracts" in content:
                 import json
-                logger.error(f"DEBUG: api_contracts content: {json.dumps(content['api_contracts'], indent=2)}")
+
+                logger.error(
+                    f"DEBUG: api_contracts content: {json.dumps(content['api_contracts'], indent=2)}"
+                )
             raise AgentExecutionError(f"Design validation failed: {e}") from e
 
     def _generate_design_markdown(self, input_data: DesignInput) -> DesignSpecification:
@@ -307,18 +318,26 @@ class DesignAgent(BaseAgent):
 
         # Format prompt with requirements and project plan
         # Format project plan as readable text (not JSON for markdown mode)
-        project_plan_text = self._format_project_plan_for_markdown(input_data.project_plan)
+        project_plan_text = self._format_project_plan_for_markdown(
+            input_data.project_plan
+        )
 
         formatted_prompt = self.format_prompt(
             prompt_template,
             task_id=input_data.task_id,
             requirements=input_data.requirements,
             project_plan=project_plan_text,
-            context_files="\n".join(input_data.context_files) if input_data.context_files else "None",
+            context_files=(
+                "\n".join(input_data.context_files)
+                if input_data.context_files
+                else "None"
+            ),
             design_constraints=input_data.design_constraints or "None",
         )
 
-        logger.debug(f"Generated markdown design prompt ({len(formatted_prompt)} chars)")
+        logger.debug(
+            f"Generated markdown design prompt ({len(formatted_prompt)} chars)"
+        )
 
         # Call LLM to generate design
         response = self.call_llm(
@@ -342,7 +361,9 @@ class DesignAgent(BaseAgent):
         # Parse markdown to dict
         try:
             design_dict = self.markdown_parser.parse(content)
-            logger.debug(f"Parsed markdown into dict with {len(design_dict)} top-level keys")
+            logger.debug(
+                f"Parsed markdown into dict with {len(design_dict)} top-level keys"
+            )
         except Exception as e:
             logger.error(f"Failed to parse markdown: {e}")
             # Log first 500 chars of markdown for debugging
@@ -357,7 +378,9 @@ class DesignAgent(BaseAgent):
         except Exception as e:
             logger.error(f"Failed to validate design specification from markdown: {e}")
             logger.debug(f"Parsed dict keys: {design_dict.keys()}")
-            raise AgentExecutionError(f"Design validation failed after markdown parsing: {e}") from e
+            raise AgentExecutionError(
+                f"Design validation failed after markdown parsing: {e}"
+            ) from e
 
     def _format_project_plan_for_markdown(self, project_plan) -> str:
         """
@@ -404,21 +427,29 @@ class DesignAgent(BaseAgent):
         planning_unit_ids = {unit.unit_id for unit in project_plan.semantic_units}
 
         # Get all semantic unit IDs referenced in design components
-        design_unit_ids = {component.semantic_unit_id for component in design_spec.component_logic}
+        design_unit_ids = {
+            component.semantic_unit_id for component in design_spec.component_logic
+        }
 
         # Check for missing units
         missing_units = planning_unit_ids - design_unit_ids
 
         if missing_units:
-            logger.error(f"Design is missing components for semantic units: {missing_units}")
+            logger.error(
+                f"Design is missing components for semantic units: {missing_units}"
+            )
             raise AgentExecutionError(
                 f"Design incomplete: semantic units {missing_units} have no corresponding components. "
                 f"Every semantic unit from planning must have at least one component."
             )
 
-        logger.debug(f"Semantic unit coverage validated: {len(design_unit_ids)}/{len(planning_unit_ids)} units covered")
+        logger.debug(
+            f"Semantic unit coverage validated: {len(design_unit_ids)}/{len(planning_unit_ids)} units covered"
+        )
 
-    def _validate_component_dependencies(self, design_spec: DesignSpecification) -> None:
+    def _validate_component_dependencies(
+        self, design_spec: DesignSpecification
+    ) -> None:
         """
         Validate component dependencies form a valid DAG (no circular dependencies).
 
@@ -429,7 +460,9 @@ class DesignAgent(BaseAgent):
             AgentExecutionError: If circular dependencies detected
         """
         # Build component name set
-        component_names = {component.component_name for component in design_spec.component_logic}
+        component_names = {
+            component.component_name for component in design_spec.component_logic
+        }
 
         # Check for invalid dependencies (components that don't exist)
         for component in design_spec.component_logic:
@@ -461,7 +494,9 @@ class DesignAgent(BaseAgent):
         adj_list = {}
         for component in design_spec.component_logic:
             # Only include dependencies that are internal components
-            internal_deps = [dep for dep in component.dependencies if dep in component_names]
+            internal_deps = [
+                dep for dep in component.dependencies if dep in component_names
+            ]
             adj_list[component.component_name] = internal_deps
 
         # Check for cycles
@@ -471,13 +506,17 @@ class DesignAgent(BaseAgent):
         for component_name in component_names:
             if component_name not in visited:
                 if has_cycle(component_name, visited, rec_stack, adj_list):
-                    logger.error(f"Circular dependency detected involving: {component_name}")
+                    logger.error(
+                        f"Circular dependency detected involving: {component_name}"
+                    )
                     raise AgentExecutionError(
                         f"Design contains circular dependencies. "
                         f"Component '{component_name}' is part of a dependency cycle."
                     )
 
-        logger.debug("Component dependencies validated: no circular dependencies detected")
+        logger.debug(
+            "Component dependencies validated: no circular dependencies detected"
+        )
 
     def _generate_design_with_feedback(
         self, input_data: DesignInput, feedback: list
@@ -526,7 +565,9 @@ class DesignAgent(BaseAgent):
             feedback=feedback_text,
         )
 
-        logger.debug(f"Generated feedback-aware design prompt ({len(formatted_prompt)} chars)")
+        logger.debug(
+            f"Generated feedback-aware design prompt ({len(formatted_prompt)} chars)"
+        )
 
         # Step 4: Call LLM to generate revised design
         response = self.call_llm(

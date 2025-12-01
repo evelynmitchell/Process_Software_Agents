@@ -10,35 +10,34 @@ Tests the telemetry infrastructure including:
 - Error handling and resilience
 """
 
-import pytest
+import os
 import sqlite3
 import tempfile
 import time
-import os
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch, call
-from contextlib import contextmanager
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from asp.telemetry.telemetry import (
     get_db_connection,
+    get_langfuse_client,
+    get_user_id,
     insert_agent_cost,
     insert_defect,
     track_agent_cost,
-    get_langfuse_client,
-    get_user_id,
-    DefectType
 )
-
 
 # =============================================================================
 # Fixtures
 # =============================================================================
 
+
 @pytest.fixture
 def temp_db():
     """Create a temporary database for testing."""
-    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = Path(f.name)
 
     # Initialize schema
@@ -46,7 +45,8 @@ def temp_db():
     cursor = conn.cursor()
 
     # Create agent_cost_vector table (actual table name used)
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS agent_cost_vector (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp TEXT NOT NULL,
@@ -64,10 +64,12 @@ def temp_db():
             llm_provider TEXT,
             metadata TEXT
         )
-    """)
+    """
+    )
 
     # Create defect_log table
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS defect_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             defect_id TEXT UNIQUE NOT NULL,
@@ -88,7 +90,8 @@ def temp_db():
             flagged_by_agent INTEGER DEFAULT 0,
             metadata TEXT
         )
-    """)
+    """
+    )
 
     conn.commit()
     conn.close()
@@ -102,7 +105,7 @@ def temp_db():
 @pytest.fixture
 def mock_langfuse():
     """Create a mocked Langfuse client."""
-    with patch('asp.telemetry.telemetry.Langfuse') as mock:
+    with patch("asp.telemetry.telemetry.Langfuse") as mock:
         client = MagicMock()
         mock.return_value = client
         yield client
@@ -111,6 +114,7 @@ def mock_langfuse():
 # =============================================================================
 # Database Connection Tests
 # =============================================================================
+
 
 class TestDatabaseConnection:
     """Test database connection management."""
@@ -133,21 +137,30 @@ class TestDatabaseConnection:
             cursor.execute("SELECT 'test' as col1, 'value' as col2")
             row = cursor.fetchone()
             # Should be able to access by column name
-            assert row['col1'] == 'test'
-            assert row['col2'] == 'value'
+            assert row["col1"] == "test"
+            assert row["col2"] == "value"
 
     def test_get_db_connection_auto_commit(self, temp_db):
         """Test that changes are automatically committed."""
         with get_db_connection(temp_db) as conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO agent_cost_vector (timestamp, task_id, agent_role, metric_type, metric_value, metric_unit) VALUES (?, ?, ?, ?, ?, ?)",
-                         (datetime.utcnow().isoformat(), 'TEST-001', 'TestAgent', 'Latency', 100.0, 'ms'))
+            cursor.execute(
+                "INSERT INTO agent_cost_vector (timestamp, task_id, agent_role, metric_type, metric_value, metric_unit) VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    datetime.utcnow().isoformat(),
+                    "TEST-001",
+                    "TestAgent",
+                    "Latency",
+                    100.0,
+                    "ms",
+                ),
+            )
 
         # Verify commit happened by opening new connection
         with get_db_connection(temp_db) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) as count FROM agent_cost_vector")
-            count = cursor.fetchone()['count']
+            count = cursor.fetchone()["count"]
             assert count == 1
 
     def test_get_db_connection_rollback_on_error(self, temp_db):
@@ -155,8 +168,17 @@ class TestDatabaseConnection:
         try:
             with get_db_connection(temp_db) as conn:
                 cursor = conn.cursor()
-                cursor.execute("INSERT INTO agent_cost_vector (timestamp, task_id, agent_role, metric_type, metric_value, metric_unit) VALUES (?, ?, ?, ?, ?, ?)",
-                             (datetime.utcnow().isoformat(), 'TEST-002', 'TestAgent', 'Latency', 200.0, 'ms'))
+                cursor.execute(
+                    "INSERT INTO agent_cost_vector (timestamp, task_id, agent_role, metric_type, metric_value, metric_unit) VALUES (?, ?, ?, ?, ?, ?)",
+                    (
+                        datetime.utcnow().isoformat(),
+                        "TEST-002",
+                        "TestAgent",
+                        "Latency",
+                        200.0,
+                        "ms",
+                    ),
+                )
                 # Force an error
                 raise ValueError("Test error")
         except ValueError:
@@ -166,7 +188,7 @@ class TestDatabaseConnection:
         with get_db_connection(temp_db) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) as count FROM agent_cost_vector")
-            count = cursor.fetchone()['count']
+            count = cursor.fetchone()["count"]
             assert count == 0
 
     def test_get_db_connection_closes_connection(self, temp_db):
@@ -185,6 +207,7 @@ class TestDatabaseConnection:
 # Agent Cost Insertion Tests
 # =============================================================================
 
+
 class TestInsertAgentCost:
     """Test insert_agent_cost function."""
 
@@ -196,7 +219,7 @@ class TestInsertAgentCost:
             metric_type="Latency",
             metric_value=123.45,
             metric_unit="ms",
-            db_path=temp_db
+            db_path=temp_db,
         )
 
         assert isinstance(record_id, int)
@@ -207,11 +230,11 @@ class TestInsertAgentCost:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM agent_cost_vector WHERE id = ?", (record_id,))
             row = cursor.fetchone()
-            assert row['task_id'] == "TEST-001"
-            assert row['agent_role'] == "PlanningAgent"
-            assert row['metric_type'] == "Latency"
-            assert row['metric_value'] == 123.45
-            assert row['metric_unit'] == "ms"
+            assert row["task_id"] == "TEST-001"
+            assert row["agent_role"] == "PlanningAgent"
+            assert row["metric_type"] == "Latency"
+            assert row["metric_value"] == 123.45
+            assert row["metric_unit"] == "ms"
 
     def test_insert_agent_cost_all_parameters(self, temp_db):
         """Test inserting agent cost with all parameters."""
@@ -231,7 +254,7 @@ class TestInsertAgentCost:
             llm_model="claude-3-sonnet",
             llm_provider="anthropic",
             metadata=metadata,
-            db_path=temp_db
+            db_path=temp_db,
         )
 
         # Verify all fields
@@ -239,15 +262,15 @@ class TestInsertAgentCost:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM agent_cost_vector WHERE id = ?", (record_id,))
             row = cursor.fetchone()
-            assert row['task_id'] == "TEST-002"
-            assert row['subtask_id'] == "SU-001"
-            assert row['project_id'] == "PROJ-001"
-            assert row['user_id'] == "user-123"
-            assert row['agent_version'] == "1.0.0"
-            assert row['agent_iteration'] == 2
-            assert row['llm_model'] == "claude-3-sonnet"
-            assert row['llm_provider'] == "anthropic"
-            assert row['metadata'] is not None
+            assert row["task_id"] == "TEST-002"
+            assert row["subtask_id"] == "SU-001"
+            assert row["project_id"] == "PROJ-001"
+            assert row["user_id"] == "user-123"
+            assert row["agent_version"] == "1.0.0"
+            assert row["agent_iteration"] == 2
+            assert row["llm_model"] == "claude-3-sonnet"
+            assert row["llm_provider"] == "anthropic"
+            assert row["metadata"] is not None
 
     def test_insert_agent_cost_multiple_records(self, temp_db):
         """Test inserting multiple agent cost records."""
@@ -259,7 +282,7 @@ class TestInsertAgentCost:
                 metric_type="Latency",
                 metric_value=float(i * 100),
                 metric_unit="ms",
-                db_path=temp_db
+                db_path=temp_db,
             )
             record_ids.append(record_id)
 
@@ -267,13 +290,14 @@ class TestInsertAgentCost:
         with get_db_connection(temp_db) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) as count FROM agent_cost_vector")
-            count = cursor.fetchone()['count']
+            count = cursor.fetchone()["count"]
             assert count == 5
 
 
 # =============================================================================
 # Defect Insertion Tests
 # =============================================================================
+
 
 class TestInsertDefect:
     """Test insert_defect function."""
@@ -287,7 +311,7 @@ class TestInsertDefect:
             phase_injected="Planning",
             phase_removed="Design",
             description="Test defect description",
-            db_path=temp_db
+            db_path=temp_db,
         )
 
         assert defect_id.startswith("DEFECT-")
@@ -298,12 +322,12 @@ class TestInsertDefect:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM defect_log WHERE defect_id = ?", (defect_id,))
             row = cursor.fetchone()
-            assert row['task_id'] == "TEST-001"
-            assert row['defect_type'] == "Planning_Failure"
-            assert row['severity'] == "High"
-            assert row['phase_injected'] == "Planning"
-            assert row['phase_removed'] == "Design"
-            assert row['description'] == "Test defect description"
+            assert row["task_id"] == "TEST-001"
+            assert row["defect_type"] == "Planning_Failure"
+            assert row["severity"] == "High"
+            assert row["phase_injected"] == "Planning"
+            assert row["phase_removed"] == "Design"
+            assert row["description"] == "Test defect description"
 
     def test_insert_defect_all_parameters(self, temp_db):
         """Test inserting defect with all parameters."""
@@ -325,7 +349,7 @@ class TestInsertDefect:
             resolution_notes="Added parameterized queries",
             flagged_by_agent=True,
             metadata=metadata,
-            db_path=temp_db
+            db_path=temp_db,
         )
 
         # Verify all fields
@@ -333,15 +357,15 @@ class TestInsertDefect:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM defect_log WHERE defect_id = ?", (defect_id,))
             row = cursor.fetchone()
-            assert row['project_id'] == "PROJ-001"
-            assert row['user_id'] == "user-123"
-            assert row['component_path'] == "src/auth/login.py"
-            assert row['function_name'] == "validate_credentials"
-            assert row['line_number'] == 42
-            assert row['root_cause'] == "User input not sanitized"
-            assert row['resolution_notes'] == "Added parameterized queries"
-            assert row['flagged_by_agent'] == 1
-            assert row['metadata'] is not None
+            assert row["project_id"] == "PROJ-001"
+            assert row["user_id"] == "user-123"
+            assert row["component_path"] == "src/auth/login.py"
+            assert row["function_name"] == "validate_credentials"
+            assert row["line_number"] == 42
+            assert row["root_cause"] == "User input not sanitized"
+            assert row["resolution_notes"] == "Added parameterized queries"
+            assert row["flagged_by_agent"] == 1
+            assert row["metadata"] is not None
 
     def test_insert_defect_unique_ids(self, temp_db):
         """Test that defect IDs are unique."""
@@ -354,7 +378,7 @@ class TestInsertDefect:
                 phase_injected="Code",
                 phase_removed="Test",
                 description=f"Test defect {i}",
-                db_path=temp_db
+                db_path=temp_db,
             )
             defect_ids.add(defect_id)
 
@@ -366,59 +390,64 @@ class TestInsertDefect:
 # Decorator Tests
 # =============================================================================
 
+
 class TestTrackAgentCostDecorator:
     """Test track_agent_cost decorator."""
 
     def test_decorator_basic_function(self, temp_db, mock_langfuse):
         """Test decorator on basic function."""
+
         @track_agent_cost(agent_role="TestAgent", agent_version="1.0.0")
         def test_function(task_id: str, value: int):
             time.sleep(0.01)  # Simulate work
             return value * 2
 
         # Patch insert_agent_cost to capture calls
-        with patch('asp.telemetry.telemetry.insert_agent_cost') as mock_insert:
+        with patch("asp.telemetry.telemetry.insert_agent_cost") as mock_insert:
             result = test_function("TEST-001", 5)
 
             assert result == 10
             # Verify telemetry was called
             assert mock_insert.called
             call_args = mock_insert.call_args[1]
-            assert call_args['task_id'] == "TEST-001"
-            assert call_args['agent_role'] == "TestAgent"
-            assert call_args['metric_type'] == "Latency"
-            assert call_args['metric_value'] > 0
+            assert call_args["task_id"] == "TEST-001"
+            assert call_args["agent_role"] == "TestAgent"
+            assert call_args["metric_type"] == "Latency"
+            assert call_args["metric_value"] > 0
 
     def test_decorator_with_custom_task_id_param(self, temp_db):
         """Test decorator with custom task_id parameter name."""
+
         @track_agent_cost(agent_role="TestAgent", task_id_param="custom_task_id")
         def test_function(custom_task_id: str, data: str):
             return data.upper()
 
-        with patch('asp.telemetry.telemetry.insert_agent_cost') as mock_insert:
+        with patch("asp.telemetry.telemetry.insert_agent_cost") as mock_insert:
             result = test_function("CUSTOM-001", "hello")
 
             assert result == "HELLO"
             call_args = mock_insert.call_args[1]
-            assert call_args['task_id'] == "CUSTOM-001"
+            assert call_args["task_id"] == "CUSTOM-001"
 
     def test_decorator_tracks_latency(self, temp_db):
         """Test that decorator accurately tracks execution latency."""
+
         @track_agent_cost(agent_role="TestAgent")
         def slow_function(task_id: str):
             time.sleep(0.05)  # Sleep for 50ms
             return "done"
 
-        with patch('asp.telemetry.telemetry.insert_agent_cost') as mock_insert:
+        with patch("asp.telemetry.telemetry.insert_agent_cost") as mock_insert:
             slow_function("TEST-001")
 
             call_args = mock_insert.call_args[1]
             # Latency should be at least 50ms
-            assert call_args['metric_value'] >= 40  # Allow some margin
-            assert call_args['metric_unit'] == "ms"
+            assert call_args["metric_value"] >= 40  # Allow some margin
+            assert call_args["metric_unit"] == "ms"
 
     def test_decorator_preserves_function_signature(self):
         """Test that decorator preserves original function metadata."""
+
         @track_agent_cost(agent_role="TestAgent")
         def documented_function(task_id: str, param1: int, param2: str = "default"):
             """This is a documented function."""
@@ -429,23 +458,25 @@ class TestTrackAgentCostDecorator:
 
     def test_decorator_handles_exceptions(self, temp_db):
         """Test that decorator doesn't suppress exceptions."""
+
         @track_agent_cost(agent_role="TestAgent")
         def failing_function(task_id: str):
             raise ValueError("Test error")
 
-        with patch('asp.telemetry.telemetry.insert_agent_cost'):
+        with patch("asp.telemetry.telemetry.insert_agent_cost"):
             with pytest.raises(ValueError, match="Test error"):
                 failing_function("TEST-001")
 
     def test_decorator_on_class_method(self, temp_db):
         """Test decorator works on class methods."""
+
         class TestClass:
             @track_agent_cost(agent_role="ClassAgent")
             def method(self, task_id: str, value: int):
                 return value + 10
 
         obj = TestClass()
-        with patch('asp.telemetry.telemetry.insert_agent_cost') as mock_insert:
+        with patch("asp.telemetry.telemetry.insert_agent_cost") as mock_insert:
             result = obj.method("TEST-001", 5)
 
             assert result == 15
@@ -456,17 +487,19 @@ class TestTrackAgentCostDecorator:
 # Langfuse Integration Tests
 # =============================================================================
 
+
 class TestLangfuseIntegration:
     """Test Langfuse integration."""
 
     def test_get_langfuse_client_singleton(self):
         """Test Langfuse client is a singleton and properly initialized."""
-        with patch('asp.telemetry.telemetry.Langfuse') as mock_langfuse:
+        with patch("asp.telemetry.telemetry.Langfuse") as mock_langfuse:
             mock_client = MagicMock()
             mock_langfuse.return_value = mock_client
 
             # Reset module-level variable to ensure clean state
             import asp.telemetry.telemetry as telemetry_module
+
             telemetry_module._langfuse_client = None
 
             # Get client twice
@@ -483,6 +516,7 @@ class TestLangfuseIntegration:
 # =============================================================================
 # User ID Resolution Tests
 # =============================================================================
+
 
 class TestUserIdResolution:
     """Test get_user_id resolution logic."""
@@ -521,6 +555,7 @@ class TestUserIdResolution:
 # Error Handling and Edge Cases
 # =============================================================================
 
+
 class TestErrorHandling:
     """Test error handling and edge cases."""
 
@@ -535,7 +570,7 @@ class TestErrorHandling:
                 metric_type="Latency",
                 metric_value=100.0,
                 metric_unit="ms",
-                db_path=nonexistent_db
+                db_path=nonexistent_db,
             )
 
     def test_insert_defect_with_very_long_description(self, temp_db):
@@ -549,7 +584,7 @@ class TestErrorHandling:
             phase_injected="Code",
             phase_removed="Review",
             description=long_description,
-            db_path=temp_db
+            db_path=temp_db,
         )
 
         # Should succeed
@@ -557,11 +592,12 @@ class TestErrorHandling:
 
     def test_decorator_with_none_values(self, temp_db):
         """Test decorator handles None values gracefully."""
+
         @track_agent_cost(agent_role="TestAgent", llm_model=None, llm_provider=None)
         def test_function(task_id: str):
             return "result"
 
-        with patch('asp.telemetry.telemetry.insert_agent_cost') as mock_insert:
+        with patch("asp.telemetry.telemetry.insert_agent_cost") as mock_insert:
             result = test_function("TEST-001")
             assert result == "result"
             assert mock_insert.called

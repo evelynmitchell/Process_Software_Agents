@@ -9,18 +9,17 @@ Tests cover:
 - JSON serialization/deserialization
 """
 
+
 import pytest
-from datetime import datetime
 from pydantic import ValidationError
 
-from asp.models.test import TestInput, TestDefect, TestReport
 from asp.models.code import GeneratedCode, GeneratedFile
 from asp.models.design import (
     ComponentLogic,
     DesignReviewChecklistItem,
     DesignSpecification,
 )
-
+from asp.models.test import TestDefect, TestInput, TestReport
 
 # =============================================================================
 # Helper Functions
@@ -402,7 +401,9 @@ class TestTestReportModel:
                 defects_found=[defect],  # Has defects!
                 test_timestamp="2025-11-19T12:00:00Z",
             )
-        assert "test_status cannot be PASS when defects are found" in str(exc_info.value)
+        assert "test_status cannot be PASS when defects are found" in str(
+            exc_info.value
+        )
 
     def test_test_summary_required_keys(self):
         """Test test_summary must have required keys."""

@@ -9,7 +9,6 @@ Tests markdown generation for all artifact types:
 - Code review reports
 """
 
-import pytest
 
 from asp.models.code import GeneratedCode, GeneratedFile
 from asp.models.code_review import CodeReviewReport
@@ -18,9 +17,9 @@ from asp.models.design import (
     ComponentLogic,
     DataSchema,
     DesignSpecification,
+    DesignReviewChecklistItem as DesignChecklistItem,
 )
 from asp.models.design_review import (
-    ChecklistItemReview,
     DesignIssue,
     DesignReviewReport,
     ImprovementSuggestion,
@@ -356,4 +355,7 @@ class TestRenderCodeReviewMarkdown:
 
         # Should return placeholder message
         assert "Code Review Report" in markdown
-        assert "not available" in markdown.lower() or markdown == "# Code Review Report\n\n*Report not available*\n"
+        assert (
+            "not available" in markdown.lower()
+            or markdown == "# Code Review Report\n\n*Report not available*\n"
+        )

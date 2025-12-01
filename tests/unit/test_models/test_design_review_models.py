@@ -12,13 +12,15 @@ import pytest
 from pydantic import ValidationError
 
 from asp.models.design_review import (
+    ChecklistItemReview,
     DesignIssue,
     DesignReviewReport,
-    ChecklistItemReview,
 )
 
 
-def create_minimal_checklist_item(item_id="CHECK-001", status="Pass", related_issues=None):
+def create_minimal_checklist_item(
+    item_id="CHECK-001", status="Pass", related_issues=None
+):
     """Helper to create a minimal checklist item for tests."""
     # If status is Fail, must have related issues
     if status == "Fail" and not related_issues:

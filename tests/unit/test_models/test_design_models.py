@@ -20,7 +20,6 @@ Date: 2025-11-18
 """
 
 import json
-from datetime import datetime
 
 import pytest
 from pydantic import ValidationError
@@ -34,7 +33,6 @@ from asp.models.design import (
     DesignSpecification,
 )
 from asp.models.planning import ProjectPlan, SemanticUnit
-
 
 # =============================================================================
 # Helper Functions
@@ -364,9 +362,7 @@ class TestComponentLogic:
             component_name="UserAuthService",
             semantic_unit_id="SU-042",
             responsibility="Handles user authentication and session management",
-            interfaces=[
-                {"method": "login", "parameters": {}, "returns": "str"}
-            ],
+            interfaces=[{"method": "login", "parameters": {}, "returns": "str"}],
             dependencies=["DatabaseService", "PasswordHasher"],
             implementation_notes="Use JWT tokens with 1-hour expiration for stateless auth",
             complexity=75,

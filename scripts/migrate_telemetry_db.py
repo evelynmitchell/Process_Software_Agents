@@ -9,14 +9,15 @@ Usage:
     python scripts/migrate_telemetry_db.py
 """
 
-import sqlite3
 import shutil
-from pathlib import Path
+import sqlite3
 from datetime import datetime
+from pathlib import Path
 
 # Path to database
 DB_PATH = Path(__file__).parent.parent / "data" / "asp_telemetry.db"
 BACKUP_PATH = DB_PATH.with_suffix(f".backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+
 
 def migrate_db():
     if not DB_PATH.exists():
@@ -61,7 +62,8 @@ def migrate_db():
         cursor.execute("ALTER TABLE defect_log RENAME TO defect_log_old")
 
         # Create new table with updated constraints and user_id
-        cursor.execute("""
+        cursor.execute(
+            """
         CREATE TABLE defect_log (
             defect_id TEXT PRIMARY KEY,
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -91,7 +93,8 @@ def migrate_db():
             CHECK (validated_by_human IN (0, 1)),
             CHECK (false_positive IN (0, 1))
         )
-        """)
+        """
+        )
         # Note: I removed the strict CHECK (defect_type IN (...)) to allow flexibility for the new taxonomy
         # or strict enforcement in Python. Or I can add the new values.
         # For now, allowing any text is safer for migration if we have mixed data,
@@ -103,7 +106,8 @@ def migrate_db():
         # We need to explicitly list columns because the old table doesn't have user_id (wait, we added it in step 2)
         # Actually, since we added user_id in step 2, defect_log_old HAS user_id.
 
-        cursor.execute("""
+        cursor.execute(
+            """
         INSERT INTO defect_log (
             defect_id, created_at, resolved_at, task_id, project_id, user_id,
             defect_type, severity, phase_injected, phase_removed,
@@ -118,7 +122,8 @@ def migrate_db():
             description, root_cause, resolution_notes,
             flagged_by_agent, validated_by_human, false_positive, metadata
         FROM defect_log_old
-        """)
+        """
+        )
         print(f"  Copied {cursor.rowcount} rows.")
 
         # Drop old table
@@ -135,6 +140,7 @@ def migrate_db():
         # Restore backup? User might want to do that manually.
     finally:
         conn.close()
+
 
 if __name__ == "__main__":
     migrate_db()

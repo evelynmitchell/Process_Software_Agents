@@ -21,14 +21,14 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from asp.agents.planning_agent import PlanningAgent
+from asp.agents.code_agent import CodeAgent
 from asp.agents.design_agent import DesignAgent
 from asp.agents.design_review_agent import DesignReviewAgent
-from asp.agents.code_agent import CodeAgent
-from asp.models.planning import TaskRequirements, ProjectPlan
+from asp.agents.planning_agent import PlanningAgent
+from asp.models.code import CodeInput, GeneratedCode
 from asp.models.design import DesignInput, DesignSpecification
 from asp.models.design_review import DesignReviewReport
-from asp.models.code import CodeInput, GeneratedCode
+from asp.models.planning import ProjectPlan, TaskRequirements
 
 
 def print_section(title: str):
@@ -94,14 +94,14 @@ def main():
     try:
         plan: ProjectPlan = planning_agent.execute(task_requirements)
 
-        print(f" Planning complete!")
+        print(" Planning complete!")
         print(f"   Project ID: {plan.project_id}")
         print(f"   Task ID: {plan.task_id}")
         print(f"   Semantic units: {len(plan.semantic_units)}")
         print(f"   Total complexity: {plan.total_est_complexity}")
         print(f"   Agent version: {plan.agent_version}")
 
-        print(f"\n   Semantic Units:")
+        print("\n   Semantic Units:")
         for i, unit in enumerate(plan.semantic_units, 1):
             print(f"   {i}. {unit.unit_id}: {unit.description[:60]}...")
             print(f"      Complexity: {unit.est_complexity}")
@@ -124,18 +124,18 @@ def main():
     try:
         design: DesignSpecification = design_agent.execute(design_input)
 
-        print(f" Design complete!")
+        print(" Design complete!")
         print(f"   Task ID: {design.task_id}")
         print(f"   API Contracts: {len(design.api_contracts)}")
         print(f"   Data Schemas: {len(design.data_schemas)}")
         print(f"   Components: {len(design.component_logic)}")
 
-        print(f"\n   API Contracts:")
+        print("\n   API Contracts:")
         for i, api in enumerate(design.api_contracts, 1):
             print(f"   {i}. {api.method} {api.endpoint}")
             print(f"      Description: {api.description[:60]}...")
 
-        print(f"\n   Components:")
+        print("\n   Components:")
         for i, component in enumerate(design.component_logic, 1):
             print(f"   {i}. {component.component_name}")
             print(f"      Responsibility: {component.responsibility[:60]}...")
@@ -153,7 +153,7 @@ def main():
         design_review_agent = DesignReviewAgent()
         review: DesignReviewReport = design_review_agent.execute(design)
 
-        print(f" Design Review complete!")
+        print(" Design Review complete!")
         print(f"   Review ID: {review.review_id}")
         print(f"   Overall Assessment: {review.overall_assessment}")
         print(f"   Critical Issues: {review.critical_issue_count}")
@@ -165,6 +165,7 @@ def main():
     except Exception as e:
         print(f" Design Review failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
@@ -182,11 +183,11 @@ def main():
     try:
         code_result: GeneratedCode = code_agent.execute(code_input)
 
-        print(f" Code generation complete!")
+        print(" Code generation complete!")
         print(f"   Task ID: {code_result.task_id}")
         print(f"   Files generated: {len(code_result.files)}")
 
-        print(f"\n   Generated Files:")
+        print("\n   Generated Files:")
         for i, file in enumerate(code_result.files, 1):
             print(f"   {i}. {file.file_path}")
             print(f"      Type: {file.file_type}")
@@ -198,17 +199,21 @@ def main():
 
     # Step 5: Summary
     print_section("PIPELINE EXECUTION SUMMARY")
-    print(f" All 4 agents executed successfully!")
+    print(" All 4 agents executed successfully!")
     print(f"\n   Task: {task_id} - {task_requirements.description}")
-    print(f"   Planning: {len(plan.semantic_units)} semantic units, complexity {plan.total_est_complexity}")
-    print(f"   Design: {len(design.api_contracts)} API contracts, {len(design.component_logic)} components")
+    print(
+        f"   Planning: {len(plan.semantic_units)} semantic units, complexity {plan.total_est_complexity}"
+    )
+    print(
+        f"   Design: {len(design.api_contracts)} API contracts, {len(design.component_logic)} components"
+    )
     print(f"   Review: {review.overall_decision} with {len(review.issues)} issues")
     print(f"   Code: {len(code_result.files)} files generated")
 
-    print(f"\n   Artifacts:")
-    print(f"   - Check artifacts/ directory for generated files")
-    print(f"   - Check git log for artifact commits")
-    print(f"   - Check data/asp_telemetry.db for telemetry data")
+    print("\n   Artifacts:")
+    print("   - Check artifacts/ directory for generated files")
+    print("   - Check git log for artifact commits")
+    print("   - Check data/asp_telemetry.db for telemetry data")
 
     print_section("BOOTSTRAP PHASE 1 COMPLETE")
     print("Next steps:")

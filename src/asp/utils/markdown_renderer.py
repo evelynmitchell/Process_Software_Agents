@@ -12,8 +12,6 @@ Date: November 17, 2025
 """
 
 import logging
-from datetime import datetime
-from typing import Any
 
 from asp.models.code import GeneratedCode
 from asp.models.code_review import CodeReviewReport
@@ -124,7 +122,9 @@ def render_design_markdown(design: DesignSpecification) -> str:
                 md += f"- **Response Schema:**\n```json\n{api.response_schema}\n```\n"
             if api.error_responses:
                 # error_responses is a list of dicts with status_code and description
-                error_summary = ", ".join([f"{e.get('status_code', 'N/A')}" for e in api.error_responses])
+                error_summary = ", ".join(
+                    [f"{e.get('status_code', 'N/A')}" for e in api.error_responses]
+                )
                 md += f"- **Error Responses:** {error_summary}\n"
 
             md += "\n"
@@ -235,14 +235,18 @@ def render_design_review_markdown(review: DesignReviewReport) -> str:
         md += "## Medium Issues\n\n"
         for issue in review.issues_found:
             if issue.severity == "Medium":
-                md += f"- **{issue.issue_id}**: {issue.description} ({issue.category})\n"
+                md += (
+                    f"- **{issue.issue_id}**: {issue.description} ({issue.category})\n"
+                )
         md += "\n"
 
     if review.low_issues > 0:
         md += "## Low Issues\n\n"
         for issue in review.issues_found:
             if issue.severity == "Low":
-                md += f"- **{issue.issue_id}**: {issue.description} ({issue.category})\n"
+                md += (
+                    f"- **{issue.issue_id}**: {issue.description} ({issue.category})\n"
+                )
         md += "\n"
 
     # Add improvement suggestions
@@ -319,7 +323,9 @@ def render_code_manifest_markdown(code: GeneratedCode) -> str:
     source_files = [f for f in code.files if f.file_type == "source"]
     test_files = [f for f in code.files if f.file_type == "test"]
     config_files = [f for f in code.files if f.file_type == "config"]
-    other_files = [f for f in code.files if f.file_type not in ["source", "test", "config"]]
+    other_files = [
+        f for f in code.files if f.file_type not in ["source", "test", "config"]
+    ]
 
     if source_files:
         md += "### Source Files\n\n"
@@ -366,7 +372,9 @@ def render_code_manifest_markdown(code: GeneratedCode) -> str:
     if code.semantic_units_implemented or code.components_implemented:
         md += "## Traceability\n\n"
         if code.semantic_units_implemented:
-            md += f"- **Semantic Units:** {', '.join(code.semantic_units_implemented)}\n"
+            md += (
+                f"- **Semantic Units:** {', '.join(code.semantic_units_implemented)}\n"
+            )
         if code.components_implemented:
             md += f"- **Components:** {', '.join(code.components_implemented)}\n"
         md += "\n"
@@ -488,7 +496,11 @@ def render_code_review_markdown(review: CodeReviewReport) -> str:
     md += "\n"
 
     # Add phase-aware breakdown
-    if review.planning_phase_issues or review.design_phase_issues or review.code_phase_issues:
+    if (
+        review.planning_phase_issues
+        or review.design_phase_issues
+        or review.code_phase_issues
+    ):
         md += "## Phase-Aware Issue Breakdown\n\n"
         if review.planning_phase_issues:
             md += f"- **Planning Phase Issues:** {len(review.planning_phase_issues)}\n"

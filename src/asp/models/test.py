@@ -21,14 +21,12 @@ Author: ASP Development Team
 Date: November 19, 2025
 """
 
-from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from asp.models.code import GeneratedCode
 from asp.models.design import DesignSpecification
-
 
 # =============================================================================
 # Input Models
@@ -188,23 +186,23 @@ class TestDefect(BaseModel):
         description="Phase where defect was detected (always 'Test' for TestAgent)",
     )
 
-    file_path: Optional[str] = Field(
+    file_path: str | None = Field(
         default=None,
         description="File path where defect occurs (if applicable)",
     )
 
-    line_number: Optional[int] = Field(
+    line_number: int | None = Field(
         default=None,
         ge=1,
         description="Line number where defect occurs (if applicable)",
     )
 
-    semantic_unit_id: Optional[str] = Field(
+    semantic_unit_id: str | None = Field(
         default=None,
         description="Semantic unit ID from Planning Agent (for traceability)",
     )
 
-    component_id: Optional[str] = Field(
+    component_id: str | None = Field(
         default=None,
         description="Component ID from Design Agent (for traceability)",
     )
@@ -291,7 +289,7 @@ class TestReport(BaseModel):
     )
 
     # Test coverage
-    coverage_percentage: Optional[float] = Field(
+    coverage_percentage: float | None = Field(
         default=None,
         ge=0.0,
         le=100.0,
@@ -352,7 +350,7 @@ class TestReport(BaseModel):
         description="ISO 8601 timestamp of test execution",
     )
 
-    test_duration_seconds: Optional[float] = Field(
+    test_duration_seconds: float | None = Field(
         default=None,
         ge=0,
         description="Total test execution time in seconds",
@@ -384,9 +382,7 @@ class TestReport(BaseModel):
                 raise ValueError("test_status cannot be PASS when defects are found")
         elif self.test_summary.get("failed", 0) > 0:
             if self.test_status == "PASS":
-                raise ValueError(
-                    "test_status cannot be PASS when tests have failed"
-                )
+                raise ValueError("test_status cannot be PASS when tests have failed")
         return self
 
     @model_validator(mode="after")
@@ -395,9 +391,7 @@ class TestReport(BaseModel):
         required_keys = {"total_tests", "passed", "failed", "skipped"}
         missing_keys = required_keys - set(self.test_summary.keys())
         if missing_keys:
-            raise ValueError(
-                f"test_summary missing required keys: {missing_keys}"
-            )
+            raise ValueError(f"test_summary missing required keys: {missing_keys}")
         return self
 
     class Config:

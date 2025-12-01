@@ -2,11 +2,11 @@
 Debug script to examine design review issues for Hello World API.
 """
 
-from asp.agents.planning_agent import PlanningAgent
 from asp.agents.design_agent import DesignAgent
 from asp.agents.design_review_orchestrator import DesignReviewOrchestrator
-from asp.models.planning import TaskRequirements
+from asp.agents.planning_agent import PlanningAgent
 from asp.models.design import DesignInput
+from asp.models.planning import TaskRequirements
 
 # Simple Hello World requirements
 requirements = TaskRequirements(
@@ -27,16 +27,16 @@ requirements = TaskRequirements(
     """,
 )
 
-print("="*80)
+print("=" * 80)
 print("STEP 1: Planning Agent")
-print("="*80)
+print("=" * 80)
 planning_agent = PlanningAgent()
 project_plan = planning_agent.execute(requirements)
 print(f"✓ Planning complete: {len(project_plan.semantic_units)} units")
 
-print("\n" + "="*80)
+print("\n" + "=" * 80)
 print("STEP 2: Design Agent")
-print("="*80)
+print("=" * 80)
 design_agent = DesignAgent()
 design_input = DesignInput(
     task_id=requirements.task_id,
@@ -45,21 +45,25 @@ design_input = DesignInput(
     design_constraints="Use FastAPI. Keep design minimal.",
 )
 design_spec = design_agent.execute(design_input)
-print(f"✓ Design complete: {len(design_spec.api_contracts)} APIs, {len(design_spec.component_logic)} components")
+print(
+    f"✓ Design complete: {len(design_spec.api_contracts)} APIs, {len(design_spec.component_logic)} components"
+)
 
-print("\n" + "="*80)
+print("\n" + "=" * 80)
 print("STEP 3: Design Review Orchestrator")
-print("="*80)
+print("=" * 80)
 review_orchestrator = DesignReviewOrchestrator()
 design_review = review_orchestrator.execute(design_spec)
 
 print(f"\nReview Status: {design_review.overall_assessment}")
-print(f"Issues: {design_review.critical_issue_count}C / {design_review.high_issue_count}H / {design_review.medium_issue_count}M / {design_review.low_issue_count}L")
+print(
+    f"Issues: {design_review.critical_issue_count}C / {design_review.high_issue_count}H / {design_review.medium_issue_count}M / {design_review.low_issue_count}L"
+)
 
 if design_review.issues_found:
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print(f"DESIGN ISSUES FOUND ({len(design_review.issues_found)} total)")
-    print("="*80)
+    print("=" * 80)
 
     # Group by severity
     for severity in ["Critical", "High", "Medium", "Low"]:
@@ -72,9 +76,9 @@ if design_review.issues_found:
                 print(f"   Location: {issue.evidence}")
                 print(f"   Impact: {issue.impact}")
 
-print("\n" + "="*80)
+print("\n" + "=" * 80)
 print("IMPROVEMENT SUGGESTIONS")
-print("="*80)
+print("=" * 80)
 if design_review.improvement_suggestions:
     for i, suggestion in enumerate(design_review.improvement_suggestions[:5], 1):
         print(f"\n{i}. {suggestion.title}")

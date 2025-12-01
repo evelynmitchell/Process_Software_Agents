@@ -16,17 +16,16 @@ Date: November 19, 2025
 import json
 import logging
 import re
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
+from pydantic import BaseModel
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
-from asp.models.test import TestDefect, TestInput, TestReport
+from asp.models.test import TestInput, TestReport
 from asp.telemetry import track_agent_cost
 from asp.utils.artifact_io import write_artifact_json, write_artifact_markdown
 from asp.utils.git_utils import git_commit_artifact, is_git_repository
 from asp.utils.markdown_renderer import render_test_report_markdown
-
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +64,8 @@ class TestAgent(BaseAgent):
 
     def __init__(
         self,
-        db_path: Optional[Path] = None,
-        llm_client: Optional[Any] = None,
+        db_path: Path | None = None,
+        llm_client: Any | None = None,
     ):
         """
         Initialize Test Agent.
@@ -79,14 +78,14 @@ class TestAgent(BaseAgent):
         self.agent_version = "1.0.0"
         logger.info("TestAgent initialized")
 
-    @track_agent_cost(
+    @track_agent_cost(  # type: ignore
         agent_role="Test",
         task_id_param="input_data.task_id",
         llm_model="claude-sonnet-4-20250514",
         llm_provider="anthropic",
         agent_version="1.0.0",
     )
-    def execute(self, input_data: TestInput) -> TestReport:
+    def execute(self, input_data: TestInput) -> BaseModel:
         """
         Execute the Test Agent to validate code through testing.
 
@@ -160,7 +159,9 @@ class TestAgent(BaseAgent):
                         agent_name="Test Agent",
                         artifact_files=artifact_files,
                     )
-                    logger.info(f"Committed {len(artifact_files)} artifacts: {commit_hash}")
+                    logger.info(
+                        f"Committed {len(artifact_files)} artifacts: {commit_hash}"
+                    )
                 else:
                     logger.warning("Not in git repository, skipping commit")
 
@@ -198,7 +199,9 @@ class TestAgent(BaseAgent):
             prompt_template,
             task_id=input_data.task_id,
             generated_code_json=input_data.generated_code.model_dump_json(indent=2),
-            design_specification_json=input_data.design_specification.model_dump_json(indent=2),
+            design_specification_json=input_data.design_specification.model_dump_json(
+                indent=2
+            ),
             test_framework=input_data.test_framework,
             coverage_target=input_data.coverage_target,
         )
@@ -260,12 +263,13 @@ class TestAgent(BaseAgent):
         # Validate against TestReport schema
         try:
             test_report = self.validate_output(content, TestReport)
-            logger.debug(f"Successfully validated TestReport for task {input_data.task_id}")
+            logger.debug(
+                f"Successfully validated TestReport for task {input_data.task_id}"
+            )
             return test_report
         except Exception as e:
             raise AgentExecutionError(
-                f"Failed to validate TestReport: {e}\n"
-                f"Response content: {content}"
+                f"Failed to validate TestReport: {e}\n" f"Response content: {content}"
             ) from e
 
     def _validate_test_report(self, report: TestReport) -> None:
@@ -293,7 +297,11 @@ class TestAgent(BaseAgent):
                 f"(expected BUILD_FAILED)"
             )
 
-        if report.build_successful and len(report.defects_found) > 0 and report.test_status == "PASS":
+        if (
+            report.build_successful
+            and len(report.defects_found) > 0
+            and report.test_status == "PASS"
+        ):
             raise AgentExecutionError(
                 f"Invalid test status: defects found but test_status=PASS "
                 f"({len(report.defects_found)} defects)"
@@ -315,12 +323,12 @@ class TestAgent(BaseAgent):
         defect_ids = [d.defect_id for d in report.defects_found]
         if len(defect_ids) != len(set(defect_ids)):
             duplicates = [did for did in defect_ids if defect_ids.count(did) > 1]
-            raise AgentExecutionError(
-                f"Duplicate defect IDs found: {set(duplicates)}"
-            )
+            raise AgentExecutionError(f"Duplicate defect IDs found: {set(duplicates)}")
 
         # Validate severity counts match actual defects
-        actual_critical = sum(1 for d in report.defects_found if d.severity == "Critical")
+        actual_critical = sum(
+            1 for d in report.defects_found if d.severity == "Critical"
+        )
         actual_high = sum(1 for d in report.defects_found if d.severity == "High")
         actual_medium = sum(1 for d in report.defects_found if d.severity == "Medium")
         actual_low = sum(1 for d in report.defects_found if d.severity == "Low")

@@ -18,27 +18,30 @@ import functools
 import os
 import sqlite3
 import time
+from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable
 
 from langfuse import Langfuse
-
 
 # ============================================================================
 # Configuration
 # ============================================================================
 
 # Database path (relative to project root)
-DEFAULT_DB_PATH = Path(__file__).parent.parent.parent.parent / "data" / "asp_telemetry.db"
+DEFAULT_DB_PATH = (
+    Path(__file__).parent.parent.parent.parent / "data" / "asp_telemetry.db"
+)
 
 
 class DefectType(StrEnum):
     """
     Standard Defect Taxonomy (PSP/TSP PROBE).
     """
+
     DOCUMENTATION = "10_Documentation"
     SYNTAX = "20_Syntax"
     BUILD_PACKAGE = "30_Build_Package"
@@ -50,8 +53,9 @@ class DefectType(StrEnum):
     SYSTEM = "90_System"
     ENVIRONMENT = "100_Environment"
 
+
 # Langfuse client (initialized lazily)
-_langfuse_client: Optional[Langfuse] = None
+_langfuse_client: Langfuse | None = None
 
 
 def get_langfuse_client() -> Langfuse:
@@ -106,8 +110,17 @@ def get_user_id() -> str:
 # Database Helpers
 # ============================================================================
 
+
+def initialize_db(db_path: Path | str = "telemetry.db", in_memory: bool = False):
+    """Initialize database connection and create tables."""
+    db_path = ":memory:" if in_memory else db_path
+    engine = create_engine(f"sqlite:///{db_path}")
+    Base.metadata.create_all(engine)
+    return engine
+
+
 @contextmanager
-def get_db_connection(db_path: Optional[Path] = None):
+def get_db_connection(db_path: Path | None = None):
     """
     Context manager for database connections.
 
@@ -136,15 +149,15 @@ def insert_agent_cost(
     metric_type: str,
     metric_value: float,
     metric_unit: str,
-    subtask_id: Optional[str] = None,
-    project_id: Optional[str] = None,
-    user_id: Optional[str] = None,
-    agent_version: Optional[str] = None,
+    subtask_id: str | None = None,
+    project_id: str | None = None,
+    user_id: str | None = None,
+    agent_version: str | None = None,
     agent_iteration: int = 1,
-    llm_model: Optional[str] = None,
-    llm_provider: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None,
-    db_path: Optional[Path] = None,
+    llm_model: str | None = None,
+    llm_provider: str | None = None,
+    metadata: dict[str, Any] | None = None,
+    db_path: Path | None = None,
 ) -> int:
     """
     Insert agent cost record into database.
@@ -212,16 +225,16 @@ def insert_defect(
     phase_injected: str,
     phase_removed: str,
     description: str,
-    project_id: Optional[str] = None,
-    user_id: Optional[str] = None,
-    component_path: Optional[str] = None,
-    function_name: Optional[str] = None,
-    line_number: Optional[int] = None,
-    root_cause: Optional[str] = None,
-    resolution_notes: Optional[str] = None,
+    project_id: str | None = None,
+    user_id: str | None = None,
+    component_path: str | None = None,
+    function_name: str | None = None,
+    line_number: int | None = None,
+    root_cause: str | None = None,
+    resolution_notes: str | None = None,
     flagged_by_agent: bool = False,
-    metadata: Optional[Dict[str, Any]] = None,
-    db_path: Optional[Path] = None,
+    metadata: dict[str, Any] | None = None,
+    db_path: Path | None = None,
 ) -> str:
     """
     Insert defect record into database.
@@ -295,12 +308,13 @@ def insert_defect(
 # Decorators
 # ============================================================================
 
+
 def track_agent_cost(
     agent_role: str,
     task_id_param: str = "task_id",
-    llm_model: Optional[str] = None,
-    llm_provider: Optional[str] = None,
-    agent_version: Optional[str] = None,
+    llm_model: str | None = None,
+    llm_provider: str | None = None,
+    agent_version: str | None = None,
 ):
     """
     Decorator to track agent execution costs.
@@ -325,6 +339,7 @@ def track_agent_cost(
             # Your agent logic here
             return {"decomposed_tasks": [...]}
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -343,6 +358,7 @@ def track_agent_cost(
                 if param_value is None:
                     # Try positional args
                     import inspect
+
                     sig = inspect.signature(func)
                     param_names = list(sig.parameters.keys())
                     if param_name in param_names:
@@ -359,6 +375,7 @@ def track_agent_cost(
                 if task_id is None:
                     # Try to find it in positional args based on function signature
                     import inspect
+
                     sig = inspect.signature(func)
                     param_names = list(sig.parameters.keys())
                     if task_id_param in param_names:
@@ -372,7 +389,9 @@ def track_agent_cost(
                                 task_id = param_value
 
             if task_id is None:
-                raise ValueError(f"task_id not found in function arguments (looking for '{task_id_param}')")
+                raise ValueError(
+                    f"task_id not found in function arguments (looking for '{task_id_param}')"
+                )
 
             # Resolve User and Model
             user_id = get_user_id()
@@ -384,7 +403,11 @@ def track_agent_cost(
                 tags=[
                     f"user:{user_id}",
                     f"model:{llm_model}" if llm_model else "model:unknown",
-                    f"pair:{user_id}|{llm_model}" if llm_model else f"pair:{user_id}|unknown"
+                    (
+                        f"pair:{user_id}|{llm_model}"
+                        if llm_model
+                        else f"pair:{user_id}|unknown"
+                    ),
                 ],
                 metadata={
                     "agent_role": agent_role,
@@ -505,6 +528,7 @@ def track_agent_cost(
                     print(f"Warning: Failed to log to Langfuse: {lf_error}")
 
         return wrapper
+
     return decorator
 
 
@@ -538,6 +562,7 @@ def log_defect(
             # Your fix logic here
             return {"fixed": True}
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -545,6 +570,7 @@ def log_defect(
             task_id = kwargs.get(task_id_param)
             if task_id is None:
                 import inspect
+
                 sig = inspect.signature(func)
                 param_names = list(sig.parameters.keys())
                 if task_id_param in param_names:
@@ -553,7 +579,9 @@ def log_defect(
                         task_id = args[idx]
 
             if task_id is None:
-                raise ValueError(f"task_id not found in function arguments (looking for '{task_id_param}')")
+                raise ValueError(
+                    f"task_id not found in function arguments (looking for '{task_id_param}')"
+                )
 
             # Resolve User
             user_id = get_user_id()
@@ -616,12 +644,14 @@ def log_defect(
                     print(f"Warning: Failed to log defect to Langfuse: {lf_error}")
 
         return wrapper
+
     return decorator
 
 
 # ============================================================================
 # Manual Logging Functions (for non-decorator usage)
 # ============================================================================
+
 
 def log_agent_metric(
     task_id: str,

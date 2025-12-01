@@ -19,22 +19,19 @@ Run with:
     pytest tests/e2e/test_tsp_with_approval_service.py -m e2e -v -s
 """
 
-import os
-import pytest
-from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any
 
-from asp.orchestrators import TSPOrchestrator, TSPExecutionResult
-from asp.orchestrators.tsp_orchestrator import QualityGateFailure
-from asp.models.planning import TaskRequirements
+import pytest
+
 from asp.approval.base import (
-    ApprovalService,
     ApprovalRequest,
     ApprovalResponse,
-    ReviewDecision
+    ApprovalService,
+    ReviewDecision,
 )
-
+from asp.models.planning import TaskRequirements
+from asp.orchestrators import TSPExecutionResult, TSPOrchestrator
+from asp.orchestrators.tsp_orchestrator import QualityGateFailure
 
 # Skip all tests if no API key is available
 
@@ -58,10 +55,7 @@ class MockApprovalService(ApprovalService):
         self.decision = decision
         self.approval_requests: list[ApprovalRequest] = []
 
-    def request_approval(
-        self,
-        request: ApprovalRequest
-    ) -> ApprovalResponse:
+    def request_approval(self, request: ApprovalRequest) -> ApprovalResponse:
         """
         Mock approval request that returns predetermined decision.
 
@@ -76,18 +70,16 @@ class MockApprovalService(ApprovalService):
 
         # Extract quality report details
         quality_report = request.quality_report
-        critical_count = (
-            quality_report.get('critical_issue_count', 0) or
-            quality_report.get('critical_issues', 0)
-        )
-        high_count = (
-            quality_report.get('high_issue_count', 0) or
-            quality_report.get('high_issues', 0)
+        critical_count = quality_report.get(
+            "critical_issue_count", 0
+        ) or quality_report.get("critical_issues", 0)
+        high_count = quality_report.get("high_issue_count", 0) or quality_report.get(
+            "high_issues", 0
         )
 
         # Print approval simulation
         print(f"\n{'='*80}")
-        print(f"MOCK APPROVAL SERVICE: Simulating HITL Review")
+        print("MOCK APPROVAL SERVICE: Simulating HITL Review")
         print(f"{'='*80}")
         print(f"Task ID: {request.task_id}")
         print(f"Gate Type: {request.gate_type}")
@@ -98,10 +90,10 @@ class MockApprovalService(ApprovalService):
         return ApprovalResponse(
             decision=self.decision,
             reviewer="MockReviewer",
-            timestamp=datetime.utcnow().isoformat() + 'Z',
+            timestamp=datetime.utcnow().isoformat() + "Z",
             justification=f"Mock {self.decision.value} for testing purposes",
             review_branch=f"mock/{request.task_id}",
-            merge_commit="mock_commit_sha"
+            merge_commit="mock_commit_sha",
         )
 
 
@@ -118,9 +110,9 @@ class TestTSPWithApprovalService:
         - Pipeline executes successfully with approval service configured
         - Simple task likely passes quality gates (no HITL needed)
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TSP + APPROVAL SERVICE E2E: Simple Task (No HITL Expected)")
-        print("="*80)
+        print("=" * 80)
 
         # Create mock approval service (will auto-approve if called)
         approval_service = MockApprovalService(decision=ReviewDecision.APPROVED)
@@ -179,7 +171,9 @@ class TestTSPWithApprovalService:
             print("  ⚠ Postmortem (skipped or failed)")
 
         # Check if ApprovalService was called
-        print(f"\n[HITL] ApprovalService calls: {len(approval_service.approval_requests)}")
+        print(
+            f"\n[HITL] ApprovalService calls: {len(approval_service.approval_requests)}"
+        )
         if len(approval_service.approval_requests) > 0:
             print("  Quality gates that required HITL approval:")
             for req in approval_service.approval_requests:
@@ -199,9 +193,9 @@ class TestTSPWithApprovalService:
         - Approved decisions allow pipeline to continue
         - HITL overrides are recorded in audit trail
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TSP + APPROVAL SERVICE E2E: Complex Task (HITL Expected)")
-        print("="*80)
+        print("=" * 80)
 
         # Create mock approval service that auto-approves
         approval_service = MockApprovalService(decision=ReviewDecision.APPROVED)
@@ -246,7 +240,9 @@ class TestTSPWithApprovalService:
         assert result.overall_status in ["PASS", "CONDITIONAL_PASS", "NEEDS_REVIEW"]
 
         # Validate ApprovalService was called
-        print(f"\n[HITL] ApprovalService calls: {len(approval_service.approval_requests)}")
+        print(
+            f"\n[HITL] ApprovalService calls: {len(approval_service.approval_requests)}"
+        )
 
         if len(approval_service.approval_requests) > 0:
             print("  ✓ ApprovalService was invoked (quality gates failed as expected)")
@@ -254,8 +250,12 @@ class TestTSPWithApprovalService:
 
             for req in approval_service.approval_requests:
                 quality_report = req.quality_report
-                critical = quality_report.get('critical_issue_count', 0) or quality_report.get('critical_issues', 0)
-                high = quality_report.get('high_issue_count', 0) or quality_report.get('high_issues', 0)
+                critical = quality_report.get(
+                    "critical_issue_count", 0
+                ) or quality_report.get("critical_issues", 0)
+                high = quality_report.get("high_issue_count", 0) or quality_report.get(
+                    "high_issues", 0
+                )
                 print(f"    - {req.gate_type}: {critical}C / {high}H issues")
 
             # Validate HITL overrides recorded
@@ -281,9 +281,9 @@ class TestTSPWithApprovalService:
         - QualityGateFailure is raised
         - Pipeline does not continue past rejection
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TSP + APPROVAL SERVICE E2E: Rejection Workflow")
-        print("="*80)
+        print("=" * 80)
 
         # Create mock approval service that REJECTS all requests
         approval_service = MockApprovalService(decision=ReviewDecision.REJECTED)
@@ -323,14 +323,17 @@ class TestTSPWithApprovalService:
 
         except QualityGateFailure as e:
             # Expected when quality gate fails and rejection occurs
-            print(f"\n[EXPECTED] Quality gate failed and rejection halted pipeline")
+            print("\n[EXPECTED] Quality gate failed and rejection halted pipeline")
             print(f"  Error: {e}")
             print("  ✓ Rejection properly halts pipeline")
 
             # Validate ApprovalService was called
-            assert len(approval_service.approval_requests) > 0, \
-                "ApprovalService should have been called before failure"
-            print(f"  ✓ ApprovalService was called {len(approval_service.approval_requests)} time(s)")
+            assert (
+                len(approval_service.approval_requests) > 0
+            ), "ApprovalService should have been called before failure"
+            print(
+                f"  ✓ ApprovalService was called {len(approval_service.approval_requests)} time(s)"
+            )
 
         print("\n✓ TEST PASSED: Rejection workflow validated")
 
@@ -343,9 +346,9 @@ class TestTSPWithApprovalService:
         - ApprovalService is used (not the callable)
         - Priority ordering is correct
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TSP + APPROVAL SERVICE E2E: Priority Testing")
-        print("="*80)
+        print("=" * 80)
 
         # Create approval service
         approval_service = MockApprovalService(decision=ReviewDecision.APPROVED)
@@ -386,14 +389,15 @@ class TestTSPWithApprovalService:
         assert result.overall_status in ["PASS", "CONDITIONAL_PASS", "NEEDS_REVIEW"]
 
         # Validate priority: ApprovalService should be used, NOT callable
-        print(f"\n[VALIDATION] Priority Ordering:")
+        print("\n[VALIDATION] Priority Ordering:")
         print(f"  ApprovalService calls: {len(approval_service.approval_requests)}")
         print(f"  Legacy callable calls: {len(callable_called)}")
 
         if len(approval_service.approval_requests) > 0:
             print("  ✓ ApprovalService was used")
-            assert len(callable_called) == 0, \
-                "Legacy callable should NOT be called when ApprovalService exists"
+            assert (
+                len(callable_called) == 0
+            ), "Legacy callable should NOT be called when ApprovalService exists"
             print("  ✓ Legacy callable was NOT called (correct priority)")
         else:
             print("  ℹ️  No quality gate failures, priority not tested")
@@ -409,9 +413,9 @@ class TestTSPWithApprovalService:
         - Reviewer, timestamp, justification are captured
         - Audit trail is complete
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TSP + APPROVAL SERVICE E2E: Audit Trail Validation")
-        print("="*80)
+        print("=" * 80)
 
         # Create approval service
         approval_service = MockApprovalService(decision=ReviewDecision.APPROVED)
@@ -441,7 +445,7 @@ class TestTSPWithApprovalService:
         )
 
         # Validate audit trail
-        print(f"\n[AUDIT TRAIL] Analysis:")
+        print("\n[AUDIT TRAIL] Analysis:")
         print(f"  Total HITL overrides: {len(result.hitl_overrides)}")
 
         if len(result.hitl_overrides) > 0:
@@ -456,11 +460,11 @@ class TestTSPWithApprovalService:
                 print(f"    Justification: {override.get('justification', 'N/A')}")
 
                 # Validate required fields
-                assert 'gate_name' in override, "gate_name missing"
-                assert 'decision' in override, "decision missing"
-                assert 'reviewer' in override, "reviewer missing"
-                assert 'timestamp' in override, "timestamp missing"
-                assert 'justification' in override, "justification missing"
+                assert "gate_name" in override, "gate_name missing"
+                assert "decision" in override, "decision missing"
+                assert "reviewer" in override, "reviewer missing"
+                assert "timestamp" in override, "timestamp missing"
+                assert "justification" in override, "justification missing"
 
             print("\n  ✓ All required metadata fields present")
         else:

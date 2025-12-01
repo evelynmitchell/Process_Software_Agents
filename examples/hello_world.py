@@ -11,9 +11,10 @@ Cost: ~$0.08 - $0.15
 Time: ~45 seconds
 """
 
-from asp.orchestrators import TSPOrchestrator
-from asp.models.planning import TaskRequirements
 from pathlib import Path
+
+from asp.models.planning import TaskRequirements
+from asp.orchestrators import TSPOrchestrator
 
 
 def main():
@@ -32,8 +33,8 @@ def main():
             "Function should take no parameters",
             "Function should print exactly 'Hello, World!' (case-sensitive)",
             "Include a docstring explaining the function",
-            "Include comprehensive unit tests"
-        ]
+            "Include comprehensive unit tests",
+        ],
     )
 
     print(f"📋 Task ID: {task.task_id}")
@@ -61,11 +62,17 @@ def main():
     print()
 
     print("📊 Performance Summary:")
-    print(f"   - Total Latency: {result.total_latency_ms:,} ms ({result.total_latency_ms/1000:.1f}s)")
+    print(
+        f"   - Total Latency: {result.total_latency_ms:,} ms ({result.total_latency_ms/1000:.1f}s)"
+    )
     print(f"   - Total Tokens: {result.total_tokens:,}")
     print(f"   - Total Cost: ${result.total_cost_usd:.4f}")
-    print(f"   - Defects Found: {len(result.defects) if hasattr(result, 'defects') else 0}")
-    print(f"   - Quality Gates: {'PASS' if result.quality_gate_status == 'PASS' else 'FAIL'}")
+    print(
+        f"   - Defects Found: {len(result.defects) if hasattr(result, 'defects') else 0}"
+    )
+    print(
+        f"   - Quality Gates: {'PASS' if result.quality_gate_status == 'PASS' else 'FAIL'}"
+    )
     print()
 
     # Show artifacts
@@ -93,7 +100,7 @@ def main():
         print("   ⚠️  Artifacts directory not found")
 
     print()
-    print(f"🔍 View detailed traces at: https://cloud.langfuse.com")
+    print("🔍 View detailed traces at: https://cloud.langfuse.com")
     print()
     print("=" * 70)
     print("Example complete!")

@@ -11,8 +11,9 @@ This agent focuses exclusively on security aspects of design specifications:
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
+from pydantic import BaseModel
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.models.design import DesignSpecification
 from asp.telemetry.telemetry import track_agent_cost
@@ -30,8 +31,8 @@ class SecurityReviewAgent(BaseAgent):
 
     def __init__(
         self,
-        llm_client: Optional[Any] = None,
-        db_path: Optional[str] = None,
+        llm_client: Any | None = None,
+        db_path: str | None = None,
     ):
         """
         Initialize Security Review Agent.
@@ -46,7 +47,7 @@ class SecurityReviewAgent(BaseAgent):
         )
         self.agent_version = "1.0.0"
 
-    @track_agent_cost(
+    @track_agent_cost(  # type: ignore
         agent_role="SecurityReview",
         agent_version="1.0.0",
         task_id_param="design_spec.task_id",
@@ -54,7 +55,7 @@ class SecurityReviewAgent(BaseAgent):
     def execute(
         self,
         design_spec: DesignSpecification,
-    ) -> dict[str, Any]:
+    ) -> BaseModel:
         """
         Execute security review on a design specification.
 
@@ -67,9 +68,7 @@ class SecurityReviewAgent(BaseAgent):
         Raises:
             AgentExecutionError: If review fails
         """
-        logger.info(
-            f"Starting security review for task {design_spec.task_id}"
-        )
+        logger.info(f"Starting security review for task {design_spec.task_id}")
 
         try:
             # Load and format prompt
@@ -93,9 +92,7 @@ class SecurityReviewAgent(BaseAgent):
                 if "issues_found" not in content:
                     raise ValueError("Response missing 'issues_found' field")
                 if "improvement_suggestions" not in content:
-                    raise ValueError(
-                        "Response missing 'improvement_suggestions' field"
-                    )
+                    raise ValueError("Response missing 'improvement_suggestions' field")
 
                 logger.info(
                     f"Security review completed: found {len(content['issues_found'])} issues, "

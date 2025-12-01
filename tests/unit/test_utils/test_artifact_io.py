@@ -11,15 +11,11 @@ Tests artifact persistence functionality including:
 """
 
 import json
-import tempfile
-from pathlib import Path
 
 import pytest
-from pydantic import BaseModel
 
-from asp.models.code import GeneratedCode, GeneratedFile
-from asp.models.design import DesignSpecification
-from asp.models.planning import ProjectPlan, SemanticUnit, TaskRequirements
+from asp.models.code import GeneratedFile
+from asp.models.planning import TaskRequirements
 from asp.utils.artifact_io import (
     ArtifactIOError,
     artifact_exists,
@@ -429,7 +425,7 @@ class TestArtifactExists:
             data=TaskRequirements(
                 task_id=task_id,
                 description="Test artifact existence check",
-                requirements="Requirements text with sufficient length for validation"
+                requirements="Requirements text with sufficient length for validation",
             ),
             base_path=str(tmp_path),
         )
@@ -460,7 +456,7 @@ class TestListTaskArtifacts:
             data=TaskRequirements(
                 task_id=task_id,
                 description="Test listing task artifacts",
-                requirements="Requirements text with sufficient length for validation"
+                requirements="Requirements text with sufficient length for validation",
             ),
             base_path=str(tmp_path),
         )

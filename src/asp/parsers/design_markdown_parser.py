@@ -12,7 +12,7 @@ Date: November 21, 2025
 import json
 import re
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 
 class DesignMarkdownParser:
@@ -51,13 +51,23 @@ class DesignMarkdownParser:
         # Parse each section
         result = {
             "task_id": task_id,
-            "architecture_overview": self._parse_architecture_overview(sections.get("Architecture Overview", "")),
-            "technology_stack": self._parse_technology_stack(sections.get("Technology Stack", "")),
+            "architecture_overview": self._parse_architecture_overview(
+                sections.get("Architecture Overview", "")
+            ),
+            "technology_stack": self._parse_technology_stack(
+                sections.get("Technology Stack", "")
+            ),
             "assumptions": self._parse_assumptions(sections.get("Assumptions", "")),
-            "api_contracts": self._parse_api_contracts(sections.get("API Contracts", "")),
+            "api_contracts": self._parse_api_contracts(
+                sections.get("API Contracts", "")
+            ),
             "data_schemas": self._parse_data_schemas(sections.get("Data Schemas", "")),
-            "component_logic": self._parse_component_logic(sections.get("Component Logic", "")),
-            "design_review_checklist": self._parse_design_review_checklist(sections.get("Design Review Checklist", "")),
+            "component_logic": self._parse_component_logic(
+                sections.get("Component Logic", "")
+            ),
+            "design_review_checklist": self._parse_design_review_checklist(
+                sections.get("Design Review Checklist", "")
+            ),
         }
 
         # Add timestamp if found
@@ -78,7 +88,7 @@ class DesignMarkdownParser:
         sections = {}
 
         # Pattern: ## Section Name followed by content until next ## or end
-        pattern = r'^## (.+?)$\n(.*?)(?=^## |\Z)'
+        pattern = r"^## (.+?)$\n(.*?)(?=^## |\Z)"
         matches = re.finditer(pattern, markdown, re.MULTILINE | re.DOTALL)
 
         for match in matches:
@@ -91,24 +101,28 @@ class DesignMarkdownParser:
     def _extract_task_id(self, markdown: str) -> str:
         """Extract task ID from title and metadata."""
         # Try title: # Design Specification: TASK-ID
-        title_match = re.search(r'^# Design Specification: (.+?)$', markdown, re.MULTILINE)
+        title_match = re.search(
+            r"^# Design Specification: (.+?)$", markdown, re.MULTILINE
+        )
         if title_match:
             return title_match.group(1).strip()
 
         # Try metadata: **Task ID:** TASK-ID
-        metadata_match = re.search(r'\*\*Task ID:\*\* (.+?)$', markdown, re.MULTILINE)
+        metadata_match = re.search(r"\*\*Task ID:\*\* (.+?)$", markdown, re.MULTILINE)
         if metadata_match:
             return metadata_match.group(1).strip()
 
-        raise ValueError("Task ID not found in markdown (expected in title or metadata)")
+        raise ValueError(
+            "Task ID not found in markdown (expected in title or metadata)"
+        )
 
-    def _extract_timestamp(self, markdown: str) -> Optional[datetime]:
+    def _extract_timestamp(self, markdown: str) -> datetime | None:
         """Extract timestamp from metadata."""
-        match = re.search(r'\*\*Timestamp:\*\* (.+?)$', markdown, re.MULTILINE)
+        match = re.search(r"\*\*Timestamp:\*\* (.+?)$", markdown, re.MULTILINE)
         if match:
             timestamp_str = match.group(1).strip()
             try:
-                return datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+                return datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
             except ValueError:
                 # If parsing fails, return None (will use default in Pydantic)
                 return None
@@ -132,16 +146,18 @@ class DesignMarkdownParser:
         tech_stack = {}
 
         # Pattern: - **Key:** Value
-        pattern = r'- \*\*(.+?):\*\* (.+?)$'
+        pattern = r"- \*\*(.+?):\*\* (.+?)$"
         matches = re.finditer(pattern, content, re.MULTILINE)
 
         for match in matches:
-            key = match.group(1).strip().lower().replace(' ', '_')
+            key = match.group(1).strip().lower().replace(" ", "_")
             value = match.group(2).strip()
             tech_stack[key] = value
 
         if not tech_stack:
-            raise ValueError("Technology stack must have at least one technology specified")
+            raise ValueError(
+                "Technology stack must have at least one technology specified"
+            )
 
         return tech_stack
 
@@ -156,7 +172,7 @@ class DesignMarkdownParser:
         assumptions = []
 
         # Pattern: - Assumption text
-        pattern = r'^- (.+?)$'
+        pattern = r"^- (.+?)$"
         matches = re.finditer(pattern, content, re.MULTILINE)
 
         for match in matches:
@@ -178,7 +194,7 @@ class DesignMarkdownParser:
         contracts = []
 
         # Split by ### headers (each API endpoint)
-        endpoint_sections = re.split(r'^### (.+?)$', content, flags=re.MULTILINE)[1:]
+        endpoint_sections = re.split(r"^### (.+?)$", content, flags=re.MULTILINE)[1:]
 
         # Process pairs: (header, content)
         for i in range(0, len(endpoint_sections), 2):
@@ -189,7 +205,9 @@ class DesignMarkdownParser:
             endpoint_content = endpoint_sections[i + 1].strip()
 
             # Parse method and endpoint from header (e.g., "GET /hello")
-            method_endpoint_match = re.match(r'(GET|POST|PUT|DELETE|PATCH)\s+(.+)', header)
+            method_endpoint_match = re.match(
+                r"(GET|POST|PUT|DELETE|PATCH)\s+(.+)", header
+            )
             if not method_endpoint_match:
                 continue
 
@@ -198,7 +216,9 @@ class DesignMarkdownParser:
 
             # Parse fields
             description = self._extract_field(endpoint_content, "Description")
-            auth_required = self._extract_field(endpoint_content, "Authentication Required")
+            auth_required = self._extract_field(
+                endpoint_content, "Authentication Required"
+            )
             rate_limit = self._extract_field(endpoint_content, "Rate Limit")
 
             # Parse request params
@@ -208,7 +228,9 @@ class DesignMarkdownParser:
             request_schema = self._parse_json_block(endpoint_content, "Request Body:")
 
             # Parse response schema
-            response_schema = self._parse_json_block(endpoint_content, "Response (Success):")
+            response_schema = self._parse_json_block(
+                endpoint_content, "Response (Success):"
+            )
 
             # Parse error responses
             error_responses = self._parse_error_responses(endpoint_content)
@@ -221,8 +243,12 @@ class DesignMarkdownParser:
                 "request_schema": request_schema,
                 "response_schema": response_schema or {},
                 "error_responses": error_responses,
-                "authentication_required": auth_required.lower() in ("yes", "true") if auth_required else False,
-                "rate_limit": rate_limit if rate_limit and rate_limit.lower() != "n/a" else None,
+                "authentication_required": (
+                    auth_required.lower() in ("yes", "true") if auth_required else False
+                ),
+                "rate_limit": (
+                    rate_limit if rate_limit and rate_limit.lower() != "n/a" else None
+                ),
             }
 
             contracts.append(contract)
@@ -246,7 +272,9 @@ class DesignMarkdownParser:
             return schemas
 
         # Split by ### headers (each table)
-        table_sections = re.split(r'^### Table: (.+?)$', content, flags=re.MULTILINE)[1:]
+        table_sections = re.split(r"^### Table: (.+?)$", content, flags=re.MULTILINE)[
+            1:
+        ]
 
         # Process pairs: (table_name, content)
         for i in range(0, len(table_sections), 2):
@@ -297,7 +325,9 @@ class DesignMarkdownParser:
         components = []
 
         # Split by ### Component: headers
-        component_sections = re.split(r'^### Component: (.+?)$', content, flags=re.MULTILINE)[1:]
+        component_sections = re.split(
+            r"^### Component: (.+?)$", content, flags=re.MULTILINE
+        )[1:]
 
         # Process pairs: (component_name, content)
         for i in range(0, len(component_sections), 2):
@@ -347,7 +377,7 @@ class DesignMarkdownParser:
         checklist = []
 
         # Split by ### headers (each checklist item)
-        item_sections = re.split(r'^### (.+?)$', content, flags=re.MULTILINE)[1:]
+        item_sections = re.split(r"^### (.+?)$", content, flags=re.MULTILINE)[1:]
 
         # Process pairs: (header, content)
         for i in range(0, len(item_sections), 2):
@@ -358,7 +388,7 @@ class DesignMarkdownParser:
             item_content = item_sections[i + 1].strip()
 
             # Parse category and description from header (e.g., "Security: Password handling")
-            category_desc_match = re.match(r'(.+?):\s*(.+)', header)
+            category_desc_match = re.match(r"(.+?):\s*(.+)", header)
             if category_desc_match:
                 category = category_desc_match.group(1).strip()
                 description = category_desc_match.group(2).strip()
@@ -368,7 +398,9 @@ class DesignMarkdownParser:
                 description = header
 
             # Parse fields
-            validation_criteria = self._extract_field(item_content, "Validation Criteria")
+            validation_criteria = self._extract_field(
+                item_content, "Validation Criteria"
+            )
             severity = self._extract_field(item_content, "Severity")
 
             item = {
@@ -386,16 +418,16 @@ class DesignMarkdownParser:
 
     def _extract_field(self, content: str, field_name: str) -> str:
         """Extract field value after bold label."""
-        pattern = rf'\*\*{re.escape(field_name)}:\*\*\s*(.+?)(?:\n|$)'
+        pattern = rf"\*\*{re.escape(field_name)}:\*\*\s*(.+?)(?:\n|$)"
         match = re.search(pattern, content, re.MULTILINE)
         return match.group(1).strip() if match else ""
 
-    def _parse_json_block(self, content: str, header: str) -> Optional[dict[str, Any]]:
+    def _parse_json_block(self, content: str, header: str) -> dict[str, Any] | None:
         """Parse JSON from code block after header."""
         # Pattern: header followed by ```json ... ```
         # Header may be surrounded by ** for bold
         # Make newlines optional to handle different formatting
-        pattern = rf'\*\*{re.escape(header)}\*\*\s*```json\s*\n?(.+?)\n?```'
+        pattern = rf"\*\*{re.escape(header)}\*\*\s*```json\s*\n?(.+?)\n?```"
         match = re.search(pattern, content, re.DOTALL)
 
         if match:
@@ -412,7 +444,7 @@ class DesignMarkdownParser:
 
         return None
 
-    def _parse_request_params(self, content: str) -> Optional[dict[str, str]]:
+    def _parse_request_params(self, content: str) -> dict[str, str] | None:
         """
         Parse request parameters section.
 
@@ -421,7 +453,7 @@ class DesignMarkdownParser:
         - `param_name`: type and description
         """
         # Find Request Parameters section
-        pattern = r'\*\*Request Parameters:\*\*\s*\n((?:- `.+`:.+\n?)+)'
+        pattern = r"\*\*Request Parameters:\*\*\s*\n((?:- `.+`:.+\n?)+)"
         match = re.search(pattern, content, re.MULTILINE)
 
         if not match:
@@ -431,7 +463,7 @@ class DesignMarkdownParser:
         params = {}
 
         # Parse each parameter line
-        param_pattern = r'- `(.+?)`: (.+?)(?:\n|$)'
+        param_pattern = r"- `(.+?)`: (.+?)(?:\n|$)"
         param_matches = re.finditer(param_pattern, params_content)
 
         for param_match in param_matches:
@@ -452,7 +484,7 @@ class DesignMarkdownParser:
         errors = []
 
         # Find Error Responses section
-        pattern = r'\*\*Error Responses:\*\*\s*\n((?:- \*\*.+\*\*:.+\n?)+)'
+        pattern = r"\*\*Error Responses:\*\*\s*\n((?:- \*\*.+\*\*:.+\n?)+)"
         match = re.search(pattern, content, re.MULTILINE)
 
         if not match:
@@ -461,7 +493,7 @@ class DesignMarkdownParser:
         errors_content = match.group(1)
 
         # Parse each error line: - **STATUS CODE**: Message
-        error_pattern = r'- \*\*(\d+)\s+([A-Z_]+)\*\*:\s*(.+?)(?:\n|$)'
+        error_pattern = r"- \*\*(\d+)\s+([A-Z_]+)\*\*:\s*(.+?)(?:\n|$)"
         error_matches = re.finditer(error_pattern, errors_content)
 
         for error_match in error_matches:
@@ -469,11 +501,13 @@ class DesignMarkdownParser:
             code = error_match.group(2).strip()
             message = error_match.group(3).strip()
 
-            errors.append({
-                "status": status,
-                "code": code,
-                "message": message,
-            })
+            errors.append(
+                {
+                    "status": status,
+                    "code": code,
+                    "message": message,
+                }
+            )
 
         return errors
 
@@ -489,23 +523,25 @@ class DesignMarkdownParser:
         columns = []
 
         # Find table after **Columns:**
-        pattern = r'\*\*Columns:\*\*\s*\n\|.+\|.+\n\|[-\s|]+\n((?:\|.+\|\n?)+)'
+        pattern = r"\*\*Columns:\*\*\s*\n\|.+\|.+\n\|[-\s|]+\n((?:\|.+\|\n?)+)"
         match = re.search(pattern, content, re.MULTILINE)
 
         if not match:
             return columns
 
-        table_rows = match.group(1).strip().split('\n')
+        table_rows = match.group(1).strip().split("\n")
 
         for row in table_rows:
             # Parse: | column | type | constraints |
-            cells = [cell.strip() for cell in row.split('|')[1:-1]]
+            cells = [cell.strip() for cell in row.split("|")[1:-1]]
             if len(cells) >= 3:
-                columns.append({
-                    "name": cells[0],
-                    "type": cells[1],
-                    "constraints": cells[2],
-                })
+                columns.append(
+                    {
+                        "name": cells[0],
+                        "type": cells[1],
+                        "constraints": cells[2],
+                    }
+                )
 
         return columns
 
@@ -523,16 +559,16 @@ class DesignMarkdownParser:
         statements = []
 
         # Pattern: header followed by ```sql ... ```
-        pattern = rf'\*\*{re.escape(header)}\*\*\s*```sql\s*\n(.+?)\n```'
+        pattern = rf"\*\*{re.escape(header)}\*\*\s*```sql\s*\n(.+?)\n```"
         match = re.search(pattern, content, re.DOTALL)
 
         if match:
             sql_block = match.group(1).strip()
             # Split by semicolons, clean up
-            for stmt in sql_block.split(';'):
+            for stmt in sql_block.split(";"):
                 stmt = stmt.strip()
                 if stmt:
-                    statements.append(stmt + ';')
+                    statements.append(stmt + ";")
 
         return statements
 
@@ -548,7 +584,7 @@ class DesignMarkdownParser:
         dependencies = []
 
         # Find Dependencies section
-        pattern = r'\*\*Dependencies:\*\*\s*\n((?:- .+\n?)+)'
+        pattern = r"\*\*Dependencies:\*\*\s*\n((?:- .+\n?)+)"
         match = re.search(pattern, content, re.MULTILINE)
 
         if not match:
@@ -557,7 +593,7 @@ class DesignMarkdownParser:
         deps_content = match.group(1)
 
         # Parse each dependency line
-        dep_pattern = r'^- (.+?)$'
+        dep_pattern = r"^- (.+?)$"
         dep_matches = re.finditer(dep_pattern, deps_content, re.MULTILINE)
 
         for dep_match in dep_matches:
@@ -581,7 +617,9 @@ class DesignMarkdownParser:
         interfaces = []
 
         # Find Interfaces section
-        interfaces_pattern = r'\*\*Interfaces:\*\*\s*\n(.+?)(?=\*\*Implementation Notes:|\Z)'
+        interfaces_pattern = (
+            r"\*\*Interfaces:\*\*\s*\n(.+?)(?=\*\*Implementation Notes:|\Z)"
+        )
         interfaces_match = re.search(interfaces_pattern, content, re.DOTALL)
 
         if not interfaces_match:
@@ -590,7 +628,9 @@ class DesignMarkdownParser:
         interfaces_content = interfaces_match.group(1)
 
         # Split by #### headers (each method)
-        method_sections = re.split(r'^#### `(.+?)`$', interfaces_content, flags=re.MULTILINE)[1:]
+        method_sections = re.split(
+            r"^#### `(.+?)`$", interfaces_content, flags=re.MULTILINE
+        )[1:]
 
         # Process pairs: (signature, content)
         for i in range(0, len(method_sections), 2):
@@ -601,7 +641,9 @@ class DesignMarkdownParser:
             method_content = method_sections[i + 1].strip()
 
             # Parse signature: method_name(params) -> return_type
-            sig_match = re.match(r'([a-zA-Z_][a-zA-Z0-9_]*)\((.*?)\)\s*->\s*(.+)', signature)
+            sig_match = re.match(
+                r"([a-zA-Z_][a-zA-Z0-9_]*)\((.*?)\)\s*->\s*(.+)", signature
+            )
 
             if sig_match:
                 method_name = sig_match.group(1)
@@ -612,15 +654,19 @@ class DesignMarkdownParser:
                 parameters = {}
                 if params_str:
                     # Split by comma (simple approach)
-                    for param in params_str.split(','):
+                    for param in params_str.split(","):
                         param = param.strip()
-                        if ':' in param:
-                            param_name, param_type = param.split(':', 1)
+                        if ":" in param:
+                            param_name, param_type = param.split(":", 1)
                             parameters[param_name.strip()] = param_type.strip()
 
                 # Extract description (first paragraph)
-                description_match = re.search(r'^(.+?)(?:\n\n|\*\*|$)', method_content, re.DOTALL)
-                description = description_match.group(1).strip() if description_match else ""
+                description_match = re.search(
+                    r"^(.+?)(?:\n\n|\*\*|$)", method_content, re.DOTALL
+                )
+                description = (
+                    description_match.group(1).strip() if description_match else ""
+                )
 
                 interface = {
                     "method": method_name,
@@ -635,20 +681,22 @@ class DesignMarkdownParser:
 
     def _extract_implementation_notes(self, content: str) -> str:
         """Extract implementation notes section."""
-        pattern = r'\*\*Implementation Notes:\*\*\s*\n(.+?)(?=\*\*Estimated Complexity:|\Z)'
+        pattern = (
+            r"\*\*Implementation Notes:\*\*\s*\n(.+?)(?=\*\*Estimated Complexity:|\Z)"
+        )
         match = re.search(pattern, content, re.DOTALL)
 
         if match:
             notes = match.group(1).strip()
             # Remove any trailing separators
-            notes = re.sub(r'\n---\s*$', '', notes)
+            notes = re.sub(r"\n---\s*$", "", notes)
             return notes
 
         return ""
 
-    def _extract_complexity(self, content: str) -> Optional[int]:
+    def _extract_complexity(self, content: str) -> int | None:
         """Extract estimated complexity value."""
-        pattern = r'\*\*Estimated Complexity:\*\*\s*(\d+)'
+        pattern = r"\*\*Estimated Complexity:\*\*\s*(\d+)"
         match = re.search(pattern, content)
 
         if match:

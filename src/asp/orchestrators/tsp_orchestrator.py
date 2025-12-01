@@ -21,16 +21,17 @@ Date: November 22, 2025
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable
 
 from asp.agents.base_agent import AgentExecutionError
 from asp.agents.code_agent import CodeAgent
+from asp.agents.code_review_orchestrator import CodeReviewOrchestrator
 from asp.agents.design_agent import DesignAgent
+from asp.agents.design_review_orchestrator import DesignReviewOrchestrator
 from asp.agents.planning_agent import PlanningAgent
 from asp.agents.postmortem_agent import PostmortemAgent
 from asp.agents.test_agent import TestAgent
-from asp.agents.code_review_orchestrator import CodeReviewOrchestrator
-from asp.agents.design_review_orchestrator import DesignReviewOrchestrator
+from asp.approval.base import ApprovalRequest, ApprovalService, ReviewDecision
 from asp.models.code import CodeInput, GeneratedCode
 from asp.models.code_review import CodeReviewReport
 from asp.models.design import DesignInput, DesignSpecification
@@ -44,8 +45,6 @@ from asp.models.postmortem import (
 )
 from asp.models.test import TestInput, TestReport
 from asp.orchestrators.types import TSPExecutionResult
-from asp.approval.base import ApprovalService, ApprovalRequest, ReviewDecision
-
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +106,9 @@ class TSPOrchestrator:
 
     def __init__(
         self,
-        db_path: Optional[Path] = None,
-        llm_client: Optional[Any] = None,
-        approval_service: Optional[ApprovalService] = None,
+        db_path: Path | None = None,
+        llm_client: Any | None = None,
+        approval_service: ApprovalService | None = None,
     ):
         """
         Initialize TSP Orchestrator.
@@ -124,13 +123,13 @@ class TSPOrchestrator:
         self.approval_service = approval_service
 
         # Initialize agents (lazy-loaded)
-        self._planning_agent: Optional[PlanningAgent] = None
-        self._design_agent: Optional[DesignAgent] = None
-        self._design_review_orchestrator: Optional[DesignReviewOrchestrator] = None
-        self._code_agent: Optional[CodeAgent] = None
-        self._code_review_orchestrator: Optional[CodeReviewOrchestrator] = None
-        self._test_agent: Optional[TestAgent] = None
-        self._postmortem_agent: Optional[PostmortemAgent] = None
+        self._planning_agent: PlanningAgent | None = None
+        self._design_agent: DesignAgent | None = None
+        self._design_review_orchestrator: DesignReviewOrchestrator | None = None
+        self._code_agent: CodeAgent | None = None
+        self._code_review_orchestrator: CodeReviewOrchestrator | None = None
+        self._test_agent: TestAgent | None = None
+        self._postmortem_agent: PostmortemAgent | None = None
 
         # Execution state
         self.execution_log: list[dict[str, Any]] = []
@@ -220,9 +219,9 @@ class TSPOrchestrator:
     def execute(
         self,
         requirements: TaskRequirements,
-        design_constraints: Optional[str] = None,
-        coding_standards: Optional[str] = None,
-        hitl_approver: Optional[callable] = None,
+        design_constraints: str | None = None,
+        coding_standards: str | None = None,
+        hitl_approver: Callable | None = None,
     ) -> TSPExecutionResult:
         """
         Execute complete TSP autonomous development pipeline.
@@ -254,10 +253,10 @@ class TSPOrchestrator:
             AgentExecutionError: If agent execution fails
         """
         logger.info(
-            f"="*80 + "\n"
+            "=" * 80 + "\n"
             f"TSP ORCHESTRATOR: Starting autonomous pipeline\n"
             f"Task: {requirements.task_id} - {requirements.description}\n"
-            f"="*80
+            f"=" * 80
         )
 
         start_time = datetime.now()
@@ -281,7 +280,9 @@ class TSPOrchestrator:
                 hitl_approver=hitl_approver,
             )
             self._log_phase("Design", "SUCCESS", design_spec)
-            self._log_phase("DesignReview", design_review.overall_assessment, design_review)
+            self._log_phase(
+                "DesignReview", design_review.overall_assessment, design_review
+            )
 
             # Phase 3: Code Generation (with correction loop)
             logger.info("\n[PHASE 3/7] CODE AGENT")
@@ -332,14 +333,14 @@ class TSPOrchestrator:
             passed_tests = test_report.test_summary.get("passed", 0)
 
             logger.info(
-                f"\n" + "="*80 + "\n"
+                "\n" + "=" * 80 + "\n"
                 f"TSP ORCHESTRATOR: Pipeline COMPLETE\n"
                 f"Overall Status: {overall_status}\n"
                 f"Duration: {duration_seconds:.1f}s\n"
                 f"Files Generated: {generated_code.total_files}\n"
                 f"Tests Passed: {passed_tests}/{total_tests}\n"
                 f"HITL Overrides: {len(self.hitl_overrides)}\n"
-                f"="*80
+                f"=" * 80
             )
 
             return TSPExecutionResult(
@@ -370,7 +371,7 @@ class TSPOrchestrator:
     def _execute_planning(
         self,
         requirements: TaskRequirements,
-    ) -> ProjectPlan:
+    ) -> Any:
         """Execute Planning Agent."""
         try:
             logger.info("Executing Planning Agent...")
@@ -390,8 +391,8 @@ class TSPOrchestrator:
         self,
         requirements: TaskRequirements,
         project_plan: ProjectPlan,
-        design_constraints: Optional[str],
-        hitl_approver: Optional[callable],
+        design_constraints: str | None,
+        hitl_approver: Callable | None,
     ) -> tuple[DesignSpecification, DesignReviewReport]:
         """
         Execute Design Agent with Design Review quality gate.
@@ -403,7 +404,9 @@ class TSPOrchestrator:
 
         while design_iterations < self.MAX_DESIGN_ITERATIONS:
             # Generate design
-            logger.info(f"Design iteration {design_iterations + 1}/{self.MAX_DESIGN_ITERATIONS}")
+            logger.info(
+                f"Design iteration {design_iterations + 1}/{self.MAX_DESIGN_ITERATIONS}"
+            )
             design_input = DesignInput(
                 task_id=requirements.task_id,
                 requirements=requirements.requirements,
@@ -455,12 +458,14 @@ class TSPOrchestrator:
                     hitl_approver=hitl_approver,
                 )
                 if approved:
-                    logger.info("✓ HITL override approved - proceeding despite failures")
+                    logger.info(
+                        "✓ HITL override approved - proceeding despite failures"
+                    )
                     return design_spec, design_review
 
                 # No HITL or rejected - attempt correction if iterations remain
                 if design_iterations < self.MAX_DESIGN_ITERATIONS:
-                    logger.info(f"Retrying design with feedback from review...")
+                    logger.info("Retrying design with feedback from review...")
                     # In a full implementation, would pass feedback to design agent
                     # For now, just retry
                     continue
@@ -481,8 +486,8 @@ class TSPOrchestrator:
         self,
         requirements: TaskRequirements,
         design_spec: DesignSpecification,
-        coding_standards: Optional[str],
-        hitl_approver: Optional[callable],
+        coding_standards: str | None,
+        hitl_approver: Callable | None,
     ) -> tuple[GeneratedCode, CodeReviewReport]:
         """
         Execute Code Agent with Code Review quality gate.
@@ -494,11 +499,14 @@ class TSPOrchestrator:
 
         while code_iterations < self.MAX_CODE_ITERATIONS:
             # Generate code
-            logger.info(f"Code iteration {code_iterations + 1}/{self.MAX_CODE_ITERATIONS}")
+            logger.info(
+                f"Code iteration {code_iterations + 1}/{self.MAX_CODE_ITERATIONS}"
+            )
             code_input = CodeInput(
                 task_id=requirements.task_id,
                 design_specification=design_spec,
-                coding_standards=coding_standards or "Follow PEP 8. Use type hints. Include docstrings.",
+                coding_standards=coding_standards
+                or "Follow PEP 8. Use type hints. Include docstrings.",
             )
             generated_code = self.code_agent.execute(code_input)
             code_iterations += 1
@@ -545,12 +553,16 @@ class TSPOrchestrator:
                     hitl_approver=hitl_approver,
                 )
                 if approved:
-                    logger.info("✓ HITL override approved - proceeding despite failures")
+                    logger.info(
+                        "✓ HITL override approved - proceeding despite failures"
+                    )
                     return generated_code, code_review
 
                 # No HITL or rejected - attempt correction if iterations remain
                 if code_iterations < self.MAX_CODE_ITERATIONS:
-                    logger.info(f"Retrying code generation with feedback from review...")
+                    logger.info(
+                        "Retrying code generation with feedback from review..."
+                    )
                     continue
                 else:
                     raise QualityGateFailure(
@@ -569,8 +581,8 @@ class TSPOrchestrator:
         requirements: TaskRequirements,
         design_spec: DesignSpecification,
         generated_code: GeneratedCode,
-        coding_standards: Optional[str],
-    ) -> TestReport:
+        coding_standards: str | None,
+    ) -> Any:
         """
         Execute Test Agent with retry loop for test failures.
 
@@ -580,7 +592,9 @@ class TSPOrchestrator:
         test_iterations = 0
 
         while test_iterations < self.MAX_TEST_ITERATIONS:
-            logger.info(f"Test iteration {test_iterations + 1}/{self.MAX_TEST_ITERATIONS}")
+            logger.info(
+                f"Test iteration {test_iterations + 1}/{self.MAX_TEST_ITERATIONS}"
+            )
 
             # Execute tests
             test_input = TestInput(
@@ -617,7 +631,8 @@ class TSPOrchestrator:
                 code_input = CodeInput(
                     task_id=requirements.task_id,
                     design_specification=design_spec,
-                    coding_standards=coding_standards or "Follow PEP 8. Use type hints.",
+                    coding_standards=coding_standards
+                    or "Follow PEP 8. Use type hints.",
                 )
                 generated_code = self.code_agent.execute(code_input)
                 continue
@@ -636,7 +651,7 @@ class TSPOrchestrator:
         design_review: DesignReviewReport,
         code_review: CodeReviewReport,
         test_report: TestReport,
-    ) -> PostmortemReport:
+    ) -> Any:
         """Execute Postmortem Agent for performance analysis."""
         try:
             logger.info("Executing Postmortem Agent...")
@@ -678,7 +693,7 @@ class TSPOrchestrator:
         gate_type: str,
         gate_name: str,
         report: Any,
-        hitl_approver: Optional[callable],
+        hitl_approver: Callable | None,
     ) -> bool:
         """
         Request approval for quality gate failure.
@@ -719,7 +734,7 @@ class TSPOrchestrator:
                 self._record_hitl_override(
                     gate_name,
                     report,
-                    f"Approved by {response.reviewer}: {response.justification}"
+                    f"Approved by {response.reviewer}: {response.justification}",
                 )
                 return True
             else:
@@ -737,7 +752,7 @@ class TSPOrchestrator:
             )
             if approved:
                 self._record_hitl_override(gate_name, report, "Approved (legacy)")
-            return approved
+            return bool(approved)
 
         # No approval mechanism available
         return False
@@ -781,7 +796,7 @@ class TSPOrchestrator:
         test_report: TestReport,
     ) -> list[DefectLogEntry]:
         """Build defect log from review reports and test results."""
-        defects = []
+        defects: list[DefectLogEntry] = []
 
         # Design defects
         for i, issue in enumerate(design_review.issues_found):
@@ -789,27 +804,26 @@ class TSPOrchestrator:
                 DefectLogEntry(
                     defect_id=f"D-{len(defects)+1:03d}",
                     task_id=design_review.task_id,
-                    defect_type="Design",
+                    defect_type="60_Checking",
                     description=issue.description,
                     severity=issue.severity,
                     phase_injected="Design",
                     phase_removed="DesignReview",
-                    timestamp=datetime.now(),
                 )
             )
 
         # Code defects
         for i, issue in enumerate(code_review.issues_found):
+            issue = design_review.issues_found[i]
             defects.append(
                 DefectLogEntry(
                     defect_id=f"D-{len(defects)+1:03d}",
                     task_id=code_review.task_id,
-                    defect_type="Code",
+                    defect_type="60_Checking",
                     description=issue.description,
                     severity=issue.severity,
                     phase_injected="Code",
                     phase_removed="CodeReview",
-                    timestamp=datetime.now(),
                 )
             )
 
@@ -824,7 +838,6 @@ class TSPOrchestrator:
                     severity="High",  # Test failures are typically high severity
                     phase_injected=defect.phase_injected,
                     phase_removed="Test",
-                    timestamp=datetime.now(),
                 )
             )
 

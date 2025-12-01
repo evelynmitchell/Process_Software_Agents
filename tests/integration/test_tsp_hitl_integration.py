@@ -8,19 +8,22 @@ These are integration tests that validate the approval workflow without requirin
 full E2E pipeline execution or API calls.
 """
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
+from unittest.mock import Mock
 
-from asp.orchestrators.tsp_orchestrator import TSPOrchestrator
 from asp.approval.base import (
-    ApprovalService,
     ApprovalRequest,
     ApprovalResponse,
+    ApprovalService,
     ReviewDecision,
 )
-from asp.models.design_review import DesignReviewReport, DesignIssue, ChecklistItemReview
-from asp.models.code_review import CodeReviewReport, CodeIssue
+from asp.models.code_review import CodeIssue, CodeReviewReport
+from asp.models.design_review import (
+    ChecklistItemReview,
+    DesignIssue,
+    DesignReviewReport,
+)
+from asp.orchestrators.tsp_orchestrator import TSPOrchestrator
 
 
 class TestTSPHITLIntegration:
@@ -379,5 +382,8 @@ class TestTSPHITLIntegration:
 
         override = orchestrator.hitl_overrides[0]
         assert override["gate_name"] == "DesignReview"
-        assert override["decision"] == "Approved by john.doe: Business critical - acceptable risk"
+        assert (
+            override["decision"]
+            == "Approved by john.doe: Business critical - acceptable risk"
+        )
         assert "timestamp" in override

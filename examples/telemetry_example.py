@@ -9,18 +9,19 @@ Usage:
 """
 
 import time
-from asp.telemetry import track_agent_cost, log_defect, log_agent_metric
 
+from asp.telemetry import log_agent_metric, log_defect, track_agent_cost
 
 # ============================================================================
 # Example 1: Using @track_agent_cost decorator
 # ============================================================================
 
+
 @track_agent_cost(
     agent_role="Planning",
     llm_model="claude-sonnet-4",
     llm_provider="anthropic",
-    agent_version="1.0.0"
+    agent_version="1.0.0",
 )
 def plan_task(task_id: str, description: str) -> dict:
     """
@@ -53,11 +54,12 @@ def plan_task(task_id: str, description: str) -> dict:
 # Example 2: Using @log_defect decorator
 # ============================================================================
 
+
 @log_defect(
     defect_type="6_Conventional_Code_Bug",
     severity="High",
     phase_injected="Implementation",
-    phase_removed="Review"
+    phase_removed="Review",
 )
 def fix_logic_error(task_id: str, error_description: str) -> dict:
     """
@@ -85,10 +87,9 @@ def fix_logic_error(task_id: str, error_description: str) -> dict:
 # Example 3: Manual logging of additional metrics
 # ============================================================================
 
+
 @track_agent_cost(
-    agent_role="Code",
-    llm_model="claude-sonnet-4",
-    llm_provider="anthropic"
+    agent_role="Code", llm_model="claude-sonnet-4", llm_provider="anthropic"
 )
 def implement_feature(task_id: str, feature_spec: str) -> dict:
     """
@@ -150,6 +151,7 @@ def implement_feature(task_id: str, feature_spec: str) -> dict:
 # Main execution
 # ============================================================================
 
+
 def main():
     """Run telemetry examples."""
     print("=" * 70)
@@ -161,8 +163,7 @@ def main():
     print("Example 1: Planning Agent with @track_agent_cost")
     print("-" * 70)
     result1 = plan_task(
-        task_id="TASK-2025-001",
-        description="Build a user authentication system"
+        task_id="TASK-2025-001", description="Build a user authentication system"
     )
     print(f"Result: {result1}")
     print()
@@ -171,8 +172,7 @@ def main():
     print("Example 2: Code Agent with manual metric logging")
     print("-" * 70)
     result2 = implement_feature(
-        task_id="TASK-2025-001-2",
-        feature_spec="Implement JWT token validation"
+        task_id="TASK-2025-001-2", feature_spec="Implement JWT token validation"
     )
     print(f"Result: {result2}")
     print()
@@ -182,7 +182,7 @@ def main():
     print("-" * 70)
     result3 = fix_logic_error(
         task_id="TASK-2025-001-2",
-        error_description="JWT validation fails for expired tokens"
+        error_description="JWT validation fails for expired tokens",
     )
     print(f"Result: {result3}")
     print()

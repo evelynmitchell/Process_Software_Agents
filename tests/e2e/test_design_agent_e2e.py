@@ -9,18 +9,18 @@ Tests are marked with @pytest.mark.e2e and can be run with:
     pytest tests/e2e/test_design_agent_e2e.py -m e2e
 """
 
-import os
-import pytest
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
+import pytest
 
 from asp.agents.design_agent import DesignAgent
 from asp.agents.planning_agent import PlanningAgent
 from asp.models.design import DesignInput, DesignSpecification
 from asp.models.planning import (
+    PROBEAIPrediction,
     ProjectPlan,
     SemanticUnit,
-    PROBEAIPrediction,
     TaskRequirements,
 )
 
@@ -137,21 +137,34 @@ class TestDesignAgentE2E:
             assert len(component.interfaces) > 0
 
         # Validate design review checklist
-        valid_categories = ["completeness", "correctness", "performance", "security", "maintainability", "data integrity", "error handling", "architecture"]
+        valid_categories = [
+            "completeness",
+            "correctness",
+            "performance",
+            "security",
+            "maintainability",
+            "data integrity",
+            "error handling",
+            "architecture",
+        ]
         valid_severities = ["critical", "high", "medium", "low"]
         for item in design.design_review_checklist:
-            assert item.category.lower() in valid_categories, f"Invalid category: {item.category}"
-            assert item.severity.lower() in valid_severities, f"Invalid severity: {item.severity}"
+            assert (
+                item.category.lower() in valid_categories
+            ), f"Invalid category: {item.category}"
+            assert (
+                item.severity.lower() in valid_severities
+            ), f"Invalid severity: {item.severity}"
             assert len(item.description) >= 10
             assert len(item.validation_criteria) >= 10
 
         # Log results
         print(f"\n{'='*80}")
-        print(f"E2E Test: Simple API Design")
+        print("E2E Test: Simple API Design")
         print(f"{'='*80}")
         print(f"Task ID: {design.task_id}")
         print(f"\nArchitecture: {design.architecture_overview[:100]}...")
-        print(f"\nTechnology Stack:")
+        print("\nTechnology Stack:")
         for key, value in design.technology_stack.items():
             print(f"  - {key}: {value}")
         print(f"\nAPI Contracts: {len(design.api_contracts)}")
@@ -275,17 +288,22 @@ class TestDesignAgentE2E:
         # Validate semantic unit coverage
         semantic_unit_ids = {unit.unit_id for unit in project_plan.semantic_units}
         design_unit_ids = {comp.semantic_unit_id for comp in design.component_logic}
-        assert semantic_unit_ids == design_unit_ids, "All semantic units must have components"
+        assert (
+            semantic_unit_ids == design_unit_ids
+        ), "All semantic units must have components"
 
         # Check for security-related design review items
         has_security_checks = any(
-            item.category.lower() == "security" for item in design.design_review_checklist
+            item.category.lower() == "security"
+            for item in design.design_review_checklist
         )
-        assert has_security_checks, "Authentication system should have security review items"
+        assert (
+            has_security_checks
+        ), "Authentication system should have security review items"
 
         # Log results
         print(f"\n{'='*80}")
-        print(f"E2E Test: JWT Authentication System")
+        print("E2E Test: JWT Authentication System")
         print(f"{'='*80}")
         print(f"API Contracts: {len(design.api_contracts)}")
         for api in design.api_contracts:
@@ -313,9 +331,9 @@ class TestDesignAgentE2E:
 
         # Step 1: Run Planning Agent
         print(f"\n{'='*80}")
-        print(f"E2E Test: Planning->Design Workflow")
+        print("E2E Test: Planning->Design Workflow")
         print(f"{'='*80}")
-        print(f"Step 1: Running Planning Agent...")
+        print("Step 1: Running Planning Agent...")
 
         planning_agent = PlanningAgent(llm_client=llm_client)
         task_requirements = TaskRequirements(
@@ -326,10 +344,12 @@ class TestDesignAgentE2E:
         )
 
         project_plan = planning_agent.execute(task_requirements)
-        print(f"[OK] Planning complete: {len(project_plan.semantic_units)} units, complexity={project_plan.total_est_complexity}")
+        print(
+            f"[OK] Planning complete: {len(project_plan.semantic_units)} units, complexity={project_plan.total_est_complexity}"
+        )
 
         # Step 2: Run Design Agent
-        print(f"\nStep 2: Running Design Agent...")
+        print("\nStep 2: Running Design Agent...")
 
         design_agent = DesignAgent(llm_client=llm_client)
         design_input = DesignInput(
@@ -340,7 +360,9 @@ class TestDesignAgentE2E:
         )
 
         design = design_agent.execute(design_input)
-        print(f"[OK] Design complete: {len(design.api_contracts)} APIs, {len(design.component_logic)} components")
+        print(
+            f"[OK] Design complete: {len(design.api_contracts)} APIs, {len(design.component_logic)} components"
+        )
 
         # Validate workflow
         assert isinstance(project_plan, ProjectPlan)
@@ -350,23 +372,29 @@ class TestDesignAgentE2E:
         # Validate semantic unit coverage
         planning_units = {unit.unit_id for unit in project_plan.semantic_units}
         design_units = {comp.semantic_unit_id for comp in design.component_logic}
-        assert planning_units == design_units, "Design must cover all planning semantic units"
+        assert (
+            planning_units == design_units
+        ), "Design must cover all planning semantic units"
 
         # Log results
         print(f"\n{'='*80}")
-        print(f"Workflow Summary")
+        print("Workflow Summary")
         print(f"{'='*80}")
-        print(f"Planning Output:")
+        print("Planning Output:")
         print(f"  - Semantic Units: {len(project_plan.semantic_units)}")
         print(f"  - Total Complexity: {project_plan.total_est_complexity}")
-        print(f"\nDesign Output:")
+        print("\nDesign Output:")
         print(f"  - API Contracts: {len(design.api_contracts)}")
         print(f"  - Data Schemas: {len(design.data_schemas)}")
         print(f"  - Components: {len(design.component_logic)}")
         print(f"  - Review Items: {len(design.design_review_checklist)}")
-        print(f"\nSemantic Unit Mapping:")
+        print("\nSemantic Unit Mapping:")
         for unit in project_plan.semantic_units:
-            components = [c.component_name for c in design.component_logic if c.semantic_unit_id == unit.unit_id]
+            components = [
+                c.component_name
+                for c in design.component_logic
+                if c.semantic_unit_id == unit.unit_id
+            ]
             print(f"  {unit.unit_id}: {len(components)} component(s)")
             for comp in components:
                 print(f"    - {comp}")
@@ -459,13 +487,16 @@ class TestDesignAgentE2E:
 
         # Check for performance-related design review items
         has_performance_checks = any(
-            item.category.lower() == "performance" for item in design.design_review_checklist
+            item.category.lower() == "performance"
+            for item in design.design_review_checklist
         )
-        assert has_performance_checks, "Data pipeline should have performance review items"
+        assert (
+            has_performance_checks
+        ), "Data pipeline should have performance review items"
 
         # Log results
         print(f"\n{'='*80}")
-        print(f"E2E Test: ETL Data Pipeline Design")
+        print("E2E Test: ETL Data Pipeline Design")
         print(f"{'='*80}")
         print(f"Components: {len(design.component_logic)}")
         for component in design.component_logic:
@@ -504,12 +535,14 @@ class TestDesignAgentE2E:
         assert isinstance(design, DesignSpecification)
 
         print(f"\n{'='*80}")
-        print(f"E2E Test: Telemetry Integration")
+        print("E2E Test: Telemetry Integration")
         print(f"{'='*80}")
         print(f"Telemetry captured for task: {design_input.task_id}")
         print(f"Database: {db_path}")
-        print(f"Check Langfuse dashboard for trace data")
-        print(f"Run: uv run python scripts/query_telemetry.py --task-id {design_input.task_id}")
+        print("Check Langfuse dashboard for trace data")
+        print(
+            f"Run: uv run python scripts/query_telemetry.py --task-id {design_input.task_id}"
+        )
 
 
 if __name__ == "__main__":

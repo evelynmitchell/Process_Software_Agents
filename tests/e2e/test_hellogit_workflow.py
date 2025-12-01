@@ -12,8 +12,9 @@ This proves that ASP can work on ANY repository without cluttering Process_Softw
 See: design/ADR_001_workspace_isolation_and_execution_tracking.md
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from src.services.workspace_manager import WorkspaceManager
 
@@ -46,7 +47,7 @@ class TestHelloGitWorkflow:
         initial_files = {
             "README.md": "# Hello Git\n\nA simple demo project.\n",
             "hello.py": "def hello():\n    print('Hello, Git!')\n",
-            ".gitignore": "*.pyc\n__pycache__/\n"
+            ".gitignore": "*.pyc\n__pycache__/\n",
         }
 
         repo_path = manager.initialize_git_repo(workspace, initial_files=initial_files)
@@ -83,17 +84,20 @@ def test_goodbye():
 
         # Step 4: Commit changes (simulated agent commit)
         import subprocess
+
         subprocess.run(["git", "add", "."], cwd=str(repo_path), check=True)
         subprocess.run(
             ["git", "commit", "-m", "Add goodbye function and tests"],
             cwd=str(repo_path),
-            check=True
+            check=True,
         )
 
         # Step 5: Verify isolation - workspace is NOT in Process_Software_Agents
         process_software_agents_path = Path.cwd()
         assert not str(workspace.path).startswith(str(process_software_agents_path))
-        assert str(workspace.path).startswith("/tmp") or str(workspace.path).startswith(str(Path.home()))
+        assert str(workspace.path).startswith("/tmp") or str(workspace.path).startswith(
+            str(Path.home())
+        )
 
         # Step 6: Verify git history
         result = subprocess.run(
@@ -101,7 +105,7 @@ def test_goodbye():
             cwd=str(repo_path),
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
         assert "Initial commit" in result.stdout
         assert "Add goodbye function" in result.stdout
@@ -118,14 +122,8 @@ def test_goodbye():
         ws2 = manager.create_workspace("project-b")
 
         # Initialize different projects
-        manager.initialize_git_repo(
-            ws1,
-            initial_files={"README.md": "# Project A\n"}
-        )
-        manager.initialize_git_repo(
-            ws2,
-            initial_files={"README.md": "# Project B\n"}
-        )
+        manager.initialize_git_repo(ws1, initial_files={"README.md": "# Project A\n"})
+        manager.initialize_git_repo(ws2, initial_files={"README.md": "# Project B\n"})
 
         # Verify isolation
         assert (ws1.target_repo_path / "README.md").read_text() == "# Project A\n"
@@ -156,15 +154,15 @@ def test_goodbye():
             workspace,
             initial_files={
                 "README.md": "# External Project\n",
-                "src/app.py": "# Main application\n"
-            }
+                "src/app.py": "# Main application\n",
+            },
         )
 
         # Step 3: Create feature branch
         subprocess.run(
             ["git", "checkout", "-b", "feature/add-logging"],
             cwd=str(repo_path),
-            check=True
+            check=True,
         )
 
         # Step 4: "ASP Agent" makes changes
@@ -173,11 +171,11 @@ def test_goodbye():
         )
 
         # Update app.py
-        app_code = '''# Main application
+        app_code = """# Main application
 import logger
 
 logger.logger.info("Application started")
-'''
+"""
         (repo_path / "src/app.py").write_text(app_code)
 
         # Step 5: Commit changes
@@ -185,7 +183,7 @@ logger.logger.info("Application started")
         subprocess.run(
             ["git", "commit", "-m", "Add logging infrastructure"],
             cwd=str(repo_path),
-            check=True
+            check=True,
         )
 
         # Step 6: Verify we're on feature branch
@@ -194,7 +192,7 @@ logger.logger.info("Application started")
             cwd=str(repo_path),
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
         assert result.stdout.strip() == "feature/add-logging"
 

@@ -13,10 +13,9 @@ Author: ASP Development Team
 Date: November 13, 2025
 """
 
-import json
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from pydantic import ValidationError
@@ -24,8 +23,7 @@ from pydantic import ValidationError
 from asp.agents.base_agent import AgentExecutionError
 from asp.agents.design_agent import DesignAgent
 from asp.models.design import DesignInput, DesignSpecification
-from asp.models.planning import ProjectPlan, PROBEAIPrediction, SemanticUnit
-
+from asp.models.planning import PROBEAIPrediction, ProjectPlan, SemanticUnit
 
 # =============================================================================
 # Test Fixtures
@@ -111,7 +109,11 @@ def create_test_design_spec_dict(task_id="TEST-001"):
                 "request_schema": {"email": "string", "password": "string"},
                 "response_schema": {"user_id": "string", "email": "string"},
                 "error_responses": [
-                    {"status": 400, "code": "INVALID_EMAIL", "message": "Invalid email format"}
+                    {
+                        "status": 400,
+                        "code": "INVALID_EMAIL",
+                        "message": "Invalid email format",
+                    }
                 ],
                 "authentication_required": False,
                 "rate_limit": "5 requests per minute",
@@ -123,8 +125,16 @@ def create_test_design_spec_dict(task_id="TEST-001"):
                 "description": "Stores user account information and credentials",
                 "columns": [
                     {"name": "user_id", "type": "UUID", "constraints": "PRIMARY KEY"},
-                    {"name": "email", "type": "VARCHAR(255)", "constraints": "NOT NULL UNIQUE"},
-                    {"name": "password_hash", "type": "VARCHAR(255)", "constraints": "NOT NULL"},
+                    {
+                        "name": "email",
+                        "type": "VARCHAR(255)",
+                        "constraints": "NOT NULL UNIQUE",
+                    },
+                    {
+                        "name": "password_hash",
+                        "type": "VARCHAR(255)",
+                        "constraints": "NOT NULL",
+                    },
                 ],
                 "indexes": ["CREATE INDEX idx_users_email ON users(email)"],
                 "relationships": [],
@@ -270,8 +280,8 @@ def test_execute_successful_design_generation():
     # Mock the LLM response
     llm_response = {"content": test_design}
 
-    with patch.object(agent, 'load_prompt', return_value="Mock prompt template"):
-        with patch.object(agent, 'call_llm', return_value=llm_response):
+    with patch.object(agent, "load_prompt", return_value="Mock prompt template"):
+        with patch.object(agent, "call_llm", return_value=llm_response):
             result = agent.execute(design_input)
 
     # Verify
@@ -292,9 +302,11 @@ def test_execute_with_context_files():
     test_design = create_test_design_spec_dict()
     llm_response = {"content": test_design}
 
-    with patch.object(agent, 'load_prompt', return_value="Mock prompt {context_files}"):
-        with patch.object(agent, 'format_prompt', wraps=agent.format_prompt) as mock_format:
-            with patch.object(agent, 'call_llm', return_value=llm_response):
+    with patch.object(agent, "load_prompt", return_value="Mock prompt {context_files}"):
+        with patch.object(
+            agent, "format_prompt", wraps=agent.format_prompt
+        ) as mock_format:
+            with patch.object(agent, "call_llm", return_value=llm_response):
                 result = agent.execute(design_input)
 
     # Verify
@@ -317,8 +329,8 @@ def test_semantic_unit_coverage_validation_success():
     test_design = create_test_design_spec_dict()
     llm_response = {"content": test_design}
 
-    with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-        with patch.object(agent, 'call_llm', return_value=llm_response):
+    with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+        with patch.object(agent, "call_llm", return_value=llm_response):
             result = agent.execute(design_input)
 
     # All 3 semantic units (SU-001, SU-002, SU-003) have components
@@ -338,8 +350,8 @@ def test_semantic_unit_coverage_validation_failure():
 
     llm_response = {"content": test_design}
 
-    with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-        with patch.object(agent, 'call_llm', return_value=llm_response):
+    with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+        with patch.object(agent, "call_llm", return_value=llm_response):
             # Should raise error about missing semantic unit
             with pytest.raises(AgentExecutionError) as exc_info:
                 agent.execute(design_input)
@@ -360,8 +372,8 @@ def test_component_dependency_validation_success():
     test_design = create_test_design_spec_dict()
     llm_response = {"content": test_design}
 
-    with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-        with patch.object(agent, 'call_llm', return_value=llm_response):
+    with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+        with patch.object(agent, "call_llm", return_value=llm_response):
             result = agent.execute(design_input)
 
     # Should succeed - no circular dependencies
@@ -381,8 +393,8 @@ def test_component_dependency_circular_detection():
 
     llm_response = {"content": test_design}
 
-    with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-        with patch.object(agent, 'call_llm', return_value=llm_response):
+    with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+        with patch.object(agent, "call_llm", return_value=llm_response):
             # Should raise error about circular dependencies
             with pytest.raises(AgentExecutionError) as exc_info:
                 agent.execute(design_input)
@@ -401,8 +413,8 @@ def test_component_dependency_external_allowed():
 
     llm_response = {"content": test_design}
 
-    with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-        with patch.object(agent, 'call_llm', return_value=llm_response):
+    with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+        with patch.object(agent, "call_llm", return_value=llm_response):
             # Should succeed with warning
             result = agent.execute(design_input)
 
@@ -422,8 +434,8 @@ def test_execute_invalid_json_response():
     # Mock non-dict response
     llm_response = {"content": "This is not valid JSON dict"}
 
-    with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-        with patch.object(agent, 'call_llm', return_value=llm_response):
+    with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+        with patch.object(agent, "call_llm", return_value=llm_response):
             with pytest.raises(AgentExecutionError) as exc_info:
                 agent.execute(design_input)
 
@@ -449,8 +461,8 @@ def test_execute_missing_required_fields():
 
     llm_response = {"content": invalid_design}
 
-    with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-        with patch.object(agent, 'call_llm', return_value=llm_response):
+    with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+        with patch.object(agent, "call_llm", return_value=llm_response):
             with pytest.raises(AgentExecutionError):
                 agent.execute(design_input)
 
@@ -466,8 +478,8 @@ def test_execute_insufficient_checklist_items():
 
     llm_response = {"content": test_design}
 
-    with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-        with patch.object(agent, 'call_llm', return_value=llm_response):
+    with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+        with patch.object(agent, "call_llm", return_value=llm_response):
             with pytest.raises(AgentExecutionError):
                 agent.execute(design_input)
 
@@ -477,8 +489,8 @@ def test_execute_llm_call_failure():
     agent = DesignAgent()
     design_input = create_test_design_input()
 
-    with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-        with patch.object(agent, 'call_llm', side_effect=Exception("LLM API error")):
+    with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+        with patch.object(agent, "call_llm", side_effect=Exception("LLM API error")):
             with pytest.raises(AgentExecutionError) as exc_info:
                 agent.execute(design_input)
 
@@ -490,9 +502,10 @@ def test_execute_prompt_not_found():
     agent = DesignAgent()
     design_input = create_test_design_input()
 
-    with patch.object(agent, 'load_prompt', side_effect=FileNotFoundError("Prompt not found")):
-        with pytest.raises(AgentExecutionError) as exc_info:
-            agent.execute(design_input)
+    with patch.object(
+        agent, "load_prompt", side_effect=FileNotFoundError("Prompt not found")
+    ), pytest.raises(AgentExecutionError) as exc_info:
+        agent.execute(design_input)
 
     assert "Prompt template not found" in str(exc_info.value)
 
@@ -689,8 +702,8 @@ def test_integration_with_planning_agent_output():
 
     llm_response = {"content": test_design}
 
-    with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-        with patch.object(agent, 'call_llm', return_value=llm_response):
+    with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+        with patch.object(agent, "call_llm", return_value=llm_response):
             result = agent.execute(design_input)
 
     # Verify

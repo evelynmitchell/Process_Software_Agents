@@ -10,7 +10,6 @@ Requirements:
 - Real API mode will consume API credits (approximately $0.15-0.25 per test due to 6 specialists)
 """
 
-import os
 from datetime import datetime
 
 import pytest
@@ -24,7 +23,6 @@ from asp.models.design import (
     DesignSpecification,
 )
 from asp.models.design_review import DesignReviewReport
-
 
 # Skip all tests if no API key is available
 
@@ -361,7 +359,11 @@ class TestDesignReviewAgentE2E:
                     request_schema=None,
                     response_schema={"tasks": "array"},
                     error_responses=[
-                        {"status": 500, "code": "INTERNAL_ERROR", "message": "Server error"}
+                        {
+                            "status": 500,
+                            "code": "INTERNAL_ERROR",
+                            "message": "Server error",
+                        }
                     ],
                     authentication_required=True,
                     rate_limit="100 requests per minute",
@@ -388,10 +390,22 @@ class TestDesignReviewAgentE2E:
                     table_name="tasks",
                     description="Stores task information",
                     columns=[
-                        {"name": "task_id", "type": "UUID", "constraints": "PRIMARY KEY"},
-                        {"name": "title", "type": "VARCHAR(255)", "constraints": "NOT NULL"},
+                        {
+                            "name": "task_id",
+                            "type": "UUID",
+                            "constraints": "PRIMARY KEY",
+                        },
+                        {
+                            "name": "title",
+                            "type": "VARCHAR(255)",
+                            "constraints": "NOT NULL",
+                        },
                         {"name": "description", "type": "TEXT", "constraints": ""},
-                        {"name": "created_at", "type": "TIMESTAMP", "constraints": "NOT NULL"},
+                        {
+                            "name": "created_at",
+                            "type": "TIMESTAMP",
+                            "constraints": "NOT NULL",
+                        },
                     ],
                     indexes=[],
                     relationships=[],
@@ -487,8 +501,16 @@ class TestDesignReviewAgentE2E:
                     table_name="events",
                     description="Simple event log table",
                     columns=[
-                        {"name": "event_id", "type": "UUID", "constraints": "PRIMARY KEY"},
-                        {"name": "event_type", "type": "VARCHAR(50)", "constraints": "NOT NULL"},
+                        {
+                            "name": "event_id",
+                            "type": "UUID",
+                            "constraints": "PRIMARY KEY",
+                        },
+                        {
+                            "name": "event_type",
+                            "type": "VARCHAR(50)",
+                            "constraints": "NOT NULL",
+                        },
                     ],
                     indexes=[],
                     relationships=[],

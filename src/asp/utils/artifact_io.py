@@ -14,7 +14,7 @@ Date: November 17, 2025
 import json
 import logging
 from pathlib import Path
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from asp.models.code import GeneratedFile
@@ -28,7 +28,7 @@ class ArtifactIOError(Exception):
     pass
 
 
-def ensure_artifact_directory(task_id: str, base_path: Optional[str] = None) -> Path:
+def ensure_artifact_directory(task_id: str, base_path: str | None = None) -> Path:
     """
     Ensure artifact directory exists for a task.
 
@@ -64,7 +64,7 @@ def write_artifact_json(
     task_id: str,
     artifact_type: str,
     data: Any,
-    base_path: Optional[str] = None,
+    base_path: str | None = None,
 ) -> Path:
     """
     Write artifact data as JSON file.
@@ -94,7 +94,7 @@ def write_artifact_json(
         # Convert Pydantic model to dict if necessary
         if hasattr(data, "model_dump"):
             # Use mode='json' to properly serialize datetime and other special types
-            data_dict = data.model_dump(mode='json')
+            data_dict = data.model_dump(mode="json")
         elif hasattr(data, "dict"):
             data_dict = data.dict()
         else:
@@ -117,7 +117,7 @@ def write_artifact_markdown(
     task_id: str,
     artifact_type: str,
     markdown_content: str,
-    base_path: Optional[str] = None,
+    base_path: str | None = None,
 ) -> Path:
     """
     Write artifact data as Markdown file.
@@ -159,7 +159,7 @@ def write_artifact_markdown(
 def read_artifact_json(
     task_id: str,
     artifact_type: str,
-    base_path: Optional[str] = None,
+    base_path: str | None = None,
 ) -> dict[str, Any]:
     """
     Read artifact data from JSON file.
@@ -193,7 +193,7 @@ def read_artifact_json(
         if not file_path.exists():
             raise ArtifactIOError(f"Artifact file not found: {file_path}")
 
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
 
         logger.debug(f"Read artifact JSON: {file_path}")
@@ -212,7 +212,7 @@ def read_artifact_json(
 def read_artifact_markdown(
     task_id: str,
     artifact_type: str,
-    base_path: Optional[str] = None,
+    base_path: str | None = None,
 ) -> str:
     """
     Read artifact data from Markdown file.
@@ -246,7 +246,7 @@ def read_artifact_markdown(
         if not file_path.exists():
             raise ArtifactIOError(f"Artifact file not found: {file_path}")
 
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
 
         logger.debug(f"Read artifact Markdown: {file_path}")
@@ -261,7 +261,7 @@ def read_artifact_markdown(
 def write_generated_file(
     task_id: str,
     file: "GeneratedFile",
-    base_path: Optional[str] = None,
+    base_path: str | None = None,
 ) -> Path:
     """
     Write a generated code file to disk.
@@ -305,14 +305,16 @@ def write_generated_file(
         return full_path
 
     except Exception as e:
-        raise ArtifactIOError(f"Failed to write generated file {file.file_path}: {e}") from e
+        raise ArtifactIOError(
+            f"Failed to write generated file {file.file_path}: {e}"
+        ) from e
 
 
 def artifact_exists(
     task_id: str,
     artifact_type: str,
     format: str = "json",
-    base_path: Optional[str] = None,
+    base_path: str | None = None,
 ) -> bool:
     """
     Check if an artifact file exists.
@@ -345,7 +347,7 @@ def artifact_exists(
 
 def list_task_artifacts(
     task_id: str,
-    base_path: Optional[str] = None,
+    base_path: str | None = None,
 ) -> list[str]:
     """
     List all artifact files for a task.

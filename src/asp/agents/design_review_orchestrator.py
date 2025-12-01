@@ -15,7 +15,7 @@ Aggregates results, deduplicates issues, resolves conflicts, generates DesignRev
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.agents.reviews import (
@@ -48,8 +48,8 @@ class DesignReviewOrchestrator(BaseAgent):
 
     def __init__(
         self,
-        llm_client: Optional[Any] = None,
-        db_path: Optional[str] = None,
+        llm_client: Any | None = None,
+        db_path: str | None = None,
     ):
         """
         Initialize Design Review Orchestrator.
@@ -67,10 +67,18 @@ class DesignReviewOrchestrator(BaseAgent):
         # Initialize specialist agents
         self.specialists = {
             "security": SecurityReviewAgent(llm_client=llm_client, db_path=db_path),
-            "performance": PerformanceReviewAgent(llm_client=llm_client, db_path=db_path),
-            "data_integrity": DataIntegrityReviewAgent(llm_client=llm_client, db_path=db_path),
-            "maintainability": MaintainabilityReviewAgent(llm_client=llm_client, db_path=db_path),
-            "architecture": ArchitectureReviewAgent(llm_client=llm_client, db_path=db_path),
+            "performance": PerformanceReviewAgent(
+                llm_client=llm_client, db_path=db_path
+            ),
+            "data_integrity": DataIntegrityReviewAgent(
+                llm_client=llm_client, db_path=db_path
+            ),
+            "maintainability": MaintainabilityReviewAgent(
+                llm_client=llm_client, db_path=db_path
+            ),
+            "architecture": ArchitectureReviewAgent(
+                llm_client=llm_client, db_path=db_path
+            ),
             "api_design": APIDesignReviewAgent(llm_client=llm_client, db_path=db_path),
         }
 
@@ -82,7 +90,7 @@ class DesignReviewOrchestrator(BaseAgent):
     def execute(
         self,
         design_spec: DesignSpecification,
-        quality_standards: Optional[str] = None,
+        quality_standards: str | None = None,
     ) -> DesignReviewReport:
         """
         Execute comprehensive design review using all specialist agents in parallel.
@@ -97,7 +105,9 @@ class DesignReviewOrchestrator(BaseAgent):
         Raises:
             AgentExecutionError: If orchestration fails
         """
-        logger.info(f"Starting orchestrated design review for task {design_spec.task_id}")
+        logger.info(
+            f"Starting orchestrated design review for task {design_spec.task_id}"
+        )
         start_time = datetime.now()
 
         try:
@@ -123,14 +133,17 @@ class DesignReviewOrchestrator(BaseAgent):
             # Step 5: Convert to Pydantic models
             issues_list = [DesignIssue(**issue) for issue in aggregated_issues]
             suggestions_list = [
-                ImprovementSuggestion(**suggestion) for suggestion in aggregated_suggestions
+                ImprovementSuggestion(**suggestion)
+                for suggestion in aggregated_suggestions
             ]
             checklist_review_list = [
                 ChecklistItemReview(**item) for item in checklist_review
             ]
 
             # Step 6: Calculate issue counts
-            critical_count = sum(1 for issue in issues_list if issue.severity == "Critical")
+            critical_count = sum(
+                1 for issue in issues_list if issue.severity == "Critical"
+            )
             high_count = sum(1 for issue in issues_list if issue.severity == "High")
             medium_count = sum(1 for issue in issues_list if issue.severity == "Medium")
             low_count = sum(1 for issue in issues_list if issue.severity == "Low")
@@ -191,7 +204,10 @@ class DesignReviewOrchestrator(BaseAgent):
         Returns:
             Dictionary mapping specialist name to review results
         """
-        async def run_specialist(name: str, agent: BaseAgent) -> tuple[str, dict[str, Any]]:
+
+        async def run_specialist(
+            name: str, agent: BaseAgent
+        ) -> tuple[str, dict[str, Any]]:
             """Run a single specialist review (async wrapper)."""
             try:
                 # Run in thread pool since agents are synchronous
@@ -205,8 +221,7 @@ class DesignReviewOrchestrator(BaseAgent):
 
         # Launch all specialists in parallel
         tasks = [
-            run_specialist(name, agent)
-            for name, agent in self.specialists.items()
+            run_specialist(name, agent) for name, agent in self.specialists.items()
         ]
 
         results = await asyncio.gather(*tasks)
@@ -231,7 +246,6 @@ class DesignReviewOrchestrator(BaseAgent):
             "coupling": "Maintainability",
             "cohesion": "Maintainability",
             "maintainability": "Maintainability",
-
             # Architecture variations
             "architecture": "Architecture",
             "design pattern": "Architecture",
@@ -244,26 +258,22 @@ class DesignReviewOrchestrator(BaseAgent):
             "resilience patterns": "Architecture",
             "resilience": "Architecture",
             "configuration management": "Architecture",
-
             # Security variations
             "security": "Security",
             "authentication": "Security",
             "authorization": "Security",
             "token management": "Security",
             "logout": "Security",
-
             # Performance variations
             "performance": "Performance",
             "scalability": "Scalability",
             "optimization": "Performance",
             "caching": "Performance",
-
             # Data Integrity variations
             "data integrity": "Data Integrity",
             "data": "Data Integrity",
             "integrity": "Data Integrity",
             "validation": "Data Integrity",
-
             # API Design variations
             "api design": "API Design",
             "api": "API Design",
@@ -277,7 +287,6 @@ class DesignReviewOrchestrator(BaseAgent):
             "documentation": "API Design",
             "resource design": "API Design",
             "monitoring": "API Design",
-
             # Error Handling variations
             "error handling": "Error Handling",
             "error": "Error Handling",
@@ -287,10 +296,20 @@ class DesignReviewOrchestrator(BaseAgent):
         normalized = category_mappings.get(category.lower(), category)
 
         # If still not a valid category, default to best guess
-        valid_categories = ["Security", "Performance", "Data Integrity", "Error Handling",
-                          "Architecture", "Maintainability", "API Design", "Scalability"]
+        valid_categories = [
+            "Security",
+            "Performance",
+            "Data Integrity",
+            "Error Handling",
+            "Architecture",
+            "Maintainability",
+            "API Design",
+            "Scalability",
+        ]
         if normalized not in valid_categories:
-            logger.warning(f"Unknown category '{category}', defaulting to 'Architecture'")
+            logger.warning(
+                f"Unknown category '{category}', defaulting to 'Architecture'"
+            )
             return "Architecture"
 
         return normalized
@@ -321,12 +340,16 @@ class DesignReviewOrchestrator(BaseAgent):
             normalized["evidence"] = normalized["location"]
         elif "evidence" not in normalized:
             # Fallback: create evidence from description
-            normalized["evidence"] = f"Based on design specification analysis: {normalized.get('description', 'Issue identified')}"
+            normalized["evidence"] = (
+                f"Based on design specification analysis: {normalized.get('description', 'Issue identified')}"
+            )
 
         # Ensure evidence meets minimum length requirement (10 chars)
         if len(normalized["evidence"]) < 10:
             # Pad short evidence strings with context
-            normalized["evidence"] = f"Component {normalized['evidence']}: {normalized.get('description', 'Issue identified in design')}"
+            normalized["evidence"] = (
+                f"Component {normalized['evidence']}: {normalized.get('description', 'Issue identified in design')}"
+            )
 
         if "impact" not in normalized:
             normalized["impact"] = "Requires review and remediation"
@@ -379,7 +402,9 @@ class DesignReviewOrchestrator(BaseAgent):
             elif "notes" in normalized:
                 normalized["implementation_notes"] = normalized["notes"]
             else:
-                normalized["implementation_notes"] = "Review design specification and implement recommended changes"
+                normalized["implementation_notes"] = (
+                    "Review design specification and implement recommended changes"
+                )
 
         if "priority" not in normalized:
             normalized["priority"] = "Medium"
@@ -420,7 +445,9 @@ class DesignReviewOrchestrator(BaseAgent):
 
             # Normalize each issue and suggestion
             all_issues.extend([self._normalize_issue(issue) for issue in issues])
-            all_suggestions.extend([self._normalize_suggestion(sug) for sug in suggestions])
+            all_suggestions.extend(
+                [self._normalize_suggestion(sug) for sug in suggestions]
+            )
 
         # Deduplicate issues (simple approach: by evidence similarity)
         deduplicated_issues = self._deduplicate_issues(all_issues)
@@ -491,7 +518,9 @@ class DesignReviewOrchestrator(BaseAgent):
             evidence = issue.get("evidence", "")
             if evidence in evidence_map:
                 # Keep issue with higher severity
-                existing_severity = severity_order.get(evidence_map[evidence]["severity"], 0)
+                existing_severity = severity_order.get(
+                    evidence_map[evidence]["severity"], 0
+                )
                 new_severity = severity_order.get(issue["severity"], 0)
                 if new_severity > existing_severity:
                     evidence_map[evidence] = issue
@@ -550,7 +579,9 @@ class DesignReviewOrchestrator(BaseAgent):
         )
 
         # Check 4: Schema-API consistency
-        checks["schema_api_consistency"] = self._check_schema_api_consistency(design_spec)
+        checks["schema_api_consistency"] = self._check_schema_api_consistency(
+            design_spec
+        )
 
         # Check 5: Component completeness
         checks["components_have_interfaces"] = all(
@@ -638,23 +669,27 @@ class DesignReviewOrchestrator(BaseAgent):
             else:
                 status = "Pass"
 
-            checklist_review.append({
-                "checklist_item_id": f"CHECK-{i+1:03d}",
-                "category": item.category,
-                "description": item.description,
-                "status": status,
-                "notes": f"Found {len(related_issues)} related issue(s) in this category" if related_issues else "No issues found for this checklist item",
-                "related_issues": related_issues,
-            })
+            checklist_review.append(
+                {
+                    "checklist_item_id": f"CHECK-{i+1:03d}",
+                    "category": item.category,
+                    "description": item.description,
+                    "status": status,
+                    "notes": (
+                        f"Found {len(related_issues)} related issue(s) in this category"
+                        if related_issues
+                        else "No issues found for this checklist item"
+                    ),
+                    "related_issues": related_issues,
+                }
+            )
 
         return checklist_review
 
     def _generate_review_id(self, task_id: str, timestamp: datetime) -> str:
-        """Generate unique review ID matching pattern ^REVIEW-[A-Z0-9]+-\d{8}-\d{6}$"""
+        r"""Generate unique review ID matching pattern ^REVIEW-[A-Z0-9]+-\d{8}-\d{6}$"""
         # Remove all non-alphanumeric characters (including hyphens and underscores)
-        clean_task_id = "".join(
-            c if c.isalnum() else "" for c in task_id
-        ).upper()
+        clean_task_id = "".join(c if c.isalnum() else "" for c in task_id).upper()
 
         date_str = timestamp.strftime("%Y%m%d")
         time_str = timestamp.strftime("%H%M%S")

@@ -11,8 +11,6 @@ Tests git operations for artifact persistence including:
 """
 
 import subprocess
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -59,7 +57,9 @@ def git_repo(tmp_path):
     # Create initial commit so we have a valid HEAD
     readme = repo_dir / "README.md"
     readme.write_text("# Test Repo")
-    subprocess.run(["git", "add", "README.md"], cwd=repo_dir, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "README.md"], cwd=repo_dir, check=True, capture_output=True
+    )
     subprocess.run(
         ["git", "commit", "-m", "Initial commit"],
         cwd=repo_dir,

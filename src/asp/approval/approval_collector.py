@@ -2,9 +2,8 @@
 Approval decision collection from user input.
 """
 
-from datetime import datetime
 import getpass
-from typing import Optional
+from datetime import datetime
 
 from rich.console import Console
 
@@ -18,10 +17,7 @@ class ApprovalCollector:
         """Initialize ApprovalCollector."""
         self.console = Console()
 
-    def collect_decision(
-        self,
-        task_id: Optional[str] = None
-    ) -> ApprovalResponse:
+    def collect_decision(self, task_id: str | None = None) -> ApprovalResponse:
         """
         Collect approval decision from user.
 
@@ -35,8 +31,12 @@ class ApprovalCollector:
         self.console.rule("[bold cyan]REVIEW DECISION", style="cyan")
         self.console.print()
         self.console.print("[bold]Options:[/bold]")
-        self.console.print("  [green]1. APPROVE[/green]   - Merge changes to main branch")
-        self.console.print("  [red]2. REJECT[/red]    - Do not merge, mark for revision")
+        self.console.print(
+            "  [green]1. APPROVE[/green]   - Merge changes to main branch"
+        )
+        self.console.print(
+            "  [red]2. REJECT[/red]    - Do not merge, mark for revision"
+        )
         self.console.print("  [yellow]3. DEFER[/yellow]     - Save decision for later")
         self.console.print()
 
@@ -48,13 +48,13 @@ class ApprovalCollector:
 
         # Get reviewer info
         reviewer = self._get_reviewer()
-        timestamp = datetime.utcnow().isoformat() + 'Z'
+        timestamp = datetime.utcnow().isoformat() + "Z"
 
         return ApprovalResponse(
             decision=decision,
             reviewer=reviewer,
             timestamp=timestamp,
-            justification=justification
+            justification=justification,
         )
 
     def _prompt_decision(self) -> ReviewDecision:
@@ -65,9 +65,9 @@ class ApprovalCollector:
             ReviewDecision enum value
         """
         decision_map = {
-            '1': ReviewDecision.APPROVED,
-            '2': ReviewDecision.REJECTED,
-            '3': ReviewDecision.DEFERRED
+            "1": ReviewDecision.APPROVED,
+            "2": ReviewDecision.REJECTED,
+            "3": ReviewDecision.DEFERRED,
         }
 
         while True:
@@ -88,17 +88,25 @@ class ApprovalCollector:
         """
         self.console.print()
         if decision == ReviewDecision.APPROVED:
-            self.console.print("[bold green]Justification for approval (required):[/bold green]")
+            self.console.print(
+                "[bold green]Justification for approval (required):[/bold green]"
+            )
         elif decision == ReviewDecision.REJECTED:
-            self.console.print("[bold red]Justification for rejection (required):[/bold red]")
+            self.console.print(
+                "[bold red]Justification for rejection (required):[/bold red]"
+            )
         else:
-            self.console.print("[bold yellow]Reason for deferring (required):[/bold yellow]")
+            self.console.print(
+                "[bold yellow]Reason for deferring (required):[/bold yellow]"
+            )
 
         while True:
             justification = self.console.input("> ")
             if justification.strip():
                 return justification.strip()
-            self.console.print("[red]Justification is required. Please provide a reason.[/red]")
+            self.console.print(
+                "[red]Justification is required. Please provide a reason.[/red]"
+            )
 
     def _get_reviewer(self) -> str:
         """
@@ -109,12 +117,13 @@ class ApprovalCollector:
         """
         # Try to get from git config
         import subprocess
+
         try:
             result = subprocess.run(
                 ["git", "config", "user.email"],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             email = result.stdout.strip()
             if email:
@@ -134,4 +143,4 @@ class ApprovalCollector:
             True if user wants to see diff
         """
         response = self.console.input("[bold]View full diff? [y/n]:[/bold] ")
-        return response.lower() in ['y', 'yes']
+        return response.lower() in ["y", "yes"]

@@ -10,8 +10,8 @@ from pydantic import ValidationError
 from asp.utils.semantic_complexity import (
     ComplexityFactors,
     calculate_semantic_complexity,
-    validate_complexity_factors,
     get_complexity_band,
+    validate_complexity_factors,
 )
 
 

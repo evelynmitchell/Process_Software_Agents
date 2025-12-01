@@ -2,18 +2,18 @@
 Local PR-style approval service for HITL quality gate overrides.
 """
 
-from typing import Dict, Any
+from typing import Any
 
+from asp.approval.approval_collector import ApprovalCollector
 from asp.approval.base import (
-    ApprovalService,
     ApprovalRequest,
     ApprovalResponse,
-    ReviewDecision
+    ApprovalService,
+    ReviewDecision,
 )
 from asp.approval.branch_manager import BranchManager
-from asp.approval.review_presenter import ReviewPresenter
-from asp.approval.approval_collector import ApprovalCollector
 from asp.approval.merge_controller import MergeController
+from asp.approval.review_presenter import ReviewPresenter
 
 
 class LocalPRApprovalService(ApprovalService):
@@ -29,7 +29,7 @@ class LocalPRApprovalService(ApprovalService):
         repo_path: str,
         base_branch: str = "main",
         auto_cleanup: bool = True,
-        notes_ref: str = "reviews"
+        notes_ref: str = "reviews",
     ):
         """
         Initialize LocalPRApprovalService.
@@ -51,10 +51,7 @@ class LocalPRApprovalService(ApprovalService):
         self.approval_collector = ApprovalCollector()
         self.merge_controller = MergeController(repo_path)
 
-    def request_approval(
-        self,
-        request: ApprovalRequest
-    ) -> ApprovalResponse:
+    def request_approval(self, request: ApprovalRequest) -> ApprovalResponse:
         """
         Request HITL approval using local PR-style workflow.
 
@@ -80,8 +77,7 @@ class LocalPRApprovalService(ApprovalService):
             self.branch_manager.delete_branch(branch_name, force=True)
 
         self.branch_manager.create_branch(
-            branch_name=branch_name,
-            base_branch=request.base_branch or self.base_branch
+            branch_name=branch_name, base_branch=request.base_branch or self.base_branch
         )
 
         # Commit agent output
@@ -89,18 +85,18 @@ class LocalPRApprovalService(ApprovalService):
             branch_name=branch_name,
             output=request.agent_output,
             task_id=request.task_id,
-            gate_type=request.gate_type
+            gate_type=request.gate_type,
         )
 
         # Step 2: Generate diff
         diff = self.branch_manager.generate_diff(
             base_branch=request.base_branch or self.base_branch,
-            feature_branch=branch_name
+            feature_branch=branch_name,
         )
 
         diff_stats = self.branch_manager.get_diff_stats(
             base_branch=request.base_branch or self.base_branch,
-            feature_branch=branch_name
+            feature_branch=branch_name,
         )
 
         # Step 3: Present for review
@@ -110,13 +106,11 @@ class LocalPRApprovalService(ApprovalService):
             quality_report=request.quality_report,
             diff=diff,
             branch_name=branch_name,
-            diff_stats=diff_stats
+            diff_stats=diff_stats,
         )
 
         # Step 4: Collect decision
-        approval = self.approval_collector.collect_decision(
-            task_id=request.task_id
-        )
+        approval = self.approval_collector.collect_decision(task_id=request.task_id)
 
         # Step 5: Execute decision
         merge_commit = None
@@ -125,7 +119,7 @@ class LocalPRApprovalService(ApprovalService):
                 branch_name=branch_name,
                 base_branch=request.base_branch or self.base_branch,
                 review_metadata=approval,
-                task_id=request.task_id
+                task_id=request.task_id,
             )
             approval.merge_commit = merge_commit
 
@@ -138,7 +132,7 @@ class LocalPRApprovalService(ApprovalService):
             self.merge_controller.tag_rejected(
                 branch_name=branch_name,
                 review_metadata=approval,
-                task_id=request.task_id
+                task_id=request.task_id,
             )
 
             if self.auto_cleanup:
@@ -148,7 +142,7 @@ class LocalPRApprovalService(ApprovalService):
             self.merge_controller.tag_deferred(
                 branch_name=branch_name,
                 review_metadata=approval,
-                task_id=request.task_id
+                task_id=request.task_id,
             )
             # Don't delete branch for deferred reviews
 
@@ -157,18 +151,14 @@ class LocalPRApprovalService(ApprovalService):
 
         # Display result
         self.review_presenter.display_approval_result(
-            decision=approval.decision.value.upper(),
-            merge_commit=merge_commit
+            decision=approval.decision.value.upper(), merge_commit=merge_commit
         )
 
         approval.review_branch = branch_name
         return approval
 
     def _store_review_notes(
-        self,
-        commit_sha: str,
-        approval: ApprovalResponse,
-        request: ApprovalRequest
+        self, commit_sha: str, approval: ApprovalResponse, request: ApprovalRequest
     ) -> None:
         """
         Store review metadata in git notes.
@@ -192,12 +182,10 @@ Quality Report Summary:
 """
 
         self.branch_manager.add_note(
-            commit_sha=commit_sha,
-            note_content=note_content,
-            notes_ref=self.notes_ref
+            commit_sha=commit_sha, note_content=note_content, notes_ref=self.notes_ref
         )
 
-    def _format_quality_summary(self, quality_report: Dict[str, Any]) -> str:
+    def _format_quality_summary(self, quality_report: dict[str, Any]) -> str:
         """
         Format quality report summary for git notes.
 
@@ -207,34 +195,29 @@ Quality Report Summary:
         Returns:
             Formatted summary string
         """
-        issues = quality_report.get('issues', [])
+        issues = quality_report.get("issues", [])
         if not issues:
             return "No issues found"
 
         # Count by severity
-        severity_counts = {
-            'CRITICAL': 0,
-            'HIGH': 0,
-            'MEDIUM': 0,
-            'LOW': 0
-        }
+        severity_counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0}
 
         for issue in issues:
-            severity = issue.get('severity', 'LOW')
+            severity = issue.get("severity", "LOW")
             if severity in severity_counts:
                 severity_counts[severity] += 1
 
         summary_parts = []
-        if severity_counts['CRITICAL'] > 0:
+        if severity_counts["CRITICAL"] > 0:
             summary_parts.append(f"- Critical: {severity_counts['CRITICAL']}")
-        if severity_counts['HIGH'] > 0:
+        if severity_counts["HIGH"] > 0:
             summary_parts.append(f"- High: {severity_counts['HIGH']}")
-        if severity_counts['MEDIUM'] > 0:
+        if severity_counts["MEDIUM"] > 0:
             summary_parts.append(f"- Medium: {severity_counts['MEDIUM']}")
-        if severity_counts['LOW'] > 0:
+        if severity_counts["LOW"] > 0:
             summary_parts.append(f"- Low: {severity_counts['LOW']}")
 
         total = sum(severity_counts.values())
         summary_parts.append(f"- Total: {total}")
 
-        return '\n'.join(summary_parts)
+        return "\n".join(summary_parts)

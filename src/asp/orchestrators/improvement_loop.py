@@ -23,18 +23,15 @@ Date: November 25, 2025
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 from asp.agents.postmortem_agent import PostmortemAgent
 from asp.approval.pip_review_service import PIPReviewService
 from asp.models.postmortem import (
     PostmortemInput,
     PostmortemReport,
-    ProcessImprovementProposal,
 )
 from asp.prompts.prompt_versioner import PromptVersioner
 from asp.telemetry.cycle_tracker import CycleTracker
-
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +95,9 @@ class ImprovementLoopOrchestrator:
 
         # Initialize services
         self.pip_review_service = PIPReviewService() if enable_hitl else None
-        self.prompt_versioner = PromptVersioner(prompts_dir) if enable_prompt_updates else None
+        self.prompt_versioner = (
+            PromptVersioner(prompts_dir) if enable_prompt_updates else None
+        )
         self.cycle_tracker = CycleTracker(cycles_dir) if enable_cycle_tracking else None
 
         logger.info(
@@ -132,11 +131,9 @@ class ImprovementLoopOrchestrator:
                 - updated_prompts: list of prompt files updated
                 - cycle_id: str (for tracking)
         """
-        logger.info(
-            f"Running improvement cycle for task {postmortem_report.task_id}"
-        )
+        logger.info(f"Running improvement cycle for task {postmortem_report.task_id}")
 
-        result = {
+        result: dict[str, Any] = {
             "pip_generated": False,
             "pip": None,
             "pip_approved": False,
@@ -158,11 +155,11 @@ class ImprovementLoopOrchestrator:
             return result
 
         # Step 2: Track PIP creation
-        if self.enable_cycle_tracking:
+        if self.enable_cycle_tracking and self.cycle_tracker:
             try:
                 defect_count = len(postmortem_input.defect_log)
                 cycle = self.cycle_tracker.record_pip_created(pip, defect_count)
-                result["cycle_id"] = pip.proposal_id
+                result["cycle_id"] = str(cycle.pip_id)
                 logger.info(f"Cycle tracking started: {cycle.pip_id}")
             except Exception as e:
                 logger.warning(f"Failed to track PIP creation: {e}")
@@ -180,10 +177,10 @@ class ImprovementLoopOrchestrator:
                 pip = self.pip_review_service.review_pip(pip)
 
                 # Track review
-                if self.enable_cycle_tracking:
+                if self.enable_cycle_tracking and self.cycle_tracker:
                     self.cycle_tracker.record_pip_reviewed(pip)
 
-                result["pip_approved"] = (pip.hitl_status == "approved")
+                result["pip_approved"] = pip.hitl_status == "approved"
                 logger.info(f"PIP review complete: {pip.hitl_status}")
             except Exception as e:
                 logger.error(f"Failed to review PIP: {e}", exc_info=True)
@@ -194,22 +191,23 @@ class ImprovementLoopOrchestrator:
             )
 
         # Step 4: Apply approved PIP to prompts
-        if result["pip_approved"] and self.enable_prompt_updates and self.prompt_versioner:
+        if (
+            result["pip_approved"]
+            and self.enable_prompt_updates
+            and self.prompt_versioner
+        ):
             try:
                 logger.info("Applying PIP changes to prompts...")
                 updated_files = self.prompt_versioner.apply_pip(pip)
                 result["updated_prompts"] = list(updated_files.values())
 
                 # Track prompt updates
-                if self.enable_cycle_tracking:
+                if self.enable_cycle_tracking and self.cycle_tracker:
                     self.cycle_tracker.record_prompts_updated(
-                        pip.proposal_id,
-                        list(updated_files.values())
+                        pip.proposal_id, list(updated_files.values())
                     )
 
-                logger.info(
-                    f"PIP applied: {len(updated_files)} prompts updated"
-                )
+                logger.info(f"PIP applied: {len(updated_files)} prompts updated")
             except Exception as e:
                 logger.error(f"Failed to apply PIP to prompts: {e}", exc_info=True)
                 # Continue even if prompt update fails
@@ -230,7 +228,7 @@ class ImprovementLoopOrchestrator:
         pip_id: str,
         impact_task_id: str,
         new_defect_count: int,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> dict:
         """
         Measure impact of PIP on subsequent task.

@@ -178,9 +178,7 @@ class TestAPIDesignReviewAgentExecute:
         mock_load_prompt.return_value = "API design review prompt template"
         mock_format_prompt.return_value = "Formatted prompt"
         mock_call_llm.return_value = {
-            "content": json.dumps(
-                {"issues_found": [], "improvement_suggestions": []}
-            )
+            "content": json.dumps({"issues_found": [], "improvement_suggestions": []})
         }
 
         result = agent.execute(design_spec)
@@ -192,7 +190,13 @@ class TestAPIDesignReviewAgentExecute:
     @patch.object(APIDesignReviewAgent, "format_prompt")
     @patch.object(APIDesignReviewAgent, "call_llm")
     def test_execute_logs_review_metrics(
-        self, mock_call_llm, mock_format_prompt, mock_load_prompt, agent, design_spec, caplog
+        self,
+        mock_call_llm,
+        mock_format_prompt,
+        mock_load_prompt,
+        agent,
+        design_spec,
+        caplog,
     ):
         """Test execute logs API design review metrics."""
         mock_load_prompt.return_value = "API design review prompt template"
@@ -336,7 +340,11 @@ class TestAPIDesignReviewAgentDetection:
 
         assert len(result["issues_found"]) >= 1
         issue = result["issues_found"][0]
-        assert "status" in issue["description"].lower() or "201" in issue["description"] or "200" in issue["description"]
+        assert (
+            "status" in issue["description"].lower()
+            or "201" in issue["description"]
+            or "200" in issue["description"]
+        )
 
     @patch.object(APIDesignReviewAgent, "load_prompt")
     @patch.object(APIDesignReviewAgent, "format_prompt")
@@ -443,7 +451,11 @@ class TestAPIDesignReviewAgentDetection:
 
         assert len(result["issues_found"]) >= 1
         issue = result["issues_found"][0]
-        assert "restful" in issue["description"].lower() or "naming" in issue["description"].lower() or "verb" in issue["description"].lower()
+        assert (
+            "restful" in issue["description"].lower()
+            or "naming" in issue["description"].lower()
+            or "verb" in issue["description"].lower()
+        )
 
     @patch.object(APIDesignReviewAgent, "load_prompt")
     @patch.object(APIDesignReviewAgent, "format_prompt")
@@ -550,7 +562,10 @@ class TestAPIDesignReviewAgentDetection:
 
         assert len(result["issues_found"]) >= 1
         issue = result["issues_found"][0]
-        assert "400" in issue["description"] or "validation" in issue["description"].lower()
+        assert (
+            "400" in issue["description"]
+            or "validation" in issue["description"].lower()
+        )
 
     @patch.object(APIDesignReviewAgent, "load_prompt")
     @patch.object(APIDesignReviewAgent, "format_prompt")
@@ -927,9 +942,7 @@ class TestAPIDesignReviewAgentEdgeCases:
         mock_load_prompt.return_value = "API design review prompt template"
         mock_format_prompt.return_value = "Formatted prompt"
         mock_call_llm.return_value = {
-            "content": json.dumps(
-                {"issues_found": [], "improvement_suggestions": []}
-            )
+            "content": json.dumps({"issues_found": [], "improvement_suggestions": []})
         }
 
         result = agent.execute(design_spec)

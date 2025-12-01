@@ -13,9 +13,8 @@ Time: < 1 second
 """
 
 import sqlite3
-from pathlib import Path
 from datetime import datetime, timedelta
-import json
+from pathlib import Path
 
 
 def main():
@@ -64,8 +63,10 @@ def main():
         print(f"{'Agent':<25} {'Executions':>10} {'Total Cost':>12} {'Avg Cost':>10}")
         print("-" * 70)
         for row in results:
-            print(f"{row['agent_id']:<25} {row['executions']:>10} "
-                  f"${row['total_cost_usd']:>11.4f} ${row['avg_cost_usd']:>9.4f}")
+            print(
+                f"{row['agent_id']:<25} {row['executions']:>10} "
+                f"${row['total_cost_usd']:>11.4f} ${row['avg_cost_usd']:>9.4f}"
+            )
         print()
     else:
         print("No cost data found in last 7 days")
@@ -93,8 +94,10 @@ def main():
         print(f"{'Defect Type':<30} {'Severity':<10} {'Count':>8} {'Avg Fix (ms)':>15}")
         print("-" * 70)
         for row in results:
-            print(f"{row['defect_type']:<30} {row['severity']:<10} "
-                  f"{row['count']:>8} {row['avg_fix_effort_ms']:>15.0f}")
+            print(
+                f"{row['defect_type']:<30} {row['severity']:<10} "
+                f"{row['count']:>8} {row['avg_fix_effort_ms']:>15.0f}"
+            )
         print()
     else:
         print("No defect data found")
@@ -124,9 +127,11 @@ def main():
         print(f"{'Task ID':<20} {'Timestamp':<25} {'Latency (s)':>12} {'Cost':>10}")
         print("-" * 70)
         for row in results:
-            timestamp = datetime.fromisoformat(row['timestamp'])
-            print(f"{row['task_id']:<20} {timestamp.strftime('%Y-%m-%d %H:%M:%S'):<25} "
-                  f"{row['total_latency_ms']/1000:>12.1f} ${row['total_cost_usd']:>9.4f}")
+            timestamp = datetime.fromisoformat(row["timestamp"])
+            print(
+                f"{row['task_id']:<20} {timestamp.strftime('%Y-%m-%d %H:%M:%S'):<25} "
+                f"{row['total_latency_ms']/1000:>12.1f} ${row['total_cost_usd']:>9.4f}"
+            )
         print()
     else:
         print("No task data found")
@@ -144,14 +149,14 @@ def main():
     cursor = conn.execute(query)
     result = cursor.fetchone()
 
-    total_tasks = result['total_tasks'] if result else 0
+    total_tasks = result["total_tasks"] if result else 0
     probe_ai_threshold = 30  # From PRD
 
     print(f"Total Tasks Completed: {total_tasks}")
     print(f"PROBE-AI Threshold: {probe_ai_threshold} tasks")
 
     if total_tasks >= probe_ai_threshold:
-        print(f"✅ Bootstrap complete! PROBE-AI can be enabled.")
+        print("✅ Bootstrap complete! PROBE-AI can be enabled.")
     else:
         remaining = probe_ai_threshold - total_tasks
         print(f"⏳ Bootstrap in progress. {remaining} more tasks needed for PROBE-AI.")
@@ -179,7 +184,9 @@ def main():
         print(f"{'Task ID':<20} {'Total Cost':>12} {'Total Tokens':>15}")
         print("-" * 70)
         for row in results:
-            print(f"{row['task_id']:<20} ${row['total_cost_usd']:>11.4f} {row['total_tokens']:>15,}")
+            print(
+                f"{row['task_id']:<20} ${row['total_cost_usd']:>11.4f} {row['total_tokens']:>15,}"
+            )
         print()
     else:
         print("No task cost data found")
@@ -190,7 +197,9 @@ def main():
     print("💡 Advanced Analysis:")
     print("   1. Langfuse Dashboard: https://cloud.langfuse.com")
     print("   2. Custom queries: sqlite3 data/asp_telemetry.db")
-    print("   3. Bootstrap analysis: uv run python scripts/bootstrap_data_collection.py")
+    print(
+        "   3. Bootstrap analysis: uv run python scripts/bootstrap_data_collection.py"
+    )
     print()
     print("=" * 70)
     print("Example complete!")

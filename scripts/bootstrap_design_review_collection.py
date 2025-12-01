@@ -19,13 +19,14 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from asp.agents.design_agent import DesignAgent
-from asp.agents.design_review_orchestrator import DesignReviewOrchestrator
-from asp.models.planning import SemanticUnit, ProjectPlan
-from asp.models.design import DesignInput
 import json
 import time
 from datetime import datetime
+
+from asp.agents.design_agent import DesignAgent
+from asp.agents.design_review_orchestrator import DesignReviewOrchestrator
+from asp.models.design import DesignInput
+from asp.models.planning import ProjectPlan, SemanticUnit
 
 
 def load_bootstrap_tasks():
@@ -88,24 +89,30 @@ def reconstruct_project_plan(planning_result):
 def save_results(all_results, output_file):
     """Save results incrementally after each task."""
     output_file.parent.mkdir(exist_ok=True)
-    successful_pipeline = sum(1 for r in all_results if r.get("pipeline_success", False))
+    successful_pipeline = sum(
+        1 for r in all_results if r.get("pipeline_success", False)
+    )
 
     with open(output_file, "w") as f:
-        json.dump({
-            "timestamp": datetime.now().isoformat(),
-            "total_tasks": len(all_results),
-            "successful_pipeline": successful_pipeline,
-            "failed_pipeline": len(all_results) - successful_pipeline,
-            "results": all_results,
-        }, f, indent=2)
+        json.dump(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "total_tasks": len(all_results),
+                "successful_pipeline": successful_pipeline,
+                "failed_pipeline": len(all_results) - successful_pipeline,
+                "results": all_results,
+            },
+            f,
+            indent=2,
+        )
 
 
 def run_bootstrap_design_review_collection():
     """Run Design Agent and Design Review Agent on all bootstrap tasks."""
-
-    print("="*80)
+    successful_pipeline = 0
+    print("=" * 80)
     print("BOOTSTRAP DATA COLLECTION - Design + Design Review Agents")
-    print("="*80)
+    print("=" * 80)
     print(f"Starting at: {datetime.now().isoformat()}")
     print()
 
@@ -152,7 +159,9 @@ def run_bootstrap_design_review_collection():
 
         # Skip if already successfully completed
         if task_id in existing_results:
-            print(f"\nSKIPPING TASK {i}/{len(successful_planning)}: {task_id} (already successful)")
+            print(
+                f"\nSKIPPING TASK {i}/{len(successful_planning)}: {task_id} (already successful)"
+            )
             continue
 
         print(f"\n{'='*80}")
@@ -172,7 +181,7 @@ def run_bootstrap_design_review_collection():
         }
 
         # STEP 1: Run Design Agent
-        print(f"[1/2] Running Design Agent...")
+        print("[1/2] Running Design Agent...")
         design_start = time.time()
 
         try:
@@ -208,7 +217,9 @@ def run_bootstrap_design_review_collection():
             task_result["design_api_contracts"] = len(design_spec.api_contracts)
             task_result["design_data_schemas"] = len(design_spec.data_schemas)
             task_result["design_components"] = len(design_spec.component_logic)
-            task_result["design_checklist_items"] = len(design_spec.design_review_checklist)
+            task_result["design_checklist_items"] = len(
+                design_spec.design_review_checklist
+            )
 
         except Exception as e:
             design_elapsed = time.time() - design_start
@@ -222,7 +233,7 @@ def run_bootstrap_design_review_collection():
             continue
 
         # STEP 2: Run Design Review Agent
-        print(f"[2/2] Running Design Review Agent...")
+        print("[2/2] Running Design Review Agent...")
         review_start = time.time()
 
         try:
@@ -232,14 +243,16 @@ def run_bootstrap_design_review_collection():
 
             # Calculate total issues
             total_issues = (
-                review_report.critical_issue_count +
-                review_report.high_issue_count +
-                review_report.medium_issue_count +
-                review_report.low_issue_count
+                review_report.critical_issue_count
+                + review_report.high_issue_count
+                + review_report.medium_issue_count
+                + review_report.low_issue_count
             )
 
             # Calculate checklist counts
-            checklist_passed = sum(1 for item in review_report.checklist_review if item.status == "PASS")
+            checklist_passed = sum(
+                1 for item in review_report.checklist_review if item.status == "PASS"
+            )
             checklist_total = len(review_report.checklist_review)
 
             print(f" Design Review Agent SUCCESS ({review_elapsed:.2f}s)")
@@ -276,6 +289,7 @@ def run_bootstrap_design_review_collection():
             review_elapsed = time.time() - review_start
             print(f" Design Review Agent FAILED ({review_elapsed:.2f}s): {e}")
             import traceback
+
             traceback.print_exc()
             print()
 
@@ -311,18 +325,26 @@ def main():
         results = run_bootstrap_design_review_collection()
 
         # Summary analysis
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("PIPELINE ANALYSIS")
-        print("="*80)
+        print("=" * 80)
 
         successful = [r for r in results if r.get("pipeline_success", False)]
 
         if successful:
             # Design Agent stats
-            avg_design_time = sum(r["design_execution_time"] for r in successful) / len(successful)
-            avg_api_contracts = sum(r["design_api_contracts"] for r in successful) / len(successful)
-            avg_data_schemas = sum(r["design_data_schemas"] for r in successful) / len(successful)
-            avg_components = sum(r["design_components"] for r in successful) / len(successful)
+            avg_design_time = sum(r["design_execution_time"] for r in successful) / len(
+                successful
+            )
+            avg_api_contracts = sum(
+                r["design_api_contracts"] for r in successful
+            ) / len(successful)
+            avg_data_schemas = sum(r["design_data_schemas"] for r in successful) / len(
+                successful
+            )
+            avg_components = sum(r["design_components"] for r in successful) / len(
+                successful
+            )
 
             print(f"\nDesign Agent (n={len(successful)}):")
             print(f"  Avg Execution Time: {avg_design_time:.2f}s")
@@ -331,10 +353,18 @@ def main():
             print(f"  Avg Components: {avg_components:.1f}")
 
             # Design Review Agent stats
-            avg_review_time = sum(r["review_execution_time"] for r in successful) / len(successful)
-            avg_issues = sum(r["review_total_issues"] for r in successful) / len(successful)
-            avg_critical = sum(r["review_critical_issues"] for r in successful) / len(successful)
-            avg_suggestions = sum(r["review_total_suggestions"] for r in successful) / len(successful)
+            avg_review_time = sum(r["review_execution_time"] for r in successful) / len(
+                successful
+            )
+            avg_issues = sum(r["review_total_issues"] for r in successful) / len(
+                successful
+            )
+            avg_critical = sum(r["review_critical_issues"] for r in successful) / len(
+                successful
+            )
+            avg_suggestions = sum(
+                r["review_total_suggestions"] for r in successful
+            ) / len(successful)
 
             print(f"\nDesign Review Agent (n={len(successful)}):")
             print(f"  Avg Execution Time: {avg_review_time:.2f}s")
@@ -343,10 +373,12 @@ def main():
             print(f"  Avg Suggestions: {avg_suggestions:.1f}")
 
             # Overall stats
-            avg_total_time = sum(r["total_execution_time"] for r in successful) / len(successful)
+            avg_total_time = sum(r["total_execution_time"] for r in successful) / len(
+                successful
+            )
             total_time = sum(r["total_execution_time"] for r in successful)
 
-            print(f"\nPipeline (Planning→Design→Review):")
+            print("\nPipeline (Planning→Design→Review):")
             print(f"  Avg Total Time: {avg_total_time:.2f}s")
             print(f"  Total Time: {total_time:.2f}s ({total_time/60:.1f} minutes)")
 
@@ -356,7 +388,7 @@ def main():
                 assessment = r["review_overall_assessment"]
                 assessment_counts[assessment] = assessment_counts.get(assessment, 0) + 1
 
-            print(f"\nReview Assessment Breakdown:")
+            print("\nReview Assessment Breakdown:")
             for assessment, count in sorted(assessment_counts.items()):
                 print(f"  {assessment}: {count}")
 
@@ -366,6 +398,7 @@ def main():
     except Exception as e:
         print(f"\n\nFATAL ERROR: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
