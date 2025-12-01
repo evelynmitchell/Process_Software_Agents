@@ -2,6 +2,11 @@
 ASP Web UI Entry Point
 
 This module initializes the FastHTML application and routes requests to persona-specific views.
+
+Three personas:
+- Sarah (Engineering Manager): ASP Overwatch - system health, quality gates, agent status
+- Alex (Developer): Flow State Canvas - task details, recent activity, tools
+- Jordan (Product Manager): Project Overview - delivery metrics, task pipeline
 """
 
 from fasthtml.common import *
@@ -59,85 +64,51 @@ def create_app():
         """Home page with persona selection."""
         return Titled("ASP Platform",
             Div(
-                # Header
+                H1("ASP Overwatch"),
+                P("Select your dashboard view:", cls="secondary"),
                 Div(
-                    H1("Agile Software Process Platform"),
-                    P("Select your persona to access the appropriate dashboard."),
-                    style="text-align: center; margin-bottom: 3rem;"
-                ),
-
-                # Persona Selection Grid
-                Div(
-                    # Sarah - Engineering Manager
                     A(
                         Div(
-                            Div("👩‍💼", style="font-size: 3rem;"),
                             H3("Sarah"),
-                            P("Engineering Manager", cls="pico-color-azure"),
-                            Small("Process oversight, metrics, approvals"),
-                            cls="persona-card"
+                            P("Engineering Manager"),
+                            Small("System health, quality gates, agent status"),
                         ),
                         href="/manager",
+                        role="button",
+                        cls="outline",
+                        style="text-align: left; text-decoration: none;"
                     ),
-                    # Alex - Developer
                     A(
                         Div(
-                            Div("👨‍💻", style="font-size: 3rem;"),
                             H3("Alex"),
-                            P("Senior Developer", cls="pico-color-jade"),
-                            Small("Code, tests, implementation"),
-                            cls="persona-card"
+                            P("Senior Developer"),
+                            Small("Task details, recent activity, tools"),
                         ),
                         href="/developer",
+                        role="button",
+                        style="text-align: left; text-decoration: none;"
                     ),
-                    # Jordan - Product Manager
                     A(
                         Div(
-                            Div("📋", style="font-size: 3rem;"),
                             H3("Jordan"),
-                            P("Product Manager", cls="pico-color-amber"),
-                            Small("Requirements, priorities, acceptance"),
-                            cls="persona-card"
+                            P("Product Manager"),
+                            Small("Delivery metrics, task pipeline, progress"),
                         ),
                         href="/product",
+                        role="button",
+                        cls="outline",
+                        style="text-align: left; text-decoration: none;"
                     ),
-                    cls="grid",
-                    style="gap: 2rem;"
+                    cls="grid"
                 ),
-
-                # System Status
-                Div(
-                    Hr(),
-                    H4("System Status"),
-                    Div(
-                        hx_get="/api/system-status",
-                        hx_trigger="load, every 30s",
-                        hx_swap="innerHTML"
-                    ),
-                    style="margin-top: 3rem; text-align: center;"
-                ),
-
-                style="max-width: 900px; margin: 0 auto; padding: 2rem;"
+                style="max-width: 900px; margin: 0 auto; padding-top: 2rem;"
             )
         )
 
-    @rt('/api/system-status')
-    def get_system_status():
-        """Return system status HTML fragment."""
-        # Check database connectivity
-        from .api import get_db_connection
-        db_conn = get_db_connection()
-        db_status = "active" if db_conn else "error"
-        if db_conn:
-            db_conn.close()
-
-        return Div(
-            Span(cls=f"status-indicator status-{db_status}"),
-            f"Database: {'Connected' if db_status == 'active' else 'Not Available'}",
-            " | ",
-            Span(cls="status-indicator status-active"),
-            "Web UI: Running",
-        )
+    @rt('/health')
+    def get_health():
+        """Health check endpoint for monitoring."""
+        return {"status": "healthy", "service": "asp-web-ui"}
 
     # Register persona routes
     developer_routes(app, rt)

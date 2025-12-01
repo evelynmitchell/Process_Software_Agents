@@ -1,7 +1,8 @@
 """
-ASP Web UI Module
+ASP Web UI Package
 
-Provides FastHTML-based web interface for the ASP Platform.
+FastHTML-based web interface for the ASP Platform.
+Provides persona-specific dashboards for different user roles.
 """
 
 from .main import app, create_app

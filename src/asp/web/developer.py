@@ -2,22 +2,27 @@
 Developer Persona (Alex) - Flow State Canvas
 
 This module implements the web UI for the Senior Developer persona.
-Uses HTMX for dynamic updates without page reloads.
+Displays real task data, recent activity, and quick actions.
 """
 
 from fasthtml.common import *
-from . import data
-
-
-from .api import get_recent_agent_activity
+from .data import get_tasks, get_recent_activity, get_agent_stats, get_task_details
 
 
 def developer_routes(app, rt):
-    """Register all routes for the Developer persona."""
+    """Register all developer persona routes."""
 
     @rt('/developer')
     def get_developer():
         """Main developer dashboard - Flow State Canvas."""
+        tasks = get_tasks()
+        activities = get_recent_activity(limit=10)
+        stats = get_agent_stats()
+
+        # Filter to show active/recent tasks
+        active_tasks = [t for t in tasks if t["status"] in ("in_progress", "planning")][:5]
+        completed_tasks = [t for t in tasks if t["status"] == "completed"][:5]
+
         return Titled("Flow State Canvas - Alex",
             # Header with user info
             Div(
@@ -30,45 +35,41 @@ def developer_routes(app, rt):
                 # Sidebar / Navigation
                 Div(
                     H3("Active Tasks"),
-                    # Dynamic task list loaded via HTMX
-                    Div(
-                        hx_get="/developer/tasks",
-                        hx_trigger="load",
-                        hx_swap="innerHTML"
-                    ),
+                    Ul(
+                        *[Li(
+                            A(f"{t['task_id']}: {t['description'][:30]}...",
+                              href=f"/developer/task/{t['task_id']}",
+                              title=t['description']),
+                            Small(f" ({t['status']})", cls="pico-color-azure")
+                        ) for t in active_tasks]
+                    ) if active_tasks else P("No active tasks", cls="secondary"),
                     Hr(),
-                    H3("Agent Stats"),
-                    Div(
-                        hx_get="/developer/agent-stats",
-                        hx_trigger="load",
-                        hx_swap="innerHTML"
-                    ),
+                    H3("Recent Completed"),
+                    Ul(
+                        *[Li(
+                            A(t['task_id'], href=f"/developer/task/{t['task_id']}"),
+                            Small(f" - {t['complexity']} complexity")
+                        ) for t in completed_tasks]
+                    ) if completed_tasks else P("No completed tasks", cls="secondary"),
                     Hr(),
                     H3("Tools"),
                     Ul(
-                        Li(A("New Task", href="/developer/new-task")),
-                        Li(A("View Defects", href="/developer/defects")),
-                        Li(A("Run Tests", href="#", cls="secondary")),
+                        Li(A("View All Tasks", href="/developer/tasks")),
+                        Li(A("Agent Stats", href="/developer/stats")),
+                        Li(A("View Traces", href="#", cls="secondary")),
                     ),
                     cls="sidebar",
-                    style="width: 280px; border-right: 1px solid var(--pico-muted-border-color); padding-right: 1rem; overflow-y: auto;"
+                    style="width: 280px; border-right: 1px solid var(--pico-muted-border-color); padding-right: 1rem;"
                 ),
                 # Main Content Area
                 Div(
-                    # Context summary card
+                    # Stats cards
                     Div(
-                        H2("Dashboard"),
-                        P("Real-time view of ASP Platform activity", cls="pico-color-azure"),
-                        cls="card",
-                        style="margin-bottom: 1rem;"
-                    ),
-                    # Recent activity - auto-refreshes
-                    Div(
-                        H4("Recent Activity"),
                         Div(
-                            hx_get="/developer/activity",
-                            hx_trigger="load, every 30s",
-                            hx_swap="innerHTML"
+                            H4(str(stats['total_tasks'])),
+                            P("Total Tasks"),
+                            cls="card",
+                            style="text-align: center;"
                         ),
                         cls="card"
                     ),
@@ -76,12 +77,44 @@ def developer_routes(app, rt):
                     Div(
                         H4("Defect Overview"),
                         Div(
-                            hx_get="/developer/defect-summary",
-                            hx_trigger="load",
-                            hx_swap="innerHTML"
+                            H4(f"{stats['successful']}/{stats['total_tasks']}"),
+                            P("Success Rate"),
+                            cls="card",
+                            style="text-align: center;"
+                        ),
+                        Div(
+                            H4(f"{stats['avg_complexity']:.0f}"),
+                            P("Avg Complexity"),
+                            cls="card",
+                            style="text-align: center;"
+                        ),
+                        Div(
+                            H4(f"{stats['avg_execution_time']:.1f}s"),
+                            P("Avg Time"),
+                            cls="card",
+                            style="text-align: center;"
+                        ),
+                        cls="grid",
+                        style="margin-bottom: 1rem;"
+                    ),
+                    # Recent Activity
+                    Div(
+                        H4("Recent Activity"),
+                        Table(
+                            Thead(Tr(Th("Time"), Th("Action"), Th("Status"))),
+                            Tbody(
+                                *[Tr(
+                                    Td(f"{a['date']} {a['time']}"),
+                                    Td(A(a['action'][:50], href=f"/developer/task/{a['task_id']}")),
+                                    Td(a['status'], cls="pico-color-green" if a['status'] == "Success" else "pico-color-red")
+                                ) for a in activities[:8]]
+                            ) if activities else Tbody(Tr(Td("No recent activity", colspan="3")))
                         ),
                         cls="card",
-                        style="margin-top: 1rem;"
+                        # HTMX: Auto-refresh every 30 seconds
+                        hx_get="/developer/activity",
+                        hx_trigger="every 30s",
+                        hx_swap="innerHTML"
                     ),
 
                     style="flex-grow: 1; padding-left: 2rem;"
@@ -150,263 +183,151 @@ def developer_routes(app, rt):
             )
         )
 
-    # Action Endpoints
-
-    @rt('/developer/action/generate')
-    def post_generate():
-        """Handle code generation action."""
+    @rt('/developer/activity')
+    def get_activity():
+        """HTMX endpoint for activity updates."""
+        activities = get_recent_activity(limit=8)
         return Div(
-            H4("Code Generation", cls="pico-color-jade"),
-            P("Code generation agent invoked."),
-            Small("Tip: Describe your task in the input below to generate code."),
-            Form(
-                Textarea(placeholder="Describe the code you want to generate...", name="prompt", rows="3"),
-                Button("Generate", type="submit", cls="primary"),
-                hx_post="/developer/action/generate-run",
-                hx_target="#action-result",
-                style="margin-top: 1rem;"
-            )
-        )
-
-    @rt('/developer/action/generate-run')
-    def post_generate_run(prompt: str = ""):
-        """Execute code generation."""
-        return Div(
-            H4("Generation Complete", cls="pico-color-green"),
-            P(f"Prompt received: {prompt[:100]}..." if len(prompt) > 100 else f"Prompt received: {prompt}"),
-            Small("Note: Full agent integration pending. This is a UI preview."),
-        )
-
-    @rt('/developer/action/test')
-    def post_test():
-        """Handle test execution action."""
-        return Div(
-            H4("Test Runner", cls="pico-color-jade"),
-            P("Running test suite..."),
-            Progress(value="75", max="100"),
-            Small("Executing pytest with coverage..."),
-            Div(
-                hx_get="/developer/api/test-results",
-                hx_trigger="load delay:2s",
-                hx_swap="innerHTML"
+            H4("Recent Activity"),
+            Table(
+                Thead(Tr(Th("Time"), Th("Action"), Th("Status"))),
+                Tbody(
+                    *[Tr(
+                        Td(f"{a['date']} {a['time']}"),
+                        Td(A(a['action'][:50], href=f"/developer/task/{a['task_id']}")),
+                        Td(a['status'], cls="pico-color-green" if a['status'] == "Success" else "pico-color-red")
+                    ) for a in activities]
+                ) if activities else Tbody(Tr(Td("No recent activity", colspan="3")))
             )
         )
 
     @rt('/developer/tasks')
-    def get_tasks():
-        """HTMX endpoint: List of active tasks."""
-        # Initialize demo data if database is empty
-        data.insert_demo_data()
+    def get_all_tasks():
+        """View all tasks."""
+        tasks = get_tasks()
 
-        tasks = data.get_active_tasks(limit=10)
-
-        if not tasks:
-            return P("No active tasks", cls="pico-color-grey")
-
-        return Ul(
-            *[Li(
-                A(
-                    task['task_id'],
-                    href=f"/developer/task/{task['task_id']}",
-                    style="font-family: monospace;"
-                ),
-                Small(
-                    f" ({task['activity_count']} actions)",
-                    cls="pico-color-grey"
-                )
-            ) for task in tasks]
-        )
-
-    @rt('/developer/activity')
-    def get_activity():
-        """HTMX endpoint: Recent activity table."""
-        activity = data.get_recent_activity(limit=10)
-
-        if not activity:
-            return P("No activity recorded yet", cls="pico-color-grey")
-
-        return Table(
-            Thead(
-                Tr(
-                    Th("Time"),
-                    Th("Task"),
-                    Th("Agent"),
-                    Th("Metric"),
-                    Th("Value")
-                )
-            ),
-            Tbody(
-                *[Tr(
-                    Td(_format_time(row['timestamp'])),
-                    Td(Code(row['task_id'][:12] + "..." if len(row['task_id']) > 12 else row['task_id'])),
-                    Td(row['agent_role']),
-                    Td(row['metric_type']),
-                    Td(
-                        f"{row['metric_value']:.1f} {row['metric_unit']}",
-                        cls="pico-color-green" if row['metric_type'] == 'Latency' and row['metric_value'] < 2000 else ""
-                    )
-                ) for row in activity]
-            )
-        )
-
-    @rt('/developer/agent-stats')
-    def get_agent_stats():
-        """HTMX endpoint: Agent statistics."""
-        stats = data.get_agent_stats()
-
-        if not stats:
-            return P("No agent data", cls="pico-color-grey")
-
-        return Ul(
-            *[Li(
-                Strong(agent),
-                Br(),
-                Small(
-                    f"{info['invocation_count']} calls",
-                    cls="pico-color-grey"
-                )
-            ) for agent, info in stats.items()]
-        )
-
-    @rt('/developer/defect-summary')
-    def get_defect_summary():
-        """HTMX endpoint: Defect summary stats."""
-        summary = data.get_defect_summary()
-
-        if summary['total'] == 0:
-            return P("No defects recorded", cls="pico-color-green")
-
-        severity_badges = []
-        for severity, count in summary['by_severity'].items():
-            color_class = {
-                'Critical': 'pico-color-red',
-                'High': 'pico-color-orange',
-                'Medium': 'pico-color-yellow',
-                'Low': 'pico-color-grey'
-            }.get(severity, '')
-
-            severity_badges.append(
-                Span(f"{severity}: {count}", cls=f"badge {color_class}", style="margin-right: 0.5rem;")
-            )
-
-        return Div(
-            P(f"Total defects: {summary['total']}"),
-            Div(*severity_badges),
-            Hr(),
-            H5("Top Defect Types"),
-            Ul(
-                *[Li(f"{dtype}: {count}") for dtype, count in summary['by_type'].items()]
-            ) if summary['by_type'] else P("None", cls="pico-color-grey")
-        )
-
-    @rt('/developer/defects')
-    def get_defects_page():
-        """Full defects page."""
-        defects = data.get_recent_defects(limit=20)
-
-        return Titled("Defect Log - Alex",
-            A("< Back to Dashboard", href="/developer"),
-            H2("Recent Defects"),
-            Table(
-                Thead(
-                    Tr(
-                        Th("ID"),
-                        Th("Severity"),
-                        Th("Type"),
+        return Titled("All Tasks - Developer View",
+            Div(
+                A("< Back to Dashboard", href="/developer"),
+                H2("All Tasks"),
+                Table(
+                    Thead(Tr(
+                        Th("Task ID"),
                         Th("Description"),
-                        Th("Injected"),
-                        Th("Removed")
+                        Th("Complexity"),
+                        Th("Units"),
+                        Th("Time (s)"),
+                        Th("Status")
+                    )),
+                    Tbody(
+                        *[Tr(
+                            Td(A(t['task_id'], href=f"/developer/task/{t['task_id']}")),
+                            Td(t['description'][:40] + "..." if len(t['description']) > 40 else t['description']),
+                            Td(str(t['complexity'])),
+                            Td(str(t['num_units'])),
+                            Td(f"{t['execution_time']:.2f}"),
+                            Td(t['status'],
+                               cls="pico-color-green" if t['status'] == "completed"
+                               else "pico-color-azure" if t['status'] == "in_progress"
+                               else "pico-color-yellow")
+                        ) for t in tasks]
                     )
                 ),
-                Tbody(
-                    *[Tr(
-                        Td(Code(d['defect_id'][:16])),
-                        Td(
-                            d['severity'],
-                            cls=_severity_class(d['severity'])
-                        ),
-                        Td(d['defect_type']),
-                        Td(d['description'][:50] + "..." if len(d['description']) > 50 else d['description']),
-                        Td(d['phase_injected']),
-                        Td(d['phase_removed'])
-                    ) for d in defects]
-                ) if defects else Tbody(Tr(Td("No defects found", colspan="6")))
+                style="max-width: 1200px; margin: 0 auto; padding: 2rem;"
             )
         )
 
     @rt('/developer/task/{task_id}')
-    def get_task_detail(task_id: str):
-        """Task detail page."""
-        metrics = data.get_task_metrics(task_id)
+    def get_task_view(task_id: str):
+        """View details of a specific task."""
+        details = get_task_details(task_id)
 
-        return Titled(f"Task: {task_id}",
-            A("< Back to Dashboard", href="/developer"),
-            H2(f"Task Details: {task_id}"),
+        if not details:
+            return Titled("Task Not Found",
+                Div(
+                    A("< Back", href="/developer/tasks"),
+                    H2(f"Task {task_id} not found"),
+                    P("This task does not exist or has no artifacts."),
+                    style="max-width: 800px; margin: 0 auto; padding: 2rem;"
+                )
+            )
+
+        return Titled(f"Task {task_id}",
             Div(
-                H4("Metrics Summary"),
-                Table(
-                    Thead(Tr(Th("Metric"), Th("Total"), Th("Unit"))),
-                    Tbody(
-                        *[Tr(
-                            Td(metric_type),
-                            Td(f"{info['total']:.2f}"),
-                            Td(info['unit'])
-                        ) for metric_type, info in metrics.items()]
-                    ) if metrics else Tbody(Tr(Td("No metrics", colspan="3")))
+                A("< Back to Dashboard", href="/developer"),
+                " | ",
+                A("All Tasks", href="/developer/tasks"),
+                H2(f"Task: {task_id}"),
+
+                # Artifacts section
+                Div(
+                    H4("Artifacts"),
+                    Ul(
+                        *[Li(
+                            f"{a['name']} ",
+                            Small(f"({a['type']}, {a['size']} bytes)" if a['type'] == 'file' else f"({a['type']})")
+                        ) for a in details['artifacts']]
+                    ) if details['artifacts'] else P("No artifacts"),
+                    cls="card"
                 ),
-                cls="card"
+
+                # Plan preview
+                Div(
+                    H4("Plan Preview"),
+                    Pre(details['plan'] if details['plan'] else "No plan available"),
+                    cls="card",
+                    style="margin-top: 1rem;"
+                ) if details.get('plan') else None,
+
+                # Design preview
+                Div(
+                    H4("Design Preview"),
+                    Pre(details['design'] if details['design'] else "No design available"),
+                    cls="card",
+                    style="margin-top: 1rem;"
+                ) if details.get('design') else None,
+
+                style="max-width: 1000px; margin: 0 auto; padding: 2rem;"
             )
         )
 
-    @rt('/developer/new-task')
-    def get_new_task_form():
-        """Form to create a new task."""
-        return Titled("New Task - Alex",
-            A("< Back to Dashboard", href="/developer"),
-            H2("Create New Task"),
-            Form(
-                Label("Task ID", _for="task_id"),
-                Input(name="task_id", id="task_id", placeholder="TSP-XXX-001", required=True),
-                Label("Description", _for="description"),
-                Textarea(name="description", id="description", placeholder="Describe the task...", rows="4"),
-                Button("Create Task", type="submit"),
-                action="/developer/create-task",
-                method="post",
-                cls="card"
-            )
-        )
+    @rt('/developer/stats')
+    def get_stats_page():
+        """View detailed agent statistics."""
+        stats = get_agent_stats()
 
-    @rt('/developer/create-task')
-    def post_create_task(task_id: str, description: str = ""):
-        """Handle new task creation (placeholder)."""
-        # TODO: Actually create the task in the system
-        return Titled("Task Created",
-            A("< Back to Dashboard", href="/developer"),
+        return Titled("Agent Statistics",
             Div(
-                H2("Task Created Successfully"),
-                P(f"Task ID: {task_id}"),
-                P(f"Description: {description or 'No description'}"),
-                P("Note: This is a placeholder. Full task creation will be implemented."),
-                cls="card"
+                A("< Back to Dashboard", href="/developer"),
+                H2("Agent Performance Statistics"),
+
+                Div(
+                    Div(
+                        H3("Task Metrics"),
+                        Table(
+                            Tbody(
+                                Tr(Td("Total Tasks"), Td(Strong(str(stats['total_tasks'])))),
+                                Tr(Td("Successful"), Td(Strong(str(stats['successful'])), cls="pico-color-green")),
+                                Tr(Td("Failed"), Td(Strong(str(stats['failed'])), cls="pico-color-red")),
+                                Tr(Td("Success Rate"), Td(Strong(f"{(stats['successful']/stats['total_tasks']*100):.1f}%" if stats['total_tasks'] > 0 else "N/A"))),
+                            )
+                        ),
+                        cls="card"
+                    ),
+                    Div(
+                        H3("Performance"),
+                        Table(
+                            Tbody(
+                                Tr(Td("Avg Complexity"), Td(Strong(f"{stats['avg_complexity']:.1f}"))),
+                                Tr(Td("Avg Execution Time"), Td(Strong(f"{stats['avg_execution_time']:.2f}s"))),
+                                Tr(Td("Total Units Processed"), Td(Strong(str(stats['total_units'])))),
+                            )
+                        ),
+                        cls="card"
+                    ),
+                    cls="grid"
+                ),
+
+                style="max-width: 1000px; margin: 0 auto; padding: 2rem;"
             )
         )
-
-
-def _format_time(timestamp: str) -> str:
-    """Format ISO timestamp to HH:MM display."""
-    try:
-        from datetime import datetime
-        dt = datetime.fromisoformat(timestamp)
-        return dt.strftime("%H:%M")
-    except (ValueError, TypeError):
-        return timestamp[:5] if timestamp else "N/A"
-
-
-def _severity_class(severity: str) -> str:
-    """Return CSS class for severity level."""
-    return {
-        'Critical': 'pico-color-red',
-        'High': 'pico-color-orange',
-        'Medium': 'pico-color-yellow',
-        'Low': 'pico-color-grey'
-    }.get(severity, '')
