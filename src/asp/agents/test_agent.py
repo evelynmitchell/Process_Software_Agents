@@ -160,7 +160,9 @@ class TestAgent(BaseAgent):
                         agent_name="Test Agent",
                         artifact_files=artifact_files,
                     )
-                    logger.info(f"Committed {len(artifact_files)} artifacts: {commit_hash}")
+                    logger.info(
+                        f"Committed {len(artifact_files)} artifacts: {commit_hash}"
+                    )
                 else:
                     logger.warning("Not in git repository, skipping commit")
 
@@ -198,7 +200,9 @@ class TestAgent(BaseAgent):
             prompt_template,
             task_id=input_data.task_id,
             generated_code_json=input_data.generated_code.model_dump_json(indent=2),
-            design_specification_json=input_data.design_specification.model_dump_json(indent=2),
+            design_specification_json=input_data.design_specification.model_dump_json(
+                indent=2
+            ),
             test_framework=input_data.test_framework,
             coverage_target=input_data.coverage_target,
         )
@@ -260,12 +264,13 @@ class TestAgent(BaseAgent):
         # Validate against TestReport schema
         try:
             test_report = self.validate_output(content, TestReport)
-            logger.debug(f"Successfully validated TestReport for task {input_data.task_id}")
+            logger.debug(
+                f"Successfully validated TestReport for task {input_data.task_id}"
+            )
             return test_report
         except Exception as e:
             raise AgentExecutionError(
-                f"Failed to validate TestReport: {e}\n"
-                f"Response content: {content}"
+                f"Failed to validate TestReport: {e}\n" f"Response content: {content}"
             ) from e
 
     def _validate_test_report(self, report: TestReport) -> None:
@@ -293,7 +298,11 @@ class TestAgent(BaseAgent):
                 f"(expected BUILD_FAILED)"
             )
 
-        if report.build_successful and len(report.defects_found) > 0 and report.test_status == "PASS":
+        if (
+            report.build_successful
+            and len(report.defects_found) > 0
+            and report.test_status == "PASS"
+        ):
             raise AgentExecutionError(
                 f"Invalid test status: defects found but test_status=PASS "
                 f"({len(report.defects_found)} defects)"
@@ -315,12 +324,12 @@ class TestAgent(BaseAgent):
         defect_ids = [d.defect_id for d in report.defects_found]
         if len(defect_ids) != len(set(defect_ids)):
             duplicates = [did for did in defect_ids if defect_ids.count(did) > 1]
-            raise AgentExecutionError(
-                f"Duplicate defect IDs found: {set(duplicates)}"
-            )
+            raise AgentExecutionError(f"Duplicate defect IDs found: {set(duplicates)}")
 
         # Validate severity counts match actual defects
-        actual_critical = sum(1 for d in report.defects_found if d.severity == "Critical")
+        actual_critical = sum(
+            1 for d in report.defects_found if d.severity == "Critical"
+        )
         actual_high = sum(1 for d in report.defects_found if d.severity == "High")
         actual_medium = sum(1 for d in report.defects_found if d.severity == "Medium")
         actual_low = sum(1 for d in report.defects_found if d.severity == "Low")

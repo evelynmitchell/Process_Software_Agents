@@ -35,6 +35,7 @@ from asp.models.design_review import (
 
 # Helper functions for creating test data
 
+
 def create_test_design_spec(task_id="TEST-001"):
     """Create a minimal valid DesignSpecification for testing."""
     return DesignSpecification(
@@ -48,7 +49,7 @@ def create_test_design_spec(task_id="TEST-001"):
                 request_schema={"type": "object"},
                 response_schema={"type": "object"},
                 authentication_required=True,
-                error_responses=[]
+                error_responses=[],
             )
         ],
         data_schemas=[
@@ -57,11 +58,11 @@ def create_test_design_spec(task_id="TEST-001"):
                 description="Test table for testing purposes",
                 columns=[
                     {"name": "id", "type": "INTEGER", "constraints": "PRIMARY KEY"},
-                    {"name": "name", "type": "VARCHAR(255)", "constraints": "NOT NULL"}
+                    {"name": "name", "type": "VARCHAR(255)", "constraints": "NOT NULL"},
                 ],
                 relationships=[],
                 constraints=[],
-                indexes=[]
+                indexes=[],
             )
         ],
         component_logic=[
@@ -71,7 +72,7 @@ def create_test_design_spec(task_id="TEST-001"):
                 responsibility="Handles test operations for validation purposes",
                 interfaces=[{"method": "execute", "parameters": {}, "returns": "dict"}],
                 implementation_notes="Implement test logic with proper error handling",
-                dependencies=[]
+                dependencies=[],
             )
         ],
         design_review_checklist=[
@@ -79,13 +80,13 @@ def create_test_design_spec(task_id="TEST-001"):
                 category="Security",
                 description="Check security requirements are met",
                 validation_criteria="Validate authentication and authorization",
-                severity="Critical"
+                severity="Critical",
             ),
             DesignReviewChecklistItem(
                 category="Performance",
                 description="Check performance requirements are met",
                 validation_criteria="Validate response time under 100ms",
-                severity="High"
+                severity="High",
             ),
             DesignReviewChecklistItem(
                 category="Architecture",
@@ -101,14 +102,16 @@ def create_test_design_spec(task_id="TEST-001"):
                 category="Maintainability",
                 description="Check code maintainability",
                 validation_criteria="Validate code documentation",
-            )
+            ),
         ],
         architecture_overview="Simple test architecture with API layer and data layer",
-        technology_stack={"language": "Python", "framework": "FastAPI"}
+        technology_stack={"language": "Python", "framework": "FastAPI"},
     )
 
 
-def create_mock_specialist_result(issues_count=2, suggestions_count=1, specialist_name="Security"):
+def create_mock_specialist_result(
+    issues_count=2, suggestions_count=1, specialist_name="Security"
+):
     """Create a mock specialist agent result."""
     return {
         "issues_found": [
@@ -122,7 +125,7 @@ def create_mock_specialist_result(issues_count=2, suggestions_count=1, specialis
                 "line_number": None,
                 "evidence": f"{specialist_name} evidence for issue {i}",
                 "impact": f"Significant impact of {specialist_name} issue number {i} on the system",
-                "affected_phase": "Design"
+                "affected_phase": "Design",
             }
             for i in range(issues_count)
         ],
@@ -135,10 +138,10 @@ def create_mock_specialist_result(issues_count=2, suggestions_count=1, specialis
                 "description": f"Detailed description for {specialist_name} suggestion number {i} with sufficient length",
                 "affected_component": "TestComponent",
                 "implementation_guidance": f"Implementation guidance for {specialist_name} suggestion number {i}",
-                "related_issue_id": None
+                "related_issue_id": None,
             }
             for i in range(suggestions_count)
-        ]
+        ],
     }
 
 
@@ -185,7 +188,7 @@ class TestDesignReviewOrchestratorInitialization:
             "data_integrity",
             "maintainability",
             "architecture",
-            "api_design"
+            "api_design",
         ]
         assert sorted(specialist_names) == sorted(expected_names)
 
@@ -273,10 +276,12 @@ class TestParallelDispatch:
         # Mock specialists with different execution times
         for i, specialist in enumerate(orchestrator.specialists.values()):
             # Add varying delays to simulate different execution times
-            def delayed_execute(spec, delay=i*0.01):
+            def delayed_execute(spec, delay=i * 0.01):
                 import time
+
                 time.sleep(delay)
                 return create_mock_specialist_result()
+
             specialist.execute = Mock(side_effect=delayed_execute)
 
         results = await orchestrator._dispatch_specialists(design_spec)
@@ -313,9 +318,15 @@ class TestResultAggregation:
         orchestrator = DesignReviewOrchestrator()
 
         specialist_results = {
-            "security": create_mock_specialist_result(issues_count=2, suggestions_count=1, specialist_name="Security"),
-            "performance": create_mock_specialist_result(issues_count=1, suggestions_count=2, specialist_name="Performance"),
-            "data_integrity": create_mock_specialist_result(issues_count=0, suggestions_count=0, specialist_name="DataIntegrity"),
+            "security": create_mock_specialist_result(
+                issues_count=2, suggestions_count=1, specialist_name="Security"
+            ),
+            "performance": create_mock_specialist_result(
+                issues_count=1, suggestions_count=2, specialist_name="Performance"
+            ),
+            "data_integrity": create_mock_specialist_result(
+                issues_count=0, suggestions_count=0, specialist_name="DataIntegrity"
+            ),
         }
 
         issues, suggestions = orchestrator._aggregate_results(specialist_results)
@@ -339,12 +350,18 @@ class TestResultAggregation:
             "line_number": None,
             "evidence": "Evidence found during review",
             "impact": "Significant impact on the system",
-            "affected_phase": "Design"
+            "affected_phase": "Design",
         }
 
         specialist_results = {
-            "security": {"issues_found": [duplicate_issue], "improvement_suggestions": []},
-            "maintainability": {"issues_found": [duplicate_issue], "improvement_suggestions": []},
+            "security": {
+                "issues_found": [duplicate_issue],
+                "improvement_suggestions": [],
+            },
+            "maintainability": {
+                "issues_found": [duplicate_issue],
+                "improvement_suggestions": [],
+            },
         }
 
         issues, _ = orchestrator._aggregate_results(specialist_results)
@@ -381,13 +398,13 @@ class TestResultAggregation:
             "line_number": None,
             "evidence": "Evidence found during review",
             "impact": "Significant impact on the system",
-            "affected_phase": "Design"
+            "affected_phase": "Design",
         }
 
         specialist_results = {
             "maintainability": {
                 "issues_found": [issue_with_bad_category],
-                "improvement_suggestions": []
+                "improvement_suggestions": [],
             }
         }
 
@@ -446,10 +463,9 @@ class TestExecuteIntegration:
 
         # Mock specialists to return no issues (should PASS)
         for specialist in orchestrator.specialists.values():
-            specialist.execute = Mock(return_value={
-                "issues_found": [],
-                "improvement_suggestions": []
-            })
+            specialist.execute = Mock(
+                return_value={"issues_found": [], "improvement_suggestions": []}
+            )
 
         report = orchestrator.execute(design_spec)
 
@@ -466,19 +482,21 @@ class TestExecuteIntegration:
 
         # Mock to return critical issue
         mock_result = {
-            "issues_found": [{
-                "issue_id": "ISSUE-001",
-                "category": "Security",
-                "severity": "Critical",
-                "title": "Critical security flaw",
-                "description": "Detailed description of the critical security flaw found in the design",
-                "affected_component": "Component",
-                "line_number": None,
-                "evidence": "Evidence found in security review",
-                "impact": "Significant impact on system security and data integrity",
-                "affected_phase": "Design"
-            }],
-            "improvement_suggestions": []
+            "issues_found": [
+                {
+                    "issue_id": "ISSUE-001",
+                    "category": "Security",
+                    "severity": "Critical",
+                    "title": "Critical security flaw",
+                    "description": "Detailed description of the critical security flaw found in the design",
+                    "affected_component": "Component",
+                    "line_number": None,
+                    "evidence": "Evidence found in security review",
+                    "impact": "Significant impact on system security and data integrity",
+                    "affected_phase": "Design",
+                }
+            ],
+            "improvement_suggestions": [],
         }
         for specialist in orchestrator.specialists.values():
             specialist.execute = Mock(return_value=mock_result)
@@ -495,19 +513,21 @@ class TestExecuteIntegration:
 
         # Mock to return medium severity issue
         mock_result = {
-            "issues_found": [{
-                "issue_id": "ISSUE-001",
-                "category": "Performance",
-                "severity": "Medium",
-                "title": "Performance concern",
-                "description": "Detailed description of the issue found in the design specification",
-                "affected_component": "Component",
-                "line_number": None,
-                "evidence": "Evidence found during review",
-                "impact": "Significant impact on the system",
-                "affected_phase": "Design"
-            }],
-            "improvement_suggestions": []
+            "issues_found": [
+                {
+                    "issue_id": "ISSUE-001",
+                    "category": "Performance",
+                    "severity": "Medium",
+                    "title": "Performance concern",
+                    "description": "Detailed description of the issue found in the design specification",
+                    "affected_component": "Component",
+                    "line_number": None,
+                    "evidence": "Evidence found during review",
+                    "impact": "Significant impact on the system",
+                    "affected_phase": "Design",
+                }
+            ],
+            "improvement_suggestions": [],
         }
         for specialist in orchestrator.specialists.values():
             specialist.execute = Mock(return_value=mock_result)
@@ -526,10 +546,9 @@ class TestExecuteIntegration:
 
         # Mock specialists
         for specialist in orchestrator.specialists.values():
-            specialist.execute = Mock(return_value={
-                "issues_found": [],
-                "improvement_suggestions": []
-            })
+            specialist.execute = Mock(
+                return_value={"issues_found": [], "improvement_suggestions": []}
+            )
 
         report1 = orchestrator.execute(design_spec)
         time.sleep(1.1)  # Ensure different timestamps
@@ -546,10 +565,9 @@ class TestExecuteIntegration:
 
         # Mock specialists
         for specialist in orchestrator.specialists.values():
-            specialist.execute = Mock(return_value={
-                "issues_found": [],
-                "improvement_suggestions": []
-            })
+            specialist.execute = Mock(
+                return_value={"issues_found": [], "improvement_suggestions": []}
+            )
 
         report = orchestrator.execute(design_spec)
 
@@ -566,16 +584,15 @@ class TestExecuteIntegration:
             if i < 3:
                 specialist.execute = Mock(side_effect=Exception("Failed"))
             else:
-                specialist.execute = Mock(return_value={
-                    "issues_found": [],
-                    "improvement_suggestions": []
-                })
+                specialist.execute = Mock(
+                    return_value={"issues_found": [], "improvement_suggestions": []}
+                )
 
         # Should not raise exception
         report = orchestrator.execute(design_spec)
         assert isinstance(report, DesignReviewReport)
 
-    @patch('asp.telemetry.telemetry.track_agent_cost')
+    @patch("asp.telemetry.telemetry.track_agent_cost")
     def test_execute_telemetry_integration(self, mock_track):
         """Test that execute integrates with telemetry tracking."""
         orchestrator = DesignReviewOrchestrator()
@@ -583,10 +600,9 @@ class TestExecuteIntegration:
 
         # Mock specialists
         for specialist in orchestrator.specialists.values():
-            specialist.execute = Mock(return_value={
-                "issues_found": [],
-                "improvement_suggestions": []
-            })
+            specialist.execute = Mock(
+                return_value={"issues_found": [], "improvement_suggestions": []}
+            )
 
         report = orchestrator.execute(design_spec)
 
@@ -603,7 +619,9 @@ class TestEdgeCases:
 
         # Mock specialists to raise error on malformed input
         for specialist in orchestrator.specialists.values():
-            specialist.execute = Mock(side_effect=AgentExecutionError("Invalid design spec"))
+            specialist.execute = Mock(
+                side_effect=AgentExecutionError("Invalid design spec")
+            )
 
         # Create minimal design spec
         design_spec = create_test_design_spec()
@@ -625,17 +643,16 @@ class TestEdgeCases:
                 semantic_unit_id=f"SU-{i:03d}",
                 responsibility=f"Handles operations for component number {i}",
                 interfaces=[{"method": f"execute_{i}"}],
-                implementation_notes=f"Implementation details for component number {i}"
+                implementation_notes=f"Implementation details for component number {i}",
             )
             for i in range(100)
         ]
 
         # Mock specialists
         for specialist in orchestrator.specialists.values():
-            specialist.execute = Mock(return_value={
-                "issues_found": [],
-                "improvement_suggestions": []
-            })
+            specialist.execute = Mock(
+                return_value={"issues_found": [], "improvement_suggestions": []}
+            )
 
         report = orchestrator.execute(design_spec)
         assert isinstance(report, DesignReviewReport)
@@ -654,7 +671,7 @@ class TestEdgeCases:
                     semantic_unit_id="SU-001",
                     responsibility="Minimal component for testing purposes only",
                     interfaces=[{"method": "minimal"}],
-                    implementation_notes="Minimal implementation for testing"
+                    implementation_notes="Minimal implementation for testing",
                 )
             ],
             design_review_checklist=[
@@ -662,23 +679,38 @@ class TestEdgeCases:
                     category="Security",
                     description="Minimal security check",
                     validation_criteria="Minimal validation",
-                    severity="Critical"
+                    severity="Critical",
                 ),
-                DesignReviewChecklistItem(category="Test", description="Test check 1", validation_criteria="Validate 1"),
-                DesignReviewChecklistItem(category="Test", description="Test check 2", validation_criteria="Validate 2"),
-                DesignReviewChecklistItem(category="Test", description="Test check 3", validation_criteria="Validate 3"),
-                DesignReviewChecklistItem(category="Test", description="Test check 4", validation_criteria="Validate 4"),
+                DesignReviewChecklistItem(
+                    category="Test",
+                    description="Test check 1",
+                    validation_criteria="Validate 1",
+                ),
+                DesignReviewChecklistItem(
+                    category="Test",
+                    description="Test check 2",
+                    validation_criteria="Validate 2",
+                ),
+                DesignReviewChecklistItem(
+                    category="Test",
+                    description="Test check 3",
+                    validation_criteria="Validate 3",
+                ),
+                DesignReviewChecklistItem(
+                    category="Test",
+                    description="Test check 4",
+                    validation_criteria="Validate 4",
+                ),
             ],
             architecture_overview="Minimal architecture overview for testing the orchestrator",
-            technology_stack={"language": "Python"}
+            technology_stack={"language": "Python"},
         )
 
         # Mock specialists
         for specialist in orchestrator.specialists.values():
-            specialist.execute = Mock(return_value={
-                "issues_found": [],
-                "improvement_suggestions": []
-            })
+            specialist.execute = Mock(
+                return_value={"issues_found": [], "improvement_suggestions": []}
+            )
 
         report = orchestrator.execute(design_spec)
         assert isinstance(report, DesignReviewReport)

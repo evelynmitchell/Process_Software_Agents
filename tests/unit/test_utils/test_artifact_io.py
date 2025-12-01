@@ -429,7 +429,7 @@ class TestArtifactExists:
             data=TaskRequirements(
                 task_id=task_id,
                 description="Test artifact existence check",
-                requirements="Requirements text with sufficient length for validation"
+                requirements="Requirements text with sufficient length for validation",
             ),
             base_path=str(tmp_path),
         )
@@ -460,7 +460,7 @@ class TestListTaskArtifacts:
             data=TaskRequirements(
                 task_id=task_id,
                 description="Test listing task artifacts",
-                requirements="Requirements text with sufficient length for validation"
+                requirements="Requirements text with sufficient length for validation",
             ),
             base_path=str(tmp_path),
         )

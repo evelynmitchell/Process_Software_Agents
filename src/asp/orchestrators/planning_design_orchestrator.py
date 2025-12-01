@@ -231,7 +231,9 @@ class PlanningDesignOrchestrator:
                 logger.info(
                     f"Routing {len(feedback_issues)} issues back to Planning Agent"
                 )
-                project_plan = self._execute_planning(requirements, feedback=feedback_issues)
+                project_plan = self._execute_planning(
+                    requirements, feedback=feedback_issues
+                )
                 planning_iterations += 1
                 total_iterations += 1
 
@@ -246,7 +248,10 @@ class PlanningDesignOrchestrator:
                     f"Routing {len(feedback_issues)} issues back to Design Agent"
                 )
                 design_spec = self._execute_design(
-                    requirements, project_plan, design_constraints, feedback=feedback_issues
+                    requirements,
+                    project_plan,
+                    design_constraints,
+                    feedback=feedback_issues,
                 )
                 design_iterations += 1
                 total_iterations += 1
@@ -270,7 +275,10 @@ class PlanningDesignOrchestrator:
                 )
                 feedback_issues = review_report.issues_found
                 design_spec = self._execute_design(
-                    requirements, project_plan, design_constraints, feedback=feedback_issues
+                    requirements,
+                    project_plan,
+                    design_constraints,
+                    feedback=feedback_issues,
                 )
                 design_iterations += 1
                 total_iterations += 1
@@ -291,7 +299,9 @@ class PlanningDesignOrchestrator:
         """Execute Planning Agent with optional feedback."""
         try:
             if feedback:
-                logger.info(f"Planning Agent: executing with {len(feedback)} feedback items")
+                logger.info(
+                    f"Planning Agent: executing with {len(feedback)} feedback items"
+                )
             else:
                 logger.info(f"Planning Agent: executing initial planning")
 
@@ -317,7 +327,9 @@ class PlanningDesignOrchestrator:
         """Execute Design Agent with optional feedback."""
         try:
             if feedback:
-                logger.info(f"Design Agent: executing with {len(feedback)} feedback items")
+                logger.info(
+                    f"Design Agent: executing with {len(feedback)} feedback items"
+                )
             else:
                 logger.info(f"Design Agent: executing initial design")
 
@@ -346,7 +358,9 @@ class PlanningDesignOrchestrator:
     ) -> DesignReviewReport:
         """Execute Design Review Agent."""
         try:
-            logger.info(f"Design Review Agent: reviewing design for {design_spec.task_id}")
+            logger.info(
+                f"Design Review Agent: reviewing design for {design_spec.task_id}"
+            )
 
             review_report = self.design_review_agent.execute(design_spec)
 
@@ -374,4 +388,6 @@ class PlanningDesignOrchestrator:
 
         except Exception as e:
             logger.error(f"Design Review Agent failed: {e}")
-            raise AgentExecutionError(f"Design Review Agent execution failed: {e}") from e
+            raise AgentExecutionError(
+                f"Design Review Agent execution failed: {e}"
+            ) from e

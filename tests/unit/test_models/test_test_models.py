@@ -402,7 +402,9 @@ class TestTestReportModel:
                 defects_found=[defect],  # Has defects!
                 test_timestamp="2025-11-19T12:00:00Z",
             )
-        assert "test_status cannot be PASS when defects are found" in str(exc_info.value)
+        assert "test_status cannot be PASS when defects are found" in str(
+            exc_info.value
+        )
 
     def test_test_summary_required_keys(self):
         """Test test_summary must have required keys."""

@@ -23,19 +23,13 @@ import pytest
 def pytest_configure(config):
     """
     Configure pytest with custom markers and settings.
-    
+
     Args:
         config: Pytest configuration object
     """
-    config.addinivalue_line(
-        "markers", "unit: mark test as a unit test"
-    )
-    config.addinivalue_line(
-        "markers", "integration: mark test as an integration test"
-    )
-    config.addinivalue_line(
-        "markers", "performance: mark test as a performance test"
-    )
+    config.addinivalue_line("markers", "unit: mark test as a unit test")
+    config.addinivalue_line("markers", "integration: mark test as an integration test")
+    config.addinivalue_line("markers", "performance: mark test as a performance test")
     config.addinivalue_line(
         "markers", "error_handling: mark test as error handling test"
     )
@@ -83,7 +77,7 @@ class MockLLMClient:
         max_tokens: int = 4096,
         temperature: float = 0.0,
         system: str = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Mock LLM API call that returns realistic responses.
@@ -105,30 +99,47 @@ class MockLLMClient:
         # Be very specific about design review vs design generation
         # Check for review INTENT specifically
         is_reviewing = (
-            "review the following design" in prompt_lower or
-            "evaluate the design" in prompt_lower or
-            "assess whether the design" in prompt_lower
+            "review the following design" in prompt_lower
+            or "evaluate the design" in prompt_lower
+            or "assess whether the design" in prompt_lower
         )
 
         if is_reviewing:
             # Design Review Agent - reviewing a design
             content = self._mock_design_review_response(prompt)
-        elif "code review" in prompt_lower or "review the code" in prompt_lower or "reviewing code" in prompt_lower:
+        elif (
+            "code review" in prompt_lower
+            or "review the code" in prompt_lower
+            or "reviewing code" in prompt_lower
+        ):
             # Code Review Agent - return mock code review
             content = self._mock_code_review_response(prompt)
-        elif "design" in prompt_lower and any(word in prompt_lower for word in ["create", "generate", "produce", "specification", "document"]):
+        elif "design" in prompt_lower and any(
+            word in prompt_lower
+            for word in ["create", "generate", "produce", "specification", "document"]
+        ):
             # Design Agent - creating design specification (JSON)
             content = self._mock_design_specification_response(prompt)
         elif "semantic units" in prompt_lower or "decompose" in prompt_lower:
             # Planning Agent - return mock semantic units
             content = self._mock_planning_response(prompt)
-        elif "generate code" in prompt_lower or "implement" in prompt_lower or "code generation" in prompt_lower:
+        elif (
+            "generate code" in prompt_lower
+            or "implement" in prompt_lower
+            or "code generation" in prompt_lower
+        ):
             # Code Agent - return mock code generation
             content = self._mock_code_generation_response(prompt)
-        elif "generate tests" in prompt_lower or "test generation" in prompt_lower or "test plan" in prompt_lower:
+        elif (
+            "generate tests" in prompt_lower
+            or "test generation" in prompt_lower
+            or "test plan" in prompt_lower
+        ):
             # Test Agent - return mock test plan
             content = self._mock_test_response(prompt)
-        elif "postmortem" in prompt_lower or ("defect" in prompt_lower and "effort" in prompt_lower):
+        elif "postmortem" in prompt_lower or (
+            "defect" in prompt_lower and "effort" in prompt_lower
+        ):
             # Postmortem Agent - return mock postmortem
             content = self._mock_postmortem_response(prompt)
         else:
@@ -396,6 +407,7 @@ def llm_client(has_api_key: bool):
         # Import here to avoid errors if anthropic package not installed
         try:
             from asp.utils.llm_client import LLMClient
+
             return LLMClient()
         except (ImportError, ValueError):
             # Fall back to mock if import fails or API key invalid

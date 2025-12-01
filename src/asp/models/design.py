@@ -202,8 +202,16 @@ class APIContract(BaseModel):
         description="List of possible error responses",
         examples=[
             [
-                {"status": 400, "code": "INVALID_EMAIL", "message": "Email format invalid"},
-                {"status": 409, "code": "USER_EXISTS", "message": "User already exists"},
+                {
+                    "status": 400,
+                    "code": "INVALID_EMAIL",
+                    "message": "Email format invalid",
+                },
+                {
+                    "status": 409,
+                    "code": "USER_EXISTS",
+                    "message": "User already exists",
+                },
             ]
         ],
     )
@@ -280,9 +288,21 @@ class DataSchema(BaseModel):
         examples=[
             [
                 {"name": "user_id", "type": "UUID", "constraints": "PRIMARY KEY"},
-                {"name": "email", "type": "VARCHAR(255)", "constraints": "NOT NULL UNIQUE"},
-                {"name": "password_hash", "type": "VARCHAR(255)", "constraints": "NOT NULL"},
-                {"name": "created_at", "type": "TIMESTAMP", "constraints": "DEFAULT NOW()"},
+                {
+                    "name": "email",
+                    "type": "VARCHAR(255)",
+                    "constraints": "NOT NULL UNIQUE",
+                },
+                {
+                    "name": "password_hash",
+                    "type": "VARCHAR(255)",
+                    "constraints": "NOT NULL",
+                },
+                {
+                    "name": "created_at",
+                    "type": "TIMESTAMP",
+                    "constraints": "DEFAULT NOW()",
+                },
             ]
         ],
     )
@@ -304,7 +324,7 @@ class DataSchema(BaseModel):
         examples=[
             [
                 "ALTER TABLE posts ADD FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE",
-                "ALTER TABLE comments ADD FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE"
+                "ALTER TABLE comments ADD FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE",
             ]
         ],
     )
@@ -327,7 +347,11 @@ class DataSchema(BaseModel):
                 "description": "Stores user account information",
                 "columns": [
                     {"name": "user_id", "type": "UUID", "constraints": "PRIMARY KEY"},
-                    {"name": "email", "type": "VARCHAR(255)", "constraints": "NOT NULL UNIQUE"},
+                    {
+                        "name": "email",
+                        "type": "VARCHAR(255)",
+                        "constraints": "NOT NULL UNIQUE",
+                    },
                 ],
                 "indexes": ["CREATE INDEX idx_users_email ON users(email)"],
                 "relationships": [],
@@ -612,15 +636,21 @@ class DesignSpecification(BaseModel):
 
     @field_validator("design_review_checklist")
     @classmethod
-    def validate_checklist(cls, v: list[DesignReviewChecklistItem]) -> list[DesignReviewChecklistItem]:
+    def validate_checklist(
+        cls, v: list[DesignReviewChecklistItem]
+    ) -> list[DesignReviewChecklistItem]:
         """Validate design review checklist has minimum required items."""
         if not v or len(v) < 5:
             raise ValueError("Design review checklist must have at least 5 items")
 
         # Validate at least one Critical or High severity item
-        high_priority_items = [item for item in v if item.severity in ("Critical", "High")]
+        high_priority_items = [
+            item for item in v if item.severity in ("Critical", "High")
+        ]
         if len(high_priority_items) < 1:
-            raise ValueError("Design review checklist must have at least one Critical or High severity item")
+            raise ValueError(
+                "Design review checklist must have at least one Critical or High severity item"
+            )
 
         return v
 

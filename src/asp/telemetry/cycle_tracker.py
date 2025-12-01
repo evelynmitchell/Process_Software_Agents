@@ -47,17 +47,13 @@ class CycleEvent(BaseModel):
 
     event_type: str = Field(
         ...,
-        description="Type of event (pip_created, pip_reviewed, prompts_updated, etc.)"
+        description="Type of event (pip_created, pip_reviewed, prompts_updated, etc.)",
     )
 
-    timestamp: datetime = Field(
-        ...,
-        description="When this event occurred"
-    )
+    timestamp: datetime = Field(..., description="When this event occurred")
 
     metadata: Dict[str, str] = Field(
-        default_factory=dict,
-        description="Additional event-specific metadata"
+        default_factory=dict, description="Additional event-specific metadata"
     )
 
 
@@ -74,56 +70,43 @@ class ImprovementCycle(BaseModel):
     6. Compare defect rates between X and Y
     """
 
-    pip_id: str = Field(
-        ...,
-        description="PIP identifier (e.g., PIP-20251125230448)"
-    )
+    pip_id: str = Field(..., description="PIP identifier (e.g., PIP-20251125230448)")
 
-    task_id: str = Field(
-        ...,
-        description="Task that triggered this PIP"
-    )
+    task_id: str = Field(..., description="Task that triggered this PIP")
 
     events: List[CycleEvent] = Field(
-        default_factory=list,
-        description="Chronological list of cycle events"
+        default_factory=list, description="Chronological list of cycle events"
     )
 
     target_artifacts: List[str] = Field(
-        default_factory=list,
-        description="Prompts/checklists modified by this PIP"
+        default_factory=list, description="Prompts/checklists modified by this PIP"
     )
 
     defect_types_targeted: List[str] = Field(
-        default_factory=list,
-        description="Defect types this PIP aims to prevent"
+        default_factory=list, description="Defect types this PIP aims to prevent"
     )
 
     baseline_defect_count: Optional[int] = Field(
-        None,
-        description="Number of target defects in triggering task"
+        None, description="Number of target defects in triggering task"
     )
 
     post_improvement_defect_count: Optional[int] = Field(
-        None,
-        description="Number of target defects in first task after improvement"
+        None, description="Number of target defects in first task after improvement"
     )
 
     impact_task_id: Optional[str] = Field(
         None,
-        description="First task executed with updated prompts (for measuring impact)"
+        description="First task executed with updated prompts (for measuring impact)",
     )
 
     @property
     def review_cycle_time(self) -> Optional[timedelta]:
         """Calculate time from PIP creation to approval."""
         created_event = next(
-            (e for e in self.events if e.event_type == "pip_created"),
-            None
+            (e for e in self.events if e.event_type == "pip_created"), None
         )
         reviewed_event = next(
-            (e for e in self.events if e.event_type == "pip_reviewed"),
-            None
+            (e for e in self.events if e.event_type == "pip_reviewed"), None
         )
 
         if created_event and reviewed_event:
@@ -134,12 +117,10 @@ class ImprovementCycle(BaseModel):
     def total_cycle_time(self) -> Optional[timedelta]:
         """Calculate total time from PIP creation to impact measurement."""
         created_event = next(
-            (e for e in self.events if e.event_type == "pip_created"),
-            None
+            (e for e in self.events if e.event_type == "pip_created"), None
         )
         impact_event = next(
-            (e for e in self.events if e.event_type == "impact_measured"),
-            None
+            (e for e in self.events if e.event_type == "impact_measured"), None
         )
 
         if created_event and impact_event:
@@ -224,9 +205,9 @@ class CycleTracker:
         logger.info(f"Recording PIP creation: {pip.proposal_id}")
 
         # Extract defect types from proposed changes
-        defect_types = list(set(
-            change.target_artifact for change in pip.proposed_changes
-        ))
+        defect_types = list(
+            set(change.target_artifact for change in pip.proposed_changes)
+        )
 
         # Create cycle object
         cycle = ImprovementCycle(
@@ -240,7 +221,7 @@ class CycleTracker:
                         "pip_id": pip.proposal_id,
                         "task_id": pip.task_id,
                         "changes_count": str(len(pip.proposed_changes)),
-                    }
+                    },
                 )
             ],
             target_artifacts=[
@@ -268,9 +249,7 @@ class CycleTracker:
         Returns:
             Updated ImprovementCycle object
         """
-        logger.info(
-            f"Recording PIP review: {pip.proposal_id} -> {pip.hitl_status}"
-        )
+        logger.info(f"Recording PIP review: {pip.proposal_id} -> {pip.hitl_status}")
 
         # Load existing cycle
         cycle = self._load_cycle(pip.proposal_id)
@@ -284,7 +263,7 @@ class CycleTracker:
                     "decision": pip.hitl_status,
                     "reviewer": pip.hitl_reviewer or "unknown",
                     "feedback": pip.hitl_feedback or "",
-                }
+                },
             )
         )
 
@@ -321,7 +300,7 @@ class CycleTracker:
                 metadata={
                     "files_updated": ", ".join(updated_files),
                     "count": str(len(updated_files)),
-                }
+                },
             )
         )
 
@@ -421,7 +400,7 @@ class CycleTracker:
                 cycle_data = read_artifact_json(
                     task_id=cycle_file.stem,
                     artifact_type="improvement_cycle",
-                    artifacts_dir=self.cycles_dir.parent
+                    artifacts_dir=self.cycles_dir.parent,
                 )
                 cycle = ImprovementCycle(**cycle_data)
                 cycles.append(cycle)
@@ -440,10 +419,7 @@ class CycleTracker:
         cycles = self.get_all_cycles()
 
         if not cycles:
-            return {
-                "total_cycles": 0,
-                "message": "No improvement cycles tracked yet"
-            }
+            return {"total_cycles": 0, "message": "No improvement cycles tracked yet"}
 
         # Calculate aggregate metrics
         review_times = [
@@ -467,22 +443,22 @@ class CycleTracker:
         report = {
             "total_cycles": len(cycles),
             "completed_cycles": len(total_times),
-            "avg_review_time_hours": round(sum(review_times) / len(review_times), 2)
-                if review_times else None,
-            "avg_total_cycle_time_hours": round(sum(total_times) / len(total_times), 2)
-                if total_times else None,
-            "avg_defect_reduction_percent": round(
-                sum(defect_reductions) / len(defect_reductions), 1
-            ) if defect_reductions else None,
-            "cycles_with_positive_impact": sum(
-                1 for r in defect_reductions if r > 0
+            "avg_review_time_hours": (
+                round(sum(review_times) / len(review_times), 2)
+                if review_times
+                else None
             ),
-            "cycles_with_negative_impact": sum(
-                1 for r in defect_reductions if r < 0
+            "avg_total_cycle_time_hours": (
+                round(sum(total_times) / len(total_times), 2) if total_times else None
             ),
-            "cycles_with_no_change": sum(
-                1 for r in defect_reductions if r == 0
+            "avg_defect_reduction_percent": (
+                round(sum(defect_reductions) / len(defect_reductions), 1)
+                if defect_reductions
+                else None
             ),
+            "cycles_with_positive_impact": sum(1 for r in defect_reductions if r > 0),
+            "cycles_with_negative_impact": sum(1 for r in defect_reductions if r < 0),
+            "cycles_with_no_change": sum(1 for r in defect_reductions if r == 0),
         }
 
         return report
@@ -503,14 +479,12 @@ class CycleTracker:
         cycle_file = self.cycles_dir / f"{pip_id}.json"
 
         if not cycle_file.exists():
-            raise FileNotFoundError(
-                f"Improvement cycle not found for PIP: {pip_id}"
-            )
+            raise FileNotFoundError(f"Improvement cycle not found for PIP: {pip_id}")
 
         cycle_data = read_artifact_json(
             task_id=pip_id,
             artifact_type="improvement_cycle",
-            artifacts_dir=self.cycles_dir.parent
+            artifacts_dir=self.cycles_dir.parent,
         )
 
         return ImprovementCycle(**cycle_data)
@@ -526,7 +500,7 @@ class CycleTracker:
             task_id=cycle.pip_id,
             artifact_type="improvement_cycle",
             data=cycle,
-            artifacts_dir=self.cycles_dir.parent
+            artifacts_dir=self.cycles_dir.parent,
         )
 
         logger.debug(f"Saved improvement cycle: {cycle.pip_id}")

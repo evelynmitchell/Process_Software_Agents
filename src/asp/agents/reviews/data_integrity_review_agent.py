@@ -66,9 +66,7 @@ class DataIntegrityReviewAgent(BaseAgent):
         Raises:
             AgentExecutionError: If review fails
         """
-        logger.info(
-            f"Starting data integrity review for task {design_spec.task_id}"
-        )
+        logger.info(f"Starting data integrity review for task {design_spec.task_id}")
 
         try:
             # Load and format prompt
@@ -92,9 +90,7 @@ class DataIntegrityReviewAgent(BaseAgent):
                 if "issues_found" not in content:
                     raise ValueError("Response missing 'issues_found' field")
                 if "improvement_suggestions" not in content:
-                    raise ValueError(
-                        "Response missing 'improvement_suggestions' field"
-                    )
+                    raise ValueError("Response missing 'improvement_suggestions' field")
 
                 logger.info(
                     f"Data integrity review completed: found {len(content['issues_found'])} issues, "

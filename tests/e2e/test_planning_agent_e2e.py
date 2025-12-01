@@ -75,11 +75,13 @@ class TestPlanningAgentE2E:
         for i, unit in enumerate(plan.semantic_units, 1):
             print(f"\n{i}. {unit.unit_id}: {unit.description}")
             print(f"   Complexity: {unit.est_complexity}")
-            print(f"   Factors: API={unit.api_interactions}, "
-                  f"Data={unit.data_transformations}, "
-                  f"Branches={unit.logical_branches}, "
-                  f"Entities={unit.code_entities_modified}, "
-                  f"Novelty={unit.novelty_multiplier}")
+            print(
+                f"   Factors: API={unit.api_interactions}, "
+                f"Data={unit.data_transformations}, "
+                f"Branches={unit.logical_branches}, "
+                f"Entities={unit.code_entities_modified}, "
+                f"Novelty={unit.novelty_multiplier}"
+            )
             if unit.dependencies:
                 print(f"   Dependencies: {', '.join(unit.dependencies)}")
 
@@ -122,11 +124,13 @@ class TestPlanningAgentE2E:
         for i, unit in enumerate(plan.semantic_units, 1):
             print(f"\n{i}. {unit.unit_id}: {unit.description}")
             print(f"   Complexity: {unit.est_complexity}")
-            print(f"   Factors: API={unit.api_interactions}, "
-                  f"Data={unit.data_transformations}, "
-                  f"Branches={unit.logical_branches}, "
-                  f"Entities={unit.code_entities_modified}, "
-                  f"Novelty={unit.novelty_multiplier}")
+            print(
+                f"   Factors: API={unit.api_interactions}, "
+                f"Data={unit.data_transformations}, "
+                f"Branches={unit.logical_branches}, "
+                f"Entities={unit.code_entities_modified}, "
+                f"Novelty={unit.novelty_multiplier}"
+            )
             if unit.dependencies:
                 print(f"   Dependencies: {', '.join(unit.dependencies)}")
 
@@ -149,8 +153,8 @@ class TestPlanningAgentE2E:
             context_files=[
                 "src/api/users.py",
                 "src/models/user.py",
-                "docs/api_spec.md"
-            ]
+                "docs/api_spec.md",
+            ],
         )
 
         # Execute with real API call
@@ -258,7 +262,9 @@ class TestPlanningAgentE2E:
         print(f"Telemetry captured for task: {requirements.task_id}")
         print(f"Database: {db_path}")
         print(f"Check Langfuse dashboard for trace data")
-        print(f"Run: uv run python scripts/query_telemetry.py --task-id {requirements.task_id}")
+        print(
+            f"Run: uv run python scripts/query_telemetry.py --task-id {requirements.task_id}"
+        )
 
 
 @pytest.mark.e2e
@@ -312,7 +318,9 @@ class TestComplexityCalibration:
         print(f"{'='*60}")
         print(f"Expected: Complexity 11-30")
         print(f"Actual: {plan.total_est_complexity}")
-        print(f"Result: {' PASS' if 11 <= plan.total_est_complexity <= 30 else ' FAIL'}")
+        print(
+            f"Result: {' PASS' if 11 <= plan.total_est_complexity <= 30 else ' FAIL'}"
+        )
 
     def test_moderate_task_complexity(self, llm_client):
         """Test that moderate tasks score 31-60 complexity."""
@@ -340,7 +348,9 @@ class TestComplexityCalibration:
         print(f"{'='*60}")
         print(f"Expected: Complexity 31-60")
         print(f"Actual: {plan.total_est_complexity}")
-        print(f"Result: {' PASS' if 31 <= plan.total_est_complexity <= 60 else ' FAIL'}")
+        print(
+            f"Result: {' PASS' if 31 <= plan.total_est_complexity <= 60 else ' FAIL'}"
+        )
 
 
 @pytest.mark.e2e
@@ -385,10 +395,12 @@ class TestPlanningAgentUnhappyPaths:
         agent = PlanningAgent(llm_client=llm_client)
 
         # Generate a very long requirements string
-        long_requirements = "\n".join([
-            f"- Requirement {i}: Implement feature {i} with comprehensive functionality"
-            for i in range(100)
-        ])
+        long_requirements = "\n".join(
+            [
+                f"- Requirement {i}: Implement feature {i} with comprehensive functionality"
+                for i in range(100)
+            ]
+        )
 
         requirements = TaskRequirements(
             project_id="TEST-E2E",
@@ -485,8 +497,8 @@ class TestPlanningAgentUnhappyPaths:
             context_files=[
                 "src/nonexistent/file1.py",
                 "src/missing/file2.py",
-                "docs/not_real.md"
-            ]
+                "docs/not_real.md",
+            ],
         )
 
         # Should handle gracefully (context files are just hints)

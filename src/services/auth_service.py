@@ -2,5 +2,6 @@
 
 import bcrypt
 
+
 class AuthService:
     pass

@@ -19,7 +19,11 @@ from asp.approval.base import (
     ApprovalResponse,
     ReviewDecision,
 )
-from asp.models.design_review import DesignReviewReport, DesignIssue, ChecklistItemReview
+from asp.models.design_review import (
+    DesignReviewReport,
+    DesignIssue,
+    ChecklistItemReview,
+)
 from asp.models.code_review import CodeReviewReport, CodeIssue
 
 
@@ -379,5 +383,8 @@ class TestTSPHITLIntegration:
 
         override = orchestrator.hitl_overrides[0]
         assert override["gate_name"] == "DesignReview"
-        assert override["decision"] == "Approved by john.doe: Business critical - acceptable risk"
+        assert (
+            override["decision"]
+            == "Approved by john.doe: Business critical - acceptable risk"
+        )
         assert "timestamp" in override

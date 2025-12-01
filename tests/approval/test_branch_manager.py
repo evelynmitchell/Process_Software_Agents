@@ -15,25 +15,27 @@ def temp_repo():
     repo_dir = tempfile.mkdtemp()
 
     # Initialize git repo
-    subprocess.run(["git", "init", "-b", "main"], cwd=repo_dir, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "init", "-b", "main"], cwd=repo_dir, check=True, capture_output=True
+    )
     subprocess.run(
         ["git", "config", "user.email", "test@test.com"],
         cwd=repo_dir,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
     subprocess.run(
         ["git", "config", "user.name", "Test User"],
         cwd=repo_dir,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
     # Disable commit signing for test repo
     subprocess.run(
         ["git", "config", "commit.gpgsign", "false"],
         cwd=repo_dir,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
 
     # Create initial commit
@@ -44,7 +46,7 @@ def temp_repo():
         ["git", "commit", "-m", "Initial commit"],
         cwd=repo_dir,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
 
     yield repo_dir
@@ -75,16 +77,14 @@ def test_commit_output(temp_repo):
         "agent": "TestAgent",
         "task_id": "TEST-001",
         "gate_type": "test_gate",
-        "artifacts": {
-            "test_file.txt": "Test content"
-        }
+        "artifacts": {"test_file.txt": "Test content"},
     }
 
     commit_sha = manager.commit_output(
         branch_name="test-branch",
         output=output,
         task_id="TEST-001",
-        gate_type="test_gate"
+        gate_type="test_gate",
     )
 
     # Verify commit exists
@@ -103,11 +103,7 @@ def test_generate_diff(temp_repo):
     # Create and commit on feature branch
     manager.create_branch("feature", "main")
 
-    output = {
-        "artifacts": {
-            "feature.txt": "Feature content"
-        }
-    }
+    output = {"artifacts": {"feature.txt": "Feature content"}}
     manager.commit_output("feature", output, "TEST-001", "test")
 
     # Generate diff
@@ -124,11 +120,7 @@ def test_get_diff_stats(temp_repo):
     # Create and commit on feature branch
     manager.create_branch("feature", "main")
 
-    output = {
-        "artifacts": {
-            "feature.txt": "Line 1\nLine 2\nLine 3\n"
-        }
-    }
+    output = {"artifacts": {"feature.txt": "Line 1\nLine 2\nLine 3\n"}}
     manager.commit_output("feature", output, "TEST-001", "test")
 
     # Get diff stats
@@ -148,7 +140,7 @@ def test_add_note(temp_repo):
         cwd=temp_repo,
         capture_output=True,
         text=True,
-        check=True
+        check=True,
     )
     commit_sha = result.stdout.strip()
 
@@ -162,7 +154,7 @@ def test_add_note(temp_repo):
         cwd=temp_repo,
         capture_output=True,
         text=True,
-        check=True
+        check=True,
     )
     assert note_content in result.stdout
 
@@ -226,14 +218,11 @@ def test_commit_output_with_output_file(temp_repo):
     output = {
         "agent": "TestAgent",
         "output_file": "output.txt",
-        "content": "Output file content"
+        "content": "Output file content",
     }
 
     commit_sha = manager.commit_output(
-        branch_name="test-branch",
-        output=output,
-        task_id="TEST-002",
-        gate_type="test"
+        branch_name="test-branch", output=output, task_id="TEST-002", gate_type="test"
     )
 
     # Verify file was created
@@ -252,10 +241,7 @@ def test_commit_output_no_changes(temp_repo):
     output = {}
 
     commit_sha = manager.commit_output(
-        branch_name="test-branch",
-        output=output,
-        task_id="TEST-003",
-        gate_type="test"
+        branch_name="test-branch", output=output, task_id="TEST-003", gate_type="test"
     )
 
     # Should return current HEAD without creating new commit

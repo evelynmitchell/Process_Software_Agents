@@ -68,9 +68,7 @@ class BestPracticesReviewAgent(BaseAgent):
         Raises:
             AgentExecutionError: If review fails
         """
-        logger.info(
-            f"Starting best practices review for task {generated_code.task_id}"
-        )
+        logger.info(f"Starting best practices review for task {generated_code.task_id}")
 
         try:
             # Load and format prompt
@@ -94,9 +92,7 @@ class BestPracticesReviewAgent(BaseAgent):
                 if "issues_found" not in content:
                     raise ValueError("Response missing 'issues_found' field")
                 if "improvement_suggestions" not in content:
-                    raise ValueError(
-                        "Response missing 'improvement_suggestions' field"
-                    )
+                    raise ValueError("Response missing 'improvement_suggestions' field")
 
                 logger.info(
                     f"Best practices review completed: {len(content['issues_found'])} issues, "
@@ -110,12 +106,8 @@ class BestPracticesReviewAgent(BaseAgent):
                     f"Failed to parse LLM response as JSON: {e}"
                 ) from e
             except ValueError as e:
-                raise AgentExecutionError(
-                    f"Invalid response structure: {e}"
-                ) from e
+                raise AgentExecutionError(f"Invalid response structure: {e}") from e
 
         except Exception as e:
             logger.error(f"Best practices review failed: {e}")
-            raise AgentExecutionError(
-                f"BestPracticesReviewAgent failed: {e}"
-            ) from e
+            raise AgentExecutionError(f"BestPracticesReviewAgent failed: {e}") from e

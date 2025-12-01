@@ -105,7 +105,9 @@ class DesignReviewAgent(BaseAgent):
             ]
 
             # Step 4: Calculate issue counts
-            critical_count = sum(1 for issue in issues_list if issue.severity == "Critical")
+            critical_count = sum(
+                1 for issue in issues_list if issue.severity == "Critical"
+            )
             high_count = sum(1 for issue in issues_list if issue.severity == "High")
             medium_count = sum(1 for issue in issues_list if issue.severity == "Medium")
             low_count = sum(1 for issue in issues_list if issue.severity == "Low")
@@ -358,12 +360,14 @@ class DesignReviewAgent(BaseAgent):
             content = response.get("content", {})
             if isinstance(content, str):
                 # Try to extract JSON from markdown code blocks
-                json_match = re.search(r'```json\s*(.*?)\s*```', content, re.DOTALL)
+                json_match = re.search(r"```json\s*(.*?)\s*```", content, re.DOTALL)
                 if json_match:
                     try:
                         json_str = json_match.group(1).strip()
                         content = json_module.loads(json_str)
-                        logger.debug("Successfully extracted JSON from markdown code fence")
+                        logger.debug(
+                            "Successfully extracted JSON from markdown code fence"
+                        )
                     except json_module.JSONDecodeError as e:
                         json_preview = json_match.group(1).strip()[:500]
                         raise AgentExecutionError(
@@ -384,7 +388,9 @@ class DesignReviewAgent(BaseAgent):
             return content
         except (json_module.JSONDecodeError, KeyError) as e:
             logger.error(f"Failed to parse LLM response: {e}")
-            raise AgentExecutionError(f"Failed to parse LLM review response: {e}") from e
+            raise AgentExecutionError(
+                f"Failed to parse LLM review response: {e}"
+            ) from e
 
     def _generate_review_id(self, task_id: str, timestamp: datetime) -> str:
         """
@@ -398,9 +404,7 @@ class DesignReviewAgent(BaseAgent):
             Review ID in format REVIEW-{task_id}-YYYYMMDD-HHMMSS
         """
         # Clean task_id (remove all special chars including hyphens/underscores)
-        clean_task_id = "".join(
-            c if c.isalnum() else "" for c in task_id
-        ).upper()
+        clean_task_id = "".join(c if c.isalnum() else "" for c in task_id).upper()
 
         date_str = timestamp.strftime("%Y%m%d")
         time_str = timestamp.strftime("%H%M%S")

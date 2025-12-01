@@ -32,9 +32,15 @@ class TestHomePage:
         page.goto(web_server)
 
         # Check for all three persona buttons
-        expect(page.get_by_role("link", name=re.compile("Sarah.*Manager"))).to_be_visible()
-        expect(page.get_by_role("link", name=re.compile("Alex.*Developer"))).to_be_visible()
-        expect(page.get_by_role("link", name=re.compile("Jordan.*Product"))).to_be_visible()
+        expect(
+            page.get_by_role("link", name=re.compile("Sarah.*Manager"))
+        ).to_be_visible()
+        expect(
+            page.get_by_role("link", name=re.compile("Alex.*Developer"))
+        ).to_be_visible()
+        expect(
+            page.get_by_role("link", name=re.compile("Jordan.*Product"))
+        ).to_be_visible()
 
     def test_developer_link_navigates(self, page: Page, web_server: str) -> None:
         """Test that clicking Developer link navigates to developer dashboard."""
@@ -99,7 +105,9 @@ class TestDeveloperDashboard:
 
         # Wait for agent stats to load (demo data has these agents)
         # At least one agent should be visible
-        expect(page.locator("text=Planning").or_(page.locator("text=Design"))).to_be_visible(timeout=5000)
+        expect(
+            page.locator("text=Planning").or_(page.locator("text=Design"))
+        ).to_be_visible(timeout=5000)
 
     def test_htmx_defect_summary_loads(self, page: Page, web_server: str) -> None:
         """Test that defect summary loads dynamically."""
@@ -128,7 +136,9 @@ class TestDeveloperNavigation:
 
         # Should be on task detail page
         expect(page).to_have_url(re.compile("/developer/task/"))
-        expect(page.get_by_role("heading", name=re.compile("Task Details"))).to_be_visible()
+        expect(
+            page.get_by_role("heading", name=re.compile("Task Details"))
+        ).to_be_visible()
 
     def test_back_to_dashboard_from_task(self, page: Page, web_server: str) -> None:
         """Test navigating back to dashboard from task detail."""
@@ -187,7 +197,9 @@ class TestNewTaskForm:
         page.get_by_role("button", name="Create Task").click()
 
         # Should see success message
-        expect(page.get_by_role("heading", name="Task Created Successfully")).to_be_visible()
+        expect(
+            page.get_by_role("heading", name="Task Created Successfully")
+        ).to_be_visible()
         expect(page.locator("text=TSP-TEST-001")).to_be_visible()
 
 

@@ -1080,5 +1080,9 @@ Use bcrypt for password hashing with cost factor 12. Validate email format. Quer
         assert len(component.dependencies) == 3
 
         # Verify checklist has high-priority items
-        high_priority = [item for item in design_spec.design_review_checklist if item.severity in ("Critical", "High")]
+        high_priority = [
+            item
+            for item in design_spec.design_review_checklist
+            if item.severity in ("Critical", "High")
+        ]
         assert len(high_priority) >= 1

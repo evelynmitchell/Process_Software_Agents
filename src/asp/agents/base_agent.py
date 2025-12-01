@@ -69,6 +69,7 @@ class BaseAgent(ABC):
         if self._llm_client is None:
             # Import here to avoid circular dependencies
             from asp.utils.llm_client import LLMClient
+
             self._llm_client = LLMClient()
         return self._llm_client
 

@@ -7,6 +7,7 @@ from asp.web.main import app
 
 client = TestClient(app)
 
+
 def test_root_route():
     """Test that the root route returns 200 OK and contains persona links."""
     response = client.get("/")
@@ -15,6 +16,7 @@ def test_root_route():
     assert "Sarah" in response.text
     assert "Alex" in response.text
     assert "Jordan" in response.text
+
 
 def test_developer_route():
     """Test that the developer route returns 200 OK and the Flow State Canvas."""

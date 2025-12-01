@@ -268,9 +268,7 @@ def git_commit_artifact(
         # Commit
         commit_hash = git_commit(message, path)
 
-        logger.info(
-            f"Committed artifacts for {task_id} by {agent_name}: {commit_hash}"
-        )
+        logger.info(f"Committed artifacts for {task_id} by {agent_name}: {commit_hash}")
         return commit_hash
 
     except Exception as e:

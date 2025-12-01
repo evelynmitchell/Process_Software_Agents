@@ -293,7 +293,9 @@ class TestPlanningDesignOrchestrator:
 
         # Verify feedback loop executed
         assert mock_planning_agent.execute.call_count == 1  # Planning called once
-        assert mock_design_agent.execute.call_count == 2  # Design called twice (initial + feedback)
+        assert (
+            mock_design_agent.execute.call_count == 2
+        )  # Design called twice (initial + feedback)
         assert mock_review_agent.execute.call_count == 2  # Review called twice
 
         # Verify second design call had feedback

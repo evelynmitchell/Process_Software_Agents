@@ -36,7 +36,7 @@ def sample_pip():
                 target_artifact="code_agent_prompt",
                 change_type="add",
                 proposed_content="Use parameterized queries",
-                rationale="Prevent SQL injection"
+                rationale="Prevent SQL injection",
             )
         ],
         expected_impact="Reduce security defects by 70%",
@@ -66,14 +66,14 @@ class TestImprovementCycle:
                 CycleEvent(
                     event_type="pip_created",
                     timestamp=datetime(2025, 11, 25, 10, 0, 0),
-                    metadata={}
+                    metadata={},
                 ),
                 CycleEvent(
                     event_type="pip_reviewed",
                     timestamp=datetime(2025, 11, 25, 11, 30, 0),
-                    metadata={"decision": "approved"}
+                    metadata={"decision": "approved"},
                 ),
-            ]
+            ],
         )
 
         assert cycle.review_cycle_time == timedelta(hours=1, minutes=30)
@@ -87,14 +87,14 @@ class TestImprovementCycle:
                 CycleEvent(
                     event_type="pip_created",
                     timestamp=datetime(2025, 11, 25, 10, 0, 0),
-                    metadata={}
+                    metadata={},
                 ),
                 CycleEvent(
                     event_type="impact_measured",
                     timestamp=datetime(2025, 11, 26, 14, 0, 0),
-                    metadata={}
+                    metadata={},
                 ),
-            ]
+            ],
         )
 
         assert cycle.total_cycle_time == timedelta(days=1, hours=4)
@@ -176,7 +176,9 @@ class TestCycleTracker:
         assert len(cycle.events) == 2
         assert cycle.events[1].event_type == "prompts_updated"
         assert cycle.events[1].metadata["count"] == "2"
-        assert "code_agent_v2_generation.txt" in cycle.events[1].metadata["files_updated"]
+        assert (
+            "code_agent_v2_generation.txt" in cycle.events[1].metadata["files_updated"]
+        )
 
     def test_record_impact(self, cycles_dir, sample_pip):
         """Test recording improvement impact."""
@@ -190,7 +192,7 @@ class TestCycleTracker:
             pip_id="PIP-001",
             impact_task_id="TASK-002",
             defect_count=3,
-            notes="Significant improvement in security defects"
+            notes="Significant improvement in security defects",
         )
 
         assert cycle.impact_task_id == "TASK-002"
@@ -202,7 +204,10 @@ class TestCycleTracker:
         assert impact_event.event_type == "impact_measured"
         assert impact_event.metadata["defect_count"] == "3"
         assert impact_event.metadata["defect_reduction_percent"] == "70.0%"
-        assert impact_event.metadata["notes"] == "Significant improvement in security defects"
+        assert (
+            impact_event.metadata["notes"]
+            == "Significant improvement in security defects"
+        )
 
     def test_get_cycle(self, cycles_dir, sample_pip):
         """Test retrieving cycle by PIP ID."""
@@ -240,7 +245,7 @@ class TestCycleTracker:
                     target_artifact="test",
                     change_type="add",
                     proposed_content="Test",
-                    rationale="Test"
+                    rationale="Test",
                 )
             ],
             expected_impact="Test",
@@ -257,7 +262,7 @@ class TestCycleTracker:
                     target_artifact="test",
                     change_type="add",
                     proposed_content="Test",
-                    rationale="Test"
+                    rationale="Test",
                 )
             ],
             expected_impact="Test",
@@ -320,7 +325,7 @@ class TestCycleTracker:
                     target_artifact="test",
                     change_type="add",
                     proposed_content="Test",
-                    rationale="Test"
+                    rationale="Test",
                 )
             ],
             expected_impact="Test",
@@ -339,7 +344,7 @@ class TestCycleTracker:
                     target_artifact="test",
                     change_type="add",
                     proposed_content="Test",
-                    rationale="Test"
+                    rationale="Test",
                 )
             ],
             expected_impact="Test",
@@ -374,7 +379,7 @@ class TestCycleTrackerIntegration:
                     target_artifact="code_review_security",
                     change_type="add",
                     proposed_content="Check for SQL injection in all database queries",
-                    rationale="Prevent security vulnerabilities"
+                    rationale="Prevent security vulnerabilities",
                 )
             ],
             expected_impact="Reduce security defects by 80%",
@@ -402,7 +407,7 @@ class TestCycleTrackerIntegration:
             pip_id="PIP-TEST-001",
             impact_task_id="TASK-NEW",
             defect_count=3,
-            notes="Dramatic reduction in SQL injection defects"
+            notes="Dramatic reduction in SQL injection defects",
         )
 
         # Verify complete cycle

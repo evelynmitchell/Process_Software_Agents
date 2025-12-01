@@ -21,8 +21,12 @@ def create_app():
     app, rt = fast_app(
         pico=True,  # Use PicoCSS for styling
         hdrs=(
-            Link(rel='stylesheet', href='https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.colors.min.css'),
-            Style("""
+            Link(
+                rel="stylesheet",
+                href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.colors.min.css",
+            ),
+            Style(
+                """
                 .card {
                     background: var(--pico-card-background-color);
                     border-radius: var(--pico-border-radius);
@@ -55,14 +59,16 @@ def create_app():
                 .status-active { background: #22c55e; }
                 .status-pending { background: #eab308; }
                 .status-error { background: #ef4444; }
-            """),
-        )
+            """
+            ),
+        ),
     )
 
-    @rt('/')
+    @rt("/")
     def get():
         """Home page with persona selection."""
-        return Titled("ASP Platform",
+        return Titled(
+            "ASP Platform",
             Div(
                 H1("ASP Overwatch"),
                 P("Select your dashboard view:", cls="secondary"),
@@ -76,7 +82,7 @@ def create_app():
                         href="/manager",
                         role="button",
                         cls="outline",
-                        style="text-align: left; text-decoration: none;"
+                        style="text-align: left; text-decoration: none;",
                     ),
                     A(
                         Div(
@@ -86,7 +92,7 @@ def create_app():
                         ),
                         href="/developer",
                         role="button",
-                        style="text-align: left; text-decoration: none;"
+                        style="text-align: left; text-decoration: none;",
                     ),
                     A(
                         Div(
@@ -97,15 +103,15 @@ def create_app():
                         href="/product",
                         role="button",
                         cls="outline",
-                        style="text-align: left; text-decoration: none;"
+                        style="text-align: left; text-decoration: none;",
                     ),
-                    cls="grid"
+                    cls="grid",
                 ),
-                style="max-width: 900px; margin: 0 auto; padding-top: 2rem;"
-            )
+                style="max-width: 900px; margin: 0 auto; padding-top: 2rem;",
+            ),
         )
 
-    @rt('/health')
+    @rt("/health")
     def get_health():
         """Health check endpoint for monitoring."""
         return {"status": "healthy", "service": "asp-web-ui"}

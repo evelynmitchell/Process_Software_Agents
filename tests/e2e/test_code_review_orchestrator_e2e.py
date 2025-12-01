@@ -124,7 +124,7 @@ def create_problematic_generated_code():
         files=[
             GeneratedFile(
                 file_path="src/api/user.py",
-                content='''
+                content="""
 from flask import request
 
 def get_user(user_id):
@@ -137,7 +137,7 @@ def authenticate(username, password):
     if user and user["password"] == password:
         return {"token": "secret_key_12345"}
     return None
-''',
+""",
                 file_type="source",
                 description="User API with SQL injection and security issues",
             ),
@@ -191,11 +191,11 @@ def find_duplicates(items):
             ),
             GeneratedFile(
                 file_path="tests/test_order_service.py",
-                content='''
+                content="""
 def test_get_orders(llm_client):
     orders = get_orders_with_users()
     assert len(orders) > 0
-''',
+""",
                 file_type="test",
                 description="Minimal test coverage",
             ),
@@ -223,13 +223,16 @@ def test_get_orders(llm_client):
 
 def test_e2e_simple_code_passes_review(llm_client):
     """Test that simple, well-written code passes review."""
+
     # Mock all specialists to return no issues
     def create_clean_response(prompt, **kwargs):
         return {
-            "content": json.dumps({
-                "issues_found": [],
-                "improvement_suggestions": [],
-            })
+            "content": json.dumps(
+                {
+                    "issues_found": [],
+                    "improvement_suggestions": [],
+                }
+            )
         }
 
     mock_llm = Mock()
@@ -252,53 +255,58 @@ def test_e2e_simple_code_passes_review(llm_client):
 
 def test_e2e_problematic_code_fails_review(llm_client):
     """Test that code with critical issues fails review."""
+
     # Mock specialists to return critical security issues
     def create_security_issues_response(prompt, **kwargs):
         if "security" in prompt.lower() or "code_security" in prompt.lower():
             return {
-                "content": json.dumps({
-                    "issues_found": [
-                        {
-                            "issue_id": "SEC-001",
-                            "category": "Security",
-                            "severity": "Critical",
-                            "description": "SQL injection vulnerability",
-                            "evidence": "src/api/user.py:4",
-                            "impact": "Attacker can execute arbitrary SQL",
-                            "file_path": "src/api/user.py",
-                            "line_number": 4,
-                            "affected_phase": "Code",
-                        },
-                        {
-                            "issue_id": "SEC-002",
-                            "category": "Security",
-                            "severity": "Critical",
-                            "description": "Hardcoded secret key",
-                            "evidence": "src/api/user.py:11",
-                            "impact": "Secret exposed in source code",
-                            "file_path": "src/api/user.py",
-                            "line_number": 11,
-                            "affected_phase": "Code",
-                        },
-                    ],
-                    "improvement_suggestions": [
-                        {
-                            "suggestion_id": "SEC-IMP-001",
-                            "related_issue_id": "SEC-001",
-                            "category": "Security",
-                            "priority": "High",
-                            "description": "Use parameterized queries to prevent SQL injection",
-                            "implementation_notes": "Replace string formatting with ORM or prepared statements",
-                        }
-                    ],
-                })
+                "content": json.dumps(
+                    {
+                        "issues_found": [
+                            {
+                                "issue_id": "SEC-001",
+                                "category": "Security",
+                                "severity": "Critical",
+                                "description": "SQL injection vulnerability",
+                                "evidence": "src/api/user.py:4",
+                                "impact": "Attacker can execute arbitrary SQL",
+                                "file_path": "src/api/user.py",
+                                "line_number": 4,
+                                "affected_phase": "Code",
+                            },
+                            {
+                                "issue_id": "SEC-002",
+                                "category": "Security",
+                                "severity": "Critical",
+                                "description": "Hardcoded secret key",
+                                "evidence": "src/api/user.py:11",
+                                "impact": "Secret exposed in source code",
+                                "file_path": "src/api/user.py",
+                                "line_number": 11,
+                                "affected_phase": "Code",
+                            },
+                        ],
+                        "improvement_suggestions": [
+                            {
+                                "suggestion_id": "SEC-IMP-001",
+                                "related_issue_id": "SEC-001",
+                                "category": "Security",
+                                "priority": "High",
+                                "description": "Use parameterized queries to prevent SQL injection",
+                                "implementation_notes": "Replace string formatting with ORM or prepared statements",
+                            }
+                        ],
+                    }
+                )
             }
         else:
             return {
-                "content": json.dumps({
-                    "issues_found": [],
-                    "improvement_suggestions": [],
-                })
+                "content": json.dumps(
+                    {
+                        "issues_found": [],
+                        "improvement_suggestions": [],
+                    }
+                )
             }
 
     mock_llm = Mock()
@@ -320,33 +328,38 @@ def test_e2e_problematic_code_fails_review(llm_client):
 
 def test_e2e_performance_issues_needs_revision(llm_client):
     """Test that code with high-severity performance issues gets NEEDS_REVISION."""
+
     # Mock specialists to return high-severity performance issues
     def create_performance_issues_response(prompt, **kwargs):
         if "performance" in prompt.lower() or "code_performance" in prompt.lower():
             return {
-                "content": json.dumps({
-                    "issues_found": [
-                        {
-                            "issue_id": "PERF-001",
-                            "category": "Performance",
-                            "severity": "High",
-                            "description": "N+1 query problem in loop",
-                            "evidence": "src/services/order_service.py:6",
-                            "impact": "1000 orders = 1000 database queries, severe performance degradation",
-                            "file_path": "src/services/order_service.py",
-                            "line_number": 6,
-                            "affected_phase": "Code",
-                        }
-                    ],
-                    "improvement_suggestions": [],
-                })
+                "content": json.dumps(
+                    {
+                        "issues_found": [
+                            {
+                                "issue_id": "PERF-001",
+                                "category": "Performance",
+                                "severity": "High",
+                                "description": "N+1 query problem in loop",
+                                "evidence": "src/services/order_service.py:6",
+                                "impact": "1000 orders = 1000 database queries, severe performance degradation",
+                                "file_path": "src/services/order_service.py",
+                                "line_number": 6,
+                                "affected_phase": "Code",
+                            }
+                        ],
+                        "improvement_suggestions": [],
+                    }
+                )
             }
         else:
             return {
-                "content": json.dumps({
-                    "issues_found": [],
-                    "improvement_suggestions": [],
-                })
+                "content": json.dumps(
+                    {
+                        "issues_found": [],
+                        "improvement_suggestions": [],
+                    }
+                )
             }
 
     mock_llm = Mock()
@@ -388,10 +401,12 @@ def test_e2e_automated_checks_detect_missing_tests(llm_client):
 
     mock_llm = Mock()
     mock_llm.call_with_retry.return_value = {
-        "content": json.dumps({
-            "issues_found": [],
-            "improvement_suggestions": [],
-        })
+        "content": json.dumps(
+            {
+                "issues_found": [],
+                "improvement_suggestions": [],
+            }
+        )
     }
 
     orchestrator = CodeReviewOrchestrator(llm_client=mock_llm)
@@ -426,10 +441,12 @@ def test_e2e_automated_checks_detect_oversized_files(llm_client):
 
     mock_llm = Mock()
     mock_llm.call_with_retry.return_value = {
-        "content": json.dumps({
-            "issues_found": [],
-            "improvement_suggestions": [],
-        })
+        "content": json.dumps(
+            {
+                "issues_found": [],
+                "improvement_suggestions": [],
+            }
+        )
     }
 
     orchestrator = CodeReviewOrchestrator(llm_client=mock_llm)
@@ -447,33 +464,38 @@ def test_e2e_automated_checks_detect_oversized_files(llm_client):
 
 def test_e2e_checklist_review_reflects_issues(llm_client):
     """Test that checklist review correctly reflects found issues."""
+
     # Mock security specialist to return critical issue
     def create_security_issue_response(prompt, **kwargs):
         if "security" in prompt.lower():
             return {
-                "content": json.dumps({
-                    "issues_found": [
-                        {
-                            "issue_id": "SEC-001",
-                            "category": "Security",
-                            "severity": "Critical",
-                            "description": "Critical security flaw in authentication",
-                            "evidence": "src/api/auth.py:10",
-                            "impact": "System compromise possible with malicious input",
-                            "file_path": "src/api/auth.py",
-                            "line_number": 10,
-                            "affected_phase": "Code",
-                        }
-                    ],
-                    "improvement_suggestions": [],
-                })
+                "content": json.dumps(
+                    {
+                        "issues_found": [
+                            {
+                                "issue_id": "SEC-001",
+                                "category": "Security",
+                                "severity": "Critical",
+                                "description": "Critical security flaw in authentication",
+                                "evidence": "src/api/auth.py:10",
+                                "impact": "System compromise possible with malicious input",
+                                "file_path": "src/api/auth.py",
+                                "line_number": 10,
+                                "affected_phase": "Code",
+                            }
+                        ],
+                        "improvement_suggestions": [],
+                    }
+                )
             }
         else:
             return {
-                "content": json.dumps({
-                    "issues_found": [],
-                    "improvement_suggestions": [],
-                })
+                "content": json.dumps(
+                    {
+                        "issues_found": [],
+                        "improvement_suggestions": [],
+                    }
+                )
             }
 
     mock_llm = Mock()
@@ -485,7 +507,9 @@ def test_e2e_checklist_review_reflects_issues(llm_client):
     report = orchestrator.execute(generated_code)
 
     # Find security checklist item
-    security_items = [item for item in report.checklist_review if "Category: Security" in item.notes]
+    security_items = [
+        item for item in report.checklist_review if "Category: Security" in item.notes
+    ]
     assert len(security_items) > 0
 
     # Security item should Fail due to critical issue
@@ -503,10 +527,12 @@ def test_e2e_review_id_format(llm_client):
     """Test that review IDs follow correct pattern."""
     mock_llm = Mock()
     mock_llm.call_with_retry.return_value = {
-        "content": json.dumps({
-            "issues_found": [],
-            "improvement_suggestions": [],
-        })
+        "content": json.dumps(
+            {
+                "issues_found": [],
+                "improvement_suggestions": [],
+            }
+        )
     }
 
     orchestrator = CodeReviewOrchestrator(llm_client=mock_llm)
@@ -534,71 +560,82 @@ def test_e2e_review_id_format(llm_client):
 
 def test_e2e_full_pipeline_integration(llm_client):
     """Test full code review pipeline with mixed issue severities."""
+
     # Mock specialists with varied responses
     def create_varied_responses(prompt, **kwargs):
         if "quality" in prompt.lower():
             return {
-                "content": json.dumps({
-                    "issues_found": [
-                        {
-                            "issue_id": "QUAL-001",
-                            "category": "Code Quality",
-                            "severity": "Medium",
-                            "description": "Complex function needs refactoring for better readability",
-                            "evidence": "src/api/user.py:5",
-                            "impact": "Reduces code maintainability and increases technical debt",
-                            "file_path": "src/api/user.py",
-                            "line_number": 5,
-                            "affected_phase": "Code",
-                        }
-                    ],
-                    "improvement_suggestions": [],
-                })
+                "content": json.dumps(
+                    {
+                        "issues_found": [
+                            {
+                                "issue_id": "QUAL-001",
+                                "category": "Code Quality",
+                                "severity": "Medium",
+                                "description": "Complex function needs refactoring for better readability",
+                                "evidence": "src/api/user.py:5",
+                                "impact": "Reduces code maintainability and increases technical debt",
+                                "file_path": "src/api/user.py",
+                                "line_number": 5,
+                                "affected_phase": "Code",
+                            }
+                        ],
+                        "improvement_suggestions": [],
+                    }
+                )
             }
         elif "security" in prompt.lower():
             return {
-                "content": json.dumps({
-                    "issues_found": [
-                        {
-                            "issue_id": "SEC-001",
-                            "category": "Security",
-                            "severity": "High",
-                            "description": "Missing input validation on user input fields",
-                            "evidence": "src/api/user.py:3",
-                            "impact": "Security vulnerability enabling injection attacks",
-                            "file_path": "src/api/user.py",
-                            "line_number": 3,
-                            "affected_phase": "Code",
-                        }
-                    ],
-                    "improvement_suggestions": [],
-                })
+                "content": json.dumps(
+                    {
+                        "issues_found": [
+                            {
+                                "issue_id": "SEC-001",
+                                "category": "Security",
+                                "severity": "High",
+                                "description": "Missing input validation on user input fields",
+                                "evidence": "src/api/user.py:3",
+                                "impact": "Security vulnerability enabling injection attacks",
+                                "file_path": "src/api/user.py",
+                                "line_number": 3,
+                                "affected_phase": "Code",
+                            }
+                        ],
+                        "improvement_suggestions": [],
+                    }
+                )
             }
-        elif any(keyword in prompt.lower() for keyword in ["test", "coverage", "testing"]):
+        elif any(
+            keyword in prompt.lower() for keyword in ["test", "coverage", "testing"]
+        ):
             return {
-                "content": json.dumps({
-                    "issues_found": [
-                        {
-                            "issue_id": "TEST-001",
-                            "category": "Testing",
-                            "severity": "Low",
-                            "description": "Missing edge case tests for user validation",
-                            "evidence": "tests/test_user.py:1",
-                            "impact": "Incomplete test coverage may miss bugs in edge cases",
-                            "file_path": "tests/test_user.py",
-                            "line_number": 1,
-                            "affected_phase": "Code",
-                        }
-                    ],
-                    "improvement_suggestions": [],
-                })
+                "content": json.dumps(
+                    {
+                        "issues_found": [
+                            {
+                                "issue_id": "TEST-001",
+                                "category": "Testing",
+                                "severity": "Low",
+                                "description": "Missing edge case tests for user validation",
+                                "evidence": "tests/test_user.py:1",
+                                "impact": "Incomplete test coverage may miss bugs in edge cases",
+                                "file_path": "tests/test_user.py",
+                                "line_number": 1,
+                                "affected_phase": "Code",
+                            }
+                        ],
+                        "improvement_suggestions": [],
+                    }
+                )
             }
         else:
             return {
-                "content": json.dumps({
-                    "issues_found": [],
-                    "improvement_suggestions": [],
-                })
+                "content": json.dumps(
+                    {
+                        "issues_found": [],
+                        "improvement_suggestions": [],
+                    }
+                )
             }
 
     mock_llm = Mock()
@@ -610,7 +647,9 @@ def test_e2e_full_pipeline_integration(llm_client):
     report = orchestrator.execute(generated_code)
 
     # Verify mixed severities
-    assert report.review_status == "CONDITIONAL_PASS"  # High severity issue present but < 5
+    assert (
+        report.review_status == "CONDITIONAL_PASS"
+    )  # High severity issue present but < 5
     assert report.high_issues == 1
     assert report.medium_issues == 1
     # Note: Low issues may be 0 or 1 depending on specialist mocking

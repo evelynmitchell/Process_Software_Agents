@@ -68,9 +68,7 @@ class CodePerformanceReviewAgent(BaseAgent):
         Raises:
             AgentExecutionError: If review fails
         """
-        logger.info(
-            f"Starting performance review for task {generated_code.task_id}"
-        )
+        logger.info(f"Starting performance review for task {generated_code.task_id}")
 
         try:
             # Load and format prompt
@@ -94,9 +92,7 @@ class CodePerformanceReviewAgent(BaseAgent):
                 if "issues_found" not in content:
                     raise ValueError("Response missing 'issues_found' field")
                 if "improvement_suggestions" not in content:
-                    raise ValueError(
-                        "Response missing 'improvement_suggestions' field"
-                    )
+                    raise ValueError("Response missing 'improvement_suggestions' field")
 
                 logger.info(
                     f"Performance review completed: {len(content['issues_found'])} issues, "
@@ -110,12 +106,8 @@ class CodePerformanceReviewAgent(BaseAgent):
                     f"Failed to parse LLM response as JSON: {e}"
                 ) from e
             except ValueError as e:
-                raise AgentExecutionError(
-                    f"Invalid response structure: {e}"
-                ) from e
+                raise AgentExecutionError(f"Invalid response structure: {e}") from e
 
         except Exception as e:
             logger.error(f"Performance review failed: {e}")
-            raise AgentExecutionError(
-                f"CodePerformanceReviewAgent failed: {e}"
-            ) from e
+            raise AgentExecutionError(f"CodePerformanceReviewAgent failed: {e}") from e

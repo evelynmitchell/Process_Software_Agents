@@ -20,9 +20,19 @@ from pathlib import Path
 from typing import Any, Optional
 
 from asp.agents.base_agent import BaseAgent, AgentExecutionError
-from asp.models.code import CodeInput, GeneratedCode, GeneratedFile, FileManifest, FileMetadata
+from asp.models.code import (
+    CodeInput,
+    GeneratedCode,
+    GeneratedFile,
+    FileManifest,
+    FileMetadata,
+)
 from asp.telemetry import track_agent_cost
-from asp.utils.artifact_io import write_artifact_json, write_artifact_markdown, write_generated_file
+from asp.utils.artifact_io import (
+    write_artifact_json,
+    write_artifact_markdown,
+    write_generated_file,
+)
 from asp.utils.git_utils import git_commit_artifact, is_git_repository
 from asp.utils.markdown_renderer import render_code_manifest_markdown
 
@@ -85,7 +95,9 @@ class CodeAgent(BaseAgent):
         if use_multi_stage is not None:
             self.use_multi_stage = use_multi_stage
         else:
-            self.use_multi_stage = os.getenv("ASP_MULTI_STAGE_CODE_GEN", "false").lower() == "true"
+            self.use_multi_stage = (
+                os.getenv("ASP_MULTI_STAGE_CODE_GEN", "false").lower() == "true"
+            )
 
         mode = "multi-stage" if self.use_multi_stage else "single-call"
         logger.info(f"CodeAgent initialized (mode: {mode})")
@@ -126,7 +138,9 @@ class CodeAgent(BaseAgent):
             generated_code = self._generate_code(input_data)
 
             # Validate component coverage from design
-            self._validate_component_coverage(generated_code, input_data.design_specification)
+            self._validate_component_coverage(
+                generated_code, input_data.design_specification
+            )
 
             # Validate file structure consistency
             self._validate_file_structure(generated_code)
@@ -162,7 +176,10 @@ class CodeAgent(BaseAgent):
 
                 # Write each generated file to artifacts/{task_id}/generated_code/
                 from pathlib import Path
-                generated_code_base = Path("artifacts") / generated_code.task_id / "generated_code"
+
+                generated_code_base = (
+                    Path("artifacts") / generated_code.task_id / "generated_code"
+                )
 
                 for file in generated_code.files:
                     file_path = write_generated_file(
@@ -180,7 +197,9 @@ class CodeAgent(BaseAgent):
                         agent_name="Code Agent",
                         artifact_files=artifact_files,
                     )
-                    logger.info(f"Committed {len(artifact_files)} artifacts: {commit_hash}")
+                    logger.info(
+                        f"Committed {len(artifact_files)} artifacts: {commit_hash}"
+                    )
                 else:
                     logger.warning("Not in git repository, skipping commit")
 
@@ -250,7 +269,8 @@ class CodeAgent(BaseAgent):
             prompt_template,
             task_id=input_data.task_id,
             design_specification=design_spec_escaped,
-            coding_standards=input_data.coding_standards or "Follow industry best practices",
+            coding_standards=input_data.coding_standards
+            or "Follow industry best practices",
             context_files="\n".join(input_data.context_files or []),
         )
 
@@ -277,7 +297,7 @@ class CodeAgent(BaseAgent):
             # - Allows any whitespace (including newlines) after ```json
             # - Allows any whitespace before closing ```
             # - Handles cases with/without newlines in various positions
-            json_match = re.search(r'```json\s*(.*?)\s*```', content, re.DOTALL)
+            json_match = re.search(r"```json\s*(.*?)\s*```", content, re.DOTALL)
             if json_match:
                 try:
                     # Extract and strip the JSON content
@@ -313,13 +333,25 @@ class CodeAgent(BaseAgent):
         # Validate and create GeneratedCode
         try:
             # Add timestamp if not provided
-            if "generation_timestamp" not in content or not content["generation_timestamp"]:
+            if (
+                "generation_timestamp" not in content
+                or not content["generation_timestamp"]
+            ):
                 content["generation_timestamp"] = datetime.now().isoformat()
 
             # Calculate total LOC and files if not provided
-            if "total_lines_of_code" not in content or content["total_lines_of_code"] == 0:
+            if (
+                "total_lines_of_code" not in content
+                or content["total_lines_of_code"] == 0
+            ):
                 total_loc = sum(
-                    len([line for line in file_data["content"].split("\n") if line.strip()])
+                    len(
+                        [
+                            line
+                            for line in file_data["content"].split("\n")
+                            if line.strip()
+                        ]
+                    )
                     for file_data in content.get("files", [])
                 )
                 content["total_lines_of_code"] = total_loc
@@ -353,7 +385,9 @@ class CodeAgent(BaseAgent):
             AgentExecutionError: If components are missing implementation
         """
         # Get all component names from design
-        design_component_names = {component.component_name for component in design_spec.component_logic}
+        design_component_names = {
+            component.component_name for component in design_spec.component_logic
+        }
 
         # Get all component IDs referenced in generated code
         # Note: GeneratedFile uses component_id for traceability, not component_name
@@ -412,7 +446,9 @@ class CodeAgent(BaseAgent):
             )
 
         if extra_in_structure:
-            logger.error(f"Files in file_structure but not generated: {extra_in_structure}")
+            logger.error(
+                f"Files in file_structure but not generated: {extra_in_structure}"
+            )
             raise AgentExecutionError(
                 f"File structure inconsistency: {extra_in_structure} listed but not generated"
             )
@@ -420,9 +456,13 @@ class CodeAgent(BaseAgent):
         # Check for duplicate file paths
         file_path_counts = {}
         for file in generated_code.files:
-            file_path_counts[file.file_path] = file_path_counts.get(file.file_path, 0) + 1
+            file_path_counts[file.file_path] = (
+                file_path_counts.get(file.file_path, 0) + 1
+            )
 
-        duplicates = {path: count for path, count in file_path_counts.items() if count > 1}
+        duplicates = {
+            path: count for path, count in file_path_counts.items() if count > 1
+        }
         if duplicates:
             raise AgentExecutionError(f"Duplicate file paths found: {duplicates}")
 
@@ -464,7 +504,8 @@ class CodeAgent(BaseAgent):
             prompt_template,
             task_id=input_data.task_id,
             design_specification=design_spec_escaped,
-            coding_standards=input_data.coding_standards or "Follow industry best practices",
+            coding_standards=input_data.coding_standards
+            or "Follow industry best practices",
             context_files="\n".join(input_data.context_files or []),
         )
 
@@ -487,7 +528,7 @@ class CodeAgent(BaseAgent):
             import json
 
             # Try to extract JSON from markdown code blocks
-            json_match = re.search(r'```json\s*(.*?)\s*```', content, re.DOTALL)
+            json_match = re.search(r"```json\s*(.*?)\s*```", content, re.DOTALL)
             if json_match:
                 try:
                     json_str = json_match.group(1).strip()
@@ -525,7 +566,10 @@ class CodeAgent(BaseAgent):
                 content["total_files"] = len(content.get("files", []))
 
             # Calculate total_estimated_lines if not provided
-            if "total_estimated_lines" not in content or content["total_estimated_lines"] == 0:
+            if (
+                "total_estimated_lines" not in content
+                or content["total_estimated_lines"] == 0
+            ):
                 total_estimated = sum(
                     file_data.get("estimated_lines", 0)
                     for file_data in content.get("files", [])
@@ -548,7 +592,10 @@ class CodeAgent(BaseAgent):
             )
             # Debug: dump the full content for investigation
             import json
-            logger.error(f"DEBUG: Full manifest content: {json.dumps(content, indent=2)}")
+
+            logger.error(
+                f"DEBUG: Full manifest content: {json.dumps(content, indent=2)}"
+            )
             raise AgentExecutionError(f"Manifest validation failed: {e}") from e
 
     def _generate_file_content(
@@ -582,7 +629,9 @@ class CodeAgent(BaseAgent):
         try:
             prompt_template = self.load_prompt("code_agent_v2_file_generation")
         except FileNotFoundError as e:
-            raise AgentExecutionError(f"File generation prompt template not found: {e}") from e
+            raise AgentExecutionError(
+                f"File generation prompt template not found: {e}"
+            ) from e
 
         # Format prompt with file metadata and design specification
         # Escape curly braces in design specification JSON to avoid format() issues
@@ -597,9 +646,12 @@ class CodeAgent(BaseAgent):
             semantic_unit_id=file_meta.semantic_unit_id or "None",
             component_id=file_meta.component_id or "None",
             estimated_lines=file_meta.estimated_lines,
-            dependencies=", ".join(file_meta.dependencies) if file_meta.dependencies else "None",
+            dependencies=(
+                ", ".join(file_meta.dependencies) if file_meta.dependencies else "None"
+            ),
             design_specification=design_spec_escaped,
-            coding_standards=input_data.coding_standards or "Follow industry best practices",
+            coding_standards=input_data.coding_standards
+            or "Follow industry best practices",
         )
 
         logger.debug(
@@ -692,7 +744,9 @@ class CodeAgent(BaseAgent):
         Raises:
             AgentExecutionError: If generation fails
         """
-        logger.info(f"Starting multi-stage code generation for task_id={input_data.task_id}")
+        logger.info(
+            f"Starting multi-stage code generation for task_id={input_data.task_id}"
+        )
 
         # Phase 1: Generate file manifest
         logger.info("Phase 1: Generating file manifest...")

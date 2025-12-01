@@ -164,9 +164,7 @@ class TestArchitectureReviewAgentExecute:
         mock_load_prompt.return_value = "Architecture review prompt template"
         mock_format_prompt.return_value = "Formatted prompt"
         mock_call_llm.return_value = {
-            "content": json.dumps(
-                {"issues_found": [], "improvement_suggestions": []}
-            )
+            "content": json.dumps({"issues_found": [], "improvement_suggestions": []})
         }
 
         result = agent.execute(design_spec)
@@ -178,7 +176,13 @@ class TestArchitectureReviewAgentExecute:
     @patch.object(ArchitectureReviewAgent, "format_prompt")
     @patch.object(ArchitectureReviewAgent, "call_llm")
     def test_execute_logs_review_metrics(
-        self, mock_call_llm, mock_format_prompt, mock_load_prompt, agent, design_spec, caplog
+        self,
+        mock_call_llm,
+        mock_format_prompt,
+        mock_load_prompt,
+        agent,
+        design_spec,
+        caplog,
     ):
         """Test execute logs architecture review metrics."""
         mock_load_prompt.return_value = "Architecture review prompt template"
@@ -311,7 +315,10 @@ class TestArchitectureReviewAgentDetection:
         assert len(result["issues_found"]) >= 1
         issue = result["issues_found"][0]
         assert issue["severity"] in ["Critical", "High"]
-        assert "test" in issue["description"].lower() or "hardcod" in issue["description"].lower()
+        assert (
+            "test" in issue["description"].lower()
+            or "hardcod" in issue["description"].lower()
+        )
 
     @patch.object(ArchitectureReviewAgent, "load_prompt")
     @patch.object(ArchitectureReviewAgent, "format_prompt")
@@ -406,7 +413,10 @@ class TestArchitectureReviewAgentDetection:
 
         assert len(result["issues_found"]) >= 1
         issue = result["issues_found"][0]
-        assert "pattern" in issue["description"].lower() or "strategy" in issue["description"].lower()
+        assert (
+            "pattern" in issue["description"].lower()
+            or "strategy" in issue["description"].lower()
+        )
 
     @patch.object(ArchitectureReviewAgent, "load_prompt")
     @patch.object(ArchitectureReviewAgent, "format_prompt")
@@ -865,9 +875,7 @@ class TestArchitectureReviewAgentEdgeCases:
         mock_load_prompt.return_value = "Architecture review prompt template"
         mock_format_prompt.return_value = "Formatted prompt"
         mock_call_llm.return_value = {
-            "content": json.dumps(
-                {"issues_found": [], "improvement_suggestions": []}
-            )
+            "content": json.dumps({"issues_found": [], "improvement_suggestions": []})
         }
 
         result = agent.execute(design_spec)

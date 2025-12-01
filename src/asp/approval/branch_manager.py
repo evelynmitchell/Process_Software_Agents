@@ -32,21 +32,17 @@ class BranchManager:
             ["git", "checkout", base_branch],
             cwd=self.repo_path,
             check=True,
-            capture_output=True
+            capture_output=True,
         )
         subprocess.run(
             ["git", "checkout", "-b", branch_name],
             cwd=self.repo_path,
             check=True,
-            capture_output=True
+            capture_output=True,
         )
 
     def commit_output(
-        self,
-        branch_name: str,
-        output: Dict[str, Any],
-        task_id: str,
-        gate_type: str
+        self, branch_name: str, output: Dict[str, Any], task_id: str, gate_type: str
     ) -> str:
         """
         Commit agent output to branch.
@@ -65,7 +61,7 @@ class BranchManager:
             ["git", "checkout", branch_name],
             cwd=self.repo_path,
             check=True,
-            capture_output=True
+            capture_output=True,
         )
 
         # Write output files
@@ -73,10 +69,7 @@ class BranchManager:
 
         # Stage changes
         subprocess.run(
-            ["git", "add", "."],
-            cwd=self.repo_path,
-            check=True,
-            capture_output=True
+            ["git", "add", "."], cwd=self.repo_path, check=True, capture_output=True
         )
 
         # Check if there are changes to commit
@@ -85,7 +78,7 @@ class BranchManager:
             cwd=self.repo_path,
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
 
         if not status_result.stdout.strip():
@@ -95,12 +88,12 @@ class BranchManager:
                 cwd=self.repo_path,
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             return result.stdout.strip()
 
         # Commit
-        agent_name = output.get('agent', 'Unknown Agent')
+        agent_name = output.get("agent", "Unknown Agent")
         commit_msg = f"""Agent output for {task_id}
 
 Task: {task_id}
@@ -112,7 +105,7 @@ Requires HITL approval"""
             ["git", "commit", "-m", commit_msg],
             cwd=self.repo_path,
             check=True,
-            capture_output=True
+            capture_output=True,
         )
 
         # Get commit SHA
@@ -121,15 +114,11 @@ Requires HITL approval"""
             cwd=self.repo_path,
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
         return result.stdout.strip()
 
-    def generate_diff(
-        self,
-        base_branch: str,
-        feature_branch: str
-    ) -> str:
+    def generate_diff(self, base_branch: str, feature_branch: str) -> str:
         """
         Generate diff between branches.
 
@@ -145,15 +134,11 @@ Requires HITL approval"""
             cwd=self.repo_path,
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
         return result.stdout
 
-    def get_diff_stats(
-        self,
-        base_branch: str,
-        feature_branch: str
-    ) -> Dict[str, Any]:
+    def get_diff_stats(self, base_branch: str, feature_branch: str) -> Dict[str, Any]:
         """
         Get diff statistics between branches.
 
@@ -169,11 +154,11 @@ Requires HITL approval"""
             cwd=self.repo_path,
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
 
         # Parse the summary line (e.g., "3 files changed, 45 insertions(+), 12 deletions(-)")
-        lines = result.stdout.strip().split('\n')
+        lines = result.stdout.strip().split("\n")
         if not lines:
             return {"files_changed": 0, "insertions": 0, "deletions": 0}
 
@@ -181,7 +166,7 @@ Requires HITL approval"""
         stats = {"files_changed": 0, "insertions": 0, "deletions": 0}
 
         if "file" in summary:
-            parts = summary.split(',')
+            parts = summary.split(",")
             for part in parts:
                 part = part.strip()
                 if "file" in part:
@@ -194,10 +179,7 @@ Requires HITL approval"""
         return stats
 
     def add_note(
-        self,
-        commit_sha: str,
-        note_content: str,
-        notes_ref: str = "reviews"
+        self, commit_sha: str, note_content: str, notes_ref: str = "reviews"
     ) -> None:
         """
         Add git note to commit.
@@ -211,10 +193,12 @@ Requires HITL approval"""
             ["git", "notes", "--ref", notes_ref, "add", commit_sha, "-m", note_content],
             cwd=self.repo_path,
             check=True,
-            capture_output=True
+            capture_output=True,
         )
 
-    def delete_branch(self, branch_name: str, force: bool = False, switch_to: str = "main") -> None:
+    def delete_branch(
+        self, branch_name: str, force: bool = False, switch_to: str = "main"
+    ) -> None:
         """
         Delete branch.
 
@@ -232,7 +216,7 @@ Requires HITL approval"""
                 ["git", "checkout", switch_to],
                 cwd=self.repo_path,
                 check=True,
-                capture_output=True
+                capture_output=True,
             )
 
         flag = "-D" if force else "-d"
@@ -240,7 +224,7 @@ Requires HITL approval"""
             ["git", "branch", flag, branch_name],
             cwd=self.repo_path,
             check=True,
-            capture_output=True
+            capture_output=True,
         )
 
     def get_current_branch(self) -> str:
@@ -255,7 +239,7 @@ Requires HITL approval"""
             cwd=self.repo_path,
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
         return result.stdout.strip()
 
@@ -272,7 +256,7 @@ Requires HITL approval"""
         result = subprocess.run(
             ["git", "rev-parse", "--verify", branch_name],
             cwd=self.repo_path,
-            capture_output=True
+            capture_output=True,
         )
         return result.returncode == 0
 
@@ -291,18 +275,14 @@ Requires HITL approval"""
             cmd.append(pattern)
 
         result = subprocess.run(
-            cmd,
-            cwd=self.repo_path,
-            capture_output=True,
-            text=True,
-            check=True
+            cmd, cwd=self.repo_path, capture_output=True, text=True, check=True
         )
 
         # Parse branch names (remove leading spaces and asterisk)
         branches = []
-        for line in result.stdout.strip().split('\n'):
+        for line in result.stdout.strip().split("\n"):
             if line:
-                branch = line.strip().lstrip('* ')
+                branch = line.strip().lstrip("* ")
                 branches.append(branch)
 
         return branches
@@ -315,8 +295,8 @@ Requires HITL approval"""
             output: Agent output dictionary
         """
         # If output contains 'artifacts' key with file paths
-        if 'artifacts' in output:
-            artifacts = output['artifacts']
+        if "artifacts" in output:
+            artifacts = output["artifacts"]
             if isinstance(artifacts, dict):
                 for file_path, content in artifacts.items():
                     full_path = self.repo_path / file_path
@@ -324,17 +304,17 @@ Requires HITL approval"""
                     full_path.write_text(content)
 
         # If output contains 'output_file' key
-        if 'output_file' in output and 'content' in output:
-            output_file = self.repo_path / output['output_file']
+        if "output_file" in output and "content" in output:
+            output_file = self.repo_path / output["output_file"]
             output_file.parent.mkdir(parents=True, exist_ok=True)
-            output_file.write_text(output['content'])
+            output_file.write_text(output["content"])
 
         # Write metadata file
-        metadata_file = self.repo_path / '.review_metadata.json'
+        metadata_file = self.repo_path / ".review_metadata.json"
         metadata = {
-            'task_id': output.get('task_id'),
-            'agent': output.get('agent'),
-            'timestamp': output.get('timestamp'),
-            'gate_type': output.get('gate_type')
+            "task_id": output.get("task_id"),
+            "agent": output.get("agent"),
+            "timestamp": output.get("timestamp"),
+            "gate_type": output.get("gate_type"),
         }
         metadata_file.write_text(json.dumps(metadata, indent=2))

@@ -13,11 +13,7 @@ Date: 2025-11-19
 __version__ = "1.0.0"
 
 # Test configuration
-TEST_CONFIG = {
-    "api_base_url": "http://testserver",
-    "timeout": 30,
-    "max_retries": 3
-}
+TEST_CONFIG = {"api_base_url": "http://testserver", "timeout": 30, "max_retries": 3}
 
 # Common test fixtures and utilities can be imported here
 # from .fixtures import *

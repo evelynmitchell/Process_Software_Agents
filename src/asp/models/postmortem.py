@@ -419,8 +419,16 @@ class PostmortemReport(BaseModel):
                         "actual": 38500,
                         "variance_percent": 10.0,
                     },
-                    "tokens": {"planned": 88000, "actual": 102000, "variance_percent": 15.9},
-                    "api_cost": {"planned": 0.14, "actual": 0.17, "variance_percent": 21.4},
+                    "tokens": {
+                        "planned": 88000,
+                        "actual": 102000,
+                        "variance_percent": 15.9,
+                    },
+                    "api_cost": {
+                        "planned": 0.14,
+                        "actual": 0.17,
+                        "variance_percent": 21.4,
+                    },
                     "semantic_complexity": {
                         "planned": 18.5,
                         "actual": 20.3,

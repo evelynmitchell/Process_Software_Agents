@@ -226,7 +226,10 @@ class PostmortemAgent(BaseAgent):
         for entry in input_data.effort_log:
             if entry.metric_type == "Latency" and entry.unit == "ms":
                 actual_latency_ms += entry.metric_value
-            elif entry.metric_type in ["Tokens_In", "Tokens_Out"] and entry.unit == "tokens":
+            elif (
+                entry.metric_type in ["Tokens_In", "Tokens_Out"]
+                and entry.unit == "tokens"
+            ):
                 actual_tokens += entry.metric_value
             elif entry.metric_type == "API_Cost" and entry.unit == "USD":
                 actual_api_cost += entry.metric_value
@@ -344,7 +347,9 @@ class PostmortemAgent(BaseAgent):
             total_effort = sum(
                 d.effort_to_fix_vector.get("api_cost", 0.0) for d in defects
             )
-            average_effort = total_effort / occurrence_count if occurrence_count > 0 else 0.0
+            average_effort = (
+                total_effort / occurrence_count if occurrence_count > 0 else 0.0
+            )
 
             # Generate recommendation based on defect type
             recommendation = self._generate_recommendation_for_defect_type(
@@ -447,7 +452,9 @@ class PostmortemAgent(BaseAgent):
         ]
 
         if defect_count > 0:
-            top_defect = root_cause_analysis[0].defect_type if root_cause_analysis else "N/A"
+            top_defect = (
+                root_cause_analysis[0].defect_type if root_cause_analysis else "N/A"
+            )
             summary_parts.append(
                 f"{defect_count} defect{'s' if defect_count > 1 else ''} found "
                 f"(density: {defect_density:.2f}), with {top_defect} being the primary issue."
@@ -457,7 +464,9 @@ class PostmortemAgent(BaseAgent):
 
         # Add recommendation hint
         if root_cause_analysis:
-            summary_parts.append("Process improvements recommended to prevent future defects.")
+            summary_parts.append(
+                "Process improvements recommended to prevent future defects."
+            )
 
         return " ".join(summary_parts)
 
@@ -474,7 +483,9 @@ class PostmortemAgent(BaseAgent):
             List of recommendation strings
         """
         if not root_cause_analysis:
-            return ["Continue current development process - no significant defects detected."]
+            return [
+                "Continue current development process - no significant defects detected."
+            ]
 
         recommendations = []
         for item in root_cause_analysis[:3]:  # Top 3 issues

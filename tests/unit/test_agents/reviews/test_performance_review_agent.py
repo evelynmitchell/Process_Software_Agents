@@ -195,9 +195,7 @@ class TestPerformanceReviewAgentExecute:
         mock_load_prompt.return_value = "Performance review prompt template"
         mock_format_prompt.return_value = "Formatted prompt"
         mock_call_llm.return_value = {
-            "content": json.dumps(
-                {"issues_found": [], "improvement_suggestions": []}
-            )
+            "content": json.dumps({"issues_found": [], "improvement_suggestions": []})
         }
 
         result = agent.execute(design_spec)
@@ -209,7 +207,13 @@ class TestPerformanceReviewAgentExecute:
     @patch.object(PerformanceReviewAgent, "format_prompt")
     @patch.object(PerformanceReviewAgent, "call_llm")
     def test_execute_logs_review_metrics(
-        self, mock_call_llm, mock_format_prompt, mock_load_prompt, agent, design_spec, caplog
+        self,
+        mock_call_llm,
+        mock_format_prompt,
+        mock_load_prompt,
+        agent,
+        design_spec,
+        caplog,
     ):
         """Test execute logs performance review metrics."""
         mock_load_prompt.return_value = "Performance review prompt template"
@@ -237,7 +241,9 @@ class TestPerformanceReviewAgentExecute:
             agent.execute(design_spec)
 
         assert "Starting performance review for task PERF-TEST-001" in caplog.text
-        assert "Performance review completed: found 1 issues, 0 suggestions" in caplog.text
+        assert (
+            "Performance review completed: found 1 issues, 0 suggestions" in caplog.text
+        )
 
 
 class TestPerformanceReviewAgentDetection:

@@ -122,7 +122,7 @@ class PIPReviewCollector:
         """Display PIP header with metadata."""
         self.console.rule(
             f"[bold cyan]Process Improvement Proposal: {pip.proposal_id}[/bold cyan]",
-            style="cyan"
+            style="cyan",
         )
         self.console.print()
 
@@ -200,15 +200,21 @@ class PIPReviewCollector:
         self.console.rule("[bold cyan]REVIEW DECISION", style="cyan")
         self.console.print()
         self.console.print("[bold]Options:[/bold]")
-        self.console.print("  [green]1. APPROVE[/green]          - Accept and apply changes")
-        self.console.print("  [red]2. REJECT[/red]           - Reject proposal entirely")
-        self.console.print("  [yellow]3. NEEDS REVISION[/yellow]  - Request modifications")
+        self.console.print(
+            "  [green]1. APPROVE[/green]          - Accept and apply changes"
+        )
+        self.console.print(
+            "  [red]2. REJECT[/red]           - Reject proposal entirely"
+        )
+        self.console.print(
+            "  [yellow]3. NEEDS REVISION[/yellow]  - Request modifications"
+        )
         self.console.print()
 
         decision_map = {
-            '1': 'approved',
-            '2': 'rejected',
-            '3': 'needs_revision',
+            "1": "approved",
+            "2": "rejected",
+            "3": "needs_revision",
         }
 
         while True:
@@ -230,17 +236,23 @@ class PIPReviewCollector:
         self.console.print()
 
         if decision == "approved":
-            self.console.print("[bold green]Approval justification (required):[/bold green]")
+            self.console.print(
+                "[bold green]Approval justification (required):[/bold green]"
+            )
         elif decision == "rejected":
             self.console.print("[bold red]Rejection reason (required):[/bold red]")
         else:
-            self.console.print("[bold yellow]Revision requests (required):[/bold yellow]")
+            self.console.print(
+                "[bold yellow]Revision requests (required):[/bold yellow]"
+            )
 
         while True:
             feedback = self.console.input("> ")
             if feedback.strip():
                 return feedback.strip()
-            self.console.print("[red]Feedback is required. Please provide a reason.[/red]")
+            self.console.print(
+                "[red]Feedback is required. Please provide a reason.[/red]"
+            )
 
     def _get_reviewer(self) -> str:
         """
@@ -258,7 +270,7 @@ class PIPReviewCollector:
                 ["git", "config", "user.email"],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             email = result.stdout.strip()
             if email:
@@ -284,7 +296,9 @@ class PIPReviewCollector:
         }
         color = color_map.get(pip.hitl_status, "white")
 
-        self.console.print(f"[bold]Decision:[/bold] [{color}]{pip.hitl_status.upper()}[/{color}]")
+        self.console.print(
+            f"[bold]Decision:[/bold] [{color}]{pip.hitl_status.upper()}[/{color}]"
+        )
         self.console.print(f"[bold]Reviewer:[/bold] {pip.hitl_reviewer}")
         self.console.print(f"[bold]Timestamp:[/bold] {pip.hitl_reviewed_at}")
         self.console.print(f"[bold]Feedback:[/bold] {pip.hitl_feedback}")
@@ -399,7 +413,9 @@ class PIPReviewService:
                 continue
 
             try:
-                pip_data = read_artifact_json(task_dir.name, "pip", base_path=self.base_path)
+                pip_data = read_artifact_json(
+                    task_dir.name, "pip", base_path=self.base_path
+                )
                 pip = ProcessImprovementProposal(**pip_data)
 
                 if pip.hitl_status == "pending":

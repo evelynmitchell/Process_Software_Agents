@@ -38,9 +38,7 @@ class MaintainabilityReviewAgent(BaseAgent):
         self,
         design_spec: DesignSpecification,
     ) -> dict[str, Any]:
-        logger.info(
-            f"Starting maintainability review for task {design_spec.task_id}"
-        )
+        logger.info(f"Starting maintainability review for task {design_spec.task_id}")
 
         try:
             prompt_template = self.load_prompt("maintainability_review_agent_v1")
@@ -55,7 +53,10 @@ class MaintainabilityReviewAgent(BaseAgent):
             if isinstance(content, str):
                 content = json.loads(content)
 
-            if "issues_found" not in content or "improvement_suggestions" not in content:
+            if (
+                "issues_found" not in content
+                or "improvement_suggestions" not in content
+            ):
                 raise ValueError("Response missing required fields")
 
             logger.info(

@@ -32,13 +32,16 @@ from langfuse import Langfuse
 # ============================================================================
 
 # Database path (relative to project root)
-DEFAULT_DB_PATH = Path(__file__).parent.parent.parent.parent / "data" / "asp_telemetry.db"
+DEFAULT_DB_PATH = (
+    Path(__file__).parent.parent.parent.parent / "data" / "asp_telemetry.db"
+)
 
 
 class DefectType(StrEnum):
     """
     Standard Defect Taxonomy (PSP/TSP PROBE).
     """
+
     DOCUMENTATION = "10_Documentation"
     SYNTAX = "20_Syntax"
     BUILD_PACKAGE = "30_Build_Package"
@@ -49,6 +52,7 @@ class DefectType(StrEnum):
     FUNCTION = "80_Function"
     SYSTEM = "90_System"
     ENVIRONMENT = "100_Environment"
+
 
 # Langfuse client (initialized lazily)
 _langfuse_client: Optional[Langfuse] = None
@@ -105,6 +109,7 @@ def get_user_id() -> str:
 # ============================================================================
 # Database Helpers
 # ============================================================================
+
 
 @contextmanager
 def get_db_connection(db_path: Optional[Path] = None):
@@ -295,6 +300,7 @@ def insert_defect(
 # Decorators
 # ============================================================================
 
+
 def track_agent_cost(
     agent_role: str,
     task_id_param: str = "task_id",
@@ -325,6 +331,7 @@ def track_agent_cost(
             # Your agent logic here
             return {"decomposed_tasks": [...]}
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -343,6 +350,7 @@ def track_agent_cost(
                 if param_value is None:
                     # Try positional args
                     import inspect
+
                     sig = inspect.signature(func)
                     param_names = list(sig.parameters.keys())
                     if param_name in param_names:
@@ -359,6 +367,7 @@ def track_agent_cost(
                 if task_id is None:
                     # Try to find it in positional args based on function signature
                     import inspect
+
                     sig = inspect.signature(func)
                     param_names = list(sig.parameters.keys())
                     if task_id_param in param_names:
@@ -372,7 +381,9 @@ def track_agent_cost(
                                 task_id = param_value
 
             if task_id is None:
-                raise ValueError(f"task_id not found in function arguments (looking for '{task_id_param}')")
+                raise ValueError(
+                    f"task_id not found in function arguments (looking for '{task_id_param}')"
+                )
 
             # Resolve User and Model
             user_id = get_user_id()
@@ -384,7 +395,11 @@ def track_agent_cost(
                 tags=[
                     f"user:{user_id}",
                     f"model:{llm_model}" if llm_model else "model:unknown",
-                    f"pair:{user_id}|{llm_model}" if llm_model else f"pair:{user_id}|unknown"
+                    (
+                        f"pair:{user_id}|{llm_model}"
+                        if llm_model
+                        else f"pair:{user_id}|unknown"
+                    ),
                 ],
                 metadata={
                     "agent_role": agent_role,
@@ -505,6 +520,7 @@ def track_agent_cost(
                     print(f"Warning: Failed to log to Langfuse: {lf_error}")
 
         return wrapper
+
     return decorator
 
 
@@ -538,6 +554,7 @@ def log_defect(
             # Your fix logic here
             return {"fixed": True}
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -545,6 +562,7 @@ def log_defect(
             task_id = kwargs.get(task_id_param)
             if task_id is None:
                 import inspect
+
                 sig = inspect.signature(func)
                 param_names = list(sig.parameters.keys())
                 if task_id_param in param_names:
@@ -553,7 +571,9 @@ def log_defect(
                         task_id = args[idx]
 
             if task_id is None:
-                raise ValueError(f"task_id not found in function arguments (looking for '{task_id_param}')")
+                raise ValueError(
+                    f"task_id not found in function arguments (looking for '{task_id_param}')"
+                )
 
             # Resolve User
             user_id = get_user_id()
@@ -616,12 +636,14 @@ def log_defect(
                     print(f"Warning: Failed to log defect to Langfuse: {lf_error}")
 
         return wrapper
+
     return decorator
 
 
 # ============================================================================
 # Manual Logging Functions (for non-decorator usage)
 # ============================================================================
+
 
 def log_agent_metric(
     task_id: str,

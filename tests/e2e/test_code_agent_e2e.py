@@ -60,8 +60,16 @@ def create_simple_design_specification(task_id: str) -> DesignSpecification:
                     "created_at": "string (ISO 8601 timestamp)",
                 },
                 error_responses=[
-                    {"status": 400, "code": "INVALID_INPUT", "message": "Invalid email or password format"},
-                    {"status": 409, "code": "EMAIL_EXISTS", "message": "Email already registered"},
+                    {
+                        "status": 400,
+                        "code": "INVALID_INPUT",
+                        "message": "Invalid email or password format",
+                    },
+                    {
+                        "status": 409,
+                        "code": "EMAIL_EXISTS",
+                        "message": "Email already registered",
+                    },
                 ],
                 authentication_required=False,
             ),
@@ -71,10 +79,26 @@ def create_simple_design_specification(task_id: str) -> DesignSpecification:
                 table_name="users",
                 description="User account information including credentials and timestamps",
                 columns=[
-                    {"name": "user_id", "type": "UUID", "constraints": "PRIMARY KEY DEFAULT gen_random_uuid()"},
-                    {"name": "email", "type": "VARCHAR(255)", "constraints": "UNIQUE NOT NULL"},
-                    {"name": "password_hash", "type": "VARCHAR(255)", "constraints": "NOT NULL"},
-                    {"name": "created_at", "type": "TIMESTAMP", "constraints": "DEFAULT NOW()"},
+                    {
+                        "name": "user_id",
+                        "type": "UUID",
+                        "constraints": "PRIMARY KEY DEFAULT gen_random_uuid()",
+                    },
+                    {
+                        "name": "email",
+                        "type": "VARCHAR(255)",
+                        "constraints": "UNIQUE NOT NULL",
+                    },
+                    {
+                        "name": "password_hash",
+                        "type": "VARCHAR(255)",
+                        "constraints": "NOT NULL",
+                    },
+                    {
+                        "name": "created_at",
+                        "type": "TIMESTAMP",
+                        "constraints": "DEFAULT NOW()",
+                    },
                 ],
                 indexes=[
                     "CREATE INDEX idx_users_email ON users(email)",
@@ -131,7 +155,11 @@ def create_simple_design_specification(task_id: str) -> DesignSpecification:
                 severity="Medium",
             ),
         ],
-        assumptions=["PostgreSQL 16 available", "Python 3.12+ environment", "FastAPI framework installed"],
+        assumptions=[
+            "PostgreSQL 16 available",
+            "Python 3.12+ environment",
+            "FastAPI framework installed",
+        ],
         agent_version="1.0.0",
     )
 
@@ -172,12 +200,16 @@ class TestCodeAgentE2E:
         assert len(generated_code.implementation_notes) >= 50
 
         print(f" Code generation successful!")
-        print(f"   Generated {generated_code.total_files} files with {generated_code.total_lines_of_code} LOC")
+        print(
+            f"   Generated {generated_code.total_files} files with {generated_code.total_lines_of_code} LOC"
+        )
         print(f"   Dependencies: {len(generated_code.dependencies)}")
 
         # Validate file structure
         assert len(generated_code.file_structure) > 0
-        total_files_in_structure = sum(len(files) for files in generated_code.file_structure.values())
+        total_files_in_structure = sum(
+            len(files) for files in generated_code.file_structure.values()
+        )
         assert total_files_in_structure == generated_code.total_files
 
         # Validate files
@@ -185,8 +217,17 @@ class TestCodeAgentE2E:
         for file in generated_code.files:
             # Basic file validations
             assert len(file.file_path) > 0
-            assert len(file.content) > 0, f"File {file.file_path} should have non-empty content"
-            assert file.file_type in ["source", "test", "config", "documentation", "requirements", "schema"]
+            assert (
+                len(file.content) > 0
+            ), f"File {file.file_path} should have non-empty content"
+            assert file.file_type in [
+                "source",
+                "test",
+                "config",
+                "documentation",
+                "requirements",
+                "schema",
+            ]
             assert len(file.description) >= 20
 
             file_types_found.add(file.file_type)
@@ -206,7 +247,9 @@ class TestCodeAgentE2E:
         # Validate semantic units and components
         assert len(generated_code.semantic_units_implemented) > 0
         for su_id in generated_code.semantic_units_implemented:
-            assert su_id.startswith("SU-"), f"Semantic unit ID should start with 'SU-': {su_id}"
+            assert su_id.startswith(
+                "SU-"
+            ), f"Semantic unit ID should start with 'SU-': {su_id}"
 
         assert len(generated_code.components_implemented) > 0
 
@@ -214,8 +257,10 @@ class TestCodeAgentE2E:
         print(f"   Components: {generated_code.components_implemented}")
 
         # Validate implementation notes
-        assert "bcrypt" in generated_code.implementation_notes.lower() or "password" in generated_code.implementation_notes.lower(), \
-            "Implementation notes should mention password hashing approach"
+        assert (
+            "bcrypt" in generated_code.implementation_notes.lower()
+            or "password" in generated_code.implementation_notes.lower()
+        ), "Implementation notes should mention password hashing approach"
 
         print(f"\n All validations passed!")
 
@@ -244,18 +289,26 @@ class TestCodeAgentE2E:
         print(f" Test files generated: {len(test_files)}")
 
         for test_file in test_files:
-            assert "test" in test_file.file_path.lower(), f"Test file path should contain 'test': {test_file.file_path}"
-            assert len(test_file.content) > 50, "Test files should have substantial content"
+            assert (
+                "test" in test_file.file_path.lower()
+            ), f"Test file path should contain 'test': {test_file.file_path}"
+            assert (
+                len(test_file.content) > 50
+            ), "Test files should have substantial content"
 
             # Check for common test frameworks
             content_lower = test_file.content.lower()
-            has_test_framework = any([
-                "import pytest" in content_lower,
-                "import unittest" in content_lower,
-                "def test_" in content_lower,
-                "class test" in content_lower,
-            ])
-            assert has_test_framework, f"Test file should use a test framework: {test_file.file_path}"
+            has_test_framework = any(
+                [
+                    "import pytest" in content_lower,
+                    "import unittest" in content_lower,
+                    "def test_" in content_lower,
+                    "class test" in content_lower,
+                ]
+            )
+            assert (
+                has_test_framework
+            ), f"Test file should use a test framework: {test_file.file_path}"
 
         print(f" All test files valid!")
 
@@ -288,11 +341,18 @@ class TestCodeAgentE2E:
 
         # Check that file structure respects context hints
         file_paths = [f.file_path for f in generated_code.files]
-        has_structured_paths = any([
-            "src/" in path or "api/" in path or "service" in path.lower() or "model" in path.lower()
-            for path in file_paths
-        ])
-        assert has_structured_paths, "Should organize files in a structured directory layout"
+        has_structured_paths = any(
+            [
+                "src/" in path
+                or "api/" in path
+                or "service" in path.lower()
+                or "model" in path.lower()
+                for path in file_paths
+            ]
+        )
+        assert (
+            has_structured_paths
+        ), "Should organize files in a structured directory layout"
 
         print(f" Code generation with context successful!")
         print(f"   File paths: {', '.join(file_paths[:5])}...")

@@ -137,11 +137,24 @@ class TestDesignAgentE2E:
             assert len(component.interfaces) > 0
 
         # Validate design review checklist
-        valid_categories = ["completeness", "correctness", "performance", "security", "maintainability", "data integrity", "error handling", "architecture"]
+        valid_categories = [
+            "completeness",
+            "correctness",
+            "performance",
+            "security",
+            "maintainability",
+            "data integrity",
+            "error handling",
+            "architecture",
+        ]
         valid_severities = ["critical", "high", "medium", "low"]
         for item in design.design_review_checklist:
-            assert item.category.lower() in valid_categories, f"Invalid category: {item.category}"
-            assert item.severity.lower() in valid_severities, f"Invalid severity: {item.severity}"
+            assert (
+                item.category.lower() in valid_categories
+            ), f"Invalid category: {item.category}"
+            assert (
+                item.severity.lower() in valid_severities
+            ), f"Invalid severity: {item.severity}"
             assert len(item.description) >= 10
             assert len(item.validation_criteria) >= 10
 
@@ -275,13 +288,18 @@ class TestDesignAgentE2E:
         # Validate semantic unit coverage
         semantic_unit_ids = {unit.unit_id for unit in project_plan.semantic_units}
         design_unit_ids = {comp.semantic_unit_id for comp in design.component_logic}
-        assert semantic_unit_ids == design_unit_ids, "All semantic units must have components"
+        assert (
+            semantic_unit_ids == design_unit_ids
+        ), "All semantic units must have components"
 
         # Check for security-related design review items
         has_security_checks = any(
-            item.category.lower() == "security" for item in design.design_review_checklist
+            item.category.lower() == "security"
+            for item in design.design_review_checklist
         )
-        assert has_security_checks, "Authentication system should have security review items"
+        assert (
+            has_security_checks
+        ), "Authentication system should have security review items"
 
         # Log results
         print(f"\n{'='*80}")
@@ -326,7 +344,9 @@ class TestDesignAgentE2E:
         )
 
         project_plan = planning_agent.execute(task_requirements)
-        print(f"[OK] Planning complete: {len(project_plan.semantic_units)} units, complexity={project_plan.total_est_complexity}")
+        print(
+            f"[OK] Planning complete: {len(project_plan.semantic_units)} units, complexity={project_plan.total_est_complexity}"
+        )
 
         # Step 2: Run Design Agent
         print(f"\nStep 2: Running Design Agent...")
@@ -340,7 +360,9 @@ class TestDesignAgentE2E:
         )
 
         design = design_agent.execute(design_input)
-        print(f"[OK] Design complete: {len(design.api_contracts)} APIs, {len(design.component_logic)} components")
+        print(
+            f"[OK] Design complete: {len(design.api_contracts)} APIs, {len(design.component_logic)} components"
+        )
 
         # Validate workflow
         assert isinstance(project_plan, ProjectPlan)
@@ -350,7 +372,9 @@ class TestDesignAgentE2E:
         # Validate semantic unit coverage
         planning_units = {unit.unit_id for unit in project_plan.semantic_units}
         design_units = {comp.semantic_unit_id for comp in design.component_logic}
-        assert planning_units == design_units, "Design must cover all planning semantic units"
+        assert (
+            planning_units == design_units
+        ), "Design must cover all planning semantic units"
 
         # Log results
         print(f"\n{'='*80}")
@@ -366,7 +390,11 @@ class TestDesignAgentE2E:
         print(f"  - Review Items: {len(design.design_review_checklist)}")
         print(f"\nSemantic Unit Mapping:")
         for unit in project_plan.semantic_units:
-            components = [c.component_name for c in design.component_logic if c.semantic_unit_id == unit.unit_id]
+            components = [
+                c.component_name
+                for c in design.component_logic
+                if c.semantic_unit_id == unit.unit_id
+            ]
             print(f"  {unit.unit_id}: {len(components)} component(s)")
             for comp in components:
                 print(f"    - {comp}")
@@ -459,9 +487,12 @@ class TestDesignAgentE2E:
 
         # Check for performance-related design review items
         has_performance_checks = any(
-            item.category.lower() == "performance" for item in design.design_review_checklist
+            item.category.lower() == "performance"
+            for item in design.design_review_checklist
         )
-        assert has_performance_checks, "Data pipeline should have performance review items"
+        assert (
+            has_performance_checks
+        ), "Data pipeline should have performance review items"
 
         # Log results
         print(f"\n{'='*80}")
@@ -509,7 +540,9 @@ class TestDesignAgentE2E:
         print(f"Telemetry captured for task: {design_input.task_id}")
         print(f"Database: {db_path}")
         print(f"Check Langfuse dashboard for trace data")
-        print(f"Run: uv run python scripts/query_telemetry.py --task-id {design_input.task_id}")
+        print(
+            f"Run: uv run python scripts/query_telemetry.py --task-id {design_input.task_id}"
+        )
 
 
 if __name__ == "__main__":

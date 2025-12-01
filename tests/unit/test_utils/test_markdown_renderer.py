@@ -356,4 +356,7 @@ class TestRenderCodeReviewMarkdown:
 
         # Should return placeholder message
         assert "Code Review Report" in markdown
-        assert "not available" in markdown.lower() or markdown == "# Code Review Report\n\n*Report not available*\n"
+        assert (
+            "not available" in markdown.lower()
+            or markdown == "# Code Review Report\n\n*Report not available*\n"
+        )

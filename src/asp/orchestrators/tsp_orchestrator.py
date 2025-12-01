@@ -254,10 +254,10 @@ class TSPOrchestrator:
             AgentExecutionError: If agent execution fails
         """
         logger.info(
-            f"="*80 + "\n"
+            f"=" * 80 + "\n"
             f"TSP ORCHESTRATOR: Starting autonomous pipeline\n"
             f"Task: {requirements.task_id} - {requirements.description}\n"
-            f"="*80
+            f"=" * 80
         )
 
         start_time = datetime.now()
@@ -281,7 +281,9 @@ class TSPOrchestrator:
                 hitl_approver=hitl_approver,
             )
             self._log_phase("Design", "SUCCESS", design_spec)
-            self._log_phase("DesignReview", design_review.overall_assessment, design_review)
+            self._log_phase(
+                "DesignReview", design_review.overall_assessment, design_review
+            )
 
             # Phase 3: Code Generation (with correction loop)
             logger.info("\n[PHASE 3/7] CODE AGENT")
@@ -332,14 +334,14 @@ class TSPOrchestrator:
             passed_tests = test_report.test_summary.get("passed", 0)
 
             logger.info(
-                f"\n" + "="*80 + "\n"
+                f"\n" + "=" * 80 + "\n"
                 f"TSP ORCHESTRATOR: Pipeline COMPLETE\n"
                 f"Overall Status: {overall_status}\n"
                 f"Duration: {duration_seconds:.1f}s\n"
                 f"Files Generated: {generated_code.total_files}\n"
                 f"Tests Passed: {passed_tests}/{total_tests}\n"
                 f"HITL Overrides: {len(self.hitl_overrides)}\n"
-                f"="*80
+                f"=" * 80
             )
 
             return TSPExecutionResult(
@@ -403,7 +405,9 @@ class TSPOrchestrator:
 
         while design_iterations < self.MAX_DESIGN_ITERATIONS:
             # Generate design
-            logger.info(f"Design iteration {design_iterations + 1}/{self.MAX_DESIGN_ITERATIONS}")
+            logger.info(
+                f"Design iteration {design_iterations + 1}/{self.MAX_DESIGN_ITERATIONS}"
+            )
             design_input = DesignInput(
                 task_id=requirements.task_id,
                 requirements=requirements.requirements,
@@ -455,7 +459,9 @@ class TSPOrchestrator:
                     hitl_approver=hitl_approver,
                 )
                 if approved:
-                    logger.info("✓ HITL override approved - proceeding despite failures")
+                    logger.info(
+                        "✓ HITL override approved - proceeding despite failures"
+                    )
                     return design_spec, design_review
 
                 # No HITL or rejected - attempt correction if iterations remain
@@ -494,11 +500,14 @@ class TSPOrchestrator:
 
         while code_iterations < self.MAX_CODE_ITERATIONS:
             # Generate code
-            logger.info(f"Code iteration {code_iterations + 1}/{self.MAX_CODE_ITERATIONS}")
+            logger.info(
+                f"Code iteration {code_iterations + 1}/{self.MAX_CODE_ITERATIONS}"
+            )
             code_input = CodeInput(
                 task_id=requirements.task_id,
                 design_specification=design_spec,
-                coding_standards=coding_standards or "Follow PEP 8. Use type hints. Include docstrings.",
+                coding_standards=coding_standards
+                or "Follow PEP 8. Use type hints. Include docstrings.",
             )
             generated_code = self.code_agent.execute(code_input)
             code_iterations += 1
@@ -545,12 +554,16 @@ class TSPOrchestrator:
                     hitl_approver=hitl_approver,
                 )
                 if approved:
-                    logger.info("✓ HITL override approved - proceeding despite failures")
+                    logger.info(
+                        "✓ HITL override approved - proceeding despite failures"
+                    )
                     return generated_code, code_review
 
                 # No HITL or rejected - attempt correction if iterations remain
                 if code_iterations < self.MAX_CODE_ITERATIONS:
-                    logger.info(f"Retrying code generation with feedback from review...")
+                    logger.info(
+                        f"Retrying code generation with feedback from review..."
+                    )
                     continue
                 else:
                     raise QualityGateFailure(
@@ -580,7 +593,9 @@ class TSPOrchestrator:
         test_iterations = 0
 
         while test_iterations < self.MAX_TEST_ITERATIONS:
-            logger.info(f"Test iteration {test_iterations + 1}/{self.MAX_TEST_ITERATIONS}")
+            logger.info(
+                f"Test iteration {test_iterations + 1}/{self.MAX_TEST_ITERATIONS}"
+            )
 
             # Execute tests
             test_input = TestInput(
@@ -617,7 +632,8 @@ class TSPOrchestrator:
                 code_input = CodeInput(
                     task_id=requirements.task_id,
                     design_specification=design_spec,
-                    coding_standards=coding_standards or "Follow PEP 8. Use type hints.",
+                    coding_standards=coding_standards
+                    or "Follow PEP 8. Use type hints.",
                 )
                 generated_code = self.code_agent.execute(code_input)
                 continue
@@ -719,7 +735,7 @@ class TSPOrchestrator:
                 self._record_hitl_override(
                     gate_name,
                     report,
-                    f"Approved by {response.reviewer}: {response.justification}"
+                    f"Approved by {response.reviewer}: {response.justification}",
                 )
                 return True
             else:

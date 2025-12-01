@@ -9,7 +9,7 @@ from asp.approval.base import (
     ApprovalService,
     ApprovalRequest,
     ApprovalResponse,
-    ReviewDecision
+    ReviewDecision,
 )
 from asp.approval.local_pr import LocalPRApprovalService
 
@@ -18,5 +18,5 @@ __all__ = [
     "ApprovalRequest",
     "ApprovalResponse",
     "ReviewDecision",
-    "LocalPRApprovalService"
+    "LocalPRApprovalService",
 ]

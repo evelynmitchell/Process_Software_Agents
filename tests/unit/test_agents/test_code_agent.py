@@ -67,8 +67,16 @@ def create_test_design_specification(task_id="TEST-001"):
                     "created_at": "string (ISO 8601 timestamp)",
                 },
                 error_responses=[
-                    {"status": 400, "code": "INVALID_INPUT", "message": "Invalid email or password format"},
-                    {"status": 409, "code": "EMAIL_EXISTS", "message": "Email already registered"},
+                    {
+                        "status": 400,
+                        "code": "INVALID_INPUT",
+                        "message": "Invalid email or password format",
+                    },
+                    {
+                        "status": 409,
+                        "code": "EMAIL_EXISTS",
+                        "message": "Email already registered",
+                    },
                 ],
                 authentication_required=False,
             )
@@ -79,9 +87,21 @@ def create_test_design_specification(task_id="TEST-001"):
                 description="User account information including credentials and profile",
                 columns=[
                     {"name": "user_id", "type": "UUID", "constraints": "PRIMARY KEY"},
-                    {"name": "email", "type": "VARCHAR(255)", "constraints": "UNIQUE NOT NULL"},
-                    {"name": "password_hash", "type": "VARCHAR(255)", "constraints": "NOT NULL"},
-                    {"name": "created_at", "type": "TIMESTAMP", "constraints": "DEFAULT NOW()"},
+                    {
+                        "name": "email",
+                        "type": "VARCHAR(255)",
+                        "constraints": "UNIQUE NOT NULL",
+                    },
+                    {
+                        "name": "password_hash",
+                        "type": "VARCHAR(255)",
+                        "constraints": "NOT NULL",
+                    },
+                    {
+                        "name": "created_at",
+                        "type": "TIMESTAMP",
+                        "constraints": "DEFAULT NOW()",
+                    },
                 ],
                 indexes=[
                     "CREATE INDEX idx_users_email ON users(email)",
@@ -481,7 +501,9 @@ class TestErrorHandling:
         input_data = create_test_code_input()
 
         # Mock prompt loading to fail
-        with patch.object(agent, "load_prompt", side_effect=FileNotFoundError("Not found")):
+        with patch.object(
+            agent, "load_prompt", side_effect=FileNotFoundError("Not found")
+        ):
             with pytest.raises(AgentExecutionError, match="Prompt template not found"):
                 agent.execute(input_data)
 
@@ -504,7 +526,9 @@ class TestErrorHandling:
         input_data = create_test_code_input()
 
         # Invalid response missing required fields
-        mock_call_llm.return_value = {"content": {"task_id": "TEST-001"}}  # Missing files
+        mock_call_llm.return_value = {
+            "content": {"task_id": "TEST-001"}
+        }  # Missing files
 
         with pytest.raises(AgentExecutionError, match="validation failed"):
             agent.execute(input_data)
@@ -571,7 +595,9 @@ class TestErrorHandling:
         mock_call_llm.return_value = {"content": markdown_content}
 
         # Execute - should raise error with helpful message
-        with pytest.raises(AgentExecutionError, match="Failed to parse JSON from markdown fence"):
+        with pytest.raises(
+            AgentExecutionError, match="Failed to parse JSON from markdown fence"
+        ):
             agent.execute(input_data)
 
 
@@ -620,7 +646,9 @@ class TestOutputValidation:
             assert len(file.content) > 0
             assert isinstance(file.content, str)
             # Content should not be a TODO or placeholder
-            assert "TODO" not in file.content or "pass" in file.content  # Allow pass in test code
+            assert (
+                "TODO" not in file.content or "pass" in file.content
+            )  # Allow pass in test code
 
     @patch("asp.agents.code_agent.CodeAgent.call_llm")
     def test_output_traceability(self, mock_call_llm):

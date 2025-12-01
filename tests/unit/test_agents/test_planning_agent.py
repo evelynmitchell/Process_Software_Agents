@@ -29,7 +29,7 @@ def create_test_requirements(
     project_id="TEST-PROJECT",
     description="Test task description for unit testing",
     requirements="Test requirements with sufficient length for validation to pass",
-    context_files=None
+    context_files=None,
 ):
     """Create a valid TaskRequirements object for testing."""
     return TaskRequirements(
@@ -37,7 +37,7 @@ def create_test_requirements(
         project_id=project_id,
         description=description,
         requirements=requirements,
-        context_files=context_files
+        context_files=context_files,
     )
 
 
@@ -85,7 +85,7 @@ class TestDecomposeTask:
                         "code_entities_modified": 3,
                         "novelty_multiplier": 1.0,
                         "est_complexity": 43,
-                        "dependencies": []
+                        "dependencies": [],
                     },
                     {
                         "unit_id": "SU-002",
@@ -96,8 +96,8 @@ class TestDecomposeTask:
                         "code_entities_modified": 2,
                         "novelty_multiplier": 1.0,
                         "est_complexity": 26,
-                        "dependencies": ["SU-001"]
-                    }
+                        "dependencies": ["SU-001"],
+                    },
                 ]
             }
         }
@@ -111,8 +111,8 @@ class TestDecomposeTask:
         )
 
         # Mock both prompt loading and LLM call
-        with patch.object(agent, 'load_prompt', return_value="Mock prompt {task_id}"):
-            with patch.object(agent, 'call_llm', return_value=llm_response):
+        with patch.object(agent, "load_prompt", return_value="Mock prompt {task_id}"):
+            with patch.object(agent, "call_llm", return_value=llm_response):
                 units = agent.decompose_task(requirements)
 
         assert len(units) == 2
@@ -139,7 +139,7 @@ class TestDecomposeTask:
                         "code_entities_modified": 2,
                         "novelty_multiplier": 1.0,
                         "est_complexity": 50,  # Incorrect (should be 30)
-                        "dependencies": []
+                        "dependencies": [],
                     }
                 ]
             }
@@ -150,8 +150,8 @@ class TestDecomposeTask:
             task_id="TASK-001",
         )
 
-        with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-            with patch.object(agent, 'call_llm', return_value=llm_response):
+        with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+            with patch.object(agent, "call_llm", return_value=llm_response):
                 units = agent.decompose_task(requirements)
 
         # Should override with calculated value (30)
@@ -174,7 +174,7 @@ class TestDecomposeTask:
                         "code_entities_modified": 2,
                         "novelty_multiplier": 1.0,
                         "est_complexity": 31,  # Off by 1 (should be 30)
-                        "dependencies": []
+                        "dependencies": [],
                     }
                 ]
             }
@@ -185,8 +185,8 @@ class TestDecomposeTask:
             task_id="TASK-001",
         )
 
-        with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-            with patch.object(agent, 'call_llm', return_value=llm_response):
+        with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+            with patch.object(agent, "call_llm", return_value=llm_response):
                 units = agent.decompose_task(requirements)
 
         # Should keep LLM value for small difference
@@ -208,7 +208,7 @@ class TestDecomposeTask:
                         "code_entities_modified": 1,
                         "novelty_multiplier": 1.0,
                         "est_complexity": 14,
-                        "dependencies": []
+                        "dependencies": [],
                     }
                 ]
             }
@@ -217,20 +217,22 @@ class TestDecomposeTask:
         requirements = create_test_requirements(
             project_id="PROJ-001",
             task_id="TASK-001",
-            context_files=["file1.py", "file2.py"]
+            context_files=["file1.py", "file2.py"],
         )
 
         mock_prompt_template = "Task: {task_id}\nFiles: {context_files}"
 
-        with patch.object(agent, 'load_prompt', return_value=mock_prompt_template):
-            with patch.object(agent, 'format_prompt', wraps=agent.format_prompt) as mock_format:
-                with patch.object(agent, 'call_llm', return_value=llm_response):
+        with patch.object(agent, "load_prompt", return_value=mock_prompt_template):
+            with patch.object(
+                agent, "format_prompt", wraps=agent.format_prompt
+            ) as mock_format:
+                with patch.object(agent, "call_llm", return_value=llm_response):
                     units = agent.decompose_task(requirements)
 
                     # Verify context_files were passed to format_prompt
                     mock_format.assert_called_once()
                     call_kwargs = mock_format.call_args[1]
-                    assert call_kwargs['context_files'] == "file1.py\nfile2.py"
+                    assert call_kwargs["context_files"] == "file1.py\nfile2.py"
 
     def test_decompose_task_prompt_not_found(self):
         """Test error handling when prompt file not found."""
@@ -241,7 +243,9 @@ class TestDecomposeTask:
             task_id="TASK-001",
         )
 
-        with patch.object(agent, 'load_prompt', side_effect=FileNotFoundError("Prompt not found")):
+        with patch.object(
+            agent, "load_prompt", side_effect=FileNotFoundError("Prompt not found")
+        ):
             with pytest.raises(AgentExecutionError) as exc_info:
                 agent.decompose_task(requirements)
 
@@ -259,8 +263,8 @@ class TestDecomposeTask:
             task_id="TASK-001",
         )
 
-        with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-            with patch.object(agent, 'call_llm', return_value=llm_response):
+        with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+            with patch.object(agent, "call_llm", return_value=llm_response):
                 with pytest.raises(AgentExecutionError) as exc_info:
                     agent.decompose_task(requirements)
 
@@ -278,8 +282,8 @@ class TestDecomposeTask:
             task_id="TASK-001",
         )
 
-        with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-            with patch.object(agent, 'call_llm', return_value=llm_response):
+        with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+            with patch.object(agent, "call_llm", return_value=llm_response):
                 with pytest.raises(AgentExecutionError) as exc_info:
                     agent.decompose_task(requirements)
 
@@ -297,8 +301,8 @@ class TestDecomposeTask:
             task_id="TASK-001",
         )
 
-        with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-            with patch.object(agent, 'call_llm', return_value=llm_response):
+        with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+            with patch.object(agent, "call_llm", return_value=llm_response):
                 with pytest.raises(AgentExecutionError) as exc_info:
                     agent.decompose_task(requirements)
 
@@ -325,8 +329,8 @@ class TestDecomposeTask:
             task_id="TASK-001",
         )
 
-        with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-            with patch.object(agent, 'call_llm', return_value=llm_response):
+        with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+            with patch.object(agent, "call_llm", return_value=llm_response):
                 with pytest.raises(AgentExecutionError) as exc_info:
                     agent.decompose_task(requirements)
 
@@ -353,7 +357,7 @@ class TestExecute:
                         "code_entities_modified": 2,
                         "novelty_multiplier": 1.0,
                         "est_complexity": 30,
-                        "dependencies": []
+                        "dependencies": [],
                     }
                 ]
             }
@@ -366,8 +370,8 @@ class TestExecute:
             requirements="Test requirements with sufficient length",
         )
 
-        with patch.object(agent, 'load_prompt', return_value="Mock prompt {task_id}"):
-            with patch.object(agent, 'call_llm', return_value=llm_response):
+        with patch.object(agent, "load_prompt", return_value="Mock prompt {task_id}"):
+            with patch.object(agent, "call_llm", return_value=llm_response):
                 plan = agent.execute(requirements)
 
         assert isinstance(plan, ProjectPlan)
@@ -395,7 +399,7 @@ class TestExecute:
                         "code_entities_modified": 2,
                         "novelty_multiplier": 1.0,
                         "est_complexity": 30,
-                        "dependencies": []
+                        "dependencies": [],
                     },
                     {
                         "unit_id": "SU-002",
@@ -406,7 +410,7 @@ class TestExecute:
                         "code_entities_modified": 2,
                         "novelty_multiplier": 1.0,
                         "est_complexity": 26,
-                        "dependencies": ["SU-001"]
+                        "dependencies": ["SU-001"],
                     },
                     {
                         "unit_id": "SU-003",
@@ -417,8 +421,8 @@ class TestExecute:
                         "code_entities_modified": 4,
                         "novelty_multiplier": 1.5,
                         "est_complexity": 72,
-                        "dependencies": ["SU-001", "SU-002"]
-                    }
+                        "dependencies": ["SU-001", "SU-002"],
+                    },
                 ]
             }
         }
@@ -430,8 +434,8 @@ class TestExecute:
             requirements="Test requirements with sufficient length",
         )
 
-        with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-            with patch.object(agent, 'call_llm', return_value=llm_response):
+        with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+            with patch.object(agent, "call_llm", return_value=llm_response):
                 plan = agent.execute(requirements)
 
         assert len(plan.semantic_units) == 3
@@ -450,7 +454,9 @@ class TestExecute:
         )
 
         # Mock decompose_task to raise error
-        with patch.object(agent, 'decompose_task', side_effect=Exception("LLM failure")):
+        with patch.object(
+            agent, "decompose_task", side_effect=Exception("LLM failure")
+        ):
             with pytest.raises(AgentExecutionError) as exc_info:
                 agent.execute(requirements)
 
@@ -473,20 +479,18 @@ class TestExecute:
                         "code_entities_modified": 1,
                         "novelty_multiplier": 1.0,
                         "est_complexity": 14,
-                        "dependencies": []
+                        "dependencies": [],
                     }
                 ]
             }
         }
 
         requirements = create_test_requirements(
-            project_id="PROJ-001",
-            task_id="TASK-001",
-            context_files=[]
+            project_id="PROJ-001", task_id="TASK-001", context_files=[]
         )
 
-        with patch.object(agent, 'load_prompt', return_value="Mock {task_id}"):
-            with patch.object(agent, 'call_llm', return_value=llm_response):
+        with patch.object(agent, "load_prompt", return_value="Mock {task_id}"):
+            with patch.object(agent, "call_llm", return_value=llm_response):
                 plan = agent.execute(requirements)
 
         assert plan is not None
@@ -512,7 +516,7 @@ class TestIntegration:
                         "code_entities_modified": 3,
                         "novelty_multiplier": 1.0,
                         "est_complexity": 43,
-                        "dependencies": []
+                        "dependencies": [],
                     },
                     {
                         "unit_id": "SU-002",
@@ -523,7 +527,7 @@ class TestIntegration:
                         "code_entities_modified": 2,
                         "novelty_multiplier": 1.0,
                         "est_complexity": 26,
-                        "dependencies": ["SU-001"]
+                        "dependencies": ["SU-001"],
                     },
                     {
                         "unit_id": "SU-003",
@@ -534,8 +538,8 @@ class TestIntegration:
                         "code_entities_modified": 2,
                         "novelty_multiplier": 1.2,
                         "est_complexity": 43,
-                        "dependencies": ["SU-001", "SU-002"]
-                    }
+                        "dependencies": ["SU-001", "SU-002"],
+                    },
                 ]
             }
         }
@@ -545,11 +549,11 @@ class TestIntegration:
             task_id="TASK-AUTH-001",
             description="Build JWT authentication system",
             requirements="User registration, login, JWT tokens, password hashing",
-            context_files=["src/api/auth.py", "src/models/user.py"]
+            context_files=["src/api/auth.py", "src/models/user.py"],
         )
 
-        with patch.object(agent, 'load_prompt', return_value="Mock prompt"):
-            with patch.object(agent, 'call_llm', return_value=llm_response):
+        with patch.object(agent, "load_prompt", return_value="Mock prompt"):
+            with patch.object(agent, "call_llm", return_value=llm_response):
                 plan = agent.execute(requirements)
 
         # Verify plan structure

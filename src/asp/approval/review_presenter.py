@@ -24,7 +24,7 @@ class ReviewPresenter:
         quality_report: Dict[str, Any],
         diff: str,
         branch_name: str,
-        diff_stats: Optional[Dict[str, Any]] = None
+        diff_stats: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Display review information in terminal.
@@ -42,7 +42,9 @@ class ReviewPresenter:
         self.console.print()
 
         # Summary panel
-        self._display_summary(task_id, gate_type, branch_name, quality_report, diff_stats)
+        self._display_summary(
+            task_id, gate_type, branch_name, quality_report, diff_stats
+        )
 
         # Quality report
         self._display_quality_report(quality_report)
@@ -54,7 +56,7 @@ class ReviewPresenter:
         # Ask if user wants to see full diff
         self.console.print()
         show_diff = self.console.input("[bold]View full diff? [y/n]:[/bold] ")
-        if show_diff.lower() == 'y':
+        if show_diff.lower() == "y":
             self._display_full_diff(diff)
 
     def _display_summary(
@@ -63,7 +65,7 @@ class ReviewPresenter:
         gate_type: str,
         branch_name: str,
         quality_report: Dict[str, Any],
-        diff_stats: Optional[Dict[str, Any]]
+        diff_stats: Optional[Dict[str, Any]],
     ) -> None:
         """Display summary information."""
         summary = Table.grid(padding=(0, 2))
@@ -75,8 +77,8 @@ class ReviewPresenter:
         summary.add_row("Branch:", f"[yellow]{branch_name}[/yellow]")
 
         # Status
-        total_issues = quality_report.get('total_issues', 0)
-        passed = quality_report.get('passed', False)
+        total_issues = quality_report.get("total_issues", 0)
+        passed = quality_report.get("passed", False)
         if passed:
             status = f"[green]✓ PASSED[/green]"
         else:
@@ -85,22 +87,21 @@ class ReviewPresenter:
 
         # Diff stats
         if diff_stats:
-            summary.add_row(
-                "Files Changed:",
-                str(diff_stats.get('files_changed', 0))
-            )
+            summary.add_row("Files Changed:", str(diff_stats.get("files_changed", 0)))
             summary.add_row(
                 "Changes:",
                 f"[green]+{diff_stats.get('insertions', 0)}[/green] / "
-                f"[red]-{diff_stats.get('deletions', 0)}[/red]"
+                f"[red]-{diff_stats.get('deletions', 0)}[/red]",
             )
 
-        self.console.print(Panel(summary, title="[bold]Summary[/bold]", border_style="cyan"))
+        self.console.print(
+            Panel(summary, title="[bold]Summary[/bold]", border_style="cyan")
+        )
         self.console.print()
 
     def _display_quality_report(self, report: Dict[str, Any]) -> None:
         """Display quality issues in table."""
-        issues = report.get('issues', [])
+        issues = report.get("issues", [])
         if not issues:
             self.console.print("[green]No quality issues found[/green]")
             self.console.print()
@@ -112,28 +113,28 @@ class ReviewPresenter:
         table.add_column("Location", justify="left", width=20)
 
         severity_colors = {
-            'CRITICAL': 'red bold',
-            'HIGH': 'red',
-            'MEDIUM': 'yellow',
-            'LOW': 'cyan'
+            "CRITICAL": "red bold",
+            "HIGH": "red",
+            "MEDIUM": "yellow",
+            "LOW": "cyan",
         }
 
         for issue in issues:
-            severity = issue.get('severity', 'UNKNOWN')
-            severity_color = severity_colors.get(severity, 'white')
+            severity = issue.get("severity", "UNKNOWN")
+            severity_color = severity_colors.get(severity, "white")
 
             # Location info
             location_parts = []
-            if 'file' in issue:
-                location_parts.append(issue['file'])
-            if 'line' in issue:
+            if "file" in issue:
+                location_parts.append(issue["file"])
+            if "line" in issue:
                 location_parts.append(f"L{issue['line']}")
-            location = ':'.join(location_parts) if location_parts else '-'
+            location = ":".join(location_parts) if location_parts else "-"
 
             table.add_row(
-                issue.get('description', 'No description'),
+                issue.get("description", "No description"),
                 f"[{severity_color}]{severity}[/{severity_color}]",
-                location
+                location,
             )
 
         self.console.print(table)
@@ -144,27 +145,26 @@ class ReviewPresenter:
 
     def _display_severity_summary(self, report: Dict[str, Any]) -> None:
         """Display issue count summary by severity."""
-        issues = report.get('issues', [])
-        severity_counts = {
-            'CRITICAL': 0,
-            'HIGH': 0,
-            'MEDIUM': 0,
-            'LOW': 0
-        }
+        issues = report.get("issues", [])
+        severity_counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0}
 
         for issue in issues:
-            severity = issue.get('severity', 'LOW')
+            severity = issue.get("severity", "LOW")
             if severity in severity_counts:
                 severity_counts[severity] += 1
 
         summary_parts = []
-        if severity_counts['CRITICAL'] > 0:
-            summary_parts.append(f"[red bold]CRITICAL: {severity_counts['CRITICAL']}[/red bold]")
-        if severity_counts['HIGH'] > 0:
+        if severity_counts["CRITICAL"] > 0:
+            summary_parts.append(
+                f"[red bold]CRITICAL: {severity_counts['CRITICAL']}[/red bold]"
+            )
+        if severity_counts["HIGH"] > 0:
             summary_parts.append(f"[red]HIGH: {severity_counts['HIGH']}[/red]")
-        if severity_counts['MEDIUM'] > 0:
-            summary_parts.append(f"[yellow]MEDIUM: {severity_counts['MEDIUM']}[/yellow]")
-        if severity_counts['LOW'] > 0:
+        if severity_counts["MEDIUM"] > 0:
+            summary_parts.append(
+                f"[yellow]MEDIUM: {severity_counts['MEDIUM']}[/yellow]"
+            )
+        if severity_counts["LOW"] > 0:
             summary_parts.append(f"[cyan]LOW: {severity_counts['LOW']}[/cyan]")
 
         if summary_parts:
@@ -173,9 +173,9 @@ class ReviewPresenter:
 
     def _display_diff_stats(self, diff_stats: Dict[str, Any]) -> None:
         """Display diff statistics."""
-        files_changed = diff_stats.get('files_changed', 0)
-        insertions = diff_stats.get('insertions', 0)
-        deletions = diff_stats.get('deletions', 0)
+        files_changed = diff_stats.get("files_changed", 0)
+        insertions = diff_stats.get("insertions", 0)
+        deletions = diff_stats.get("deletions", 0)
 
         self.console.print(f"[bold]Diff Statistics:[/bold]")
         self.console.print(f"  Files changed: {files_changed}")
@@ -207,12 +207,18 @@ class ReviewPresenter:
         self.console.rule("[bold cyan]REVIEW DECISION", style="cyan")
         self.console.print()
         self.console.print("[bold]Options:[/bold]")
-        self.console.print("  [green]1. APPROVE[/green]   - Merge changes to main branch")
-        self.console.print("  [red]2. REJECT[/red]    - Do not merge, mark for revision")
+        self.console.print(
+            "  [green]1. APPROVE[/green]   - Merge changes to main branch"
+        )
+        self.console.print(
+            "  [red]2. REJECT[/red]    - Do not merge, mark for revision"
+        )
         self.console.print("  [yellow]3. DEFER[/yellow]     - Save decision for later")
         self.console.print()
 
-    def display_approval_result(self, decision: str, merge_commit: Optional[str] = None) -> None:
+    def display_approval_result(
+        self, decision: str, merge_commit: Optional[str] = None
+    ) -> None:
         """
         Display approval result.
 

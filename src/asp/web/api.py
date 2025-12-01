@@ -11,7 +11,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 # Database path (same as telemetry module)
-DEFAULT_DB_PATH = Path(__file__).parent.parent.parent.parent / "data" / "asp_telemetry.db"
+DEFAULT_DB_PATH = (
+    Path(__file__).parent.parent.parent.parent / "data" / "asp_telemetry.db"
+)
 
 
 def get_db_connection(db_path: Optional[Path] = None):
@@ -36,7 +38,8 @@ def get_recent_agent_activity(limit: int = 10) -> List[Dict[str, Any]]:
 
     try:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 timestamp,
                 task_id,
@@ -50,18 +53,22 @@ def get_recent_agent_activity(limit: int = 10) -> List[Dict[str, Any]]:
             WHERE metric_type = 'Latency'
             ORDER BY timestamp DESC
             LIMIT ?
-        """, (limit,))
+        """,
+            (limit,),
+        )
 
         results = []
         for row in cursor.fetchall():
-            results.append({
-                "timestamp": row["timestamp"],
-                "task_id": row["task_id"],
-                "agent_role": row["agent_role"],
-                "latency_ms": row["metric_value"],
-                "user_id": row["user_id"],
-                "llm_model": row["llm_model"],
-            })
+            results.append(
+                {
+                    "timestamp": row["timestamp"],
+                    "task_id": row["task_id"],
+                    "agent_role": row["agent_role"],
+                    "latency_ms": row["metric_value"],
+                    "user_id": row["user_id"],
+                    "llm_model": row["llm_model"],
+                }
+            )
         return results
     except sqlite3.Error:
         return []
@@ -87,21 +94,25 @@ def get_defect_summary() -> Dict[str, Any]:
         total = cursor.fetchone()["total"]
 
         # By severity
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT severity, COUNT(*) as count
             FROM defect_log
             GROUP BY severity
-        """)
+        """
+        )
         by_severity = {row["severity"]: row["count"] for row in cursor.fetchall()}
 
         # By type
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT defect_type, COUNT(*) as count
             FROM defect_log
             GROUP BY defect_type
             ORDER BY count DESC
             LIMIT 5
-        """)
+        """
+        )
         by_type = {row["defect_type"]: row["count"] for row in cursor.fetchall()}
 
         return {
@@ -130,30 +141,39 @@ def get_cost_summary(days: int = 7) -> Dict[str, Any]:
         cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
 
         # Total cost
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT COALESCE(SUM(metric_value), 0) as total
             FROM agent_cost_vector
             WHERE metric_type = 'API_Cost' AND timestamp > ?
-        """, (cutoff,))
+        """,
+            (cutoff,),
+        )
         total_usd = cursor.fetchone()["total"]
 
         # Cost by role
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT agent_role, SUM(metric_value) as cost
             FROM agent_cost_vector
             WHERE metric_type = 'API_Cost' AND timestamp > ?
             GROUP BY agent_role
-        """, (cutoff,))
+        """,
+            (cutoff,),
+        )
         by_role = {row["agent_role"]: row["cost"] for row in cursor.fetchall()}
 
         # Token usage
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 SUM(CASE WHEN metric_type = 'Tokens_In' THEN metric_value ELSE 0 END) as input_tokens,
                 SUM(CASE WHEN metric_type = 'Tokens_Out' THEN metric_value ELSE 0 END) as output_tokens
             FROM agent_cost_vector
             WHERE timestamp > ?
-        """, (cutoff,))
+        """,
+            (cutoff,),
+        )
         row = cursor.fetchone()
         token_usage = {
             "input": int(row["input_tokens"] or 0),
@@ -205,12 +225,14 @@ def get_user_performance(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
 
         results = []
         for row in cursor.fetchall():
-            results.append({
-                "user_id": row["user_id"],
-                "task_count": row["task_count"],
-                "avg_latency_ms": round(row["avg_latency"] or 0, 2),
-                "execution_count": row["execution_count"],
-            })
+            results.append(
+                {
+                    "user_id": row["user_id"],
+                    "task_count": row["task_count"],
+                    "avg_latency_ms": round(row["avg_latency"] or 0, 2),
+                    "execution_count": row["execution_count"],
+                }
+            )
         return results
     except sqlite3.Error:
         return []
@@ -226,8 +248,16 @@ def get_tasks_pending_approval() -> List[Dict[str, Any]]:
     """
     # Placeholder - would connect to approval workflow
     return [
-        {"task_id": "TSP-001", "title": "Implement User Authentication", "status": "pending_review"},
-        {"task_id": "TSP-002", "title": "Add API Rate Limiting", "status": "pending_approval"},
+        {
+            "task_id": "TSP-001",
+            "title": "Implement User Authentication",
+            "status": "pending_review",
+        },
+        {
+            "task_id": "TSP-002",
+            "title": "Add API Rate Limiting",
+            "status": "pending_approval",
+        },
     ]
 
 
@@ -250,7 +280,7 @@ def get_project_progress() -> Dict[str, Any]:
 
         return {
             "completed": total,  # All tracked tasks have executed
-            "in_progress": 2,    # Placeholder
+            "in_progress": 2,  # Placeholder
             "total": total + 2,
         }
     except sqlite3.Error:

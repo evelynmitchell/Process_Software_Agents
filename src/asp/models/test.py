@@ -384,9 +384,7 @@ class TestReport(BaseModel):
                 raise ValueError("test_status cannot be PASS when defects are found")
         elif self.test_summary.get("failed", 0) > 0:
             if self.test_status == "PASS":
-                raise ValueError(
-                    "test_status cannot be PASS when tests have failed"
-                )
+                raise ValueError("test_status cannot be PASS when tests have failed")
         return self
 
     @model_validator(mode="after")
@@ -395,9 +393,7 @@ class TestReport(BaseModel):
         required_keys = {"total_tests", "passed", "failed", "skipped"}
         missing_keys = required_keys - set(self.test_summary.keys())
         if missing_keys:
-            raise ValueError(
-                f"test_summary missing required keys: {missing_keys}"
-            )
+            raise ValueError(f"test_summary missing required keys: {missing_keys}")
         return self
 
     class Config:

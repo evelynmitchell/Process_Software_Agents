@@ -17,25 +17,27 @@ def temp_repo():
     repo_dir = tempfile.mkdtemp()
 
     # Initialize git repo
-    subprocess.run(["git", "init", "-b", "main"], cwd=repo_dir, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "init", "-b", "main"], cwd=repo_dir, check=True, capture_output=True
+    )
     subprocess.run(
         ["git", "config", "user.email", "test@test.com"],
         cwd=repo_dir,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
     subprocess.run(
         ["git", "config", "user.name", "Test User"],
         cwd=repo_dir,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
     # Disable commit signing for test repo
     subprocess.run(
         ["git", "config", "commit.gpgsign", "false"],
         cwd=repo_dir,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
 
     # Create initial commit
@@ -46,7 +48,7 @@ def temp_repo():
         ["git", "commit", "-m", "Initial commit"],
         cwd=repo_dir,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
 
     yield repo_dir
@@ -58,9 +60,7 @@ def temp_repo():
 def approval_service(temp_repo):
     """Create LocalPRApprovalService for testing."""
     return LocalPRApprovalService(
-        repo_path=temp_repo,
-        base_branch="main",
-        auto_cleanup=True
+        repo_path=temp_repo, base_branch="main", auto_cleanup=True
     )
 
 
@@ -72,9 +72,7 @@ def sample_request():
         gate_type="code_review",
         agent_output={
             "agent": "CodeAgent",
-            "artifacts": {
-                "src/test.py": "def test():\n    pass\n"
-            }
+            "artifacts": {"src/test.py": "def test():\n    pass\n"},
         },
         quality_report={
             "passed": False,
@@ -84,17 +82,17 @@ def sample_request():
                     "severity": "MEDIUM",
                     "description": "Missing docstring",
                     "file": "src/test.py",
-                    "line": 1
+                    "line": 1,
                 },
                 {
                     "severity": "LOW",
                     "description": "Short variable name",
                     "file": "src/test.py",
-                    "line": 2
-                }
-            ]
+                    "line": 2,
+                },
+            ],
         },
-        base_branch="main"
+        base_branch="main",
     )
 
 
@@ -105,19 +103,17 @@ def test_request_approval_approved(approval_service, sample_request, temp_repo):
         decision=ReviewDecision.APPROVED,
         reviewer="test@example.com",
         timestamp="2025-11-25T10:00:00Z",
-        justification="Auto-approved for testing"
+        justification="Auto-approved for testing",
     )
 
-    with patch.object(
-        approval_service.approval_collector,
-        'collect_decision',
-        return_value=mock_response
-    ), patch.object(
-        approval_service.review_presenter,
-        'display_review'
-    ), patch.object(
-        approval_service.review_presenter,
-        'display_approval_result'
+    with (
+        patch.object(
+            approval_service.approval_collector,
+            "collect_decision",
+            return_value=mock_response,
+        ),
+        patch.object(approval_service.review_presenter, "display_review"),
+        patch.object(approval_service.review_presenter, "display_approval_result"),
     ):
         response = approval_service.request_approval(sample_request)
 
@@ -144,19 +140,17 @@ def test_request_approval_rejected(approval_service, sample_request, temp_repo):
         decision=ReviewDecision.REJECTED,
         reviewer="test@example.com",
         timestamp="2025-11-25T10:00:00Z",
-        justification="Too many issues"
+        justification="Too many issues",
     )
 
-    with patch.object(
-        approval_service.approval_collector,
-        'collect_decision',
-        return_value=mock_response
-    ), patch.object(
-        approval_service.review_presenter,
-        'display_review'
-    ), patch.object(
-        approval_service.review_presenter,
-        'display_approval_result'
+    with (
+        patch.object(
+            approval_service.approval_collector,
+            "collect_decision",
+            return_value=mock_response,
+        ),
+        patch.object(approval_service.review_presenter, "display_review"),
+        patch.object(approval_service.review_presenter, "display_approval_result"),
     ):
         response = approval_service.request_approval(sample_request)
 
@@ -184,19 +178,17 @@ def test_request_approval_deferred(approval_service, sample_request, temp_repo):
         decision=ReviewDecision.DEFERRED,
         reviewer="test@example.com",
         timestamp="2025-11-25T10:00:00Z",
-        justification="Need more time to review"
+        justification="Need more time to review",
     )
 
-    with patch.object(
-        approval_service.approval_collector,
-        'collect_decision',
-        return_value=mock_response
-    ), patch.object(
-        approval_service.review_presenter,
-        'display_review'
-    ), patch.object(
-        approval_service.review_presenter,
-        'display_approval_result'
+    with (
+        patch.object(
+            approval_service.approval_collector,
+            "collect_decision",
+            return_value=mock_response,
+        ),
+        patch.object(approval_service.review_presenter, "display_review"),
+        patch.object(approval_service.review_presenter, "display_approval_result"),
     ):
         response = approval_service.request_approval(sample_request)
 
@@ -205,9 +197,7 @@ def test_request_approval_deferred(approval_service, sample_request, temp_repo):
     assert response.merge_commit is None
 
     # Verify branch was NOT cleaned up (kept for later review)
-    assert approval_service.branch_manager.branch_exists(
-        "review/TEST-001-code_review"
-    )
+    assert approval_service.branch_manager.branch_exists("review/TEST-001-code_review")
 
     # Verify tag was created
     assert approval_service.merge_controller.tag_exists("review-deferred-TEST-001")
@@ -216,28 +206,24 @@ def test_request_approval_deferred(approval_service, sample_request, temp_repo):
 def test_request_approval_with_existing_branch(approval_service, sample_request):
     """Test approval request when branch already exists."""
     # Create branch first
-    approval_service.branch_manager.create_branch(
-        "review/TEST-001-code_review", "main"
-    )
+    approval_service.branch_manager.create_branch("review/TEST-001-code_review", "main")
 
     # Mock auto-approve
     mock_response = ApprovalResponse(
         decision=ReviewDecision.APPROVED,
         reviewer="test@example.com",
         timestamp="2025-11-25T10:00:00Z",
-        justification="Auto-approved"
+        justification="Auto-approved",
     )
 
-    with patch.object(
-        approval_service.approval_collector,
-        'collect_decision',
-        return_value=mock_response
-    ), patch.object(
-        approval_service.review_presenter,
-        'display_review'
-    ), patch.object(
-        approval_service.review_presenter,
-        'display_approval_result'
+    with (
+        patch.object(
+            approval_service.approval_collector,
+            "collect_decision",
+            return_value=mock_response,
+        ),
+        patch.object(approval_service.review_presenter, "display_review"),
+        patch.object(approval_service.review_presenter, "display_approval_result"),
     ):
         # Should handle existing branch gracefully
         response = approval_service.request_approval(sample_request)
@@ -247,29 +233,22 @@ def test_request_approval_with_existing_branch(approval_service, sample_request)
 
 def test_request_approval_without_auto_cleanup(temp_repo, sample_request):
     """Test approval without auto-cleanup."""
-    service = LocalPRApprovalService(
-        repo_path=temp_repo,
-        auto_cleanup=False
-    )
+    service = LocalPRApprovalService(repo_path=temp_repo, auto_cleanup=False)
 
     # Mock auto-approve
     mock_response = ApprovalResponse(
         decision=ReviewDecision.APPROVED,
         reviewer="test@example.com",
         timestamp="2025-11-25T10:00:00Z",
-        justification="Auto-approved"
+        justification="Auto-approved",
     )
 
-    with patch.object(
-        service.approval_collector,
-        'collect_decision',
-        return_value=mock_response
-    ), patch.object(
-        service.review_presenter,
-        'display_review'
-    ), patch.object(
-        service.review_presenter,
-        'display_approval_result'
+    with (
+        patch.object(
+            service.approval_collector, "collect_decision", return_value=mock_response
+        ),
+        patch.object(service.review_presenter, "display_review"),
+        patch.object(service.review_presenter, "display_approval_result"),
     ):
         response = service.request_approval(sample_request)
 
@@ -316,19 +295,17 @@ def test_git_notes_stored(approval_service, sample_request, temp_repo):
         decision=ReviewDecision.APPROVED,
         reviewer="test@example.com",
         timestamp="2025-11-25T10:00:00Z",
-        justification="Auto-approved for testing"
+        justification="Auto-approved for testing",
     )
 
-    with patch.object(
-        approval_service.approval_collector,
-        'collect_decision',
-        return_value=mock_response
-    ), patch.object(
-        approval_service.review_presenter,
-        'display_review'
-    ), patch.object(
-        approval_service.review_presenter,
-        'display_approval_result'
+    with (
+        patch.object(
+            approval_service.approval_collector,
+            "collect_decision",
+            return_value=mock_response,
+        ),
+        patch.object(approval_service.review_presenter, "display_review"),
+        patch.object(approval_service.review_presenter, "display_approval_result"),
     ):
         response = approval_service.request_approval(sample_request)
 
@@ -339,7 +316,7 @@ def test_git_notes_stored(approval_service, sample_request, temp_repo):
         cwd=temp_repo,
         capture_output=True,
         text=True,
-        check=True
+        check=True,
     )
 
     # Notes should be present in the log
@@ -355,19 +332,13 @@ def test_request_approval_custom_base_branch(temp_repo, sample_request):
         ["git", "checkout", "-b", "develop"],
         cwd=temp_repo,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
     subprocess.run(
-        ["git", "checkout", "main"],
-        cwd=temp_repo,
-        check=True,
-        capture_output=True
+        ["git", "checkout", "main"], cwd=temp_repo, check=True, capture_output=True
     )
 
-    service = LocalPRApprovalService(
-        repo_path=temp_repo,
-        base_branch="develop"
-    )
+    service = LocalPRApprovalService(repo_path=temp_repo, base_branch="develop")
 
     # Update request to use develop
     sample_request.base_branch = "develop"
@@ -377,19 +348,15 @@ def test_request_approval_custom_base_branch(temp_repo, sample_request):
         decision=ReviewDecision.APPROVED,
         reviewer="test@example.com",
         timestamp="2025-11-25T10:00:00Z",
-        justification="Auto-approved"
+        justification="Auto-approved",
     )
 
-    with patch.object(
-        service.approval_collector,
-        'collect_decision',
-        return_value=mock_response
-    ), patch.object(
-        service.review_presenter,
-        'display_review'
-    ), patch.object(
-        service.review_presenter,
-        'display_approval_result'
+    with (
+        patch.object(
+            service.approval_collector, "collect_decision", return_value=mock_response
+        ),
+        patch.object(service.review_presenter, "display_review"),
+        patch.object(service.review_presenter, "display_approval_result"),
     ):
         response = service.request_approval(sample_request)
 
@@ -399,6 +366,6 @@ def test_request_approval_custom_base_branch(temp_repo, sample_request):
         cwd=temp_repo,
         capture_output=True,
         text=True,
-        check=True
+        check=True,
     )
     assert result.stdout.strip() == "develop"

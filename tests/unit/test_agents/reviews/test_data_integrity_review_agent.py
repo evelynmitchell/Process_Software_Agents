@@ -79,7 +79,6 @@ class TestDataIntegrityReviewAgentExecute:
                         {"name": "total", "type": "decimal", "constraints": []},
                     ],
                     relationships=[],
-                    
                 )
             ],
             design_review_checklist=[
@@ -178,9 +177,7 @@ class TestDataIntegrityReviewAgentExecute:
         mock_load_prompt.return_value = "Data integrity review prompt template"
         mock_format_prompt.return_value = "Formatted prompt"
         mock_call_llm.return_value = {
-            "content": json.dumps(
-                {"issues_found": [], "improvement_suggestions": []}
-            )
+            "content": json.dumps({"issues_found": [], "improvement_suggestions": []})
         }
 
         result = agent.execute(design_spec)
@@ -192,7 +189,13 @@ class TestDataIntegrityReviewAgentExecute:
     @patch.object(DataIntegrityReviewAgent, "format_prompt")
     @patch.object(DataIntegrityReviewAgent, "call_llm")
     def test_execute_logs_review_metrics(
-        self, mock_call_llm, mock_format_prompt, mock_load_prompt, agent, design_spec, caplog
+        self,
+        mock_call_llm,
+        mock_format_prompt,
+        mock_load_prompt,
+        agent,
+        design_spec,
+        caplog,
     ):
         """Test execute logs data integrity review metrics."""
         mock_load_prompt.return_value = "Data integrity review prompt template"
@@ -220,7 +223,10 @@ class TestDataIntegrityReviewAgentExecute:
             agent.execute(design_spec)
 
         assert "Starting data integrity review for task DATA-TEST-001" in caplog.text
-        assert "Data integrity review completed: found 1 issues, 0 suggestions" in caplog.text
+        assert (
+            "Data integrity review completed: found 1 issues, 0 suggestions"
+            in caplog.text
+        )
 
 
 class TestDataIntegrityReviewAgentDetection:
@@ -260,7 +266,6 @@ class TestDataIntegrityReviewAgentDetection:
                         {"name": "content", "type": "text", "constraints": []},
                     ],
                     relationships=[],
-                    
                 )
             ],
             design_review_checklist=[
@@ -369,7 +374,6 @@ class TestDataIntegrityReviewAgentDetection:
                         {"name": "price", "type": "decimal(10,2)", "constraints": []},
                     ],
                     relationships=[],
-                    
                 )
             ],
             design_review_checklist=[
@@ -447,7 +451,10 @@ class TestDataIntegrityReviewAgentDetection:
 
         assert len(result["issues_found"]) >= 1
         issue = result["issues_found"][0]
-        assert "not null" in issue["description"].lower() or "null" in issue["description"].lower()
+        assert (
+            "not null" in issue["description"].lower()
+            or "null" in issue["description"].lower()
+        )
 
     @patch.object(DataIntegrityReviewAgent, "load_prompt")
     @patch.object(DataIntegrityReviewAgent, "format_prompt")
@@ -472,11 +479,14 @@ class TestDataIntegrityReviewAgentDetection:
                     table_name="inventory",
                     description="Database table storing information",
                     columns=[
-                        {"name": "product_id", "type": "uuid", "constraints": ["PRIMARY KEY"]},
+                        {
+                            "name": "product_id",
+                            "type": "uuid",
+                            "constraints": ["PRIMARY KEY"],
+                        },
                         {"name": "quantity", "type": "integer", "constraints": []},
                     ],
                     relationships=[],
-                    
                 )
             ],
             design_review_checklist=[
@@ -554,7 +564,10 @@ class TestDataIntegrityReviewAgentDetection:
 
         assert len(result["issues_found"]) >= 1
         issue = result["issues_found"][0]
-        assert "check" in issue["description"].lower() or "constraint" in issue["description"].lower()
+        assert (
+            "check" in issue["description"].lower()
+            or "constraint" in issue["description"].lower()
+        )
 
     @patch.object(DataIntegrityReviewAgent, "load_prompt")
     @patch.object(DataIntegrityReviewAgent, "format_prompt")
@@ -580,13 +593,16 @@ class TestDataIntegrityReviewAgentDetection:
                     description="Database table storing information",
                     columns=[
                         {"name": "id", "type": "uuid", "constraints": ["PRIMARY KEY"]},
-                        {"name": "order_id", "type": "uuid", "constraints": ["FOREIGN KEY"]},
+                        {
+                            "name": "order_id",
+                            "type": "uuid",
+                            "constraints": ["FOREIGN KEY"],
+                        },
                         {"name": "product_id", "type": "uuid", "constraints": []},
                     ],
                     relationships=[
                         "ALTER TABLE order_items ADD FOREIGN KEY (order_id) REFERENCES orders(id)"
                     ],
-                    
                 )
             ],
             design_review_checklist=[
@@ -664,7 +680,10 @@ class TestDataIntegrityReviewAgentDetection:
 
         assert len(result["issues_found"]) >= 1
         issue = result["issues_found"][0]
-        assert "cascade" in issue["description"].lower() or "delete" in issue["description"].lower()
+        assert (
+            "cascade" in issue["description"].lower()
+            or "delete" in issue["description"].lower()
+        )
 
 
 class TestDataIntegrityReviewAgentErrorHandling:
@@ -883,36 +902,49 @@ class TestDataIntegrityReviewAgentEdgeCases:
                     description="Database table storing information",
                     columns=[
                         {"name": "id", "type": "uuid", "constraints": ["PRIMARY KEY"]},
-                        {"name": "email", "type": "varchar(255)", "constraints": ["UNIQUE", "NOT NULL"]},
+                        {
+                            "name": "email",
+                            "type": "varchar(255)",
+                            "constraints": ["UNIQUE", "NOT NULL"],
+                        },
                     ],
                     relationships=[],
-                    
                 ),
                 DataSchema(
                     table_name="posts",
                     description="Database table storing information",
                     columns=[
                         {"name": "id", "type": "uuid", "constraints": ["PRIMARY KEY"]},
-                        {"name": "user_id", "type": "uuid", "constraints": ["FOREIGN KEY", "NOT NULL"]},
+                        {
+                            "name": "user_id",
+                            "type": "uuid",
+                            "constraints": ["FOREIGN KEY", "NOT NULL"],
+                        },
                     ],
                     relationships=[
                         "ALTER TABLE posts ADD FOREIGN KEY (user_id) REFERENCES users(id)"
                     ],
-                    
                 ),
                 DataSchema(
                     table_name="comments",
                     description="Database table storing information",
                     columns=[
                         {"name": "id", "type": "uuid", "constraints": ["PRIMARY KEY"]},
-                        {"name": "post_id", "type": "uuid", "constraints": ["FOREIGN KEY", "NOT NULL"]},
-                        {"name": "user_id", "type": "uuid", "constraints": ["FOREIGN KEY", "NOT NULL"]},
+                        {
+                            "name": "post_id",
+                            "type": "uuid",
+                            "constraints": ["FOREIGN KEY", "NOT NULL"],
+                        },
+                        {
+                            "name": "user_id",
+                            "type": "uuid",
+                            "constraints": ["FOREIGN KEY", "NOT NULL"],
+                        },
                     ],
                     relationships=[
                         "ALTER TABLE comments ADD FOREIGN KEY (post_id) REFERENCES posts(id)",
                         "ALTER TABLE comments ADD FOREIGN KEY (user_id) REFERENCES users(id)",
                     ],
-                    
                 ),
             ],
             design_review_checklist=[
@@ -959,9 +991,7 @@ class TestDataIntegrityReviewAgentEdgeCases:
         mock_load_prompt.return_value = "Data integrity review prompt template"
         mock_format_prompt.return_value = "Formatted prompt"
         mock_call_llm.return_value = {
-            "content": json.dumps(
-                {"issues_found": [], "improvement_suggestions": []}
-            )
+            "content": json.dumps({"issues_found": [], "improvement_suggestions": []})
         }
 
         result = agent.execute(design_spec)

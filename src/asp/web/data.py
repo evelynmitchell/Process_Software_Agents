@@ -31,14 +31,16 @@ def get_tasks() -> list[dict[str, Any]]:
         with open(BOOTSTRAP_RESULTS) as f:
             data = json.load(f)
             for result in data.get("results", []):
-                tasks.append({
-                    "task_id": result.get("task_id", "Unknown"),
-                    "description": result.get("description", "No description"),
-                    "complexity": result.get("actual_total_complexity", 0),
-                    "num_units": result.get("num_units", 0),
-                    "execution_time": result.get("execution_time_seconds", 0),
-                    "status": "completed" if result.get("success") else "failed",
-                })
+                tasks.append(
+                    {
+                        "task_id": result.get("task_id", "Unknown"),
+                        "description": result.get("description", "No description"),
+                        "complexity": result.get("actual_total_complexity", 0),
+                        "num_units": result.get("num_units", 0),
+                        "execution_time": result.get("execution_time_seconds", 0),
+                        "status": "completed" if result.get("success") else "failed",
+                    }
+                )
 
     # Also check artifacts directory for additional tasks
     if ARTIFACTS_DIR.exists():
@@ -50,16 +52,22 @@ def get_tasks() -> list[dict[str, Any]]:
                 has_design = (task_dir / "design.md").exists()
                 has_code = (task_dir / "code").exists() or any(task_dir.glob("*.py"))
 
-                status = "completed" if has_code else ("in_progress" if has_design else "planning")
+                status = (
+                    "completed"
+                    if has_code
+                    else ("in_progress" if has_design else "planning")
+                )
 
-                tasks.append({
-                    "task_id": task_dir.name,
-                    "description": f"Task {task_dir.name}",
-                    "complexity": 0,
-                    "num_units": 0,
-                    "execution_time": 0,
-                    "status": status,
-                })
+                tasks.append(
+                    {
+                        "task_id": task_dir.name,
+                        "description": f"Task {task_dir.name}",
+                        "complexity": 0,
+                        "num_units": 0,
+                        "execution_time": 0,
+                        "status": status,
+                    }
+                )
 
     return sorted(tasks, key=lambda x: x["task_id"])
 
@@ -87,11 +95,13 @@ def get_task_details(task_id: str) -> dict[str, Any] | None:
 
     # List all artifacts
     for artifact in task_dir.iterdir():
-        details["artifacts"].append({
-            "name": artifact.name,
-            "type": "directory" if artifact.is_dir() else "file",
-            "size": artifact.stat().st_size if artifact.is_file() else 0,
-        })
+        details["artifacts"].append(
+            {
+                "name": artifact.name,
+                "type": "directory" if artifact.is_dir() else "file",
+                "size": artifact.stat().st_size if artifact.is_file() else 0,
+            }
+        )
 
     # Load plan if exists
     plan_file = task_dir / "plan.md"
@@ -122,26 +132,31 @@ def get_recent_activity(limit: int = 10) -> list[dict[str, Any]]:
             if task_dir.is_dir():
                 for artifact in task_dir.iterdir():
                     if artifact.is_file():
-                        artifact_times.append({
-                            "path": artifact,
-                            "task_id": task_dir.name,
-                            "name": artifact.name,
-                            "mtime": artifact.stat().st_mtime,
-                        })
+                        artifact_times.append(
+                            {
+                                "path": artifact,
+                                "task_id": task_dir.name,
+                                "name": artifact.name,
+                                "mtime": artifact.stat().st_mtime,
+                            }
+                        )
 
         # Sort by modification time, most recent first
         artifact_times.sort(key=lambda x: x["mtime"], reverse=True)
 
         for item in artifact_times[:limit]:
             from datetime import datetime
+
             mtime = datetime.fromtimestamp(item["mtime"])
-            activities.append({
-                "time": mtime.strftime("%H:%M"),
-                "date": mtime.strftime("%Y-%m-%d"),
-                "action": f"Updated {item['name']} in {item['task_id']}",
-                "status": "Success",
-                "task_id": item["task_id"],
-            })
+            activities.append(
+                {
+                    "time": mtime.strftime("%H:%M"),
+                    "date": mtime.strftime("%Y-%m-%d"),
+                    "action": f"Updated {item['name']} in {item['task_id']}",
+                    "status": "Success",
+                    "task_id": item["task_id"],
+                }
+            )
 
     return activities
 
@@ -217,6 +232,8 @@ def get_design_review_stats() -> dict[str, Any]:
                 for finding in result.get("findings", []):
                     stats["total_defects"] += 1
                     category = finding.get("category", "Unknown")
-                    stats["by_category"][category] = stats["by_category"].get(category, 0) + 1
+                    stats["by_category"][category] = (
+                        stats["by_category"].get(category, 0) + 1
+                    )
 
     return stats

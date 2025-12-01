@@ -46,9 +46,9 @@ class TestTSPOrchestratorE2E:
         - Complete pipeline produces working code
         - Pure algorithmic task avoids enterprise/production concerns
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TSP ORCHESTRATOR E2E TEST: Fibonacci Calculator Pipeline")
-        print("="*80)
+        print("=" * 80)
 
         orchestrator = TSPOrchestrator()
 
@@ -95,47 +95,63 @@ class TestTSPOrchestratorE2E:
         assert result.postmortem_report is not None
 
         # Validate planning output
-        print(f"  ✓ Planning: {len(result.project_plan.semantic_units)} units, "
-              f"complexity {result.project_plan.total_est_complexity}")
+        print(
+            f"  ✓ Planning: {len(result.project_plan.semantic_units)} units, "
+            f"complexity {result.project_plan.total_est_complexity}"
+        )
         assert len(result.project_plan.semantic_units) > 0
         assert result.project_plan.total_est_complexity > 0
 
         # Validate design output
-        print(f"  ✓ Design: {len(result.design_specification.api_contracts)} APIs, "
-              f"{len(result.design_specification.component_logic)} components")
+        print(
+            f"  ✓ Design: {len(result.design_specification.api_contracts)} APIs, "
+            f"{len(result.design_specification.component_logic)} components"
+        )
         assert len(result.design_specification.api_contracts) >= 1
         assert len(result.design_specification.component_logic) > 0
 
         # Validate design review (quality gate)
-        print(f"  ✓ Design Review: {result.design_review.overall_assessment} "
-              f"({result.design_review.critical_issue_count}C/"
-              f"{result.design_review.high_issue_count}H)")
+        print(
+            f"  ✓ Design Review: {result.design_review.overall_assessment} "
+            f"({result.design_review.critical_issue_count}C/"
+            f"{result.design_review.high_issue_count}H)"
+        )
         assert result.design_review.overall_assessment in ["PASS", "NEEDS_IMPROVEMENT"]
 
         # Validate code generation
-        print(f"  ✓ Code: {result.generated_code.total_files} files, "
-              f"{result.generated_code.total_lines_of_code} LOC")
+        print(
+            f"  ✓ Code: {result.generated_code.total_files} files, "
+            f"{result.generated_code.total_lines_of_code} LOC"
+        )
         assert result.generated_code.total_files > 0
         assert result.generated_code.total_lines_of_code > 0
 
         # Validate code review (quality gate)
-        print(f"  ✓ Code Review: {result.code_review.review_status} "
-              f"({result.code_review.critical_issues}C/"
-              f"{result.code_review.high_issues}H)")
+        print(
+            f"  ✓ Code Review: {result.code_review.review_status} "
+            f"({result.code_review.critical_issues}C/"
+            f"{result.code_review.high_issues}H)"
+        )
         assert result.code_review.review_status in ["PASS", "CONDITIONAL_PASS"]
-        assert result.code_review.critical_issues == 0  # No critical issues for simple task
+        assert (
+            result.code_review.critical_issues == 0
+        )  # No critical issues for simple task
 
         # Validate testing
         total_tests = result.test_report.test_summary.get("total_tests", 0)
         passed_tests = result.test_report.test_summary.get("passed", 0)
-        print(f"  ✓ Test: {result.test_report.test_status} "
-              f"({passed_tests}/{total_tests} passed)")
+        print(
+            f"  ✓ Test: {result.test_report.test_status} "
+            f"({passed_tests}/{total_tests} passed)"
+        )
         # Note: Test might fail in mock environment, but should execute
         assert total_tests > 0
 
         # Validate postmortem
-        print(f"  ✓ Postmortem: Defect density {result.postmortem_report.defect_density:.3f}, "
-              f"{len(result.postmortem_report.process_improvement_proposals)} PIPs")
+        print(
+            f"  ✓ Postmortem: Defect density {result.postmortem_report.defect_density:.3f}, "
+            f"{len(result.postmortem_report.process_improvement_proposals)} PIPs"
+        )
         assert result.postmortem_report.defect_density >= 0
 
         # Validate execution metadata
@@ -150,9 +166,9 @@ class TestTSPOrchestratorE2E:
         assert len(result.execution_log) >= 5  # At least 5 phases logged
         assert len(result.hitl_overrides) == 0  # No overrides for simple task
 
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("✓ TSP ORCHESTRATOR E2E TEST: PASSED")
-        print("="*80)
+        print("=" * 80)
 
     def test_quality_gate_enforcement_without_hitl(self, llm_client):
         """
@@ -163,9 +179,9 @@ class TestTSPOrchestratorE2E:
         - QualityGateFailure raised when no HITL approver
         - Execution log captures quality gate failures
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TSP ORCHESTRATOR E2E TEST: Quality Gate Enforcement (No HITL)")
-        print("="*80)
+        print("=" * 80)
 
         orchestrator = TSPOrchestrator()
 
@@ -219,9 +235,9 @@ class TestTSPOrchestratorE2E:
         - Pipeline continues when HITL approves override
         - Override is recorded in execution metadata
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TSP ORCHESTRATOR E2E TEST: HITL Override Workflow")
-        print("="*80)
+        print("=" * 80)
 
         orchestrator = TSPOrchestrator()
 
@@ -240,13 +256,15 @@ class TestTSPOrchestratorE2E:
 
         def mock_hitl_approver(gate_name: str, report: dict) -> bool:
             """Mock HITL approver that auto-approves all failures."""
-            hitl_calls.append({
-                "gate": gate_name,
-                "critical_issues": report.get("critical_issue_count", 0)
-                or report.get("critical_issues", 0),
-                "high_issues": report.get("high_issue_count", 0)
-                or report.get("high_issues", 0),
-            })
+            hitl_calls.append(
+                {
+                    "gate": gate_name,
+                    "critical_issues": report.get("critical_issue_count", 0)
+                    or report.get("critical_issues", 0),
+                    "high_issues": report.get("high_issue_count", 0)
+                    or report.get("high_issues", 0),
+                }
+            )
             print(f"\n[HITL] Gate '{gate_name}' failure detected, auto-approving...")
             return True  # Always approve
 
@@ -269,8 +287,10 @@ class TestTSPOrchestratorE2E:
         if len(hitl_calls) > 0:
             print("  Quality gates that failed and were overridden:")
             for call in hitl_calls:
-                print(f"    - {call['gate']}: "
-                      f"{call['critical_issues']}C/{call['high_issues']}H")
+                print(
+                    f"    - {call['gate']}: "
+                    f"{call['critical_issues']}C/{call['high_issues']}H"
+                )
 
             # Validate overrides are recorded
             assert len(result.hitl_overrides) == len(hitl_calls)
@@ -296,9 +316,9 @@ class TestTSPOrchestratorE2E:
         - Pipeline halts when HITL rejects override
         - QualityGateFailure raised on rejection
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TSP ORCHESTRATOR E2E TEST: HITL Rejection Workflow")
-        print("="*80)
+        print("=" * 80)
 
         orchestrator = TSPOrchestrator()
 
@@ -319,7 +339,9 @@ class TestTSPOrchestratorE2E:
 
         def rejecting_hitl_approver(gate_name: str, report: dict) -> bool:
             """Mock HITL approver that rejects all failures."""
-            print(f"\n[HITL] Gate '{gate_name}' failure detected, REJECTING override...")
+            print(
+                f"\n[HITL] Gate '{gate_name}' failure detected, REJECTING override..."
+            )
             return False  # Always reject
 
         # Execute with rejecting HITL approver
@@ -332,7 +354,9 @@ class TestTSPOrchestratorE2E:
             )
 
             # If no quality gate failed, pipeline succeeded
-            print(f"\n[RESULT] No quality gate failures, pipeline succeeded: {result.overall_status}")
+            print(
+                f"\n[RESULT] No quality gate failures, pipeline succeeded: {result.overall_status}"
+            )
             assert result.overall_status in ["PASS", "CONDITIONAL_PASS"]
 
         except QualityGateFailure as e:
@@ -351,9 +375,9 @@ class TestTSPOrchestratorE2E:
         - Duration is calculated
         - Phase status is tracked
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TSP ORCHESTRATOR E2E TEST: Execution Metadata Tracking")
-        print("="*80)
+        print("=" * 80)
 
         orchestrator = TSPOrchestrator()
 
@@ -371,9 +395,18 @@ class TestTSPOrchestratorE2E:
 
         # Validate execution log
         print(f"\n[EXECUTION LOG] {len(result.execution_log)} phases logged:")
-        assert len(result.execution_log) >= 5  # At least Planning, Design, DesignReview, Code, Test
+        assert (
+            len(result.execution_log) >= 5
+        )  # At least Planning, Design, DesignReview, Code, Test
 
-        expected_phases = ["Planning", "Design", "DesignReview", "Code", "Test", "Postmortem"]
+        expected_phases = [
+            "Planning",
+            "Design",
+            "DesignReview",
+            "Code",
+            "Test",
+            "Postmortem",
+        ]
         logged_phases = [entry["phase"] for entry in result.execution_log]
 
         for phase in expected_phases:

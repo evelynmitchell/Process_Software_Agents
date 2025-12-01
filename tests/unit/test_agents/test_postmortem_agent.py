@@ -414,15 +414,20 @@ def test_execute_no_defects(postmortem_agent):
         actual_semantic_complexity=18.0,
     )
 
-    with patch("asp.utils.artifact_io.write_artifact_json"), patch(
-        "asp.utils.artifact_io.write_artifact_markdown"
-    ), patch("asp.utils.git_utils.is_git_repository", return_value=False):
+    with (
+        patch("asp.utils.artifact_io.write_artifact_json"),
+        patch("asp.utils.artifact_io.write_artifact_markdown"),
+        patch("asp.utils.git_utils.is_git_repository", return_value=False),
+    ):
         report = postmortem_agent.execute(input_data)
 
     assert report.quality_metrics.total_defects == 0
     assert report.quality_metrics.defect_density == 0.0
     assert len(report.root_cause_analysis) == 0
-    assert "excellent quality" in report.summary.lower() or "no defects" in report.summary.lower()
+    assert (
+        "excellent quality" in report.summary.lower()
+        or "no defects" in report.summary.lower()
+    )
 
 
 # =============================================================================

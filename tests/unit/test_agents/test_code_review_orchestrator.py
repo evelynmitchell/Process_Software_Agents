@@ -258,7 +258,9 @@ def test_orchestrator_execute_success(mock_dispatch):
 
     # Verify checklist review
     assert len(report.checklist_review) == 5  # Standard checklist
-    security_items = [item for item in report.checklist_review if "Category: Security" in item.notes]
+    security_items = [
+        item for item in report.checklist_review if "Category: Security" in item.notes
+    ]
     assert len(security_items) == 1
     assert security_items[0].status == "Fail"  # Due to critical security issue
 
@@ -333,7 +335,9 @@ def test_orchestrator_execute_with_high_issues(mock_dispatch):
 
     report = orchestrator.execute(generated_code)
 
-    assert report.review_status == "CONDITIONAL_PASS"  # High issues but < 5 → CONDITIONAL_PASS
+    assert (
+        report.review_status == "CONDITIONAL_PASS"
+    )  # High issues but < 5 → CONDITIONAL_PASS
     assert report.high_issues == 1
 
 
@@ -344,9 +348,17 @@ def test_orchestrator_execute_no_issues(mock_dispatch):
     generated_code = create_test_generated_code()
 
     # Mock results with no issues
-    empty_results = {specialist: {"issues_found": [], "improvement_suggestions": []}
-                     for specialist in ["code_quality", "code_security", "code_performance",
-                                       "test_coverage", "documentation", "best_practices"]}
+    empty_results = {
+        specialist: {"issues_found": [], "improvement_suggestions": []}
+        for specialist in [
+            "code_quality",
+            "code_security",
+            "code_performance",
+            "test_coverage",
+            "documentation",
+            "best_practices",
+        ]
+    }
     mock_dispatch.return_value = empty_results
 
     report = orchestrator.execute(generated_code)
@@ -402,7 +414,9 @@ def test_aggregate_results_deduplication():
         },
     }
 
-    aggregated_issues, aggregated_suggestions = orchestrator._aggregate_results(specialist_results)
+    aggregated_issues, aggregated_suggestions = orchestrator._aggregate_results(
+        specialist_results
+    )
 
     # Should deduplicate and keep higher severity (Medium > Low)
     assert len(aggregated_issues) == 1
@@ -457,15 +471,22 @@ def test_aggregate_results_id_normalization():
         },
     }
 
-    aggregated_issues, aggregated_suggestions = orchestrator._aggregate_results(specialist_results)
+    aggregated_issues, aggregated_suggestions = orchestrator._aggregate_results(
+        specialist_results
+    )
 
     # Verify issue IDs are normalized
-    assert all(issue["issue_id"].startswith("CODE-ISSUE-") for issue in aggregated_issues)
+    assert all(
+        issue["issue_id"].startswith("CODE-ISSUE-") for issue in aggregated_issues
+    )
     assert aggregated_issues[0]["issue_id"] == "CODE-ISSUE-001"
     assert aggregated_issues[1]["issue_id"] == "CODE-ISSUE-002"
 
     # Verify suggestion IDs are normalized
-    assert all(sug["suggestion_id"].startswith("CODE-IMPROVE-") for sug in aggregated_suggestions)
+    assert all(
+        sug["suggestion_id"].startswith("CODE-IMPROVE-")
+        for sug in aggregated_suggestions
+    )
     assert aggregated_suggestions[0]["suggestion_id"] == "CODE-IMPROVE-001"
 
     # Verify related_issue_id is updated
@@ -640,22 +661,24 @@ def test_orchestrator_end_to_end_with_mocked_specialists():
     def mock_llm_call(prompt):
         # Return valid specialist response based on prompt content
         return {
-            "content": json.dumps({
-                "issues_found": [
-                    {
-                        "issue_id": "MOCK-001",
-                        "category": "Code Quality",
-                        "severity": "Low",
-                        "description": "Minor style issue",
-                        "evidence": "src/api/auth.py:1",
-                        "impact": "Minor impact on readability",
-                        "file_path": "src/api/auth.py",
-                        "line_number": 1,
-                        "affected_phase": "Code",
-                    }
-                ],
-                "improvement_suggestions": [],
-            })
+            "content": json.dumps(
+                {
+                    "issues_found": [
+                        {
+                            "issue_id": "MOCK-001",
+                            "category": "Code Quality",
+                            "severity": "Low",
+                            "description": "Minor style issue",
+                            "evidence": "src/api/auth.py:1",
+                            "impact": "Minor impact on readability",
+                            "file_path": "src/api/auth.py",
+                            "line_number": 1,
+                            "affected_phase": "Code",
+                        }
+                    ],
+                    "improvement_suggestions": [],
+                }
+            )
         }
 
     mock_llm.side_effect = mock_llm_call
@@ -665,10 +688,12 @@ def test_orchestrator_end_to_end_with_mocked_specialists():
 
     # Replace all specialist execute methods with mocks
     for specialist_name, specialist in orchestrator.specialists.items():
-        specialist.execute = Mock(return_value={
-            "issues_found": [],
-            "improvement_suggestions": [],
-        })
+        specialist.execute = Mock(
+            return_value={
+                "issues_found": [],
+                "improvement_suggestions": [],
+            }
+        )
 
     generated_code = create_test_generated_code()
 

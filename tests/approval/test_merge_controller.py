@@ -17,25 +17,27 @@ def temp_repo():
     repo_dir = tempfile.mkdtemp()
 
     # Initialize git repo
-    subprocess.run(["git", "init", "-b", "main"], cwd=repo_dir, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "init", "-b", "main"], cwd=repo_dir, check=True, capture_output=True
+    )
     subprocess.run(
         ["git", "config", "user.email", "test@test.com"],
         cwd=repo_dir,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
     subprocess.run(
         ["git", "config", "user.name", "Test User"],
         cwd=repo_dir,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
     # Disable commit signing for test repo
     subprocess.run(
         ["git", "config", "commit.gpgsign", "false"],
         cwd=repo_dir,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
 
     # Create initial commit
@@ -46,7 +48,7 @@ def temp_repo():
         ["git", "commit", "-m", "Initial commit"],
         cwd=repo_dir,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
 
     yield repo_dir
@@ -60,8 +62,8 @@ def approval_metadata():
     return ApprovalResponse(
         decision=ReviewDecision.APPROVED,
         reviewer="test@example.com",
-        timestamp=datetime.utcnow().isoformat() + 'Z',
-        justification="Test approval"
+        timestamp=datetime.utcnow().isoformat() + "Z",
+        justification="Test approval",
     )
 
 
@@ -74,7 +76,7 @@ def test_merge_branch(temp_repo, approval_metadata):
         ["git", "checkout", "-b", "feature"],
         cwd=temp_repo,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
     feature_file = Path(temp_repo) / "feature.txt"
     feature_file.write_text("Feature content")
@@ -83,7 +85,7 @@ def test_merge_branch(temp_repo, approval_metadata):
         ["git", "commit", "-m", "Add feature"],
         cwd=temp_repo,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
 
     # Merge branch
@@ -91,7 +93,7 @@ def test_merge_branch(temp_repo, approval_metadata):
         branch_name="feature",
         base_branch="main",
         review_metadata=approval_metadata,
-        task_id="TEST-001"
+        task_id="TEST-001",
     )
 
     # Verify merge commit exists
@@ -103,7 +105,7 @@ def test_merge_branch(temp_repo, approval_metadata):
         cwd=temp_repo,
         capture_output=True,
         text=True,
-        check=True
+        check=True,
     )
     assert result.stdout.strip() == "main"
 
@@ -113,7 +115,7 @@ def test_merge_branch(temp_repo, approval_metadata):
         cwd=temp_repo,
         capture_output=True,
         text=True,
-        check=True
+        check=True,
     )
     commit_msg = result.stdout
     assert "HITL Approved" in commit_msg
@@ -129,7 +131,7 @@ def test_tag_rejected(temp_repo, approval_metadata):
         ["git", "checkout", "-b", "feature"],
         cwd=temp_repo,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
     feature_file = Path(temp_repo) / "feature.txt"
     feature_file.write_text("Feature content")
@@ -138,7 +140,7 @@ def test_tag_rejected(temp_repo, approval_metadata):
         ["git", "commit", "-m", "Add feature"],
         cwd=temp_repo,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
 
     # Update metadata for rejection
@@ -147,9 +149,7 @@ def test_tag_rejected(temp_repo, approval_metadata):
 
     # Tag rejected branch
     controller.tag_rejected(
-        branch_name="feature",
-        review_metadata=approval_metadata,
-        task_id="TEST-001"
+        branch_name="feature", review_metadata=approval_metadata, task_id="TEST-001"
     )
 
     # Verify tag exists
@@ -161,7 +161,7 @@ def test_tag_rejected(temp_repo, approval_metadata):
         cwd=temp_repo,
         capture_output=True,
         text=True,
-        check=True
+        check=True,
     )
     tag_msg = result.stdout
     assert "REJECTED" in tag_msg
@@ -177,7 +177,7 @@ def test_tag_deferred(temp_repo, approval_metadata):
         ["git", "checkout", "-b", "feature"],
         cwd=temp_repo,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
 
     # Update metadata for deferral
@@ -186,9 +186,7 @@ def test_tag_deferred(temp_repo, approval_metadata):
 
     # Tag deferred branch
     controller.tag_deferred(
-        branch_name="feature",
-        review_metadata=approval_metadata,
-        task_id="TEST-001"
+        branch_name="feature", review_metadata=approval_metadata, task_id="TEST-001"
     )
 
     # Verify tag exists
@@ -205,15 +203,13 @@ def test_create_tag(temp_repo, approval_metadata):
         cwd=temp_repo,
         capture_output=True,
         text=True,
-        check=True
+        check=True,
     )
     commit_sha = result.stdout.strip()
 
     # Create tag
     controller.create_tag(
-        tag_name="test-tag",
-        commit_sha=commit_sha,
-        review_metadata=approval_metadata
+        tag_name="test-tag", commit_sha=commit_sha, review_metadata=approval_metadata
     )
 
     # Verify tag exists
@@ -229,10 +225,7 @@ def test_tag_exists(temp_repo):
 
     # Create tag
     subprocess.run(
-        ["git", "tag", "test-tag"],
-        cwd=temp_repo,
-        check=True,
-        capture_output=True
+        ["git", "tag", "test-tag"], cwd=temp_repo, check=True, capture_output=True
     )
 
     # Tag exists
@@ -245,10 +238,7 @@ def test_delete_tag(temp_repo):
 
     # Create tag
     subprocess.run(
-        ["git", "tag", "test-tag"],
-        cwd=temp_repo,
-        check=True,
-        capture_output=True
+        ["git", "tag", "test-tag"], cwd=temp_repo, check=True, capture_output=True
     )
     assert controller.tag_exists("test-tag")
 
@@ -268,7 +258,7 @@ def test_merge_branch_without_task_id(temp_repo, approval_metadata):
         ["git", "checkout", "-b", "feature"],
         cwd=temp_repo,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
     feature_file = Path(temp_repo) / "feature.txt"
     feature_file.write_text("Feature content")
@@ -277,7 +267,7 @@ def test_merge_branch_without_task_id(temp_repo, approval_metadata):
         ["git", "commit", "-m", "Add feature"],
         cwd=temp_repo,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
 
     # Merge without task_id
@@ -285,7 +275,7 @@ def test_merge_branch_without_task_id(temp_repo, approval_metadata):
         branch_name="feature",
         base_branch="main",
         review_metadata=approval_metadata,
-        task_id=None
+        task_id=None,
     )
 
     # Should still merge successfully
@@ -301,7 +291,7 @@ def test_tag_rejected_without_task_id(temp_repo, approval_metadata):
         ["git", "checkout", "-b", "review/some-task-code-review"],
         cwd=temp_repo,
         check=True,
-        capture_output=True
+        capture_output=True,
     )
 
     approval_metadata.decision = ReviewDecision.REJECTED
@@ -310,7 +300,7 @@ def test_tag_rejected_without_task_id(temp_repo, approval_metadata):
     controller.tag_rejected(
         branch_name="review/some-task-code-review",
         review_metadata=approval_metadata,
-        task_id=None
+        task_id=None,
     )
 
     # Should create tag based on branch name

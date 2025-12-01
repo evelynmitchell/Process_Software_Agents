@@ -100,9 +100,21 @@ def create_test_design_specification(task_id="TEST-DESIGN-REVIEW-001"):
                 description="User account information",
                 columns=[
                     {"name": "user_id", "type": "UUID", "constraints": "PRIMARY KEY"},
-                    {"name": "email", "type": "VARCHAR(255)", "constraints": "UNIQUE NOT NULL"},
-                    {"name": "password_hash", "type": "VARCHAR(255)", "constraints": "NOT NULL"},
-                    {"name": "created_at", "type": "TIMESTAMP", "constraints": "DEFAULT NOW()"},
+                    {
+                        "name": "email",
+                        "type": "VARCHAR(255)",
+                        "constraints": "UNIQUE NOT NULL",
+                    },
+                    {
+                        "name": "password_hash",
+                        "type": "VARCHAR(255)",
+                        "constraints": "NOT NULL",
+                    },
+                    {
+                        "name": "created_at",
+                        "type": "TIMESTAMP",
+                        "constraints": "DEFAULT NOW()",
+                    },
                 ],
                 indexes=["CREATE INDEX idx_users_email ON users(email)"],
             )
@@ -323,7 +335,9 @@ def create_mock_llm_review_response(
     return {
         "issues_found": issues or [],
         "improvement_suggestions": suggestions or [],
-        "checklist_review": checklist_review if checklist_review is not None else default_checklist,
+        "checklist_review": (
+            checklist_review if checklist_review is not None else default_checklist
+        ),
     }
 
 
@@ -549,9 +563,7 @@ class TestLLMReview:
         design_spec = create_test_design_specification()
         custom_standards = "Follow OWASP Top 10 security guidelines"
 
-        mock_call_llm.return_value = {
-            "content": create_mock_llm_review_response()
-        }
+        mock_call_llm.return_value = {"content": create_mock_llm_review_response()}
 
         agent._run_llm_review(design_spec, custom_standards)
 
@@ -565,7 +577,9 @@ class TestLLMReview:
         agent = DesignReviewAgent()
         design_spec = create_test_design_specification()
 
-        with patch.object(agent, "load_prompt", side_effect=FileNotFoundError("Missing")):
+        with patch.object(
+            agent, "load_prompt", side_effect=FileNotFoundError("Missing")
+        ):
             with pytest.raises(AgentExecutionError, match="Prompt template not found"):
                 agent._run_llm_review(design_spec, None)
 
@@ -577,7 +591,9 @@ class TestLLMReview:
 
         mock_call_llm.return_value = {"content": "not valid json"}
 
-        with pytest.raises(AgentExecutionError, match="Failed to parse LLM review response"):
+        with pytest.raises(
+            AgentExecutionError, match="Failed to parse LLM review response"
+        ):
             agent._run_llm_review(design_spec, None)
 
 
@@ -596,9 +612,7 @@ class TestExecute:
         design_spec = create_test_design_specification()
 
         # Mock LLM response with no issues
-        mock_call_llm.return_value = {
-            "content": create_mock_llm_review_response()
-        }
+        mock_call_llm.return_value = {"content": create_mock_llm_review_response()}
 
         report = agent.execute(design_spec)
 
@@ -664,9 +678,7 @@ class TestExecute:
         agent = DesignReviewAgent()
         design_spec = create_test_design_specification()
 
-        mock_call_llm.return_value = {
-            "content": create_mock_llm_review_response()
-        }
+        mock_call_llm.return_value = {"content": create_mock_llm_review_response()}
 
         report = agent.execute(design_spec)
 
@@ -681,9 +693,7 @@ class TestExecute:
         agent = DesignReviewAgent()
         design_spec = create_test_design_specification()
 
-        mock_call_llm.return_value = {
-            "content": create_mock_llm_review_response()
-        }
+        mock_call_llm.return_value = {"content": create_mock_llm_review_response()}
 
         report = agent.execute(design_spec)
 
@@ -696,9 +706,7 @@ class TestExecute:
         agent = DesignReviewAgent()
         design_spec = create_test_design_specification()
 
-        mock_call_llm.return_value = {
-            "content": create_mock_llm_review_response()
-        }
+        mock_call_llm.return_value = {"content": create_mock_llm_review_response()}
 
         report = agent.execute(design_spec)
 
@@ -801,9 +809,7 @@ class TestErrorHandlingAndEdgeCases:
         design_spec = create_test_design_specification()
 
         # Use helper function which provides valid checklist item
-        mock_call_llm.return_value = {
-            "content": create_mock_llm_review_response()
-        }
+        mock_call_llm.return_value = {"content": create_mock_llm_review_response()}
 
         report = agent.execute(design_spec)
 
@@ -873,9 +879,7 @@ class TestErrorHandlingAndEdgeCases:
         agent = DesignReviewAgent()
         design_spec = create_design_with_circular_deps()
 
-        mock_call_llm.return_value = {
-            "content": create_mock_llm_review_response()
-        }
+        mock_call_llm.return_value = {"content": create_mock_llm_review_response()}
 
         report = agent.execute(design_spec)
 
@@ -888,9 +892,7 @@ class TestErrorHandlingAndEdgeCases:
         agent = DesignReviewAgent()
         design_spec = create_test_design_specification()
 
-        mock_call_llm.return_value = {
-            "content": create_mock_llm_review_response()
-        }
+        mock_call_llm.return_value = {"content": create_mock_llm_review_response()}
 
         # Mock artifact writing to fail
         with patch(

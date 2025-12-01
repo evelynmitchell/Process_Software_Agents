@@ -10,6 +10,7 @@ from enum import Enum
 
 class ReviewDecision(Enum):
     """Review decision options."""
+
     APPROVED = "approved"
     REJECTED = "rejected"
     DEFERRED = "deferred"
@@ -42,10 +43,7 @@ class ApprovalService(ABC):
     """Abstract base class for HITL approval services."""
 
     @abstractmethod
-    def request_approval(
-        self,
-        request: ApprovalRequest
-    ) -> ApprovalResponse:
+    def request_approval(self, request: ApprovalRequest) -> ApprovalResponse:
         """
         Request human approval for quality gate failure.
 

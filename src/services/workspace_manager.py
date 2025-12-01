@@ -31,6 +31,7 @@ class Workspace:
         asp_path: Path to .asp/ working directory for artifacts
         created_at: Timestamp when workspace was created
     """
+
     task_id: str
     path: Path
     target_repo_path: Path
@@ -110,16 +111,13 @@ class WorkspaceManager:
             path=workspace_path,
             target_repo_path=target_repo_path,
             asp_path=asp_path,
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
 
         return workspace
 
     def clone_repository(
-        self,
-        workspace: Workspace,
-        repo_url: str,
-        branch: Optional[str] = None
+        self, workspace: Workspace, repo_url: str, branch: Optional[str] = None
     ) -> Path:
         """Clone a repository into the workspace.
 
@@ -148,11 +146,7 @@ class WorkspaceManager:
 
         try:
             result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=True,
-                cwd=str(workspace.path)
+                cmd, capture_output=True, text=True, check=True, cwd=str(workspace.path)
             )
             return workspace.target_repo_path
         except subprocess.CalledProcessError as e:
@@ -161,9 +155,7 @@ class WorkspaceManager:
             ) from e
 
     def initialize_git_repo(
-        self,
-        workspace: Workspace,
-        initial_files: Optional[dict] = None
+        self, workspace: Workspace, initial_files: Optional[dict] = None
     ) -> Path:
         """Initialize a new git repository in the workspace (for testing/new projects).
 
@@ -190,22 +182,17 @@ class WorkspaceManager:
 
         # Initialize git repository
         subprocess.run(
-            ["git", "init"],
-            cwd=str(repo_path),
-            capture_output=True,
-            check=True
+            ["git", "init"], cwd=str(repo_path), capture_output=True, check=True
         )
 
         # Configure git (required for commits)
         subprocess.run(
             ["git", "config", "user.email", "asp@example.com"],
             cwd=str(repo_path),
-            check=True
+            check=True,
         )
         subprocess.run(
-            ["git", "config", "user.name", "ASP Agent"],
-            cwd=str(repo_path),
-            check=True
+            ["git", "config", "user.name", "ASP Agent"], cwd=str(repo_path), check=True
         )
 
         # Create initial files if provided
@@ -216,16 +203,12 @@ class WorkspaceManager:
                 file_path.write_text(content)
 
             # Initial commit
-            subprocess.run(
-                ["git", "add", "."],
-                cwd=str(repo_path),
-                check=True
-            )
+            subprocess.run(["git", "add", "."], cwd=str(repo_path), check=True)
             subprocess.run(
                 ["git", "commit", "-m", "Initial commit"],
                 cwd=str(repo_path),
                 capture_output=True,
-                check=True
+                check=True,
             )
 
         return repo_path
@@ -252,7 +235,7 @@ class WorkspaceManager:
                         cwd=str(workspace.target_repo_path),
                         capture_output=True,
                         text=True,
-                        check=True
+                        check=True,
                     )
                     if result.stdout.strip():
                         raise ValueError(
@@ -297,7 +280,7 @@ class WorkspaceManager:
                     path=task_dir,
                     target_repo_path=target_repo_path,
                     asp_path=asp_path,
-                    created_at=created_at
+                    created_at=created_at,
                 )
                 workspaces.append(workspace)
 

@@ -219,8 +219,8 @@ class CodeImprovementSuggestion(BaseModel):
                 ),
                 "file_path": "src/repositories/user_repository.py",
                 "suggested_code": (
-                    "query = text(\"SELECT * FROM users WHERE username = :username\")\n"
-                    "result = db.execute(query, {\"username\": username})"
+                    'query = text("SELECT * FROM users WHERE username = :username")\n'
+                    'result = db.execute(query, {"username": username})'
                 ),
             }
         }

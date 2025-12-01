@@ -122,7 +122,11 @@ def create_test_design_specification(task_id="TEST-REVIEW-001"):
                 request_schema={"email": "string", "password": "string"},
                 response_schema={"access_token": "string", "refresh_token": "string"},
                 error_responses=[
-                    {"status": 401, "code": "INVALID_CREDENTIALS", "message": "Invalid email or password"}
+                    {
+                        "status": 401,
+                        "code": "INVALID_CREDENTIALS",
+                        "message": "Invalid email or password",
+                    }
                 ],
                 authentication_required=False,
                 rate_limit="5 requests per minute",
@@ -133,11 +137,27 @@ def create_test_design_specification(task_id="TEST-REVIEW-001"):
                 table_name="sessions",
                 description="Stores active user sessions with JWT tokens",
                 columns=[
-                    {"name": "session_id", "type": "UUID", "constraints": "PRIMARY KEY"},
-                    {"name": "user_id", "type": "UUID", "constraints": "NOT NULL REFERENCES users(user_id)"},
+                    {
+                        "name": "session_id",
+                        "type": "UUID",
+                        "constraints": "PRIMARY KEY",
+                    },
+                    {
+                        "name": "user_id",
+                        "type": "UUID",
+                        "constraints": "NOT NULL REFERENCES users(user_id)",
+                    },
                     {"name": "access_token", "type": "TEXT", "constraints": "NOT NULL"},
-                    {"name": "refresh_token", "type": "TEXT", "constraints": "NOT NULL"},
-                    {"name": "expires_at", "type": "TIMESTAMP", "constraints": "NOT NULL"},
+                    {
+                        "name": "refresh_token",
+                        "type": "TEXT",
+                        "constraints": "NOT NULL",
+                    },
+                    {
+                        "name": "expires_at",
+                        "type": "TIMESTAMP",
+                        "constraints": "NOT NULL",
+                    },
                 ],
                 indexes=["CREATE INDEX idx_sessions_user_id ON sessions(user_id)"],
                 relationships=["FOREIGN KEY (user_id) REFERENCES users(user_id)"],
@@ -309,7 +329,9 @@ class TestSecurityReviewAgent:
     def test_execute_success(self, mock_load_prompt, mock_call_llm):
         """Test successful security review execution."""
         # Setup mocks
-        mock_load_prompt.return_value = "Security review prompt: {{design_specification}}"
+        mock_load_prompt.return_value = (
+            "Security review prompt: {{design_specification}}"
+        )
         mock_call_llm.return_value = {
             "content": json.dumps(create_mock_security_review_response())
         }
@@ -374,7 +396,9 @@ class TestPerformanceReviewAgent:
     @patch("asp.agents.base_agent.BaseAgent.load_prompt")
     def test_execute_success(self, mock_load_prompt, mock_call_llm):
         """Test successful performance review execution."""
-        mock_load_prompt.return_value = "Performance review prompt: {{design_specification}}"
+        mock_load_prompt.return_value = (
+            "Performance review prompt: {{design_specification}}"
+        )
         mock_call_llm.return_value = {
             "content": json.dumps(create_mock_performance_review_response())
         }
@@ -579,10 +603,18 @@ class TestDesignReviewOrchestrator:
         """Test that specialists are initialized with correct types."""
         orchestrator = DesignReviewOrchestrator()
         assert isinstance(orchestrator.specialists["security"], SecurityReviewAgent)
-        assert isinstance(orchestrator.specialists["performance"], PerformanceReviewAgent)
-        assert isinstance(orchestrator.specialists["data_integrity"], DataIntegrityReviewAgent)
-        assert isinstance(orchestrator.specialists["maintainability"], MaintainabilityReviewAgent)
-        assert isinstance(orchestrator.specialists["architecture"], ArchitectureReviewAgent)
+        assert isinstance(
+            orchestrator.specialists["performance"], PerformanceReviewAgent
+        )
+        assert isinstance(
+            orchestrator.specialists["data_integrity"], DataIntegrityReviewAgent
+        )
+        assert isinstance(
+            orchestrator.specialists["maintainability"], MaintainabilityReviewAgent
+        )
+        assert isinstance(
+            orchestrator.specialists["architecture"], ArchitectureReviewAgent
+        )
         assert isinstance(orchestrator.specialists["api_design"], APIDesignReviewAgent)
 
     @patch.object(SecurityReviewAgent, "execute")
@@ -745,5 +777,12 @@ class TestDesignReviewOrchestrator:
         assert len(report.checklist_review) > 0
         for item in report.checklist_review:
             assert isinstance(item, ChecklistItemReview)
-            assert item.category in ["Security", "Performance", "Data Integrity", "Maintainability", "Architecture", "API Design"]
+            assert item.category in [
+                "Security",
+                "Performance",
+                "Data Integrity",
+                "Maintainability",
+                "Architecture",
+                "API Design",
+            ]
             assert len(item.notes) >= 20  # Minimum length requirement

@@ -19,12 +19,14 @@ from asp.agents.base_agent import BaseAgent, AgentExecutionError
 # Test data models
 class TestInputModel(BaseModel):
     """Test input model for validation tests."""
+
     task_id: str
     description: str
 
 
 class TestOutputModel(BaseModel):
     """Test output model for validation tests."""
+
     result: str
     status: str
 
@@ -70,7 +72,7 @@ class TestLLMClientProperty:
         agent = ConcreteAgent()
         assert agent._llm_client is None
 
-        with patch('asp.utils.llm_client.LLMClient') as MockLLMClient:
+        with patch("asp.utils.llm_client.LLMClient") as MockLLMClient:
             mock_instance = Mock()
             MockLLMClient.return_value = mock_instance
 
@@ -92,7 +94,7 @@ class TestLLMClientProperty:
         """Test that LLM client is cached after first lazy load."""
         agent = ConcreteAgent()
 
-        with patch('asp.utils.llm_client.LLMClient') as MockLLMClient:
+        with patch("asp.utils.llm_client.LLMClient") as MockLLMClient:
             mock_instance = Mock()
             MockLLMClient.return_value = mock_instance
 
@@ -118,9 +120,9 @@ class TestLoadPrompt:
         agent = ConcreteAgent()
 
         # Mock the prompts directory path
-        with patch.object(Path, '__truediv__', return_value=prompts_dir):
-            with patch.object(Path, 'exists', return_value=True):
-                with patch.object(Path, 'read_text', return_value=expected_content):
+        with patch.object(Path, "__truediv__", return_value=prompts_dir):
+            with patch.object(Path, "exists", return_value=True):
+                with patch.object(Path, "read_text", return_value=expected_content):
                     result = agent.load_prompt("test_prompt")
                     assert result == expected_content
 
@@ -157,11 +159,7 @@ class TestFormatPrompt:
         agent = ConcreteAgent()
         template = "Task: {task}\nPriority: {priority}"
 
-        result = agent.format_prompt(
-            template,
-            task="Build API",
-            priority="high"
-        )
+        result = agent.format_prompt(template, task="Build API", priority="high")
 
         assert result == "Task: Build API\nPriority: high"
 
@@ -171,11 +169,7 @@ class TestFormatPrompt:
         template = "{greeting} {name}, your task is {task} with priority {priority}."
 
         result = agent.format_prompt(
-            template,
-            greeting="Hello",
-            name="Alice",
-            task="coding",
-            priority="high"
+            template, greeting="Hello", name="Alice", task="coding", priority="high"
         )
 
         assert result == "Hello Alice, your task is coding with priority high."
@@ -223,7 +217,7 @@ class TestCallLLM:
             prompt="Test prompt",
             model="claude-sonnet-4-20250514",
             max_tokens=2048,
-            temperature=0.5
+            temperature=0.5,
         )
 
         assert result == mock_response
@@ -231,7 +225,7 @@ class TestCallLLM:
             prompt="Test prompt",
             model="claude-sonnet-4-20250514",
             max_tokens=2048,
-            temperature=0.5
+            temperature=0.5,
         )
 
     def test_call_llm_with_defaults(self):
@@ -246,10 +240,7 @@ class TestCallLLM:
 
         assert result == mock_response
         mock_client.call_with_retry.assert_called_once_with(
-            prompt="Test prompt",
-            model=None,
-            max_tokens=4096,
-            temperature=0.0
+            prompt="Test prompt", model=None, max_tokens=4096, temperature=0.0
         )
 
     def test_call_llm_with_extra_kwargs(self):
@@ -260,17 +251,14 @@ class TestCallLLM:
         mock_client.call_with_retry.return_value = mock_response
         agent._llm_client = mock_client
 
-        result = agent.call_llm(
-            prompt="Test prompt",
-            custom_param="custom_value"
-        )
+        result = agent.call_llm(prompt="Test prompt", custom_param="custom_value")
 
         mock_client.call_with_retry.assert_called_once_with(
             prompt="Test prompt",
             model=None,
             max_tokens=4096,
             temperature=0.0,
-            custom_param="custom_value"
+            custom_param="custom_value",
         )
 
     def test_call_llm_handles_exception(self):
@@ -317,17 +305,13 @@ class TestValidateOutput:
     def test_validate_output_with_extra_fields(self):
         """Test validation ignores extra fields by default."""
         agent = ConcreteAgent()
-        data = {
-            "result": "success",
-            "status": "completed",
-            "extra_field": "ignored"
-        }
+        data = {"result": "success", "status": "completed", "extra_field": "ignored"}
 
         validated = agent.validate_output(data, TestOutputModel)
 
         assert isinstance(validated, TestOutputModel)
         assert validated.result == "success"
-        assert not hasattr(validated, 'extra_field')
+        assert not hasattr(validated, "extra_field")
 
     def test_validate_output_missing_required_field(self):
         """Test validation fails with missing required field."""
@@ -394,6 +378,7 @@ class TestAbstractMethod:
         """Test that subclass must implement execute()."""
         # Try to create a class without implementing execute
         with pytest.raises(TypeError):
+
             class IncompleteAgent(BaseAgent):
                 pass
 

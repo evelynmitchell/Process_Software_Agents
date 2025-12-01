@@ -24,11 +24,13 @@ def prompts_dir(tmp_path):
 
     # Create sample prompt file
     sample_prompt = prompts_dir / "code_agent_v1_generation.txt"
-    sample_prompt.write_text("""You are a code generation agent.
+    sample_prompt.write_text(
+        """You are a code generation agent.
 
 Generate clean, secure code.
 
-Follow Python best practices.""")
+Follow Python best practices."""
+    )
 
     return prompts_dir
 
@@ -46,7 +48,7 @@ def approved_pip_add():
                 target_artifact="code_agent_prompt",
                 change_type="add",
                 proposed_content="SECURITY: Always use parameterized queries for SQL.",
-                rationale="Prevent SQL injection vulnerabilities"
+                rationale="Prevent SQL injection vulnerabilities",
             )
         ],
         expected_impact="Reduce security vulnerabilities by 70%",
@@ -71,7 +73,7 @@ def approved_pip_modify():
                 change_type="modify",
                 current_content="Follow Python best practices.",
                 proposed_content="Follow PEP 8 style guide and use type hints for all functions.",
-                rationale="More specific guidance improves code quality"
+                rationale="More specific guidance improves code quality",
             )
         ],
         expected_impact="Improve code quality by 40%",
@@ -96,7 +98,7 @@ def approved_pip_remove():
                 change_type="remove",
                 current_content="Generate clean, secure code.",
                 proposed_content="",
-                rationale="Redundant with specific security guidelines"
+                rationale="Redundant with specific security guidelines",
             )
         ],
         expected_impact="Reduce prompt length by 10%",
@@ -143,7 +145,9 @@ class TestPromptVersioner:
         versioner = PromptVersioner(prompts_dir)
 
         # Disable git commits for test
-        with patch('asp.prompts.prompt_versioner.is_git_repository', return_value=False):
+        with patch(
+            "asp.prompts.prompt_versioner.is_git_repository", return_value=False
+        ):
             results = versioner.apply_pip(approved_pip_add)
 
         # Verify new file was created
@@ -163,7 +167,9 @@ class TestPromptVersioner:
         """Test applying MODIFY change to prompt."""
         versioner = PromptVersioner(prompts_dir)
 
-        with patch('asp.prompts.prompt_versioner.is_git_repository', return_value=False):
+        with patch(
+            "asp.prompts.prompt_versioner.is_git_repository", return_value=False
+        ):
             results = versioner.apply_pip(approved_pip_modify)
 
         # Verify modification
@@ -176,7 +182,9 @@ class TestPromptVersioner:
         """Test applying REMOVE change to prompt."""
         versioner = PromptVersioner(prompts_dir)
 
-        with patch('asp.prompts.prompt_versioner.is_git_repository', return_value=False):
+        with patch(
+            "asp.prompts.prompt_versioner.is_git_repository", return_value=False
+        ):
             results = versioner.apply_pip(approved_pip_remove)
 
         # Verify removal
@@ -198,7 +206,9 @@ class TestPromptVersioner:
         """Test dry run mode (no files written)."""
         versioner = PromptVersioner(prompts_dir)
 
-        with patch('asp.prompts.prompt_versioner.is_git_repository', return_value=False):
+        with patch(
+            "asp.prompts.prompt_versioner.is_git_repository", return_value=False
+        ):
             results = versioner.apply_pip(approved_pip_add, dry_run=True)
 
         # Verify no new file was created
@@ -209,7 +219,9 @@ class TestPromptVersioner:
         """Test version history file is created and updated."""
         versioner = PromptVersioner(prompts_dir)
 
-        with patch('asp.prompts.prompt_versioner.is_git_repository', return_value=False):
+        with patch(
+            "asp.prompts.prompt_versioner.is_git_repository", return_value=False
+        ):
             versioner.apply_pip(approved_pip_add)
 
         # Verify version history exists
@@ -223,18 +235,28 @@ class TestPromptVersioner:
         assert "security@example.com" in history
         assert "Security vulnerabilities" in history
 
-    def test_multiple_pip_applications(self, prompts_dir, approved_pip_add, approved_pip_modify):
+    def test_multiple_pip_applications(
+        self, prompts_dir, approved_pip_add, approved_pip_modify
+    ):
         """Test applying multiple PIPs in sequence."""
         versioner = PromptVersioner(prompts_dir)
 
-        with patch('asp.prompts.prompt_versioner.is_git_repository', return_value=False):
+        with patch(
+            "asp.prompts.prompt_versioner.is_git_repository", return_value=False
+        ):
             # Apply first PIP
             results1 = versioner.apply_pip(approved_pip_add)
-            assert Path(results1["code_agent_prompt"]).name == "code_agent_v2_generation.txt"
+            assert (
+                Path(results1["code_agent_prompt"]).name
+                == "code_agent_v2_generation.txt"
+            )
 
             # Apply second PIP
             results2 = versioner.apply_pip(approved_pip_modify)
-            assert Path(results2["code_agent_prompt"]).name == "code_agent_v3_generation.txt"
+            assert (
+                Path(results2["code_agent_prompt"]).name
+                == "code_agent_v3_generation.txt"
+            )
 
             # Verify version history has both
             history = versioner.version_history_file.read_text()
@@ -261,11 +283,15 @@ class TestPromptVersioner:
 class TestPromptVersionerIntegration:
     """Integration tests for prompt versioning."""
 
-    def test_complete_versioning_workflow(self, prompts_dir, approved_pip_add, approved_pip_modify):
+    def test_complete_versioning_workflow(
+        self, prompts_dir, approved_pip_add, approved_pip_modify
+    ):
         """Test complete workflow: original → v2 (add) → v3 (modify)."""
         versioner = PromptVersioner(prompts_dir)
 
-        with patch('asp.prompts.prompt_versioner.is_git_repository', return_value=False):
+        with patch(
+            "asp.prompts.prompt_versioner.is_git_repository", return_value=False
+        ):
             # Original prompt is v1
             original = (prompts_dir / "code_agent_v1_generation.txt").read_text()
             assert "Follow Python best practices." in original
