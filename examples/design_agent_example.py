@@ -81,13 +81,17 @@ def print_design_summary(design, output_json=False):
     for i, schema in enumerate(design.data_schemas, 1):
         print(f"  {i}. {schema.table_name} ({len(schema.columns)} columns)")
         print(f"     {schema.description}")
-        print(f"     Indexes: {len(schema.indexes)}, Relationships: {len(schema.relationships)}")
+        print(
+            f"     Indexes: {len(schema.indexes)}, Relationships: {len(schema.relationships)}"
+        )
 
     print(f"\nComponents: {len(design.component_logic)}")
     for i, component in enumerate(design.component_logic, 1):
         print(f"  {i}. {component.component_name} [{component.semantic_unit_id}]")
         print(f"     {component.responsibility}")
-        print(f"     Interfaces: {len(component.interfaces)}, Dependencies: {len(component.dependencies)}")
+        print(
+            f"     Interfaces: {len(component.interfaces)}, Dependencies: {len(component.dependencies)}"
+        )
         if component.complexity:
             print(f"     Complexity: {component.complexity}")
 
@@ -311,7 +315,9 @@ def example_full_workflow():
     )
 
     project_plan = planning_agent.execute(task_requirements)
-    print(f"[OK] Planning complete: {len(project_plan.semantic_units)} semantic units, complexity={project_plan.total_complexity}")
+    print(
+        f"[OK] Planning complete: {len(project_plan.semantic_units)} semantic units, complexity={project_plan.total_complexity}"
+    )
 
     # Step 2: Run Design Agent
     print("\nStep 2: Running Design Agent...")
@@ -365,7 +371,9 @@ def main():
     # Run Design Agent
     print(f"\nRunning Design Agent for task: {design_input.task_id}")
     print(f"Requirements: {len(design_input.requirements)} characters")
-    print(f"Project plan: {len(design_input.project_plan.semantic_units)} semantic units\n")
+    print(
+        f"Project plan: {len(design_input.project_plan.semantic_units)} semantic units\n"
+    )
 
     try:
         design_agent = DesignAgent()
@@ -380,6 +388,7 @@ def main():
         print(f"\n[ERROR] Design Agent execution failed: {e}")
         if args.verbose:
             import traceback
+
             traceback.print_exc()
         return 1
 

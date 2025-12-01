@@ -97,7 +97,8 @@ def print_database_stats(conn: sqlite3.Connection):
     if cursor.fetchone()[0] > 0:
         print("\nTask Summary:")
         print("-" * 50)
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 task_id,
                 task_type,
@@ -107,7 +108,8 @@ def print_database_stats(conn: sqlite3.Connection):
                 defect_count
             FROM task_metadata
             ORDER BY created_at
-        """)
+        """
+        )
 
         for row in cursor.fetchall():
             task_id, task_type, status, est_cplx, act_cplx, defects = row

@@ -32,8 +32,8 @@ def main():
             "Function should take no parameters",
             "Function should print exactly 'Hello, World!' (case-sensitive)",
             "Include a docstring explaining the function",
-            "Include comprehensive unit tests"
-        ]
+            "Include comprehensive unit tests",
+        ],
     )
 
     print(f"📋 Task ID: {task.task_id}")
@@ -61,11 +61,17 @@ def main():
     print()
 
     print("📊 Performance Summary:")
-    print(f"   - Total Latency: {result.total_latency_ms:,} ms ({result.total_latency_ms/1000:.1f}s)")
+    print(
+        f"   - Total Latency: {result.total_latency_ms:,} ms ({result.total_latency_ms/1000:.1f}s)"
+    )
     print(f"   - Total Tokens: {result.total_tokens:,}")
     print(f"   - Total Cost: ${result.total_cost_usd:.4f}")
-    print(f"   - Defects Found: {len(result.defects) if hasattr(result, 'defects') else 0}")
-    print(f"   - Quality Gates: {'PASS' if result.quality_gate_status == 'PASS' else 'FAIL'}")
+    print(
+        f"   - Defects Found: {len(result.defects) if hasattr(result, 'defects') else 0}"
+    )
+    print(
+        f"   - Quality Gates: {'PASS' if result.quality_gate_status == 'PASS' else 'FAIL'}"
+    )
     print()
 
     # Show artifacts

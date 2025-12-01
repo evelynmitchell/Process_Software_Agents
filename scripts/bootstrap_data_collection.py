@@ -50,7 +50,6 @@ BOOTSTRAP_TASKS = [
         """,
         "expected_complexity": "trivial",
     },
-
     # SIMPLE COMPLEXITY (11-30)
     {
         "task_id": "BOOTSTRAP-003",
@@ -80,7 +79,6 @@ BOOTSTRAP_TASKS = [
         """,
         "expected_complexity": "simple",
     },
-
     # MODERATE COMPLEXITY (31-60)
     {
         "task_id": "BOOTSTRAP-005",
@@ -136,7 +134,6 @@ BOOTSTRAP_TASKS = [
         """,
         "expected_complexity": "moderate",
     },
-
     # COMPLEX COMPLEXITY (61-100)
     {
         "task_id": "BOOTSTRAP-008",
@@ -207,7 +204,6 @@ BOOTSTRAP_TASKS = [
         """,
         "expected_complexity": "complex",
     },
-
     # EDGE CASES & SPECIAL SCENARIOS
     {
         "task_id": "BOOTSTRAP-011",
@@ -255,9 +251,9 @@ BOOTSTRAP_TASKS = [
 def run_bootstrap_collection():
     """Run Planning Agent on all bootstrap tasks and collect results."""
 
-    print("="*80)
+    print("=" * 80)
     print("BOOTSTRAP DATA COLLECTION - Planning Agent")
-    print("="*80)
+    print("=" * 80)
     print(f"Starting at: {datetime.now().isoformat()}")
     print(f"Total tasks: {len(BOOTSTRAP_TASKS)}")
     print()
@@ -296,14 +292,20 @@ def run_bootstrap_collection():
 
             # Show units
             for j, unit in enumerate(plan.semantic_units, 1):
-                deps = f" (depends on: {', '.join(unit.dependencies)})" if unit.dependencies else ""
+                deps = (
+                    f" (depends on: {', '.join(unit.dependencies)})"
+                    if unit.dependencies
+                    else ""
+                )
                 print(f"  {j}. {unit.unit_id}: {unit.description[:60]}...")
-                print(f"     Complexity: {unit.est_complexity} | "
-                      f"API={unit.api_interactions}, "
-                      f"Data={unit.data_transformations}, "
-                      f"Branches={unit.logical_branches}, "
-                      f"Entities={unit.code_entities_modified}, "
-                      f"Novelty={unit.novelty_multiplier}{deps}")
+                print(
+                    f"     Complexity: {unit.est_complexity} | "
+                    f"API={unit.api_interactions}, "
+                    f"Data={unit.data_transformations}, "
+                    f"Branches={unit.logical_branches}, "
+                    f"Entities={unit.code_entities_modified}, "
+                    f"Novelty={unit.novelty_multiplier}{deps}"
+                )
 
             # Store results
             result = {
@@ -355,13 +357,17 @@ def run_bootstrap_collection():
     output_file.parent.mkdir(exist_ok=True)
 
     with open(output_file, "w") as f:
-        json.dump({
-            "timestamp": datetime.now().isoformat(),
-            "total_tasks": len(BOOTSTRAP_TASKS),
-            "successful": sum(1 for r in results if r["success"]),
-            "failed": sum(1 for r in results if not r["success"]),
-            "results": results,
-        }, f, indent=2)
+        json.dump(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "total_tasks": len(BOOTSTRAP_TASKS),
+                "successful": sum(1 for r in results if r["success"]),
+                "failed": sum(1 for r in results if not r["success"]),
+                "results": results,
+            },
+            f,
+            indent=2,
+        )
 
     print(f"\n{'='*80}")
     print("BOOTSTRAP COLLECTION COMPLETE")
@@ -379,9 +385,9 @@ if __name__ == "__main__":
         results = run_bootstrap_collection()
 
         # Summary analysis
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("COMPLEXITY ANALYSIS")
-        print("="*80)
+        print("=" * 80)
 
         successful = [r for r in results if r["success"]]
 
@@ -408,5 +414,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n\nFATAL ERROR: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

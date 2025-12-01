@@ -165,6 +165,7 @@ def main():
     except Exception as e:
         print(f" Design Review failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
@@ -200,8 +201,12 @@ def main():
     print_section("PIPELINE EXECUTION SUMMARY")
     print(f" All 4 agents executed successfully!")
     print(f"\n   Task: {task_id} - {task_requirements.description}")
-    print(f"   Planning: {len(plan.semantic_units)} semantic units, complexity {plan.total_est_complexity}")
-    print(f"   Design: {len(design.api_contracts)} API contracts, {len(design.component_logic)} components")
+    print(
+        f"   Planning: {len(plan.semantic_units)} semantic units, complexity {plan.total_est_complexity}"
+    )
+    print(
+        f"   Design: {len(design.api_contracts)} API contracts, {len(design.component_logic)} components"
+    )
     print(f"   Review: {review.overall_decision} with {len(review.issues)} issues")
     print(f"   Code: {len(code_result.files)} files generated")
 

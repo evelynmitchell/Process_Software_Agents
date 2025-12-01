@@ -30,6 +30,7 @@ DEFAULT_DB_PATH = Path(__file__).parent.parent / "data" / "asp_telemetry.db"
 # Query Functions
 # ============================================================================
 
+
 def get_connection(db_path: Path) -> sqlite3.Connection:
     """Get database connection with Row factory."""
     conn = sqlite3.connect(str(db_path))
@@ -58,12 +59,14 @@ def query_agent_costs(conn: sqlite3.Connection, limit: int = 20) -> List[sqlite3
         ORDER BY timestamp DESC
         LIMIT ?
         """,
-        (limit,)
+        (limit,),
     )
     return cursor.fetchall()
 
 
-def query_agent_costs_by_task(conn: sqlite3.Connection, task_id: str) -> List[sqlite3.Row]:
+def query_agent_costs_by_task(
+    conn: sqlite3.Connection, task_id: str
+) -> List[sqlite3.Row]:
     """
     Query all agent costs for a specific task.
 
@@ -83,7 +86,7 @@ def query_agent_costs_by_task(conn: sqlite3.Connection, task_id: str) -> List[sq
         WHERE task_id = ?
         ORDER BY timestamp ASC
         """,
-        (task_id,)
+        (task_id,),
     )
     return cursor.fetchall()
 
@@ -137,7 +140,7 @@ def query_defects(conn: sqlite3.Connection, limit: int = 20) -> List[sqlite3.Row
         ORDER BY created_at DESC
         LIMIT ?
         """,
-        (limit,)
+        (limit,),
     )
     return cursor.fetchall()
 
@@ -221,7 +224,9 @@ def query_task_summary(conn: sqlite3.Connection) -> List[sqlite3.Row]:
     return cursor.fetchall()
 
 
-def query_probe_ai_data(conn: sqlite3.Connection, agent_role: str = "Planning") -> List[sqlite3.Row]:
+def query_probe_ai_data(
+    conn: sqlite3.Connection, agent_role: str = "Planning"
+) -> List[sqlite3.Row]:
     """
     Query data for PROBE-AI estimation model.
 
@@ -241,7 +246,7 @@ def query_probe_ai_data(conn: sqlite3.Connection, agent_role: str = "Planning") 
         ORDER BY timestamp DESC
         LIMIT 100
         """,
-        (agent_role,)
+        (agent_role,),
     )
     return cursor.fetchall()
 
@@ -262,7 +267,9 @@ def query_database_stats(conn: sqlite3.Connection) -> dict:
     cursor.execute("SELECT COUNT(DISTINCT task_id) as count FROM agent_cost_vector")
     unique_tasks = cursor.fetchone()["count"]
 
-    cursor.execute("SELECT MIN(timestamp) as earliest, MAX(timestamp) as latest FROM agent_cost_vector")
+    cursor.execute(
+        "SELECT MIN(timestamp) as earliest, MAX(timestamp) as latest FROM agent_cost_vector"
+    )
     time_range = cursor.fetchone()
 
     return {
@@ -277,6 +284,7 @@ def query_database_stats(conn: sqlite3.Connection) -> dict:
 # ============================================================================
 # Display Functions
 # ============================================================================
+
 
 def print_header(title: str):
     """Print a formatted section header."""
@@ -332,6 +340,7 @@ def print_stats(stats: dict):
 # Main Execution
 # ============================================================================
 
+
 def main():
     """Run telemetry queries."""
     parser = argparse.ArgumentParser(
@@ -341,7 +350,7 @@ def main():
         "--db-path",
         type=Path,
         default=DEFAULT_DB_PATH,
-        help=f"Path to SQLite database (default: {DEFAULT_DB_PATH})"
+        help=f"Path to SQLite database (default: {DEFAULT_DB_PATH})",
     )
     parser.add_argument(
         "--query",
@@ -354,22 +363,18 @@ def main():
             "defect-phases",
             "tasks",
             "probe-ai",
-            "stats"
+            "stats",
         ],
         default="all",
-        help="Which query to run (default: all)"
+        help="Which query to run (default: all)",
     )
     parser.add_argument(
         "--limit",
         type=int,
         default=20,
-        help="Limit for queries that return multiple rows (default: 20)"
+        help="Limit for queries that return multiple rows (default: 20)",
     )
-    parser.add_argument(
-        "--task-id",
-        type=str,
-        help="Task ID for task-specific queries"
-    )
+    parser.add_argument("--task-id", type=str, help="Task ID for task-specific queries")
 
     args = parser.parse_args()
 

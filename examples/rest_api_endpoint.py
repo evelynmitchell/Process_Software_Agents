@@ -39,14 +39,14 @@ def main():
             "Include SQLAlchemy User model with appropriate fields",
             "Include Pydantic schemas for request/response validation",
             "Include comprehensive tests covering happy path and error cases",
-            "Include proper error handling and logging"
+            "Include proper error handling and logging",
         ],
         context={
             "framework": "FastAPI",
             "database": "SQLAlchemy",
             "validation": "Pydantic",
-            "password_hashing": "bcrypt"
-        }
+            "password_hashing": "bcrypt",
+        },
     )
 
     print(f"📋 Task ID: {task.task_id}")
@@ -75,18 +75,22 @@ def main():
     print()
 
     print("📊 Performance Summary:")
-    print(f"   - Total Latency: {result.total_latency_ms:,} ms ({result.total_latency_ms/1000:.1f}s)")
+    print(
+        f"   - Total Latency: {result.total_latency_ms:,} ms ({result.total_latency_ms/1000:.1f}s)"
+    )
     print(f"   - Total Tokens: {result.total_tokens:,}")
     print(f"   - Total Cost: ${result.total_cost_usd:.4f}")
     print()
 
     # Show key metrics by phase
-    if hasattr(result, 'phase_metrics'):
+    if hasattr(result, "phase_metrics"):
         print("📈 Phase Breakdown:")
         for phase, metrics in result.phase_metrics.items():
-            print(f"   {phase:20s}: {metrics['latency_ms']:6,}ms | "
-                  f"{metrics['tokens']:6,} tokens | "
-                  f"${metrics['cost_usd']:.4f}")
+            print(
+                f"   {phase:20s}: {metrics['latency_ms']:6,}ms | "
+                f"{metrics['tokens']:6,} tokens | "
+                f"${metrics['cost_usd']:.4f}"
+            )
         print()
 
     # Show artifacts

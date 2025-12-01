@@ -44,7 +44,7 @@ def main():
             "Return JWT token on successful authentication",
             "Store user credentials in database",
             # Intentionally omit security requirements to trigger review failure
-        ]
+        ],
     )
 
     print(f"📋 Task ID: {task.task_id}")
@@ -57,9 +57,7 @@ def main():
     # Create HITL approval service
     print("🔧 Configuring HITL approval service...")
     approval_service = LocalPRApprovalService(
-        repo_path=os.getcwd(),
-        base_branch="main",
-        auto_cleanup=True
+        repo_path=os.getcwd(), base_branch="main", auto_cleanup=True
     )
     print("   ✓ Local PR-style approval enabled")
     print()
@@ -68,9 +66,7 @@ def main():
     print("🚀 Starting ASP pipeline with HITL...")
     print()
 
-    orchestrator = TSPOrchestrator(
-        approval_service=approval_service
-    )
+    orchestrator = TSPOrchestrator(approval_service=approval_service)
 
     # Execute - will pause for human approval if quality gates fail
     print("📝 Pipeline execution starting...")
@@ -93,7 +89,7 @@ def main():
     print(f"   - Total Cost: ${result.total_cost_usd:.4f}")
     print()
 
-    if hasattr(result, 'approval_decisions'):
+    if hasattr(result, "approval_decisions"):
         print("🔍 HITL Approval Decisions:")
         for decision in result.approval_decisions:
             print(f"   - Gate: {decision.gate_type}")

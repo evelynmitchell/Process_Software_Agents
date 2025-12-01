@@ -30,6 +30,7 @@ def load_bootstrap_tasks():
     """Load the original bootstrap task definitions with requirements."""
     sys.path.insert(0, str(Path(__file__).parent))
     from bootstrap_data_collection import BOOTSTRAP_TASKS
+
     return {task["task_id"]: task for task in BOOTSTRAP_TASKS}
 
 
@@ -81,9 +82,9 @@ def reconstruct_project_plan(planning_result):
 
 def test_single_task(task_id):
     """Test Design + Design Review on a single task."""
-    print("="*80)
+    print("=" * 80)
     print(f"SINGLE TASK TEST: {task_id}")
-    print("="*80)
+    print("=" * 80)
     print()
 
     # Load task data
@@ -130,6 +131,7 @@ def test_single_task(task_id):
         design_elapsed = time.time() - design_start
         print(f" Design Agent FAILED ({design_elapsed:.2f}s): {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
@@ -142,13 +144,15 @@ def test_single_task(task_id):
         review_elapsed = time.time() - review_start
 
         total_issues = (
-            review_report.critical_issue_count +
-            review_report.high_issue_count +
-            review_report.medium_issue_count +
-            review_report.low_issue_count
+            review_report.critical_issue_count
+            + review_report.high_issue_count
+            + review_report.medium_issue_count
+            + review_report.low_issue_count
         )
 
-        checklist_passed = sum(1 for item in review_report.checklist_review if item.status == "PASS")
+        checklist_passed = sum(
+            1 for item in review_report.checklist_review if item.status == "PASS"
+        )
         checklist_total = len(review_report.checklist_review)
 
         print(f" Design Review Agent SUCCESS ({review_elapsed:.2f}s)")
@@ -162,9 +166,9 @@ def test_single_task(task_id):
         print(f"   Checklist: {checklist_passed}/{checklist_total} passed")
         print()
 
-        print("="*80)
+        print("=" * 80)
         print(" TEST PASSED - All bugs fixed!")
-        print("="*80)
+        print("=" * 80)
         print(f"Total Time: {design_elapsed + review_elapsed:.2f}s")
         print()
 
@@ -174,11 +178,12 @@ def test_single_task(task_id):
         review_elapsed = time.time() - review_start
         print(f" Design Review Agent FAILED ({review_elapsed:.2f}s): {e}")
         import traceback
+
         traceback.print_exc()
         print()
-        print("="*80)
+        print("=" * 80)
         print(" TEST FAILED - Bugs still present")
-        print("="*80)
+        print("=" * 80)
         sys.exit(1)
 
 

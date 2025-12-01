@@ -106,7 +106,11 @@ def print_review_report(report):
         passed = sum(1 for item in report.checklist_review if item.status == "Pass")
         print(f"  Passed: {passed}/{len(report.checklist_review)}")
         for i, item in enumerate(report.checklist_review, 1):
-            status_icon = "[PASS]" if item.status == "Pass" else ("[WARN]" if item.status == "Warning" else "[FAIL]")
+            status_icon = (
+                "[PASS]"
+                if item.status == "Pass"
+                else ("[WARN]" if item.status == "Warning" else "[FAIL]")
+            )
             print(f"  {status_icon} [{item.category}] {item.status}")
             print(f"    {item.description}")
             if item.status != "Pass":
@@ -156,9 +160,21 @@ def create_jwt_auth_design() -> DesignSpecification:
                     "created_at": "datetime",
                 },
                 error_responses=[
-                    {"status": 400, "code": "INVALID_INPUT", "message": "Invalid email or password format"},
-                    {"status": 409, "code": "USER_EXISTS", "message": "User already exists"},
-                    {"status": 500, "code": "INTERNAL_ERROR", "message": "Internal server error"},
+                    {
+                        "status": 400,
+                        "code": "INVALID_INPUT",
+                        "message": "Invalid email or password format",
+                    },
+                    {
+                        "status": 409,
+                        "code": "USER_EXISTS",
+                        "message": "User already exists",
+                    },
+                    {
+                        "status": 500,
+                        "code": "INTERNAL_ERROR",
+                        "message": "Internal server error",
+                    },
                 ],
                 authentication_required=False,
                 rate_limit="5 requests per minute per IP",
@@ -177,9 +193,21 @@ def create_jwt_auth_design() -> DesignSpecification:
                     "user_id": "integer",
                 },
                 error_responses=[
-                    {"status": 400, "code": "INVALID_INPUT", "message": "Missing email or password"},
-                    {"status": 401, "code": "INVALID_CREDENTIALS", "message": "Invalid email or password"},
-                    {"status": 500, "code": "INTERNAL_ERROR", "message": "Internal server error"},
+                    {
+                        "status": 400,
+                        "code": "INVALID_INPUT",
+                        "message": "Missing email or password",
+                    },
+                    {
+                        "status": 401,
+                        "code": "INVALID_CREDENTIALS",
+                        "message": "Invalid email or password",
+                    },
+                    {
+                        "status": 500,
+                        "code": "INTERNAL_ERROR",
+                        "message": "Internal server error",
+                    },
                 ],
                 authentication_required=False,
                 rate_limit="10 requests per minute per IP",
@@ -190,12 +218,32 @@ def create_jwt_auth_design() -> DesignSpecification:
                 table_name="users",
                 description="User account information",
                 columns=[
-                    {"name": "id", "type": "INTEGER", "constraints": "PRIMARY KEY AUTOINCREMENT"},
-                    {"name": "email", "type": "VARCHAR(255)", "constraints": "UNIQUE NOT NULL"},
-                    {"name": "password_hash", "type": "VARCHAR(255)", "constraints": "NOT NULL"},
+                    {
+                        "name": "id",
+                        "type": "INTEGER",
+                        "constraints": "PRIMARY KEY AUTOINCREMENT",
+                    },
+                    {
+                        "name": "email",
+                        "type": "VARCHAR(255)",
+                        "constraints": "UNIQUE NOT NULL",
+                    },
+                    {
+                        "name": "password_hash",
+                        "type": "VARCHAR(255)",
+                        "constraints": "NOT NULL",
+                    },
                     {"name": "name", "type": "VARCHAR(255)", "constraints": "NOT NULL"},
-                    {"name": "created_at", "type": "TIMESTAMP", "constraints": "DEFAULT CURRENT_TIMESTAMP"},
-                    {"name": "updated_at", "type": "TIMESTAMP", "constraints": "DEFAULT CURRENT_TIMESTAMP"},
+                    {
+                        "name": "created_at",
+                        "type": "TIMESTAMP",
+                        "constraints": "DEFAULT CURRENT_TIMESTAMP",
+                    },
+                    {
+                        "name": "updated_at",
+                        "type": "TIMESTAMP",
+                        "constraints": "DEFAULT CURRENT_TIMESTAMP",
+                    },
                 ],
                 indexes=[
                     "CREATE UNIQUE INDEX idx_users_email ON users(email)",
@@ -212,7 +260,11 @@ def create_jwt_auth_design() -> DesignSpecification:
                 interfaces=[
                     {
                         "method": "register",
-                        "parameters": {"email": "str", "password": "str", "name": "str"},
+                        "parameters": {
+                            "email": "str",
+                            "password": "str",
+                            "name": "str",
+                        },
                         "returns": "dict",
                         "description": "Register new user with email and password",
                     }
@@ -355,12 +407,32 @@ def create_data_pipeline_design() -> DesignSpecification:
                 table_name="user_activity_aggregates",
                 description="Aggregated user activity metrics",
                 columns=[
-                    {"name": "user_id", "type": "INTEGER", "constraints": "PRIMARY KEY"},
-                    {"name": "total_events", "type": "INTEGER", "constraints": "NOT NULL"},
-                    {"name": "first_event_at", "type": "TIMESTAMP", "constraints": "NOT NULL"},
-                    {"name": "last_event_at", "type": "TIMESTAMP", "constraints": "NOT NULL"},
+                    {
+                        "name": "user_id",
+                        "type": "INTEGER",
+                        "constraints": "PRIMARY KEY",
+                    },
+                    {
+                        "name": "total_events",
+                        "type": "INTEGER",
+                        "constraints": "NOT NULL",
+                    },
+                    {
+                        "name": "first_event_at",
+                        "type": "TIMESTAMP",
+                        "constraints": "NOT NULL",
+                    },
+                    {
+                        "name": "last_event_at",
+                        "type": "TIMESTAMP",
+                        "constraints": "NOT NULL",
+                    },
                     {"name": "event_types", "type": "TEXT[]", "constraints": ""},
-                    {"name": "processed_at", "type": "TIMESTAMP", "constraints": "DEFAULT CURRENT_TIMESTAMP"},
+                    {
+                        "name": "processed_at",
+                        "type": "TIMESTAMP",
+                        "constraints": "DEFAULT CURRENT_TIMESTAMP",
+                    },
                 ],
                 indexes=[
                     "CREATE INDEX idx_activity_last_event ON user_activity_aggregates(last_event_at)",
@@ -567,7 +639,9 @@ def example_full_workflow():
     )
 
     project_plan = planning_agent.execute(task_requirements)
-    print(f"[OK] Planning complete: {len(project_plan.semantic_units)} semantic units, complexity={project_plan.total_complexity}")
+    print(
+        f"[OK] Planning complete: {len(project_plan.semantic_units)} semantic units, complexity={project_plan.total_complexity}"
+    )
     print()
 
     # Step 2: Run Design Agent
@@ -582,7 +656,9 @@ def example_full_workflow():
     )
 
     design_spec = design_agent.execute(design_input)
-    print(f"[OK] Design complete: {len(design_spec.api_contracts)} APIs, {len(design_spec.data_schemas)} schemas, {len(design_spec.component_logic)} components")
+    print(
+        f"[OK] Design complete: {len(design_spec.api_contracts)} APIs, {len(design_spec.data_schemas)} schemas, {len(design_spec.component_logic)} components"
+    )
     print()
 
     # Step 3: Run Design Review Agent
@@ -676,7 +752,9 @@ def main():
         for i, report in enumerate(reports, 1):
             print(f"Design {i}: {report.task_id}")
             print(f"  - Assessment: {report.overall_assessment}")
-            print(f"  - Issues: {len(report.issues_found)} (Critical: {report.critical_issue_count}, High: {report.high_issue_count})")
+            print(
+                f"  - Issues: {len(report.issues_found)} (Critical: {report.critical_issue_count}, High: {report.high_issue_count})"
+            )
             print(f"  - Suggestions: {len(report.improvement_suggestions)}")
             print(f"  - Duration: {report.review_duration_ms:.0f}ms")
         print()
@@ -687,8 +765,12 @@ def main():
         print("=" * 80)
         print()
         print("Next steps:")
-        print("  1. Check Langfuse dashboard for telemetry: https://us.cloud.langfuse.com")
-        print("  2. Query SQLite for cost data: uv run python scripts/query_telemetry.py")
+        print(
+            "  1. Check Langfuse dashboard for telemetry: https://us.cloud.langfuse.com"
+        )
+        print(
+            "  2. Query SQLite for cost data: uv run python scripts/query_telemetry.py"
+        )
         print("  3. Address Critical/High issues before code generation")
         print("  4. Proceed to Code Agent (FR-004) if assessment is PASS")
         print()
@@ -711,6 +793,7 @@ def main():
         print("  - Invalid design specification (missing required fields)")
         print()
         import traceback
+
         traceback.print_exc()
         return 1
 

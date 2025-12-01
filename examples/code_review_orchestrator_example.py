@@ -99,10 +99,14 @@ def print_code_review_report(report):
     if report.improvement_suggestions:
         print(f"Improvement Suggestions ({len(report.improvement_suggestions)}):")
         for i, suggestion in enumerate(report.improvement_suggestions, 1):
-            print(f"\n  {i}. [{suggestion.priority}] {suggestion.category} - {suggestion.suggestion_id}")
+            print(
+                f"\n  {i}. [{suggestion.priority}] {suggestion.category} - {suggestion.suggestion_id}"
+            )
             print(f"     {suggestion.description}")
             notes = suggestion.implementation_notes
-            print(f"     Implementation: {notes[:100]}{'...' if len(notes) > 100 else ''}")
+            print(
+                f"     Implementation: {notes[:100]}{'...' if len(notes) > 100 else ''}"
+            )
             if suggestion.related_issue_id:
                 print(f"     Addresses: {suggestion.related_issue_id}")
     else:
@@ -235,7 +239,7 @@ class TestDivision:
             ),
             GeneratedFile(
                 file_path="README.md",
-                content='''# Calculator Module
+                content="""# Calculator Module
 
 Simple calculator with basic arithmetic operations.
 
@@ -261,7 +265,7 @@ Run tests with pytest:
 ```bash
 pytest tests/
 ```
-''',
+""",
                 file_type="documentation",
                 description="Project documentation with usage examples",
             ),
@@ -293,7 +297,7 @@ def example_security_issues():
         files=[
             GeneratedFile(
                 file_path="src/api/auth.py",
-                content='''
+                content="""
 from flask import request, jsonify
 
 SECRET_KEY = "my_secret_key_12345"  # Hardcoded secret
@@ -314,7 +318,7 @@ def login():
         return jsonify({"token": token})
 
     return jsonify({"error": "Invalid credentials"}), 401
-''',
+""",
                 file_type="source",
                 description="Authentication API with multiple security issues",
             ),
@@ -365,9 +369,21 @@ def example_full_workflow():
                 description="Todo items table",
                 columns=[
                     {"name": "id", "type": "UUID", "constraints": "PRIMARY KEY"},
-                    {"name": "user_id", "type": "UUID", "constraints": "NOT NULL REFERENCES users(id)"},
-                    {"name": "title", "type": "VARCHAR(255)", "constraints": "NOT NULL"},
-                    {"name": "completed", "type": "BOOLEAN", "constraints": "DEFAULT FALSE"},
+                    {
+                        "name": "user_id",
+                        "type": "UUID",
+                        "constraints": "NOT NULL REFERENCES users(id)",
+                    },
+                    {
+                        "name": "title",
+                        "type": "VARCHAR(255)",
+                        "constraints": "NOT NULL",
+                    },
+                    {
+                        "name": "completed",
+                        "type": "BOOLEAN",
+                        "constraints": "DEFAULT FALSE",
+                    },
                 ],
                 indexes=["CREATE INDEX idx_todos_user_id ON todos(user_id)"],
             )
@@ -378,8 +394,16 @@ def example_full_workflow():
                 semantic_unit_id="SU-001",
                 responsibility="Business logic for todo CRUD operations",
                 interfaces=[
-                    {"method": "list_todos", "parameters": {"user_id": "UUID"}, "returns": "list[Todo]"},
-                    {"method": "create_todo", "parameters": {"title": "str", "user_id": "UUID"}, "returns": "Todo"},
+                    {
+                        "method": "list_todos",
+                        "parameters": {"user_id": "UUID"},
+                        "returns": "list[Todo]",
+                    },
+                    {
+                        "method": "create_todo",
+                        "parameters": {"title": "str", "user_id": "UUID"},
+                        "returns": "Todo",
+                    },
                 ],
                 implementation_notes="Use repository pattern for data access",
             )
@@ -629,7 +653,9 @@ def main():
         print_header("Example Complete")
         print(f"Overall Assessment: {report.overall_assessment}")
         print(f"Total Issues: {len(report.issues_found)}")
-        print(f"Critical: {report.critical_issue_count}, High: {report.high_issue_count}")
+        print(
+            f"Critical: {report.critical_issue_count}, High: {report.high_issue_count}"
+        )
         print()
 
         return 0
@@ -637,6 +663,7 @@ def main():
     except Exception as e:
         print(f"\nError: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         return 1
 
