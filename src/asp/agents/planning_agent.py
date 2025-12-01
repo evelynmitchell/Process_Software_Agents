@@ -14,6 +14,7 @@ Date: November 13, 2025
 
 import logging
 from pathlib import Path
+from typing import Any
 
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.models.planning import ProjectPlan, SemanticUnit, TaskRequirements
@@ -54,7 +55,7 @@ class PlanningAgent(BaseAgent):
     def __init__(
         self,
         db_path: Path | None = None,
-        llm_client: any | None = None,
+        llm_client: Any | None = None,
     ):
         """
         Initialize Planning Agent.

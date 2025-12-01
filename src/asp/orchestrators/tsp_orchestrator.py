@@ -21,7 +21,7 @@ Date: November 22, 2025
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from asp.agents.base_agent import AgentExecutionError
 from asp.agents.code_agent import CodeAgent
@@ -221,7 +221,7 @@ class TSPOrchestrator:
         requirements: TaskRequirements,
         design_constraints: str | None = None,
         coding_standards: str | None = None,
-        hitl_approver: callable | None = None,
+        hitl_approver: Callable | None = None,
     ) -> TSPExecutionResult:
         """
         Execute complete TSP autonomous development pipeline.
@@ -392,7 +392,7 @@ class TSPOrchestrator:
         requirements: TaskRequirements,
         project_plan: ProjectPlan,
         design_constraints: str | None,
-        hitl_approver: callable | None,
+        hitl_approver: Callable | None,
     ) -> tuple[DesignSpecification, DesignReviewReport]:
         """
         Execute Design Agent with Design Review quality gate.
@@ -487,7 +487,7 @@ class TSPOrchestrator:
         requirements: TaskRequirements,
         design_spec: DesignSpecification,
         coding_standards: str | None,
-        hitl_approver: callable | None,
+        hitl_approver: Callable | None,
     ) -> tuple[GeneratedCode, CodeReviewReport]:
         """
         Execute Code Agent with Code Review quality gate.
@@ -693,7 +693,7 @@ class TSPOrchestrator:
         gate_type: str,
         gate_name: str,
         report: Any,
-        hitl_approver: callable | None,
+        hitl_approver: Callable | None,
     ) -> bool:
         """
         Request approval for quality gate failure.
