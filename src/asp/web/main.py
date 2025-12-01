@@ -10,6 +10,7 @@ Three personas:
 """
 
 from fasthtml.common import *
+
 from .developer import developer_routes
 from .manager import manager_routes
 from .product import product_routes
@@ -21,6 +22,40 @@ def create_app():
         pico=True,  # Use PicoCSS for styling
         hdrs=(
             Link(rel='stylesheet', href='https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.colors.min.css'),
+            Style("""
+                .card {
+                    background: var(--pico-card-background-color);
+                    border-radius: var(--pico-border-radius);
+                    padding: 1.5rem;
+                    box-shadow: var(--pico-card-box-shadow);
+                }
+                .sidebar {
+                    min-width: 250px;
+                    border-right: 1px solid var(--pico-muted-border-color);
+                    padding-right: 1rem;
+                }
+                .persona-card {
+                    text-align: center;
+                    padding: 2rem;
+                    border: 2px solid var(--pico-muted-border-color);
+                    border-radius: var(--pico-border-radius);
+                    transition: all 0.2s ease;
+                }
+                .persona-card:hover {
+                    border-color: var(--pico-primary);
+                    transform: translateY(-2px);
+                }
+                .status-indicator {
+                    display: inline-block;
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    margin-right: 0.5rem;
+                }
+                .status-active { background: #22c55e; }
+                .status-pending { background: #eab308; }
+                .status-error { background: #ef4444; }
+            """),
         )
     )
 

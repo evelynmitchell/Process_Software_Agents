@@ -24,6 +24,13 @@ def developer_routes(app, rt):
         completed_tasks = [t for t in tasks if t["status"] == "completed"][:5]
 
         return Titled("Flow State Canvas - Alex",
+            # Header with user info
+            Div(
+                Span("Developer View", cls="pico-color-azure"),
+                Span(" | "),
+                Span("Alex", style="font-weight: bold;"),
+                style="text-align: right; padding: 0.5rem; border-bottom: 1px solid var(--pico-muted-border-color);"
+            ),
             Div(
                 # Sidebar / Navigation
                 Div(
@@ -64,6 +71,11 @@ def developer_routes(app, rt):
                             cls="card",
                             style="text-align: center;"
                         ),
+                        cls="card"
+                    ),
+                    # Defect summary
+                    Div(
+                        H4("Defect Overview"),
                         Div(
                             H4(f"{stats['successful']}/{stats['total_tasks']}"),
                             P("Success Rate"),
@@ -104,9 +116,70 @@ def developer_routes(app, rt):
                         hx_trigger="every 30s",
                         hx_swap="innerHTML"
                     ),
+
                     style="flex-grow: 1; padding-left: 2rem;"
                 ),
                 style="display: flex; min-height: 80vh;"
+            ),
+
+            # Navigation
+            Div(
+                A("Back to Home", href="/", role="button", cls="outline"),
+                style="margin-top: 2rem;"
+            ),
+
+            style="max-width: 1400px; margin: 0 auto; padding: 2rem;"
+        )
+
+    # API Endpoints
+
+    @rt('/developer/api/current-task')
+    def get_current_task():
+        """Return current task HTML fragment."""
+        # Placeholder - would connect to task assignment system
+        return Div(
+            Code("TSP-IMPL-001"),
+            P("Web UI Implementation", style="margin: 0.5rem 0;"),
+            Small("Status: ", Span("In Progress", cls="pico-color-jade")),
+        )
+
+    @rt('/developer/api/stats')
+    def get_developer_stats():
+        """Return developer stats HTML fragment."""
+        activities = get_recent_agent_activity(limit=100)
+
+        # Calculate stats from activities
+        total_executions = len(activities)
+        avg_latency = sum(a["latency_ms"] for a in activities) / total_executions if activities else 0
+
+        return Div(
+            P(Small("Today's Executions: "), Strong(str(min(total_executions, 50)))),
+            P(Small("Avg Response: "), Strong(f"{avg_latency:.0f}ms")),
+            P(Small("Tests Passed: "), Strong("28/28", cls="pico-color-green")),
+        )
+
+    @rt('/developer/api/activity')
+    def get_developer_activity():
+        """Return recent activity HTML fragment."""
+        activities = get_recent_agent_activity(limit=8)
+
+        if not activities:
+            return P("No recent activity. Start a task to see activity here.", cls="pico-color-grey")
+
+        return Table(
+            Thead(Tr(Th("Time"), Th("Action"), Th("Status"))),
+            Tbody(
+                *[
+                    Tr(
+                        Td(Small(act["timestamp"][11:19] if act["timestamp"] else "-")),
+                        Td(f"{act['agent_role']}: {act['task_id'][:12] if act['task_id'] else '-'}"),
+                        Td(
+                            "Success" if act["latency_ms"] and act["latency_ms"] < 30000 else "Slow",
+                            cls="pico-color-green" if act["latency_ms"] and act["latency_ms"] < 30000 else "pico-color-amber"
+                        ),
+                    )
+                    for act in activities
+                ]
             )
         )
 

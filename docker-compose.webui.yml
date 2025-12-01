@@ -1,0 +1,46 @@
+# ASP Platform Web UI - Docker Compose
+# Run with: docker compose -f docker-compose.webui.yml up
+
+services:
+  # ASP Web UI Service
+  asp-webui:
+    build:
+      context: .
+      dockerfile: Dockerfile.webui
+    container_name: asp-webui
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount data directory for telemetry database persistence
+      - ./data:/app/data
+      # Optional: Mount src for development (live reload)
+      # - ./src:/app/src
+    environment:
+      - PYTHONPATH=/app
+      - ASP_USER_ID=admin@asp-platform.local
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # Development mode with live reload
+  asp-webui-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.webui
+    container_name: asp-webui-dev
+    ports:
+      - "8001:8000"
+    volumes:
+      # Mount source code for live development
+      - ./src:/app/src:ro
+      - ./data:/app/data
+    environment:
+      - PYTHONPATH=/app
+      - ASP_USER_ID=developer@asp-platform.local
+    command: uvicorn src.asp.web.main:app --host 0.0.0.0 --port 8000 --reload
+    profiles:
+      - dev
