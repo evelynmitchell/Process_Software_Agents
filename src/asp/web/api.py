@@ -5,15 +5,23 @@ Provides data access functions for the web UI views.
 Connects to the telemetry database to fetch real-time metrics.
 """
 
+import json
+import logging
 import sqlite3
+import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 # Database path (same as telemetry module)
 DEFAULT_DB_PATH = (
     Path(__file__).parent.parent.parent.parent / "data" / "asp_telemetry.db"
 )
+
+# Artifacts path for PIP files
+DEFAULT_ARTIFACTS_PATH = Path(__file__).parent.parent.parent.parent / "artifacts"
 
 
 def get_db_connection(db_path: Path | None = None):
@@ -240,25 +248,166 @@ def get_user_performance(user_id: str | None = None) -> list[dict[str, Any]]:
         conn.close()
 
 
-def get_tasks_pending_approval() -> list[dict[str, Any]]:
+def get_tasks_pending_approval(
+    artifacts_path: Path | None = None,
+) -> list[dict[str, Any]]:
     """
-    Get tasks that are pending approval (stub for HITL workflow).
+    Get tasks that are pending HITL approval.
 
-    TODO: Connect to actual approval system when implemented.
+    Checks two sources:
+    1. PIP (Process Improvement Proposal) artifacts with hitl_status="pending"
+    2. Git review branches (pattern: review/{task_id}-{gate_type})
+
+    Args:
+        artifacts_path: Optional path to artifacts directory
+
+    Returns:
+        List of pending approval items with task_id, title, status, and type
     """
-    # Placeholder - would connect to approval workflow
-    return [
-        {
-            "task_id": "TSP-001",
-            "title": "Implement User Authentication",
-            "status": "pending_review",
-        },
-        {
-            "task_id": "TSP-002",
-            "title": "Add API Rate Limiting",
-            "status": "pending_approval",
-        },
-    ]
+    pending_items: list[dict[str, Any]] = []
+    artifacts_dir = artifacts_path or DEFAULT_ARTIFACTS_PATH
+
+    # 1. Check for pending PIPs in artifacts
+    pending_items.extend(_get_pending_pips(artifacts_dir))
+
+    # 2. Check for pending review branches
+    pending_items.extend(_get_pending_review_branches())
+
+    return pending_items
+
+
+def _get_pending_pips(artifacts_dir: Path) -> list[dict[str, Any]]:
+    """
+    Find PIPs with hitl_status="pending" in artifacts directory.
+
+    Args:
+        artifacts_dir: Path to artifacts directory
+
+    Returns:
+        List of pending PIP items
+    """
+    pending_pips: list[dict[str, Any]] = []
+
+    if not artifacts_dir.exists():
+        return pending_pips
+
+    for task_dir in artifacts_dir.iterdir():
+        if not task_dir.is_dir():
+            continue
+
+        pip_file = task_dir / "pip.json"
+        if not pip_file.exists():
+            continue
+
+        try:
+            with open(pip_file) as f:
+                pip_data = json.load(f)
+
+            if pip_data.get("hitl_status") == "pending":
+                # Extract useful info for display
+                analysis = pip_data.get("analysis", "No analysis available")
+                # Truncate long analysis for display
+                if len(analysis) > 100:
+                    analysis = analysis[:97] + "..."
+
+                pending_pips.append(
+                    {
+                        "task_id": task_dir.name,
+                        "title": f"PIP: {analysis}",
+                        "status": "pending_review",
+                        "type": "pip",
+                        "proposal_id": pip_data.get("proposal_id"),
+                        "created_at": pip_data.get("created_at"),
+                        "expected_impact": pip_data.get("expected_impact"),
+                    }
+                )
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning(f"Failed to read PIP from {pip_file}: {e}")
+
+    return pending_pips
+
+
+def _get_pending_review_branches() -> list[dict[str, Any]]:
+    """
+    Find git branches matching review/* pattern (quality gate reviews).
+
+    Returns:
+        List of pending review branch items
+    """
+    pending_reviews: list[dict[str, Any]] = []
+
+    try:
+        # Get all branches matching review/* pattern
+        result = subprocess.run(
+            ["git", "branch", "-a", "--list", "*review/*"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+
+        if result.returncode != 0:
+            return pending_reviews
+
+        for line in result.stdout.strip().split("\n"):
+            if not line.strip():
+                continue
+
+            branch_name = line.strip().lstrip("* ").replace("remotes/origin/", "")
+
+            # Skip if already processed (avoid duplicates from local+remote)
+            if any(r["branch"] == branch_name for r in pending_reviews):
+                continue
+
+            # Parse branch name: review/{task_id}-{gate_type}
+            if branch_name.startswith("review/"):
+                parts = branch_name[7:].rsplit("-", 1)  # Split from right
+                if len(parts) == 2:
+                    task_id, gate_type = parts
+                else:
+                    task_id = parts[0]
+                    gate_type = "unknown"
+
+                pending_reviews.append(
+                    {
+                        "task_id": task_id,
+                        "title": f"Quality Gate: {gate_type.replace('_', ' ').title()}",
+                        "status": "pending_approval",
+                        "type": "quality_gate",
+                        "gate_type": gate_type,
+                        "branch": branch_name,
+                    }
+                )
+    except (subprocess.TimeoutExpired, subprocess.SubprocessError) as e:
+        logger.warning(f"Failed to get review branches: {e}")
+
+    return pending_reviews
+
+
+def get_pip_details(
+    task_id: str, artifacts_path: Path | None = None
+) -> dict[str, Any] | None:
+    """
+    Get full details of a PIP by task ID.
+
+    Args:
+        task_id: Task ID to look up
+        artifacts_path: Optional path to artifacts directory
+
+    Returns:
+        Full PIP data or None if not found
+    """
+    artifacts_dir = artifacts_path or DEFAULT_ARTIFACTS_PATH
+    pip_file = artifacts_dir / task_id / "pip.json"
+
+    if not pip_file.exists():
+        return None
+
+    try:
+        with open(pip_file) as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        logger.warning(f"Failed to read PIP {task_id}: {e}")
+        return None
 
 
 def get_project_progress() -> dict[str, Any]:

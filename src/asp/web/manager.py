@@ -7,7 +7,16 @@ Displays high-level metrics, agent health, quality gates, and team overview.
 
 from fasthtml.common import *
 
-from .data import get_agent_health, get_agent_stats, get_design_review_stats, get_tasks
+from .data import (
+    generate_sparkline_svg,
+    get_agent_health,
+    get_agent_stats,
+    get_cost_breakdown,
+    get_daily_metrics,
+    get_design_review_stats,
+    get_phase_yield_data,
+    get_tasks,
+)
 
 
 def manager_routes(app, rt):
@@ -20,6 +29,8 @@ def manager_routes(app, rt):
         review_stats = get_design_review_stats()
         tasks = get_tasks()
         agent_health = get_agent_health()
+        cost_data = get_cost_breakdown(days=7)
+        daily_metrics = get_daily_metrics(days=7)
 
         # Calculate high-level metrics
         success_rate = (
@@ -31,6 +42,20 @@ def manager_routes(app, rt):
             [t for t in tasks if t["status"] in ("in_progress", "planning")]
         )
         completed_count = len([t for t in tasks if t["status"] == "completed"])
+        total_tokens = (
+            cost_data["token_usage"]["input"] + cost_data["token_usage"]["output"]
+        )
+
+        # Generate sparklines
+        cost_sparkline = generate_sparkline_svg(
+            daily_metrics["cost"], width=60, height=20, color="#06b6d4"
+        )
+        token_sparkline = generate_sparkline_svg(
+            daily_metrics["tokens"], width=60, height=20, color="#8b5cf6"
+        )
+        task_sparkline = generate_sparkline_svg(
+            daily_metrics["tasks"], width=60, height=20, color="#10b981"
+        )
 
         return Titled(
             "ASP Overwatch - Sarah",
@@ -71,6 +96,62 @@ def manager_routes(app, rt):
                             style="text-align: center;",
                         ),
                         cls="grid",
+                    ),
+                    # Cost metrics row with sparklines
+                    Div(
+                        Div(
+                            Div(
+                                H3(
+                                    f"${cost_data['total_usd']:.2f}",
+                                    cls="pico-color-azure",
+                                    style="display: inline;",
+                                ),
+                                NotStr(cost_sparkline),
+                                style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;",
+                            ),
+                            P("API Cost (7 days)"),
+                            cls="card",
+                            style="text-align: center;",
+                        ),
+                        Div(
+                            Div(
+                                H3(
+                                    f"{total_tokens:,}" if total_tokens > 0 else "0",
+                                    style="display: inline;",
+                                ),
+                                NotStr(token_sparkline),
+                                style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;",
+                            ),
+                            P("Total Tokens"),
+                            cls="card",
+                            style="text-align: center;",
+                        ),
+                        Div(
+                            Div(
+                                H3(
+                                    f"{stats['total_tasks']}",
+                                    cls="pico-color-green",
+                                    style="display: inline;",
+                                ),
+                                NotStr(task_sparkline),
+                                style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;",
+                            ),
+                            P("Tasks (7 days)"),
+                            cls="card",
+                            style="text-align: center;",
+                        ),
+                        Div(
+                            H3(
+                                f"{cost_data['token_usage']['output']:,}"
+                                if cost_data["token_usage"]["output"] > 0
+                                else "0"
+                            ),
+                            P("Output Tokens"),
+                            cls="card",
+                            style="text-align: center;",
+                        ),
+                        cls="grid",
+                        style="margin-top: 1rem;",
                     ),
                     style="margin-bottom: 2rem;",
                 ),
@@ -339,5 +420,157 @@ def manager_routes(app, rt):
                     ),
                 ),
                 style="max-width: 1200px; margin: 0 auto; padding: 2rem;",
+            ),
+        )
+
+    @rt("/manager/phase-yield")
+    def get_phase_yield():
+        """Phase Yield Analysis - Task flow through development phases."""
+        data = get_phase_yield_data()
+        phases = data["phases"]
+        phase_counts = data["phase_counts"]
+        phase_defects = data["phase_defects"]
+
+        # Calculate max for scaling bars
+        max_count = max(phase_counts.values()) if phase_counts.values() else 1
+
+        # Phase colors
+        phase_colors = {
+            "Planning": "#8b5cf6",  # Purple
+            "Design": "#06b6d4",  # Cyan
+            "Code": "#f59e0b",  # Amber
+            "Test": "#10b981",  # Green
+            "Complete": "#22c55e",  # Bright green
+        }
+
+        return Titled(
+            "Phase Yield Analysis - Manager",
+            Div(
+                A("< Back to Dashboard", href="/manager"),
+                H2("Phase Yield Analysis"),
+                P(
+                    "Task flow through development phases with defect detection points.",
+                    cls="secondary",
+                ),
+                # Summary metrics
+                Div(
+                    Div(
+                        H3(str(data["total_started"])),
+                        P("Tasks Started"),
+                        cls="card",
+                        style="text-align: center;",
+                    ),
+                    Div(
+                        H3(str(data["total_completed"]), cls="pico-color-green"),
+                        P("Completed"),
+                        cls="card",
+                        style="text-align: center;",
+                    ),
+                    Div(
+                        H3(
+                            f"{data['yield_rate']:.0f}%",
+                            cls=(
+                                "pico-color-green"
+                                if data["yield_rate"] >= 80
+                                else "pico-color-yellow"
+                            ),
+                        ),
+                        P("Yield Rate"),
+                        cls="card",
+                        style="text-align: center;",
+                    ),
+                    Div(
+                        H3(
+                            str(data["total_defects"]),
+                            cls="pico-color-red" if data["total_defects"] > 0 else "",
+                        ),
+                        P("Defects Found"),
+                        cls="card",
+                        style="text-align: center;",
+                    ),
+                    cls="grid",
+                    style="margin-bottom: 2rem;",
+                ),
+                # Phase flow visualization
+                Div(
+                    H3("Phase Flow"),
+                    Div(
+                        *[
+                            Div(
+                                # Phase header
+                                Div(
+                                    Strong(phase),
+                                    style=f"color: {phase_colors.get(phase, '#666')};",
+                                ),
+                                # Progress bar
+                                Div(
+                                    Div(
+                                        style=f"width: {(phase_counts.get(phase, 0) / max_count * 100) if max_count > 0 else 0}%; "
+                                        f"height: 100%; background: {phase_colors.get(phase, '#666')}; "
+                                        "border-radius: 4px; transition: width 0.3s;",
+                                    ),
+                                    style="width: 100%; height: 24px; background: #e5e7eb; border-radius: 4px; overflow: hidden;",
+                                ),
+                                # Count
+                                Div(
+                                    Span(f"{phase_counts.get(phase, 0)} tasks"),
+                                    (
+                                        Span(
+                                            f" | {phase_defects.get(phase, 0)} defects",
+                                            cls="pico-color-red",
+                                        )
+                                        if phase_defects.get(phase, 0) > 0
+                                        else None
+                                    ),
+                                    style="font-size: 0.85rem; margin-top: 0.25rem;",
+                                ),
+                                style="margin-bottom: 1rem;",
+                            )
+                            for phase in phases
+                        ],
+                        cls="card",
+                        style="padding: 1.5rem;",
+                    ),
+                    style="margin-bottom: 2rem;",
+                ),
+                # Transition flow (simplified Sankey)
+                (
+                    Div(
+                        H3("Phase Transitions"),
+                        Table(
+                            Thead(
+                                Tr(
+                                    Th("From"),
+                                    Th("To"),
+                                    Th("Tasks"),
+                                    Th("Flow"),
+                                )
+                            ),
+                            Tbody(
+                                *[
+                                    Tr(
+                                        Td(t["from"]),
+                                        Td(t["to"]),
+                                        Td(str(t["count"])),
+                                        Td(
+                                            Div(
+                                                Div(
+                                                    style=f"width: {(t['count'] / max_count * 100) if max_count > 0 else 0}%; "
+                                                    "height: 100%; background: #06b6d4; border-radius: 2px;",
+                                                ),
+                                                style="width: 100px; height: 12px; background: #e5e7eb; border-radius: 2px; overflow: hidden;",
+                                            )
+                                        ),
+                                    )
+                                    for t in data["transitions"]
+                                ]
+                            ),
+                        ),
+                        cls="card",
+                    )
+                    if data["transitions"]
+                    else P("No transition data available yet", cls="secondary")
+                ),
+                style="max-width: 1000px; margin: 0 auto; padding: 2rem;",
             ),
         )

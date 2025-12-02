@@ -7,7 +7,13 @@ Displays real task data, recent activity, and quick actions.
 
 from fasthtml.common import *
 
-from .data import get_agent_stats, get_recent_activity, get_task_details, get_tasks
+from .data import (
+    get_agent_stats,
+    get_cost_breakdown,
+    get_recent_activity,
+    get_task_details,
+    get_tasks,
+)
 
 
 def developer_routes(app, rt):
@@ -409,6 +415,10 @@ def developer_routes(app, rt):
     def get_stats_page():
         """View detailed agent statistics."""
         stats = get_agent_stats()
+        cost_data = get_cost_breakdown(days=7)
+        total_tokens = (
+            cost_data["token_usage"]["input"] + cost_data["token_usage"]["output"]
+        )
 
         return Titled(
             "Agent Statistics",
@@ -473,6 +483,72 @@ def developer_routes(app, rt):
                         cls="card",
                     ),
                     cls="grid",
+                ),
+                # Cost tracking section
+                Div(
+                    H3("API Cost Tracking (Last 7 Days)"),
+                    Div(
+                        Div(
+                            H4(
+                                f"${cost_data['total_usd']:.2f}", cls="pico-color-azure"
+                            ),
+                            P("Total Cost"),
+                            cls="card",
+                            style="text-align: center;",
+                        ),
+                        Div(
+                            H4(f"{total_tokens:,}" if total_tokens > 0 else "0"),
+                            P("Total Tokens"),
+                            cls="card",
+                            style="text-align: center;",
+                        ),
+                        Div(
+                            H4(
+                                f"{cost_data['token_usage']['input']:,}"
+                                if cost_data["token_usage"]["input"] > 0
+                                else "0"
+                            ),
+                            P("Input Tokens"),
+                            cls="card",
+                            style="text-align: center;",
+                        ),
+                        Div(
+                            H4(
+                                f"{cost_data['token_usage']['output']:,}"
+                                if cost_data["token_usage"]["output"] > 0
+                                else "0"
+                            ),
+                            P("Output Tokens"),
+                            cls="card",
+                            style="text-align: center;",
+                        ),
+                        cls="grid",
+                    ),
+                    (
+                        Div(
+                            H4("Cost by Agent Role"),
+                            Table(
+                                Tbody(
+                                    *[
+                                        Tr(
+                                            Td(role),
+                                            Td(Strong(f"${cost:.4f}")),
+                                        )
+                                        for role, cost in cost_data["by_role"].items()
+                                    ]
+                                )
+                            ),
+                            cls="card",
+                            style="margin-top: 1rem;",
+                        )
+                        if cost_data["by_role"]
+                        else P(
+                            "No cost data available yet",
+                            cls="secondary",
+                            style="margin-top: 1rem;",
+                        )
+                    ),
+                    style="margin-top: 2rem;",
                 ),
                 style="max-width: 1000px; margin: 0 auto; padding: 2rem;",
             ),

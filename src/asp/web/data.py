@@ -584,3 +584,250 @@ def get_cost_breakdown(days: int = 7) -> dict[str, Any]:
         return result
     finally:
         conn.close()
+
+
+def get_daily_metrics(days: int = 7) -> dict[str, list[float]]:
+    """
+    Get daily aggregated metrics for sparkline charts.
+
+    Args:
+        days: Number of days of history to fetch
+
+    Returns:
+        Dictionary with lists of daily values for cost, tokens, tasks
+    """
+    result = {
+        "dates": [],
+        "cost": [],
+        "tokens": [],
+        "tasks": [],
+    }
+
+    conn = _get_db_connection()
+    if not conn:
+        # Return placeholder data when no telemetry available
+        return _get_placeholder_metrics(days)
+
+    try:
+        cursor = conn.cursor()
+        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+
+        # Get daily cost totals
+        cursor.execute(
+            """
+            SELECT
+                DATE(timestamp) as day,
+                SUM(CASE WHEN metric_type = 'API_Cost' THEN metric_value ELSE 0 END) as cost,
+                SUM(CASE WHEN metric_type IN ('Tokens_In', 'Tokens_Out') THEN metric_value ELSE 0 END) as tokens,
+                COUNT(DISTINCT task_id) as tasks
+            FROM agent_cost_vector
+            WHERE timestamp > ?
+            GROUP BY DATE(timestamp)
+            ORDER BY day
+            """,
+            (cutoff,),
+        )
+
+        for row in cursor.fetchall():
+            result["dates"].append(row["day"])
+            result["cost"].append(row["cost"] or 0)
+            result["tokens"].append(row["tokens"] or 0)
+            result["tasks"].append(row["tasks"] or 0)
+
+        # If no data, return placeholder
+        if not result["dates"]:
+            return _get_placeholder_metrics(days)
+
+        return result
+    except sqlite3.Error:
+        return _get_placeholder_metrics(days)
+    finally:
+        conn.close()
+
+
+def _get_placeholder_metrics(days: int) -> dict[str, list[float]]:
+    """
+    Generate placeholder metrics data for display when no real data exists.
+
+    Args:
+        days: Number of days to generate
+
+    Returns:
+        Dictionary with placeholder daily values
+    """
+    from datetime import date
+
+    today = date.today()
+    dates = [(today - timedelta(days=i)).isoformat() for i in range(days - 1, -1, -1)]
+
+    # Generate realistic-looking placeholder data
+    # Shows a gentle upward trend to indicate system activity
+    return {
+        "dates": dates,
+        "cost": [0.0] * days,  # No cost when no data
+        "tokens": [0] * days,  # No tokens when no data
+        "tasks": [0] * days,  # No tasks when no data
+    }
+
+
+def generate_sparkline_svg(
+    values: list[float],
+    width: int = 80,
+    height: int = 20,
+    color: str = "#06b6d4",
+    show_endpoint: bool = True,
+) -> str:
+    """
+    Generate an inline SVG sparkline chart.
+
+    Args:
+        values: List of numeric values to plot
+        width: SVG width in pixels
+        height: SVG height in pixels
+        color: Line color (CSS color)
+        show_endpoint: Whether to show a dot at the last point
+
+    Returns:
+        SVG markup string
+    """
+    if not values or all(v == 0 for v in values):
+        # Return empty placeholder when no data
+        return f'<svg width="{width}" height="{height}" style="vertical-align: middle;"><text x="{width//2}" y="{height//2 + 4}" text-anchor="middle" fill="#666" font-size="10">No data</text></svg>'
+
+    # Normalize values to fit in height
+    min_val = min(values)
+    max_val = max(values)
+    val_range = max_val - min_val if max_val != min_val else 1
+
+    # Calculate points with padding
+    padding = 2
+    usable_height = height - 2 * padding
+    usable_width = width - 2 * padding
+
+    points = []
+    for i, val in enumerate(values):
+        x = (
+            padding + (i / (len(values) - 1)) * usable_width
+            if len(values) > 1
+            else width / 2
+        )
+        y = padding + usable_height - ((val - min_val) / val_range) * usable_height
+        points.append(f"{x:.1f},{y:.1f}")
+
+    path = f'M {" L ".join(points)}'
+
+    # Build SVG
+    svg_parts = [
+        f'<svg width="{width}" height="{height}" style="vertical-align: middle;">',
+        f'<path d="{path}" fill="none" stroke="{color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+    ]
+
+    # Add endpoint dot
+    if show_endpoint and points:
+        last_x, last_y = points[-1].split(",")
+        svg_parts.append(f'<circle cx="{last_x}" cy="{last_y}" r="2" fill="{color}"/>')
+
+    svg_parts.append("</svg>")
+    return "".join(svg_parts)
+
+
+def get_phase_yield_data() -> dict[str, Any]:
+    """
+    Get phase yield analysis data showing task flow through development phases.
+
+    Returns:
+        Dictionary with phase counts, transitions, and defect data
+    """
+    phases = ["Planning", "Design", "Code", "Test", "Complete"]
+    phase_counts = dict.fromkeys(phases, 0)
+    phase_defects = dict.fromkeys(phases, 0)
+    transitions = []
+
+    # Load bootstrap results
+    if BOOTSTRAP_RESULTS.exists():
+        with open(BOOTSTRAP_RESULTS) as f:
+            data = json.load(f)
+        results = data.get("results", [])
+
+        for result in results:
+            if result.get("success"):
+                phase_counts["Complete"] += 1
+            else:
+                # Failed tasks stuck in earlier phase
+                phase_counts["Code"] += 1
+
+    # Load design review results
+    design_review_file = DATA_DIR / "bootstrap_design_review_results.json"
+    if design_review_file.exists():
+        with open(design_review_file) as f:
+            data = json.load(f)
+        results = data.get("results", [])
+
+        for result in results:
+            if result.get("design_success"):
+                phase_counts["Design"] += 1
+            else:
+                phase_defects["Design"] += 1
+
+    # Check defect_log table
+    conn = _get_db_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT phase, COUNT(*) as count
+                FROM defect_log
+                GROUP BY phase
+                """
+            )
+            for row in cursor.fetchall():
+                phase = row["phase"]
+                if phase in phase_defects:
+                    phase_defects[phase] += row["count"]
+        except sqlite3.Error:
+            pass
+        finally:
+            conn.close()
+
+    # Calculate totals
+    total_started = sum(phase_counts.values())
+    total_defects = sum(phase_defects.values())
+
+    # Build transitions (simplified flow)
+    if total_started > 0:
+        transitions = [
+            {
+                "from": "Planning",
+                "to": "Design",
+                "count": phase_counts.get("Design", 0)
+                + phase_counts.get("Code", 0)
+                + phase_counts.get("Complete", 0),
+            },
+            {
+                "from": "Design",
+                "to": "Code",
+                "count": phase_counts.get("Code", 0) + phase_counts.get("Complete", 0),
+            },
+            {"from": "Code", "to": "Test", "count": phase_counts.get("Complete", 0)},
+            {
+                "from": "Test",
+                "to": "Complete",
+                "count": phase_counts.get("Complete", 0),
+            },
+        ]
+
+    return {
+        "phases": phases,
+        "phase_counts": phase_counts,
+        "phase_defects": phase_defects,
+        "transitions": transitions,
+        "total_started": total_started,
+        "total_completed": phase_counts.get("Complete", 0),
+        "total_defects": total_defects,
+        "yield_rate": (
+            phase_counts.get("Complete", 0) / total_started * 100
+            if total_started > 0
+            else 0
+        ),
+    }
