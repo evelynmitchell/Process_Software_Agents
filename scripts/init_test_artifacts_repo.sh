@@ -37,6 +37,10 @@ cd "$TEST_REPO_PATH"
 echo "Initializing git repository..."
 git init
 
+# Configure local git user for this repo (needed in CI environments)
+git config user.email "test@localhost"
+git config user.name "Test User"
+
 # Create initial structure
 echo "Creating directory structure..."
 mkdir -p artifacts

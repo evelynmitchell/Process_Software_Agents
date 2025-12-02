@@ -289,13 +289,20 @@ class TestGitOperations:
         test_file = test_repo_path / "artifacts" / "test.txt"
         test_file.write_text("Test content")
 
-        # Add and commit
+        # Add and commit (git user already configured by init script)
         subprocess.run(["git", "add", "."], cwd=str(test_repo_path), check=True)
         result = subprocess.run(
             ["git", "commit", "-m", "Test commit"],
             cwd=str(test_repo_path),
             capture_output=True,
             text=True,
+            env={
+                **os.environ,
+                "GIT_AUTHOR_NAME": "Test",
+                "GIT_AUTHOR_EMAIL": "test@localhost",
+                "GIT_COMMITTER_NAME": "Test",
+                "GIT_COMMITTER_EMAIL": "test@localhost",
+            },
         )
 
         assert result.returncode == 0, f"Commit failed: {result.stderr}"
