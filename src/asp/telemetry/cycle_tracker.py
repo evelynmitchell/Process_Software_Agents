@@ -22,11 +22,11 @@ Date: November 25, 2025
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 from asp.models.postmortem import ProcessImprovementProposal
-from asp.utils.artifact_io import read_artifact_json, write_artifact_json
 
 logger = logging.getLogger(__name__)
 
@@ -389,15 +389,14 @@ class CycleTracker:
         Returns:
             List of ImprovementCycle objects
         """
+        import json
+
         cycles = []
 
         for cycle_file in self.cycles_dir.glob("*.json"):
             try:
-                cycle_data = read_artifact_json(
-                    task_id=cycle_file.stem,
-                    artifact_type="improvement_cycle",
-                    artifacts_dir=self.cycles_dir.parent,
-                )
+                with open(cycle_file, encoding="utf-8") as f:
+                    cycle_data = json.load(f)
                 cycle = ImprovementCycle(**cycle_data)
                 cycles.append(cycle)
             except Exception as e:
@@ -405,7 +404,7 @@ class CycleTracker:
 
         return cycles
 
-    def generate_report(self) -> dict[str, any]:
+    def generate_report(self) -> dict[str, Any]:
         """
         Generate summary report of all improvement cycles.
 
@@ -472,16 +471,15 @@ class CycleTracker:
         Raises:
             FileNotFoundError: If cycle file not found
         """
+        import json
+
         cycle_file = self.cycles_dir / f"{pip_id}.json"
 
         if not cycle_file.exists():
             raise FileNotFoundError(f"Improvement cycle not found for PIP: {pip_id}")
 
-        cycle_data = read_artifact_json(
-            task_id=pip_id,
-            artifact_type="improvement_cycle",
-            artifacts_dir=self.cycles_dir.parent,
-        )
+        with open(cycle_file, encoding="utf-8") as f:
+            cycle_data = json.load(f)
 
         return ImprovementCycle(**cycle_data)
 
@@ -492,11 +490,14 @@ class CycleTracker:
         Args:
             cycle: ImprovementCycle to save
         """
-        write_artifact_json(
-            task_id=cycle.pip_id,
-            artifact_type="improvement_cycle",
-            data=cycle,
-            artifacts_dir=self.cycles_dir.parent,
-        )
+        import json
+
+        cycle_file = self.cycles_dir / f"{cycle.pip_id}.json"
+
+        # Convert Pydantic model to dict for JSON serialization
+        cycle_data = cycle.model_dump(mode="json")
+
+        with open(cycle_file, "w", encoding="utf-8") as f:
+            json.dump(cycle_data, f, indent=2, ensure_ascii=False)
 
         logger.debug(f"Saved improvement cycle: {cycle.pip_id}")

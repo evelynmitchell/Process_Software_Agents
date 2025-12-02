@@ -389,18 +389,11 @@ def track_agent_cost(
             user_id = get_user_id()
 
             # Start Langfuse span
+            # Note: Langfuse 3.x removed 'tags' parameter from start_span()
+            # Tags are now stored in metadata instead
             langfuse = get_langfuse_client()
             span = langfuse.start_span(
                 name=f"{agent_role}.{func.__name__}",
-                tags=[
-                    f"user:{user_id}",
-                    f"model:{llm_model}" if llm_model else "model:unknown",
-                    (
-                        f"pair:{user_id}|{llm_model}"
-                        if llm_model
-                        else f"pair:{user_id}|unknown"
-                    ),
-                ],
                 metadata={
                     "agent_role": agent_role,
                     "task_id": task_id,
@@ -409,6 +402,16 @@ def track_agent_cost(
                     "llm_model": llm_model,
                     "llm_provider": llm_provider,
                     "agent_version": agent_version,
+                    # Tags moved to metadata for Langfuse 3.x compatibility
+                    "tags": [
+                        f"user:{user_id}",
+                        f"model:{llm_model}" if llm_model else "model:unknown",
+                        (
+                            f"pair:{user_id}|{llm_model}"
+                            if llm_model
+                            else f"pair:{user_id}|unknown"
+                        ),
+                    ],
                 },
             )
 

@@ -8,10 +8,95 @@ from unittest.mock import Mock
 
 import pytest
 
-from asp.models.design import APIContract, ComponentLogic, DesignSpecification
-from asp.models.design_review import DesignIssue, DesignReviewReport
+from asp.models.design import (
+    APIContract,
+    ComponentLogic,
+    DesignReviewChecklistItem,
+    DesignSpecification,
+)
+from asp.models.design_review import (
+    ChecklistItemReview,
+    DesignIssue,
+    DesignReviewReport,
+)
 from asp.models.planning import ProjectPlan, SemanticUnit, TaskRequirements
 from asp.orchestrators import PlanningDesignOrchestrator, PlanningDesignResult
+
+
+def make_semantic_unit(
+    unit_id: str = "SU-001",
+    description: str = "Create API endpoint for the hello world service",
+) -> SemanticUnit:
+    """Helper to create valid SemanticUnit test data."""
+    return SemanticUnit(
+        unit_id=unit_id,
+        description=description,
+        api_interactions=1,
+        data_transformations=0,
+        logical_branches=1,
+        code_entities_modified=1,
+        novelty_multiplier=1.0,
+        est_complexity=10,
+    )
+
+
+def make_component_logic(
+    name: str = "HelloHandler",
+    semantic_unit_id: str = "SU-001",
+) -> ComponentLogic:
+    """Helper to create valid ComponentLogic test data."""
+    return ComponentLogic(
+        component_name=name,
+        semantic_unit_id=semantic_unit_id,
+        responsibility="Handles incoming HTTP requests and returns appropriate responses",
+        interfaces=[{"method": "handle_request", "returns": "Response"}],
+        implementation_notes="Use standard REST patterns with proper error handling",
+    )
+
+
+def make_design_review_checklist(count: int = 5) -> list[DesignReviewChecklistItem]:
+    """Helper to create minimum required checklist items."""
+    categories = ["Security", "API", "Data", "Error Handling", "Performance"]
+    severities = ["Critical", "High", "Medium", "Medium", "Medium"]
+    return [
+        DesignReviewChecklistItem(
+            category=categories[i % len(categories)],
+            description=f"Validate {categories[i % len(categories)].lower()} requirements for the component thoroughly",
+            validation_criteria=f"Check that all {categories[i % len(categories)].lower()} standards are properly met",
+            severity=severities[i % len(severities)],
+        )
+        for i in range(count)
+    ]
+
+
+def make_checklist_review(count: int = 1) -> list[ChecklistItemReview]:
+    """Helper to create checklist review items."""
+    return [
+        ChecklistItemReview(
+            checklist_item_id=f"CHECK-{i+1:03d}",
+            category="Security",
+            description=f"Validate security requirements for component {i+1}",
+            status="Pass",
+            notes="All requirements have been verified and passed inspection",
+        )
+        for i in range(count)
+    ]
+
+
+def make_design_specification(
+    task_id: str = "SIMPLE-001",
+    api_contracts: list[APIContract] | None = None,
+    component_logic: list[ComponentLogic] | None = None,
+) -> DesignSpecification:
+    """Helper to create valid DesignSpecification test data."""
+    return DesignSpecification(
+        task_id=task_id,
+        architecture_overview="This system uses a 3-tier architecture with REST API layer and service layer",
+        technology_stack={"language": "Python 3.12", "framework": "FastAPI"},
+        api_contracts=api_contracts or [],
+        component_logic=component_logic or [make_component_logic()],
+        design_review_checklist=make_design_review_checklist(5),
+    )
 
 
 class TestPlanningDesignOrchestrator:
@@ -51,46 +136,24 @@ class TestPlanningDesignOrchestrator:
         mock_plan = ProjectPlan(
             project_id="TEST-001",
             task_id="SIMPLE-001",
-            description="Simple test task",
-            semantic_units=[
-                SemanticUnit(
-                    unit_id="SU-001",
-                    description="Create API endpoint",
-                    unit_type="API Development",
-                    estimated_complexity=10,
-                )
-            ],
+            semantic_units=[make_semantic_unit()],
             total_est_complexity=10,
         )
         mock_planning_agent.execute.return_value = mock_plan
 
         # Mock design agent response
-        mock_design = DesignSpecification(
+        mock_design = make_design_specification(
             task_id="SIMPLE-001",
-            project_plan=mock_plan,
             api_contracts=[
                 APIContract(
                     endpoint="/hello",
                     method="GET",
-                    description="Hello endpoint",
+                    description="Hello endpoint for testing",
                     request_schema={},
                     response_schema={"type": "object"},
-                    error_responses=[],
+                    semantic_unit_id="SU-001",
                 )
             ],
-            component_logic=[
-                ComponentLogic(
-                    component_name="HelloHandler",
-                    description="Handles hello requests",
-                    responsibilities=["Handle GET /hello"],
-                    dependencies=[],
-                    key_methods=[],
-                )
-            ],
-            data_models=[],
-            dependencies=[],
-            deployment_considerations="Deploy to cloud",
-            design_review_checklist=["Check security", "Check performance"],
         )
         mock_design_agent.execute.return_value = mock_design
 
@@ -98,18 +161,18 @@ class TestPlanningDesignOrchestrator:
         mock_review = DesignReviewReport(
             task_id="SIMPLE-001",
             review_id="REVIEW-TEST-20251119-120000",
+            design_id="DESIGN-001",
             overall_assessment="PASS",
             automated_checks={"semantic_coverage": True},
             issues_found=[],
-            planning_phase_issues=[],
-            design_phase_issues=[],
-            multi_phase_issues=[],
             improvement_suggestions=[],
-            checklist_review=[],
+            checklist_review=make_checklist_review(1),
             critical_issue_count=0,
             high_issue_count=0,
             medium_issue_count=0,
             low_issue_count=0,
+            reviewer_agent="DesignReviewAgent",
+            agent_version="1.0.0",
         )
         mock_review_agent.execute.return_value = mock_review
 
@@ -164,13 +227,9 @@ class TestPlanningDesignOrchestrator:
         mock_plan = ProjectPlan(
             project_id="TEST-001",
             task_id="FEEDBACK-001",
-            description="Test feedback loop",
             semantic_units=[
-                SemanticUnit(
-                    unit_id="SU-001",
-                    description="Create API",
-                    unit_type="API",
-                    estimated_complexity=10,
+                make_semantic_unit(
+                    description="Create API endpoint with feedback handling support"
                 )
             ],
             total_est_complexity=10,
@@ -178,51 +237,23 @@ class TestPlanningDesignOrchestrator:
         mock_planning_agent.execute.return_value = mock_plan
 
         # Mock design agent - returns two different designs
-        mock_design_v1 = DesignSpecification(
+        mock_design_v1 = make_design_specification(
             task_id="FEEDBACK-001",
-            project_plan=mock_plan,
-            api_contracts=[],
-            component_logic=[
-                ComponentLogic(
-                    component_name="Handler",
-                    description="Handler",
-                    responsibilities=["Handle requests"],
-                    dependencies=[],
-                    key_methods=[],
-                )
-            ],
-            data_models=[],
-            dependencies=[],
-            deployment_considerations="Deploy",
-            design_review_checklist=["Security"],
+            api_contracts=[],  # Missing API contracts
         )
 
-        mock_design_v2 = DesignSpecification(
+        mock_design_v2 = make_design_specification(
             task_id="FEEDBACK-001",
-            project_plan=mock_plan,
             api_contracts=[
                 APIContract(
                     endpoint="/api",
                     method="GET",
-                    description="API endpoint",
+                    description="API endpoint for testing",
                     request_schema={},
                     response_schema={"type": "object"},
-                    error_responses=[],
+                    semantic_unit_id="SU-001",
                 )
             ],
-            component_logic=[
-                ComponentLogic(
-                    component_name="Handler",
-                    description="Handler",
-                    responsibilities=["Handle requests"],
-                    dependencies=[],
-                    key_methods=[],
-                )
-            ],
-            data_models=[],
-            dependencies=[],
-            deployment_considerations="Deploy",
-            design_review_checklist=["Security"],
         )
 
         # First call returns v1, second call returns v2 (after feedback)
@@ -234,43 +265,44 @@ class TestPlanningDesignOrchestrator:
             category="API Design",
             severity="High",
             description="Missing API endpoint definition",
+            affected_component="API",
             evidence="No API contracts defined",
             impact="Cannot generate code without API contracts",
-            affected_phase="Design",
+            recommendation="Add API contract specifications",
         )
 
         mock_review_fail = DesignReviewReport(
             task_id="FEEDBACK-001",
             review_id="REVIEW-TEST-20251119-120000",
+            design_id="DESIGN-001",
             overall_assessment="FAIL",
             automated_checks={"semantic_coverage": True},
             issues_found=[design_issue],
-            planning_phase_issues=[],
-            design_phase_issues=[design_issue],
-            multi_phase_issues=[],
             improvement_suggestions=[],
-            checklist_review=[],
+            checklist_review=make_checklist_review(1),
             critical_issue_count=0,
             high_issue_count=1,
             medium_issue_count=0,
             low_issue_count=0,
+            reviewer_agent="DesignReviewAgent",
+            agent_version="1.0.0",
         )
 
         mock_review_pass = DesignReviewReport(
             task_id="FEEDBACK-001",
             review_id="REVIEW-TEST-20251119-120001",
+            design_id="DESIGN-002",
             overall_assessment="PASS",
             automated_checks={"semantic_coverage": True},
             issues_found=[],
-            planning_phase_issues=[],
-            design_phase_issues=[],
-            multi_phase_issues=[],
             improvement_suggestions=[],
-            checklist_review=[],
+            checklist_review=make_checklist_review(1),
             critical_issue_count=0,
             high_issue_count=0,
             medium_issue_count=0,
             low_issue_count=0,
+            reviewer_agent="DesignReviewAgent",
+            agent_version="1.0.0",
         )
 
         mock_review_agent.execute.side_effect = [mock_review_fail, mock_review_pass]

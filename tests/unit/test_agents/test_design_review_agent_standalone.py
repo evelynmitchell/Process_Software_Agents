@@ -588,7 +588,7 @@ class TestLLMReview:
         mock_call_llm.return_value = {"content": "not valid json"}
 
         with pytest.raises(
-            AgentExecutionError, match="Failed to parse LLM review response"
+            AgentExecutionError, match="LLM returned non-JSON response"
         ):
             agent._run_llm_review(design_spec, None)
 
