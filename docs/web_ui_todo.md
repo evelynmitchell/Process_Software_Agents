@@ -7,21 +7,24 @@
 
 | Category | Total | Done | Remaining |
 |----------|-------|------|-----------|
-| Core Integration | 3 | 0 | 3 |
+| Core Integration | 3 | 1 | 2 |
 | Data & Metrics | 4 | 0 | 4 |
 | Product Manager | 2 | 0 | 2 |
 | Developer Features | 3 | 0 | 3 |
 | Polish | 1 | 0 | 1 |
-| **Total** | **13** | **0** | **13** |
+| **Total** | **13** | **1** | **12** |
 
 ---
 
 ## Core Integration (High Priority)
 
-- [ ] **Connect to HITL approval workflow**
-  - Location: `src/asp/web/api.py:247` (stub exists)
-  - Connect `get_tasks_pending_approval()` to actual approval system
-  - Display pending approvals in Manager dashboard
+- [x] **Connect to HITL approval workflow** (Completed 2025-12-02)
+  - Location: `src/asp/web/api.py`
+  - `get_tasks_pending_approval()` now checks:
+    - PIP artifacts with `hitl_status="pending"`
+    - Git branches matching `review/*` pattern (quality gate reviews)
+  - Added `get_pip_details()` for full PIP information
+  - Added helper functions `_get_pending_pips()` and `_get_pending_review_branches()`
 
 - [ ] **Connect to TSP orchestrator for live task execution**
   - Enable real-time task submission from web UI
