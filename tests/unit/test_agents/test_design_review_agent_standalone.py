@@ -29,9 +29,7 @@ from asp.models.design import (
     DesignReviewChecklistItem,
     DesignSpecification,
 )
-from asp.models.design_review import (
-    DesignReviewReport,
-)
+from asp.models.design_review import DesignReviewReport
 
 # =============================================================================
 # Test Fixtures
@@ -587,9 +585,7 @@ class TestLLMReview:
 
         mock_call_llm.return_value = {"content": "not valid json"}
 
-        with pytest.raises(
-            AgentExecutionError, match="LLM returned non-JSON response"
-        ):
+        with pytest.raises(AgentExecutionError, match="LLM returned non-JSON response"):
             agent._run_llm_review(design_spec, None)
 
 
@@ -707,7 +703,7 @@ class TestExecute:
         report = agent.execute(design_spec)
 
         assert report.review_duration_ms > 0
-        assert isinstance(report.review_duration_ms, (int, float))
+        assert isinstance(report.review_duration_ms, int | float)
 
     @patch("asp.agents.design_review_agent.DesignReviewAgent.call_llm")
     def test_execute_includes_checklist_review(self, mock_call_llm):
