@@ -7,8 +7,10 @@ Displays real task data, recent activity, and quick actions.
 
 from fasthtml.common import *
 
+from .components import theme_toggle
 from .data import (
     get_agent_stats,
+    get_artifact_history,
     get_cost_breakdown,
     get_recent_activity,
     get_task_details,
@@ -34,6 +36,7 @@ def developer_routes(app, rt):
 
         return Titled(
             "Flow State Canvas - Alex",
+            theme_toggle(),
             # Header with user info
             Div(
                 Span("Developer View", cls="pico-color-azure"),
@@ -85,7 +88,6 @@ def developer_routes(app, rt):
                     Ul(
                         Li(A("View All Tasks", href="/developer/tasks")),
                         Li(A("Agent Stats", href="/developer/stats")),
-                        Li(A("View Traces", href="#", cls="secondary")),
                     ),
                     cls="sidebar",
                     style="width: 280px; border-right: 1px solid var(--pico-muted-border-color); padding-right: 1rem;",
@@ -407,7 +409,167 @@ def developer_routes(app, rt):
                     if details.get("design")
                     else None
                 ),
+                # Traceability link
+                Div(
+                    A(
+                        "View Artifact Timeline",
+                        href=f"/developer/task/{task_id}/trace",
+                        role="button",
+                        cls="outline",
+                    ),
+                    style="margin-top: 1rem;",
+                ),
                 style="max-width: 1000px; margin: 0 auto; padding: 2rem;",
+            ),
+        )
+
+    @rt("/developer/task/{task_id}/trace")
+    def get_task_trace(task_id: str):
+        """Traceability view showing artifact history timeline."""
+        artifacts = get_artifact_history(task_id)
+        details = get_task_details(task_id)
+
+        if not details:
+            return Titled(
+                "Task Not Found",
+                Div(
+                    A("< Back", href="/developer/tasks"),
+                    H2(f"Task {task_id} not found"),
+                    P("This task does not exist or has no artifacts."),
+                    style="max-width: 800px; margin: 0 auto; padding: 2rem;",
+                ),
+            )
+
+        # Phase colors
+        phase_colors = {
+            "plan": "#8b5cf6",  # Purple
+            "design": "#06b6d4",  # Cyan
+            "review": "#f59e0b",  # Amber
+            "code": "#10b981",  # Green
+            "test": "#3b82f6",  # Blue
+            "postmortem": "#ef4444",  # Red
+            "unknown": "#6b7280",  # Gray
+        }
+
+        # Group artifacts by phase
+        phases_seen = []
+        for a in artifacts:
+            if a["phase"] not in phases_seen:
+                phases_seen.append(a["phase"])
+
+        return Titled(
+            f"Artifact Timeline - {task_id}",
+            Div(
+                A("< Back to Task", href=f"/developer/task/{task_id}"),
+                " | ",
+                A("All Tasks", href="/developer/tasks"),
+                H2(f"Artifact Timeline: {task_id}"),
+                P(
+                    f"{len(artifacts)} artifacts across {len(phases_seen)} phases",
+                    cls="secondary",
+                ),
+                # Timeline visualization
+                Div(
+                    *(
+                        [
+                            Div(
+                                # Phase header
+                                Div(
+                                    Div(
+                                        style=f"width: 16px; height: 16px; border-radius: 50%; "
+                                        f"background: {phase_colors.get(a['phase'], '#666')};",
+                                    ),
+                                    Div(
+                                        Strong(a["phase"].capitalize()),
+                                        (
+                                            Span(f" v{a['version']}", cls="secondary")
+                                            if a["version"] > 1
+                                            else None
+                                        ),
+                                        style="margin-left: 0.5rem;",
+                                    ),
+                                    style="display: flex; align-items: center;",
+                                ),
+                                # Timeline connector
+                                (
+                                    Div(
+                                        style=f"width: 2px; height: 100%; background: {phase_colors.get(a['phase'], '#666')}; "
+                                        "margin-left: 7px; min-height: 20px;",
+                                    )
+                                    if i < len(artifacts) - 1
+                                    else None
+                                ),
+                                # Artifact card
+                                Div(
+                                    Div(
+                                        Strong(a["name"]),
+                                        Span(
+                                            f" ({a['size']} bytes)",
+                                            cls="secondary",
+                                            style="font-size: 0.85rem;",
+                                        ),
+                                    ),
+                                    Div(
+                                        Small(f"Modified: {a['modified_display']}"),
+                                        cls="secondary",
+                                    ),
+                                    (
+                                        Div(
+                                            Pre(
+                                                a["preview"],
+                                                style="font-size: 0.8rem; max-height: 100px; overflow: auto; margin: 0.5rem 0;",
+                                            ),
+                                        )
+                                        if a["preview"]
+                                        else None
+                                    ),
+                                    cls="card",
+                                    style=f"margin-left: 2rem; margin-bottom: 1rem; border-left: 3px solid {phase_colors.get(a['phase'], '#666')};",
+                                ),
+                                style="margin-bottom: 0.5rem;",
+                            )
+                            for i, a in enumerate(artifacts)
+                        ]
+                        if artifacts
+                        else [P("No artifacts found for this task", cls="secondary")]
+                    ),
+                    style="margin-top: 2rem;",
+                ),
+                # Telemetry section
+                (
+                    Div(
+                        H3("Execution Telemetry"),
+                        Table(
+                            Tbody(
+                                Tr(
+                                    Td("Total Latency"),
+                                    Td(
+                                        f"{details['telemetry']['total_latency_ms']:.0f}ms"
+                                    ),
+                                ),
+                                Tr(
+                                    Td("Input Tokens"),
+                                    Td(f"{details['telemetry']['total_tokens_in']:,}"),
+                                ),
+                                Tr(
+                                    Td("Output Tokens"),
+                                    Td(f"{details['telemetry']['total_tokens_out']:,}"),
+                                ),
+                                Tr(
+                                    Td("API Cost"),
+                                    Td(
+                                        f"${details['telemetry']['total_cost_usd']:.4f}"
+                                    ),
+                                ),
+                            )
+                        ),
+                        cls="card",
+                        style="margin-top: 2rem;",
+                    )
+                    if details.get("telemetry")
+                    else None
+                ),
+                style="max-width: 900px; margin: 0 auto; padding: 2rem;",
             ),
         )
 

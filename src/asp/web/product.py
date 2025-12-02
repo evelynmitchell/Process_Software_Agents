@@ -7,6 +7,7 @@ Displays project progress, task pipeline, and delivery metrics.
 
 from fasthtml.common import *
 
+from .components import theme_toggle
 from .data import get_agent_stats, get_tasks
 
 
@@ -31,6 +32,7 @@ def product_routes(app, rt):
 
         return Titled(
             "Project Overview - Jordan",
+            theme_toggle(),
             Div(
                 # Header metrics
                 Div(

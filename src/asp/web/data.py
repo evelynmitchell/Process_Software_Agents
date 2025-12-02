@@ -8,6 +8,7 @@ Integrates data from:
 - Artifact directories
 """
 
+import contextlib
 import json
 import sqlite3
 from datetime import datetime, timedelta
@@ -133,6 +134,79 @@ def get_task_details(task_id: str) -> dict[str, Any] | None:
     details["telemetry"] = get_task_telemetry(task_id)
 
     return details
+
+
+def get_artifact_history(task_id: str) -> list[dict[str, Any]]:
+    """
+    Get the artifact history for a task showing the development timeline.
+
+    Args:
+        task_id: The task identifier
+
+    Returns:
+        List of artifacts in chronological order with metadata
+    """
+    task_dir = ARTIFACTS_DIR / task_id
+    if not task_dir.exists():
+        return []
+
+    artifacts = []
+    phase_order = {
+        "plan": 1,
+        "design": 2,
+        "review": 3,
+        "code": 4,
+        "test": 5,
+        "postmortem": 6,
+    }
+
+    for artifact in task_dir.iterdir():
+        if artifact.is_file():
+            name = artifact.name.lower()
+            mtime = artifact.stat().st_mtime
+            mtime_dt = datetime.fromtimestamp(mtime)
+
+            # Determine phase from filename
+            phase = "unknown"
+            for p in phase_order:
+                if p in name:
+                    phase = p
+                    break
+
+            # Determine version from filename
+            version = 1
+            if "_v" in name:
+                with contextlib.suppress(ValueError, IndexError):
+                    version = int(name.split("_v")[1].split(".")[0])
+
+            # Read preview content for text files
+            preview = None
+            if artifact.suffix in (".md", ".txt", ".json", ".py"):
+                try:
+                    content = artifact.read_text()
+                    preview = content[:200] + "..." if len(content) > 200 else content
+                except OSError:
+                    pass
+
+            artifacts.append(
+                {
+                    "name": artifact.name,
+                    "path": str(artifact.relative_to(PROJECT_ROOT)),
+                    "phase": phase,
+                    "phase_order": phase_order.get(phase, 99),
+                    "version": version,
+                    "size": artifact.stat().st_size,
+                    "modified": mtime_dt.isoformat(),
+                    "modified_display": mtime_dt.strftime("%Y-%m-%d %H:%M"),
+                    "preview": preview,
+                    "suffix": artifact.suffix,
+                }
+            )
+
+    # Sort by phase order, then by version, then by modified time
+    artifacts.sort(key=lambda x: (x["phase_order"], x["version"], x["modified"]))
+
+    return artifacts
 
 
 def get_task_telemetry(task_id: str) -> dict[str, Any] | None:
@@ -729,6 +803,105 @@ def generate_sparkline_svg(
 
     svg_parts.append("</svg>")
     return "".join(svg_parts)
+
+
+def get_budget_settings() -> dict[str, Any]:
+    """
+    Get budget cap settings from configuration.
+
+    Returns:
+        Dictionary with daily_limit, monthly_limit, alert_threshold
+    """
+    settings_file = DATA_DIR / "budget_settings.json"
+    default_settings = {
+        "daily_limit": 10.00,
+        "monthly_limit": 100.00,
+        "alert_threshold": 0.80,  # Alert at 80% of limit
+        "enabled": True,
+    }
+
+    if settings_file.exists():
+        try:
+            with open(settings_file) as f:
+                saved = json.load(f)
+                return {**default_settings, **saved}
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    return default_settings
+
+
+def save_budget_settings(settings: dict[str, Any]) -> bool:
+    """
+    Save budget cap settings to configuration file.
+
+    Args:
+        settings: Dictionary with budget settings
+
+    Returns:
+        True if saved successfully, False otherwise
+    """
+    settings_file = DATA_DIR / "budget_settings.json"
+
+    try:
+        # Ensure data directory exists
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+        with open(settings_file, "w") as f:
+            json.dump(settings, f, indent=2)
+        return True
+    except OSError:
+        return False
+
+
+def get_budget_status(days: int = 7) -> dict[str, Any]:
+    """
+    Get current budget usage status.
+
+    Args:
+        days: Days to calculate for monthly projection
+
+    Returns:
+        Dictionary with current spend, limits, and status
+    """
+    settings = get_budget_settings()
+    cost_data = get_cost_breakdown(days=1)
+    monthly_cost = get_cost_breakdown(days=30)
+
+    daily_spent = cost_data["total_usd"]
+    monthly_spent = monthly_cost["total_usd"]
+
+    daily_limit = settings["daily_limit"]
+    monthly_limit = settings["monthly_limit"]
+    alert_threshold = settings["alert_threshold"]
+
+    # Calculate percentages
+    daily_pct = (daily_spent / daily_limit * 100) if daily_limit > 0 else 0
+    monthly_pct = (monthly_spent / monthly_limit * 100) if monthly_limit > 0 else 0
+
+    # Determine status
+    if daily_pct >= 100 or monthly_pct >= 100:
+        status = "exceeded"
+        status_color = "red"
+    elif daily_pct >= alert_threshold * 100 or monthly_pct >= alert_threshold * 100:
+        status = "warning"
+        status_color = "yellow"
+    else:
+        status = "ok"
+        status_color = "green"
+
+    return {
+        "daily_spent": round(daily_spent, 2),
+        "daily_limit": daily_limit,
+        "daily_pct": round(daily_pct, 1),
+        "monthly_spent": round(monthly_spent, 2),
+        "monthly_limit": monthly_limit,
+        "monthly_pct": round(monthly_pct, 1),
+        "status": status,
+        "status_color": status_color,
+        "enabled": settings["enabled"],
+        "alert_threshold": alert_threshold,
+    }
 
 
 def get_phase_yield_data() -> dict[str, Any]:
