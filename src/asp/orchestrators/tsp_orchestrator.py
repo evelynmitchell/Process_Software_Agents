@@ -19,9 +19,10 @@ Date: November 22, 2025
 """
 
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from asp.agents.base_agent import AgentExecutionError
 from asp.agents.code_agent import CodeAgent
@@ -560,9 +561,7 @@ class TSPOrchestrator:
 
                 # No HITL or rejected - attempt correction if iterations remain
                 if code_iterations < self.MAX_CODE_ITERATIONS:
-                    logger.info(
-                        "Retrying code generation with feedback from review..."
-                    )
+                    logger.info("Retrying code generation with feedback from review...")
                     continue
                 else:
                     raise QualityGateFailure(

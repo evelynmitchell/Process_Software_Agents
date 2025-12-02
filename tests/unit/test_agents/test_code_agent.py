@@ -495,9 +495,12 @@ class TestErrorHandling:
         input_data = create_test_code_input()
 
         # Mock prompt loading to fail
-        with patch.object(
-            agent, "load_prompt", side_effect=FileNotFoundError("Not found")
-        ), pytest.raises(AgentExecutionError, match="Prompt template not found"):
+        with (
+            patch.object(
+                agent, "load_prompt", side_effect=FileNotFoundError("Not found")
+            ),
+            pytest.raises(AgentExecutionError, match="Prompt template not found"),
+        ):
             agent.execute(input_data)
 
     @patch("asp.agents.code_agent.CodeAgent.call_llm")

@@ -9,7 +9,6 @@ Tests cover:
 - JSON serialization/deserialization
 """
 
-
 import pytest
 from pydantic import ValidationError
 

@@ -19,7 +19,6 @@ Run with:
     pytest tests/e2e/test_tsp_orchestrator_e2e.py -m e2e -v -s
 """
 
-
 import pytest
 
 from asp.models.planning import TaskRequirements

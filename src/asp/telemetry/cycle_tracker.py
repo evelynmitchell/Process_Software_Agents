@@ -203,9 +203,7 @@ class CycleTracker:
         logger.info(f"Recording PIP creation: {pip.proposal_id}")
 
         # Extract defect types from proposed changes
-        defect_types = list(
-            {change.target_artifact for change in pip.proposed_changes}
-        )
+        defect_types = list({change.target_artifact for change in pip.proposed_changes})
 
         # Create cycle object
         cycle = ImprovementCycle(

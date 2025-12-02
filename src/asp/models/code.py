@@ -8,7 +8,6 @@ Author: ASP Development Team
 Date: November 17, 2025
 """
 
-
 from pydantic import BaseModel, Field
 
 from asp.models.design import DesignSpecification

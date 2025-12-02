@@ -10,7 +10,6 @@ Requirements:
 - Real API mode will consume API credits (approximately $0.05-0.10 per test)
 """
 
-
 import pytest
 
 from asp.agents.code_agent import CodeAgent

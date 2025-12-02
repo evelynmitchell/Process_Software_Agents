@@ -137,10 +137,15 @@ def render_design_markdown(design: DesignSpecification) -> str:
 
 - **Description:** {schema.description}
 """
-            if schema.fields:
-                md += "- **Fields:**\n"
-                for field in schema.fields:
-                    md += f"  - `{field}`\n"
+            if schema.columns:
+                md += "- **Columns:**\n"
+                for col in schema.columns:
+                    col_name = (
+                        col.get("name", "unknown")
+                        if isinstance(col, dict)
+                        else str(col)
+                    )
+                    md += f"  - `{col_name}`\n"
             if schema.indexes:
                 md += f"- **Indexes:** {', '.join(schema.indexes)}\n"
             if schema.relationships:
@@ -185,25 +190,36 @@ def render_design_review_markdown(review: DesignReviewReport) -> str:
     Returns:
         Markdown formatted string
     """
+    total_issues = (
+        review.critical_issue_count
+        + review.high_issue_count
+        + review.medium_issue_count
+        + review.low_issue_count
+    )
+    timestamp_str = (
+        review.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        if hasattr(review, "timestamp") and review.timestamp
+        else "N/A"
+    )
     md = f"""# Design Review Report: {review.task_id}
 
 **Review ID:** {review.review_id}
 **Review Status:** {review.overall_assessment}
 **Reviewed by:** Design Review Agent v{review.agent_version}
-**Date:** {review.timestamp.strftime('%Y-%m-%d %H:%M:%S')}
+**Date:** {timestamp_str}
 
 ## Summary
 
-- **Total Issues:** {review.total_issues}
-- **Critical:** {review.critical_issues}
-- **High:** {review.high_issues}
-- **Medium:** {review.medium_issues}
-- **Low:** {review.low_issues}
+- **Total Issues:** {total_issues}
+- **Critical:** {review.critical_issue_count}
+- **High:** {review.high_issue_count}
+- **Medium:** {review.medium_issue_count}
+- **Low:** {review.low_issue_count}
 
 """
 
     # Add issues by severity
-    if review.critical_issues > 0:
+    if review.critical_issue_count > 0:
         md += "## Critical Issues\n\n"
         for issue in review.issues_found:
             if issue.severity == "Critical":
@@ -218,7 +234,7 @@ def render_design_review_markdown(review: DesignReviewReport) -> str:
 
 """
 
-    if review.high_issues > 0:
+    if review.high_issue_count > 0:
         md += "## High Issues\n\n"
         for issue in review.issues_found:
             if issue.severity == "High":
@@ -231,7 +247,7 @@ def render_design_review_markdown(review: DesignReviewReport) -> str:
 
 """
 
-    if review.medium_issues > 0:
+    if review.medium_issue_count > 0:
         md += "## Medium Issues\n\n"
         for issue in review.issues_found:
             if issue.severity == "Medium":
@@ -240,7 +256,7 @@ def render_design_review_markdown(review: DesignReviewReport) -> str:
                 )
         md += "\n"
 
-    if review.low_issues > 0:
+    if review.low_issue_count > 0:
         md += "## Low Issues\n\n"
         for issue in review.issues_found:
             if issue.severity == "Low":
@@ -274,10 +290,11 @@ def render_design_review_markdown(review: DesignReviewReport) -> str:
         md += "\n"
 
     # Add metadata
-    if review.review_duration_seconds:
+    duration_ms = getattr(review, "review_duration_ms", None)
+    if duration_ms:
         md += f"""---
 
-*Review completed in {review.review_duration_seconds:.1f} seconds*
+*Review completed in {duration_ms / 1000:.1f} seconds*
 """
 
     return md
@@ -384,7 +401,7 @@ def render_code_manifest_markdown(code: GeneratedCode) -> str:
     return md
 
 
-def render_code_review_markdown(review: CodeReviewReport) -> str:
+def render_code_review_markdown(review: CodeReviewReport | None) -> str:
     """
     Render CodeReviewReport as human-readable Markdown.
 
@@ -394,27 +411,38 @@ def render_code_review_markdown(review: CodeReviewReport) -> str:
     Returns:
         Markdown formatted string
     """
+    if review is None:
+        return "# Code Review Report\n\n*Report not available*\n"
+
+    # Get counts (handle both old and new field names)
+    critical = getattr(review, "critical_count", 0)
+    high = getattr(review, "high_count", 0)
+    medium = getattr(review, "medium_count", 0)
+    low = getattr(review, "low_count", 0)
+    files_reviewed = getattr(review, "files_reviewed", 0)
+    lines_reviewed = getattr(review, "total_lines_reviewed", 0)
+
     md = f"""# Code Review Report: {review.task_id}
 
 **Review ID:** {review.review_id}
-**Review Status:** {review.overall_assessment}
+**Review Status:** {review.review_status}
 **Reviewed by:** Code Review Agent v{review.agent_version}
-**Date:** {review.timestamp.strftime('%Y-%m-%d %H:%M:%S')}
+**Date:** {review.review_timestamp}
 
 ## Summary
 
-- **Files Reviewed:** {review.files_reviewed}
-- **Lines Reviewed:** {review.total_lines_reviewed:,}
+- **Files Reviewed:** {files_reviewed}
+- **Lines Reviewed:** {lines_reviewed:,}
 - **Total Issues:** {review.total_issues}
-- **Critical:** {review.critical_issues}
-- **High:** {review.high_issues}
-- **Medium:** {review.medium_issues}
-- **Low:** {review.low_issues}
+- **Critical:** {critical}
+- **High:** {high}
+- **Medium:** {medium}
+- **Low:** {low}
 
 """
 
     # Add critical issues
-    if review.critical_issues > 0:
+    if critical > 0:
         md += "## Critical Issues\n\n"
         for issue in review.issues_found:
             if issue.severity == "Critical":
@@ -434,7 +462,7 @@ def render_code_review_markdown(review: CodeReviewReport) -> str:
                 md += f"\n**Impact:** {issue.impact}\n\n"
 
     # Add high issues
-    if review.high_issues > 0:
+    if high > 0:
         md += "## High Issues\n\n"
         for issue in review.issues_found:
             if issue.severity == "High":
@@ -448,7 +476,7 @@ def render_code_review_markdown(review: CodeReviewReport) -> str:
 """
 
     # Add medium/low issues summary
-    if review.medium_issues > 0 or review.low_issues > 0:
+    if medium > 0 or low > 0:
         md += "## Other Issues\n\n"
         for issue in review.issues_found:
             if issue.severity in ["Medium", "Low"]:
@@ -511,10 +539,11 @@ def render_code_review_markdown(review: CodeReviewReport) -> str:
         md += "\n"
 
     # Add metadata
-    if review.review_duration_seconds:
+    duration_secs = getattr(review, "review_duration_seconds", None)
+    if duration_secs:
         md += f"""---
 
-*Review completed in {review.review_duration_seconds:.1f} seconds*
+*Review completed in {duration_secs:.1f} seconds*
 """
 
     return md

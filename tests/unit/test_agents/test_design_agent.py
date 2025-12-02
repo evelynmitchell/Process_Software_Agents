@@ -502,9 +502,12 @@ def test_execute_prompt_not_found():
     agent = DesignAgent()
     design_input = create_test_design_input()
 
-    with patch.object(
-        agent, "load_prompt", side_effect=FileNotFoundError("Prompt not found")
-    ), pytest.raises(AgentExecutionError) as exc_info:
+    with (
+        patch.object(
+            agent, "load_prompt", side_effect=FileNotFoundError("Prompt not found")
+        ),
+        pytest.raises(AgentExecutionError) as exc_info,
+    ):
         agent.execute(design_input)
 
     assert "Prompt template not found" in str(exc_info.value)

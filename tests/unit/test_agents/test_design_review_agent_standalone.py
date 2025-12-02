@@ -571,9 +571,12 @@ class TestLLMReview:
         agent = DesignReviewAgent()
         design_spec = create_test_design_specification()
 
-        with patch.object(
-            agent, "load_prompt", side_effect=FileNotFoundError("Missing")
-        ), pytest.raises(AgentExecutionError, match="Prompt template not found"):
+        with (
+            patch.object(
+                agent, "load_prompt", side_effect=FileNotFoundError("Missing")
+            ),
+            pytest.raises(AgentExecutionError, match="Prompt template not found"),
+        ):
             agent._run_llm_review(design_spec, None)
 
     @patch("asp.agents.design_review_agent.DesignReviewAgent.call_llm")

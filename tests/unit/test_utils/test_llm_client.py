@@ -336,11 +336,14 @@ class TestRetryLogic:
         client = LLMClient(api_key="test-key")
 
         # All attempts fail
-        with patch.object(
-            client.client.messages,
-            "create",
-            side_effect=create_api_connection_error("Persistent network error"),
-        ), pytest.raises(APIConnectionError):
+        with (
+            patch.object(
+                client.client.messages,
+                "create",
+                side_effect=create_api_connection_error("Persistent network error"),
+            ),
+            pytest.raises(APIConnectionError),
+        ):
             client.call_with_retry(prompt="Test")
 
     def test_no_retry_on_client_error(self):
