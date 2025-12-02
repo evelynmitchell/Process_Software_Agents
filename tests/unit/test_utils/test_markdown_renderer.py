@@ -804,7 +804,11 @@ class TestRenderPostmortemReportMarkdown:
                 defect_density=0.5,
                 total_defects=5,
                 defect_injection_by_phase={"Planning": 2, "Design": 2, "Code": 1},
-                defect_removal_by_phase={"Design Review": 2, "Code Review": 2, "Test": 1},
+                defect_removal_by_phase={
+                    "Design Review": 2,
+                    "Code Review": 2,
+                    "Test": 1,
+                },
                 phase_yield={"Design Review": 40.0, "Code Review": 40.0, "Test": 20.0},
             ),
             root_cause_analysis=[

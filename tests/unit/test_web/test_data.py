@@ -6,9 +6,6 @@ for display in the web interface.
 """
 
 import json
-from pathlib import Path
-
-import pytest
 
 
 class TestGetTasks:
@@ -22,7 +19,9 @@ class TestGetTasks:
         monkeypatch.setattr(data_module, "DATA_DIR", tmp_path / "data")
         monkeypatch.setattr(data_module, "ARTIFACTS_DIR", tmp_path / "artifacts")
         monkeypatch.setattr(
-            data_module, "BOOTSTRAP_RESULTS", tmp_path / "data" / "bootstrap_results.json"
+            data_module,
+            "BOOTSTRAP_RESULTS",
+            tmp_path / "data" / "bootstrap_results.json",
         )
 
         from asp.web.data import get_tasks
@@ -107,7 +106,9 @@ class TestGetTasks:
         monkeypatch.setattr(data_module, "DATA_DIR", tmp_path / "data")
         monkeypatch.setattr(data_module, "ARTIFACTS_DIR", artifacts_dir)
         monkeypatch.setattr(
-            data_module, "BOOTSTRAP_RESULTS", tmp_path / "data" / "bootstrap_results.json"
+            data_module,
+            "BOOTSTRAP_RESULTS",
+            tmp_path / "data" / "bootstrap_results.json",
         )
 
         from asp.web.data import get_tasks
@@ -185,8 +186,9 @@ class TestGetRecentActivity:
 
     def test_returns_recent_activities(self, tmp_path, monkeypatch):
         """Test returns list of recent activities sorted by time."""
-        import asp.web.data as data_module
         import time
+
+        import asp.web.data as data_module
 
         artifacts_dir = tmp_path / "artifacts"
         artifacts_dir.mkdir()
