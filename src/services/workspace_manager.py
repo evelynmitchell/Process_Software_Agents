@@ -193,6 +193,12 @@ class WorkspaceManager:
         subprocess.run(
             ["git", "config", "user.name", "ASP Agent"], cwd=str(repo_path), check=True
         )
+        # Disable GPG signing for this repo (avoids issues in CI/test environments)
+        subprocess.run(
+            ["git", "config", "commit.gpgsign", "false"],
+            cwd=str(repo_path),
+            check=True,
+        )
 
         # Create initial files if provided
         if initial_files:

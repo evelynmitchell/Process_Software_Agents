@@ -274,7 +274,9 @@ class TestWorkspaceIntegration:
         (repo_path / "new_feature.py").write_text("def hello(): pass\n")
         subprocess.run(["git", "add", "."], cwd=str(repo_path), check=True)
         subprocess.run(
-            ["git", "commit", "-m", "Add new feature"], cwd=str(repo_path), check=True
+            ["git", "-c", "commit.gpgsign=false", "commit", "-m", "Add new feature"],
+            cwd=str(repo_path),
+            check=True,
         )
 
         # Verify clean state
