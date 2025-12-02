@@ -44,7 +44,7 @@ jobs:
 
     - name: Run Playwright tests
       run: |
-        pytest tests/e2e/web/ -v --browser chromium --headed=false
+        pytest tests/e2e/web/ -v --browser chromium --no-cov
 
     - name: Upload Playwright test results
       uses: actions/upload-artifact@v4
@@ -91,7 +91,7 @@ jobs:
 
     - name: Run Playwright tests on ${{ matrix.browser }}
       run: |
-        pytest tests/e2e/web/ -v --browser ${{ matrix.browser }} --headed=false
+        pytest tests/e2e/web/ -v --browser ${{ matrix.browser }} --no-cov
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
