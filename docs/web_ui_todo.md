@@ -1,7 +1,7 @@
 # Web UI Integration Todo List
 
 **Created:** 2025-12-02 (Session 5)
-**Last Updated:** 2025-12-02 (Session 7)
+**Last Updated:** 2025-12-02 (Session 10)
 
 ## Status Summary
 
@@ -9,10 +9,10 @@
 |----------|-------|------|-----------|
 | Core Integration | 3 | 2 | 1 |
 | Data & Metrics | 4 | 4 | 0 |
-| Product Manager | 2 | 1 | 1 |
+| Product Manager | 2 | 2 | 0 |
 | Developer Features | 3 | 3 | 0 |
 | Polish | 1 | 1 | 0 |
-| **Total** | **13** | **11** | **2** |
+| **Total** | **13** | **12** | **1** |
 
 ---
 
@@ -95,11 +95,15 @@
   - Shows confirmation with pipeline overview
   - Links to running tasks view
 
-- [ ] **Add What-If scenario simulator for timeline**
-  - Adjustable sliders: Team Capacity, Budget
-  - Timeline reshapes based on inputs
-  - Show probability of hitting deadlines
-  - Location: New route `/product/timeline`
+- [x] **Add What-If scenario simulator for timeline** (Completed 2025-12-02 Session 10)
+  - New route: `/product/timeline`
+  - Adjustable sliders for Team Capacity (0.25x-2.0x) and Budget (0.5x-2.0x)
+  - Timeline visualization with progress bars for each feature
+  - Delivery probability meters (on-time and early)
+  - Risk summary cards (low/medium/high/completed)
+  - Dynamic recommendations based on parameters
+  - HTMX integration for real-time simulation updates
+  - Data functions: `get_timeline_features()`, `simulate_timeline()`
 
 ---
 

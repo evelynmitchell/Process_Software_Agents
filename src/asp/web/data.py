@@ -1189,6 +1189,244 @@ def get_code_proposals(task_id: str) -> list[dict[str, Any]]:
     return proposals
 
 
+# =============================================================================
+# What-If Scenario Simulator
+# =============================================================================
+
+
+def get_timeline_features() -> list[dict[str, Any]]:
+    """
+    Get list of features/tasks for timeline simulation.
+
+    Returns:
+        List of features with estimated complexity, duration, and status
+    """
+    features = []
+    tasks = get_tasks()
+
+    # Enrich tasks with timeline data
+    for i, task in enumerate(tasks):
+        complexity = task.get("complexity", 100)
+        exec_time = task.get("execution_time", 0)
+
+        # Estimate duration based on complexity (hours)
+        # Base: 1 hour per 100 complexity units
+        base_hours = max(1, complexity / 100)
+
+        # Add variance based on status
+        if task["status"] == "completed":
+            # Use actual execution time if available
+            actual_hours = exec_time / 3600 if exec_time > 0 else base_hours
+            features.append(
+                {
+                    "id": task["task_id"],
+                    "name": task["description"][:40],
+                    "status": "completed",
+                    "complexity": complexity,
+                    "estimated_hours": base_hours,
+                    "actual_hours": actual_hours,
+                    "confidence": 100,
+                    "risk": "none",
+                    "start_week": 0,
+                    "duration_weeks": max(0.5, actual_hours / 40),
+                }
+            )
+        elif task["status"] == "in_progress":
+            features.append(
+                {
+                    "id": task["task_id"],
+                    "name": task["description"][:40],
+                    "status": "in_progress",
+                    "complexity": complexity,
+                    "estimated_hours": base_hours,
+                    "actual_hours": None,
+                    "confidence": 70,
+                    "risk": "medium" if complexity > 200 else "low",
+                    "start_week": 0,
+                    "duration_weeks": max(0.5, base_hours / 40),
+                }
+            )
+        else:
+            # Planning or pending
+            features.append(
+                {
+                    "id": task["task_id"],
+                    "name": task["description"][:40],
+                    "status": "planned",
+                    "complexity": complexity,
+                    "estimated_hours": base_hours,
+                    "actual_hours": None,
+                    "confidence": 50 if complexity > 200 else 60,
+                    "risk": (
+                        "high"
+                        if complexity > 300
+                        else ("medium" if complexity > 150 else "low")
+                    ),
+                    "start_week": i * 0.5,  # Stagger starts
+                    "duration_weeks": max(0.5, base_hours / 40 * 1.5),  # Add buffer
+                }
+            )
+
+    return features
+
+
+def simulate_timeline(
+    team_capacity: float = 1.0,
+    budget_multiplier: float = 1.0,
+    features: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """
+    Simulate project timeline based on parameters.
+
+    Args:
+        team_capacity: Team capacity multiplier (0.5 = half capacity, 2.0 = double)
+        budget_multiplier: Budget multiplier affecting resources
+        features: Optional list of features (defaults to get_timeline_features())
+
+    Returns:
+        Dictionary with simulation results including timeline, probabilities
+    """
+    if features is None:
+        features = get_timeline_features()
+
+    if not features:
+        return {
+            "features": [],
+            "total_weeks": 0,
+            "completion_probability": 0,
+            "early_probability": 0,
+            "suggestions": [
+                "No features found. Submit a feature request to get started."
+            ],
+            "risk_summary": {"low": 0, "medium": 0, "high": 0},
+        }
+
+    # Adjust durations based on capacity and budget
+    # Higher capacity = shorter duration
+    # Higher budget = can parallelize more = shorter overall
+    capacity_factor = 1 / max(0.25, team_capacity)
+    budget_factor = 1 / max(0.5, budget_multiplier)
+
+    adjusted_features = []
+    current_week = 0
+    risk_summary = {"low": 0, "medium": 0, "high": 0, "none": 0}
+
+    for feature in features:
+        # Skip completed features for timeline calculation
+        if feature["status"] == "completed":
+            adjusted_features.append(
+                {
+                    **feature,
+                    "adjusted_duration": feature.get("actual_hours", 0) / 40,
+                    "end_week": 0,
+                }
+            )
+            risk_summary[feature.get("risk", "none")] += 1
+            continue
+
+        # Calculate adjusted duration
+        base_duration = feature["duration_weeks"]
+        adjusted_duration = base_duration * capacity_factor
+
+        # Budget affects confidence/risk more than duration
+        if budget_multiplier >= 1.5:
+            feature["confidence"] = min(95, feature["confidence"] + 15)
+            if feature["risk"] == "high":
+                feature["risk"] = "medium"
+        elif budget_multiplier <= 0.5:
+            feature["confidence"] = max(30, feature["confidence"] - 20)
+            if feature["risk"] == "low":
+                feature["risk"] = "medium"
+
+        # Track start and end
+        start_week = current_week
+        end_week = start_week + adjusted_duration
+
+        adjusted_features.append(
+            {
+                **feature,
+                "adjusted_duration": adjusted_duration,
+                "start_week": start_week,
+                "end_week": end_week,
+            }
+        )
+
+        risk_summary[feature.get("risk", "low")] += 1
+
+        # Increment timeline (with some parallelization from budget)
+        parallel_factor = min(0.8, 0.3 + budget_multiplier * 0.2)
+        current_week += adjusted_duration * parallel_factor
+
+    # Calculate total timeline
+    total_weeks = max(
+        (f.get("end_week", 0) for f in adjusted_features if f["status"] != "completed"),
+        default=0,
+    )
+
+    # Calculate probabilities based on risk and confidence
+    avg_confidence = (
+        sum(f["confidence"] for f in adjusted_features) / len(adjusted_features)
+        if adjusted_features
+        else 0
+    )
+
+    # Base completion probability
+    completion_prob = avg_confidence
+    if risk_summary.get("high", 0) > 2:
+        completion_prob -= 15
+    if risk_summary.get("medium", 0) > 3:
+        completion_prob -= 10
+
+    # Early completion (20% faster) probability
+    early_prob = max(10, completion_prob - 30)
+    if team_capacity >= 1.5:
+        early_prob += 15
+    if budget_multiplier >= 1.5:
+        early_prob += 10
+
+    # Generate suggestions
+    suggestions = []
+    pending_count = sum(1 for f in features if f["status"] == "planned")
+    high_risk_count = risk_summary.get("high", 0)
+
+    if high_risk_count >= 2:
+        suggestions.append(
+            f"Consider breaking down {high_risk_count} high-risk features into smaller tasks."
+        )
+    if team_capacity < 0.75:
+        suggestions.append(
+            "Low team capacity is extending timelines. Consider adding resources."
+        )
+    if budget_multiplier < 0.75:
+        suggestions.append(
+            "Budget constraints are increasing risk. Review priority of features."
+        )
+    if pending_count > 5:
+        suggestions.append(
+            f"With {pending_count} features planned, consider phased release approach."
+        )
+    if completion_prob < 60:
+        suggestions.append(
+            "Current probability of on-time delivery is low. Review scope or timeline."
+        )
+
+    if not suggestions:
+        suggestions.append("Timeline looks achievable with current parameters.")
+
+    return {
+        "features": adjusted_features,
+        "total_weeks": round(total_weeks, 1),
+        "completion_probability": round(min(95, max(20, completion_prob)), 0),
+        "early_probability": round(min(80, max(5, early_prob)), 0),
+        "suggestions": suggestions,
+        "risk_summary": risk_summary,
+        "parameters": {
+            "team_capacity": team_capacity,
+            "budget_multiplier": budget_multiplier,
+        },
+    }
+
+
 def get_phase_yield_data() -> dict[str, Any]:
     """
     Get phase yield analysis data showing task flow through development phases.
