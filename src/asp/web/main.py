@@ -147,10 +147,10 @@ def create_app():
                     const text = document.getElementById('theme-text');
                     if (icon && text) {
                         if (theme === 'dark') {
-                            icon.textContent = '\u2600\ufe0f';
+                            icon.textContent = '*';
                             text.textContent = 'Light';
                         } else {
-                            icon.textContent = '\ud83c\udf19';
+                            icon.textContent = 'o';
                             text.textContent = 'Dark';
                         }
                     }
