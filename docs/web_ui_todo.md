@@ -1,18 +1,18 @@
 # Web UI Integration Todo List
 
 **Created:** 2025-12-02 (Session 5)
-**Last Updated:** 2025-12-02
+**Last Updated:** 2025-12-02 (Session 6)
 
 ## Status Summary
 
 | Category | Total | Done | Remaining |
 |----------|-------|------|-----------|
 | Core Integration | 3 | 1 | 2 |
-| Data & Metrics | 4 | 3 | 1 |
+| Data & Metrics | 4 | 4 | 0 |
 | Product Manager | 2 | 0 | 2 |
-| Developer Features | 3 | 0 | 3 |
-| Polish | 1 | 0 | 1 |
-| **Total** | **13** | **4** | **9** |
+| Developer Features | 3 | 1 | 2 |
+| Polish | 1 | 1 | 0 |
+| **Total** | **13** | **7** | **6** |
 
 ---
 
@@ -68,10 +68,13 @@
   - Color-coded phases (Planning=purple, Design=cyan, Code=amber, Test=green)
   - Real data from bootstrap results and design reviews
 
-- [ ] **Add Budget Cap controls for Manager dashboard**
-  - Set daily/monthly spending limits
-  - Visual budget meter ($spent / $limit)
-  - Alert when approaching limit
+- [x] **Add Budget Cap controls for Manager dashboard** (Completed 2025-12-02 Session 6)
+  - Added `/manager/budget` route with settings form
+  - Added `/manager/budget-status` HTMX endpoint for auto-refresh
+  - New data functions: `get_budget_settings()`, `save_budget_settings()`, `get_budget_status()`
+  - Visual budget meters with progress bars (daily/monthly)
+  - Color-coded status (green/yellow/red based on threshold)
+  - Settings persist in `data/budget_settings.json`
 
 ---
 
@@ -93,11 +96,15 @@
 
 ## Developer Features
 
-- [ ] **Implement Traceability view (artifact history)**
-  - Timeline showing: Plan v1 -> Design v1 -> Review -> Code v1
-  - Link to actual artifact files
-  - Show why changes were made
-  - Location: Enhance `/developer/task/{id}`
+- [x] **Implement Traceability view (artifact history)** (Completed 2025-12-02 Session 6)
+  - New route: `/developer/task/{task_id}/trace`
+  - Added `get_artifact_history()` function to `data.py`
+  - Visual timeline showing development phases
+  - Phase-colored indicators (Plan=purple, Design=cyan, Code=green, etc.)
+  - Version tracking for artifacts
+  - Content preview for text files
+  - Telemetry data display (latency, tokens, cost)
+  - Link from task detail page to trace view
 
 - [ ] **Implement diff view for code changes**
   - Show agent proposals as unified diffs
@@ -113,10 +120,13 @@
 
 ## Polish
 
-- [ ] **Add dark mode toggle**
-  - Manager design specifies dark mode default
-  - Color scheme: Deep Navy (#0f172a), Neon accents
-  - Persist preference in localStorage
+- [x] **Add dark mode toggle** (Completed 2025-12-02 Session 6)
+  - New component module: `src/asp/web/components.py`
+  - `theme_toggle()` reusable button component
+  - Uses PicoCSS native dark mode (`data-theme="dark"`)
+  - Preference persisted in localStorage
+  - Respects system preference on first visit
+  - Added to all dashboards (Home, Manager, Developer, Product)
 
 ---
 
@@ -150,7 +160,9 @@
 - `src/asp/web/manager.py` - Manager routes
 - `src/asp/web/developer.py` - Developer routes
 - `src/asp/web/product.py` - Product routes
+- `src/asp/web/components.py` - Shared UI components
 
 ### Database
 - Telemetry: `/data/asp_telemetry.db`
 - Tables: `agent_cost_vector`, `defect_log`, `task_metadata`, `bootstrap_metrics`
+- Budget settings: `/data/budget_settings.json`

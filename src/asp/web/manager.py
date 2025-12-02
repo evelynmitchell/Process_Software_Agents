@@ -7,15 +7,19 @@ Displays high-level metrics, agent health, quality gates, and team overview.
 
 from fasthtml.common import *
 
+from .components import theme_toggle
 from .data import (
     generate_sparkline_svg,
     get_agent_health,
     get_agent_stats,
+    get_budget_settings,
+    get_budget_status,
     get_cost_breakdown,
     get_daily_metrics,
     get_design_review_stats,
     get_phase_yield_data,
     get_tasks,
+    save_budget_settings,
 )
 
 
@@ -31,6 +35,7 @@ def manager_routes(app, rt):
         agent_health = get_agent_health()
         cost_data = get_cost_breakdown(days=7)
         daily_metrics = get_daily_metrics(days=7)
+        budget = get_budget_status()
 
         # Calculate high-level metrics
         success_rate = (
@@ -59,6 +64,7 @@ def manager_routes(app, rt):
 
         return Titled(
             "ASP Overwatch - Sarah",
+            theme_toggle(),
             Div(
                 # Header with key metrics
                 Div(
@@ -151,6 +157,68 @@ def manager_routes(app, rt):
                             style="text-align: center;",
                         ),
                         cls="grid",
+                        style="margin-top: 1rem;",
+                    ),
+                    # Budget meter
+                    Div(
+                        Div(
+                            H4(
+                                "Budget Status ",
+                                A(
+                                    "(Settings)",
+                                    href="/manager/budget",
+                                    style="font-size: 0.8rem; font-weight: normal;",
+                                ),
+                            ),
+                            Div(
+                                # Daily budget
+                                Div(
+                                    Div(
+                                        Span("Daily: ", style="font-weight: bold;"),
+                                        Span(
+                                            f"${budget['daily_spent']:.2f}",
+                                            cls=f"pico-color-{budget['status_color']}",
+                                        ),
+                                        Span(f" / ${budget['daily_limit']:.2f}"),
+                                    ),
+                                    Div(
+                                        Div(
+                                            style=f"width: {min(budget['daily_pct'], 100)}%; "
+                                            f"height: 100%; background: {'#ef4444' if budget['daily_pct'] >= 100 else ('#f59e0b' if budget['daily_pct'] >= 80 else '#10b981')}; "
+                                            "border-radius: 4px; transition: width 0.3s;",
+                                        ),
+                                        style="width: 100%; height: 12px; background: #e5e7eb; border-radius: 4px; overflow: hidden;",
+                                    ),
+                                    style="flex: 1;",
+                                ),
+                                # Monthly budget
+                                Div(
+                                    Div(
+                                        Span("Monthly: ", style="font-weight: bold;"),
+                                        Span(
+                                            f"${budget['monthly_spent']:.2f}",
+                                            cls=f"pico-color-{budget['status_color']}",
+                                        ),
+                                        Span(f" / ${budget['monthly_limit']:.2f}"),
+                                    ),
+                                    Div(
+                                        Div(
+                                            style=f"width: {min(budget['monthly_pct'], 100)}%; "
+                                            f"height: 100%; background: {'#ef4444' if budget['monthly_pct'] >= 100 else ('#f59e0b' if budget['monthly_pct'] >= 80 else '#10b981')}; "
+                                            "border-radius: 4px; transition: width 0.3s;",
+                                        ),
+                                        style="width: 100%; height: 12px; background: #e5e7eb; border-radius: 4px; overflow: hidden;",
+                                    ),
+                                    style="flex: 1;",
+                                ),
+                                style="display: flex; gap: 2rem;",
+                            ),
+                            cls="card",
+                            style="padding: 1rem;",
+                            hx_get="/manager/budget-status",
+                            hx_trigger="every 60s",
+                            hx_swap="innerHTML",
+                        ),
                         style="margin-top: 1rem;",
                     ),
                     style="margin-bottom: 2rem;",
@@ -572,5 +640,233 @@ def manager_routes(app, rt):
                     else P("No transition data available yet", cls="secondary")
                 ),
                 style="max-width: 1000px; margin: 0 auto; padding: 2rem;",
+            ),
+        )
+
+    @rt("/manager/budget")
+    def get_budget_page():
+        """Budget settings and controls page."""
+        settings = get_budget_settings()
+        budget = get_budget_status()
+
+        return Titled(
+            "Budget Controls - Manager",
+            Div(
+                A("< Back to Dashboard", href="/manager"),
+                H2("Budget Controls"),
+                P(
+                    "Set spending limits and alerts for API costs.",
+                    cls="secondary",
+                ),
+                # Current status
+                Div(
+                    H3("Current Status"),
+                    Div(
+                        Div(
+                            H4(
+                                f"${budget['daily_spent']:.2f}",
+                                cls=f"pico-color-{budget['status_color']}",
+                            ),
+                            P("Daily Spend"),
+                            Div(
+                                Div(
+                                    style=f"width: {min(budget['daily_pct'], 100)}%; "
+                                    f"height: 100%; background: {'#ef4444' if budget['daily_pct'] >= 100 else ('#f59e0b' if budget['daily_pct'] >= 80 else '#10b981')}; "
+                                    "border-radius: 4px;",
+                                ),
+                                style="width: 100%; height: 16px; background: #e5e7eb; border-radius: 4px; overflow: hidden;",
+                            ),
+                            P(f"{budget['daily_pct']:.1f}% of limit", cls="secondary"),
+                            cls="card",
+                            style="text-align: center;",
+                        ),
+                        Div(
+                            H4(
+                                f"${budget['monthly_spent']:.2f}",
+                                cls=f"pico-color-{budget['status_color']}",
+                            ),
+                            P("Monthly Spend"),
+                            Div(
+                                Div(
+                                    style=f"width: {min(budget['monthly_pct'], 100)}%; "
+                                    f"height: 100%; background: {'#ef4444' if budget['monthly_pct'] >= 100 else ('#f59e0b' if budget['monthly_pct'] >= 80 else '#10b981')}; "
+                                    "border-radius: 4px;",
+                                ),
+                                style="width: 100%; height: 16px; background: #e5e7eb; border-radius: 4px; overflow: hidden;",
+                            ),
+                            P(
+                                f"{budget['monthly_pct']:.1f}% of limit",
+                                cls="secondary",
+                            ),
+                            cls="card",
+                            style="text-align: center;",
+                        ),
+                        Div(
+                            H4(
+                                budget["status"].upper(),
+                                cls=f"pico-color-{budget['status_color']}",
+                            ),
+                            P("Status"),
+                            cls="card",
+                            style="text-align: center;",
+                        ),
+                        cls="grid",
+                    ),
+                    style="margin-bottom: 2rem;",
+                ),
+                # Settings form
+                Div(
+                    H3("Budget Settings"),
+                    Form(
+                        Div(
+                            Label("Daily Limit ($)", _for="daily_limit"),
+                            Input(
+                                type="number",
+                                name="daily_limit",
+                                id="daily_limit",
+                                value=str(settings["daily_limit"]),
+                                step="0.01",
+                                min="0",
+                            ),
+                            cls="form-group",
+                        ),
+                        Div(
+                            Label("Monthly Limit ($)", _for="monthly_limit"),
+                            Input(
+                                type="number",
+                                name="monthly_limit",
+                                id="monthly_limit",
+                                value=str(settings["monthly_limit"]),
+                                step="0.01",
+                                min="0",
+                            ),
+                            cls="form-group",
+                        ),
+                        Div(
+                            Label(
+                                "Alert Threshold (%)",
+                                _for="alert_threshold",
+                            ),
+                            Input(
+                                type="number",
+                                name="alert_threshold",
+                                id="alert_threshold",
+                                value=str(int(settings["alert_threshold"] * 100)),
+                                step="5",
+                                min="50",
+                                max="100",
+                            ),
+                            Small(
+                                "Alert when spending reaches this percentage of limit"
+                            ),
+                            cls="form-group",
+                        ),
+                        Div(
+                            Label(
+                                Input(
+                                    type="checkbox",
+                                    name="enabled",
+                                    id="enabled",
+                                    checked=settings["enabled"],
+                                ),
+                                " Enable budget controls",
+                            ),
+                            cls="form-group",
+                        ),
+                        Button(
+                            "Save Settings",
+                            type="submit",
+                            cls="primary",
+                        ),
+                        Span(
+                            id="save-status",
+                            style="margin-left: 1rem;",
+                        ),
+                        hx_post="/manager/budget",
+                        hx_target="#save-status",
+                        hx_swap="innerHTML",
+                    ),
+                    cls="card",
+                    style="padding: 1.5rem;",
+                ),
+                style="max-width: 800px; margin: 0 auto; padding: 2rem;",
+            ),
+        )
+
+    @rt("/manager/budget")
+    def post_budget(
+        daily_limit: float = 10.0,
+        monthly_limit: float = 100.0,
+        alert_threshold: int = 80,
+        enabled: bool = False,
+    ):
+        """Save budget settings."""
+        settings = {
+            "daily_limit": daily_limit,
+            "monthly_limit": monthly_limit,
+            "alert_threshold": alert_threshold / 100.0,
+            "enabled": enabled,
+        }
+
+        if save_budget_settings(settings):
+            return Span("Saved!", cls="pico-color-green")
+        return Span("Error saving", cls="pico-color-red")
+
+    @rt("/manager/budget-status")
+    def get_budget_status_htmx():
+        """HTMX endpoint for budget status updates."""
+        budget = get_budget_status()
+
+        return Div(
+            H4(
+                "Budget Status ",
+                A(
+                    "(Settings)",
+                    href="/manager/budget",
+                    style="font-size: 0.8rem; font-weight: normal;",
+                ),
+            ),
+            Div(
+                # Daily budget
+                Div(
+                    Div(
+                        Span("Daily: ", style="font-weight: bold;"),
+                        Span(
+                            f"${budget['daily_spent']:.2f}",
+                            cls=f"pico-color-{budget['status_color']}",
+                        ),
+                        Span(f" / ${budget['daily_limit']:.2f}"),
+                    ),
+                    Div(
+                        Div(
+                            style=f"width: {min(budget['daily_pct'], 100)}%; "
+                            f"height: 100%; background: {'#ef4444' if budget['daily_pct'] >= 100 else ('#f59e0b' if budget['daily_pct'] >= 80 else '#10b981')}; "
+                            "border-radius: 4px; transition: width 0.3s;",
+                        ),
+                        style="width: 100%; height: 12px; background: #e5e7eb; border-radius: 4px; overflow: hidden;",
+                    ),
+                    style="flex: 1;",
+                ),
+                # Monthly budget
+                Div(
+                    Div(
+                        Span("Monthly: ", style="font-weight: bold;"),
+                        Span(
+                            f"${budget['monthly_spent']:.2f}",
+                            cls=f"pico-color-{budget['status_color']}",
+                        ),
+                        Span(f" / ${budget['monthly_limit']:.2f}"),
+                    ),
+                    Div(
+                        Div(
+                            style=f"width: {min(budget['monthly_pct'], 100)}%; "
+                            f"height: 100%; background: {'#ef4444' if budget['monthly_pct'] >= 100 else ('#f59e0b' if budget['monthly_pct'] >= 80 else '#10b981')}; "
+                            "border-radius: 4px; transition: width 0.3s;",
+                        ),
+                        style="width: 100%; height: 12px; background: #e5e7eb; border-radius: 4px; overflow: hidden;",
+                    ),
+                    style="flex: 1;",
+                ),
+                style="display: flex; gap: 2rem;",
             ),
         )

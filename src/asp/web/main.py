@@ -11,6 +11,7 @@ Three personas:
 
 from fasthtml.common import *
 
+from .components import theme_toggle
 from .developer import developer_routes
 from .manager import manager_routes
 from .product import product_routes
@@ -59,6 +60,63 @@ def create_app():
                 .status-active { background: #22c55e; }
                 .status-pending { background: #eab308; }
                 .status-error { background: #ef4444; }
+
+                /* Dark mode toggle */
+                .theme-toggle {
+                    position: fixed;
+                    top: 1rem;
+                    right: 1rem;
+                    z-index: 1000;
+                    padding: 0.5rem 1rem;
+                    font-size: 0.9rem;
+                    cursor: pointer;
+                    border-radius: var(--pico-border-radius);
+                    background: var(--pico-card-background-color);
+                    border: 1px solid var(--pico-muted-border-color);
+                    color: var(--pico-color);
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .theme-toggle:hover {
+                    border-color: var(--pico-primary);
+                }
+                .theme-icon {
+                    font-size: 1.2rem;
+                }
+            """
+            ),
+            # Theme initialization and toggle script
+            Script(
+                """
+                (function() {
+                    // Check for saved preference or system preference
+                    const savedTheme = localStorage.getItem('asp-theme');
+                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+                    document.documentElement.setAttribute('data-theme', theme);
+                })();
+
+                // Global theme toggle function
+                function updateThemeButton(theme) {
+                    const icon = document.getElementById('theme-icon');
+                    const text = document.getElementById('theme-text');
+                    if (icon && text) {
+                        if (theme === 'dark') {
+                            icon.textContent = '\u2600\ufe0f';
+                            text.textContent = 'Light';
+                        } else {
+                            icon.textContent = '\ud83c\udf19';
+                            text.textContent = 'Dark';
+                        }
+                    }
+                }
+
+                // Initialize button on load
+                document.addEventListener('DOMContentLoaded', function() {
+                    const theme = document.documentElement.getAttribute('data-theme') || 'light';
+                    updateThemeButton(theme);
+                });
             """
             ),
         ),
@@ -69,6 +127,7 @@ def create_app():
         """Home page with persona selection."""
         return Titled(
             "ASP Platform",
+            theme_toggle(),
             Div(
                 H1("ASP Overwatch"),
                 P("Select your dashboard view:", cls="secondary"),
