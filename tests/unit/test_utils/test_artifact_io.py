@@ -495,3 +495,133 @@ class TestListTaskArtifacts:
         """Test returns empty list if task directory doesn't exist."""
         artifacts = list_task_artifacts("NONEXISTENT", base_path=str(tmp_path))
         assert artifacts == []
+
+
+class TestReadArtifactMarkdown:
+    """Test reading Markdown artifacts."""
+
+    def test_reads_markdown_artifact(self, tmp_path):
+        """Test reading a Markdown artifact."""
+        from asp.utils.artifact_io import read_artifact_markdown
+
+        task_id = "TEST-MD-001"
+        markdown_content = "# Test Plan\n\nThis is a test plan."
+
+        # Write artifact first
+        write_artifact_markdown(
+            task_id=task_id,
+            artifact_type="plan",
+            markdown_content=markdown_content,
+            base_path=str(tmp_path),
+        )
+
+        # Read it back
+        result = read_artifact_markdown(
+            task_id=task_id,
+            artifact_type="plan",
+            base_path=str(tmp_path),
+        )
+
+        # Verify it matches original
+        assert result == markdown_content
+        assert "# Test Plan" in result
+
+    def test_raises_error_if_file_not_found(self, tmp_path):
+        """Test that error is raised if Markdown artifact doesn't exist."""
+        from asp.utils.artifact_io import read_artifact_markdown
+
+        with pytest.raises(ArtifactIOError, match="Artifact file not found"):
+            read_artifact_markdown(
+                task_id="NONEXISTENT",
+                artifact_type="plan",
+                base_path=str(tmp_path),
+            )
+
+    def test_reads_with_default_base_path(self, tmp_path, monkeypatch):
+        """Test reading with default base path."""
+        from asp.utils.artifact_io import read_artifact_markdown
+
+        # Change to tmp_path
+        monkeypatch.chdir(tmp_path)
+
+        task_id = "TEST-MD-002"
+        markdown_content = "# Default Path Test"
+
+        # Write using default path
+        write_artifact_markdown(
+            task_id=task_id,
+            artifact_type="design",
+            markdown_content=markdown_content,
+        )
+
+        # Read using default path
+        result = read_artifact_markdown(
+            task_id=task_id,
+            artifact_type="design",
+        )
+
+        assert result == markdown_content
+
+
+class TestArtifactIOErrorHandling:
+    """Test error handling in artifact I/O functions."""
+
+    def test_write_json_error_handling(self, tmp_path):
+        """Test that write errors are properly wrapped."""
+        from unittest.mock import patch
+
+        task_id = "TEST-ERR-001"
+        data = TaskRequirements(
+            task_id=task_id,
+            description="Test error handling in write",
+            requirements="Requirements for testing error handling scenarios",
+        )
+
+        # Mock open to raise an error
+        with patch("builtins.open", side_effect=PermissionError("Access denied")):
+            with pytest.raises(ArtifactIOError, match="Failed to write artifact"):
+                write_artifact_json(
+                    task_id=task_id,
+                    artifact_type="plan",
+                    data=data,
+                    base_path=str(tmp_path),
+                )
+
+    def test_write_markdown_error_handling(self, tmp_path):
+        """Test that markdown write errors are properly wrapped."""
+        from unittest.mock import patch
+
+        task_id = "TEST-ERR-002"
+
+        # Mock open to raise an error
+        with patch("builtins.open", side_effect=PermissionError("Access denied")):
+            with pytest.raises(ArtifactIOError, match="Failed to write artifact"):
+                write_artifact_markdown(
+                    task_id=task_id,
+                    artifact_type="plan",
+                    markdown_content="# Test",
+                    base_path=str(tmp_path),
+                )
+
+    def test_write_generated_file_error_handling(self, tmp_path):
+        """Test that generated file write errors are properly wrapped."""
+        from unittest.mock import patch
+
+        task_id = "TEST-ERR-003"
+        file = GeneratedFile(
+            file_path="src/error.py",
+            file_type="source",
+            description="Test file for error handling scenario",
+            content="# Error test",
+            lines_of_code=1,
+            component_id="COMP-001",
+        )
+
+        # Mock open to raise an error
+        with patch("builtins.open", side_effect=PermissionError("Access denied")):
+            with pytest.raises(ArtifactIOError, match="Failed to write generated file"):
+                write_generated_file(
+                    task_id=task_id,
+                    file=file,
+                    base_path=str(tmp_path),
+                )
