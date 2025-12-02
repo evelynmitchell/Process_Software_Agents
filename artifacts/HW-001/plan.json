@@ -4,18 +4,44 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Implement API endpoint handler",
-      "api_interactions": 2,
-      "data_transformations": 1,
-      "logical_branches": 2,
-      "code_entities_modified": 3,
-      "novelty_multiplier": 1.2,
-      "est_complexity": 32,
+      "description": "Set up FastAPI project structure with dependencies and application initialization",
+      "api_interactions": 0,
+      "data_transformations": 0,
+      "logical_branches": 1,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 11,
       "dependencies": []
     },
     {
       "unit_id": "SU-002",
-      "description": "Add validation logic",
+      "description": "Implement GET /hello endpoint with optional name query parameter and conditional response logic",
+      "api_interactions": 0,
+      "data_transformations": 2,
+      "logical_branches": 2,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 24,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Implement GET /health endpoint with timestamp generation and JSON response formatting",
+      "api_interactions": 0,
+      "data_transformations": 2,
+      "logical_branches": 1,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 21,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Add global error handling middleware with appropriate HTTP status codes and error response formatting",
       "api_interactions": 0,
       "data_transformations": 2,
       "logical_branches": 3,
@@ -25,22 +51,9 @@
       "dependencies": [
         "SU-001"
       ]
-    },
-    {
-      "unit_id": "SU-003",
-      "description": "Implement error handling",
-      "api_interactions": 0,
-      "data_transformations": 1,
-      "logical_branches": 4,
-      "code_entities_modified": 2,
-      "novelty_multiplier": 1.0,
-      "est_complexity": 25,
-      "dependencies": [
-        "SU-001"
-      ]
     }
   ],
-  "total_est_complexity": 84,
+  "total_est_complexity": 83,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"

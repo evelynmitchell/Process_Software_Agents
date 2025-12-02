@@ -76,7 +76,7 @@
         }
       ],
       "dependencies": [],
-      "implementation_notes": "Use FastAPI 0.104+ with Starlette. Configure CORS middleware if needed. Set up logging configuration. Initialize application with title='Hello World API', version='1.0.0', description='Minimal REST API with hello and health endpoints'. Register exception handlers in setup_exception_handlers method. Use uvicorn for ASGI server.",
+      "implementation_notes": "Use FastAPI 0.104+ with Uvicorn ASGI server. Set title='Hello World API', version='1.0.0', description='Minimal REST API with hello and health endpoints'. Configure JSON response encoding with ensure_ascii=False. Add CORS middleware with allow_origins=['*'] for development. Set up exception handlers in setup_exception_handlers() method. Use dependency injection for request validation.",
       "complexity": 11
     },
     {
@@ -85,32 +85,32 @@
       "responsibility": "Handles GET /hello requests with optional name parameter and returns personalized greeting message.",
       "interfaces": [
         {
-          "method": "hello",
+          "method": "get_hello",
           "parameters": {
             "name": "Optional[str]"
           },
           "returns": "dict[str, str]",
-          "description": "Process hello request with optional name parameter and return greeting message"
+          "description": "Process hello request with optional name and return greeting message"
         },
         {
-          "method": "validate_name",
+          "method": "validate_name_parameter",
           "parameters": {
             "name": "str"
           },
           "returns": "bool",
-          "description": "Validate name parameter: max 255 chars, alphanumeric and spaces only"
+          "description": "Validate name parameter format and length constraints"
         },
         {
-          "method": "format_greeting",
+          "method": "format_greeting_message",
           "parameters": {
             "name": "Optional[str]"
           },
           "returns": "str",
-          "description": "Format greeting message based on provided name"
+          "description": "Format greeting message based on provided name or default to World"
         }
       ],
       "dependencies": [],
-      "implementation_notes": "Use FastAPI @app.get('/hello') decorator. Accept name as Query parameter with default None. Validate name using regex pattern '^[a-zA-Z0-9 ]*$' if provided. Raise HTTPException(status_code=400, detail='INVALID_NAME_PARAMETER') for invalid characters. Raise HTTPException(status_code=400, detail='NAME_TOO_LONG') if length > 255. Return dict with 'message' key. If name is None or empty string, return 'Hello, World!'. Otherwise return 'Hello, {name}!' with name stripped of leading/trailing whitespace.",
+      "implementation_notes": "Implement as FastAPI route handler using @app.get('/hello'). Accept name as Query parameter with Query(None, max_length=255). Validate name using regex pattern ^[a-zA-Z0-9 ]*$ to allow only alphanumeric and spaces. Strip whitespace from name input. If name is None or empty string, use 'World' as default. Return dict with 'message' key containing formatted string. Raise HTTPException(status_code=400, detail='...') for validation failures.",
       "complexity": 24
     },
     {
@@ -119,20 +119,20 @@
       "responsibility": "Handles GET /health requests and returns API health status with current UTC timestamp.",
       "interfaces": [
         {
-          "method": "health",
+          "method": "get_health",
           "parameters": {},
           "returns": "dict[str, str]",
-          "description": "Process health check request and return status with timestamp"
+          "description": "Return health status and current timestamp in ISO 8601 format"
         },
         {
           "method": "get_current_timestamp",
           "parameters": {},
           "returns": "str",
-          "description": "Get current UTC timestamp in ISO 8601 format"
+          "description": "Generate current UTC timestamp in ISO 8601 format"
         }
       ],
       "dependencies": [],
-      "implementation_notes": "Use FastAPI @app.get('/health') decorator. Use datetime.datetime.utcnow() or datetime.datetime.now(datetime.timezone.utc) to get current time. Format timestamp as ISO 8601 string using .isoformat() method. Return dict with 'status' key set to 'ok' and 'timestamp' key with ISO 8601 formatted timestamp. Ensure timezone is UTC (append 'Z' or '+00:00' to ISO string).",
+      "implementation_notes": "Implement as FastAPI route handler using @app.get('/health'). Use datetime.datetime.utcnow() or datetime.datetime.now(datetime.timezone.utc) to get current time. Format timestamp using isoformat() method to produce ISO 8601 format (e.g., '2024-01-15T10:30:45.123456+00:00'). Always return status='ok' to indicate API is running. Return dict with 'status' and 'timestamp' keys. No parameters required.",
       "complexity": 21
     },
     {
@@ -141,7 +141,7 @@
       "responsibility": "Handles all exceptions globally and returns properly formatted error responses with appropriate HTTP status codes.",
       "interfaces": [
         {
-          "method": "http_exception_handler",
+          "method": "handle_http_exception",
           "parameters": {
             "request": "Request",
             "exc": "HTTPException"
@@ -150,7 +150,7 @@
           "description": "Handle HTTPException and return formatted error response"
         },
         {
-          "method": "validation_exception_handler",
+          "method": "handle_validation_error",
           "parameters": {
             "request": "Request",
             "exc": "RequestValidationError"
@@ -159,79 +159,88 @@
           "description": "Handle request validation errors and return 400 response"
         },
         {
-          "method": "generic_exception_handler",
+          "method": "handle_generic_exception",
           "parameters": {
             "request": "Request",
             "exc": "Exception"
           },
           "returns": "JSONResponse",
           "description": "Handle unexpected exceptions and return 500 response"
+        },
+        {
+          "method": "format_error_response",
+          "parameters": {
+            "status_code": "int",
+            "error_code": "str",
+            "message": "str"
+          },
+          "returns": "dict[str, Any]",
+          "description": "Format error response with consistent structure"
         }
       ],
       "dependencies": [],
-      "implementation_notes": "Register exception handlers using @app.exception_handler(ExceptionType) decorator. For HTTPException: return JSONResponse with status_code from exception and detail from exception. For RequestValidationError: return JSONResponse with status_code=400 and error details. For generic Exception: log error with logging.error(), return JSONResponse with status_code=500 and generic error message 'INTERNAL_SERVER_ERROR'. All error responses must include 'code' and 'message' fields. Never expose internal error details to client. Use logging.getLogger(__name__) for error logging.",
+      "implementation_notes": "Register exception handlers using @app.exception_handler(ExceptionType) decorator. For HTTPException: extract status_code and detail, return JSONResponse with status_code and formatted error dict. For RequestValidationError: return 400 status with error_code='VALIDATION_ERROR' and message from validation error details. For generic Exception: log error with logging module at ERROR level, return 500 status with error_code='INTERNAL_SERVER_ERROR'. Error response format: {\"error_code\": \"CODE\", \"message\": \"description\"}. Never expose internal error details in 500 responses.",
       "complexity": 27
     }
   ],
   "design_review_checklist": [
     {
       "category": "Architecture",
-      "description": "Verify all semantic units from project plan have corresponding components",
-      "validation_criteria": "All four semantic units (SU-001, SU-002, SU-003, SU-004) must have at least one component in component_logic. SU-001 maps to FastAPIApplicationFactory, SU-002 to HelloEndpointHandler, SU-003 to HealthEndpointHandler, SU-004 to GlobalExceptionHandler.",
+      "description": "Verify FastAPI application is properly initialized with all required middleware and exception handlers",
+      "validation_criteria": "FastAPIApplicationFactory.create_app() must return configured FastAPI instance with CORS middleware, exception handlers registered, and JSON encoding configured. Application must start without errors.",
       "severity": "Critical"
     },
     {
       "category": "Error Handling",
-      "description": "Verify all error cases are handled with appropriate HTTP status codes",
-      "validation_criteria": "HelloEndpointHandler must return 400 for invalid name characters and 400 for name too long. HealthEndpointHandler must not raise errors under normal conditions. GlobalExceptionHandler must catch HTTPException, RequestValidationError, and generic Exception. All error responses must include 'code' and 'message' fields.",
+      "description": "Verify all error cases return appropriate HTTP status codes and formatted error responses",
+      "validation_criteria": "Invalid name parameter must return 400 with error_code='INVALID_NAME_PARAMETER'. Name exceeding 255 chars must return 400 with error_code='NAME_TOO_LONG'. Unexpected errors must return 500 with error_code='INTERNAL_SERVER_ERROR'. All error responses must include 'error_code' and 'message' fields.",
       "severity": "Critical"
     },
     {
       "category": "Security",
       "description": "Verify input validation prevents injection attacks and malformed data",
-      "validation_criteria": "HelloEndpointHandler.validate_name must use regex pattern '^[a-zA-Z0-9 ]*$' to restrict name parameter. Name parameter must be limited to 255 characters maximum. No user input should be directly interpolated into responses without validation.",
+      "validation_criteria": "Name parameter must be validated with regex pattern ^[a-zA-Z0-9 ]*$ to allow only alphanumeric and spaces. Name length must be enforced at 255 character maximum. Whitespace must be stripped from input. No raw user input should be directly interpolated into responses.",
       "severity": "High"
     },
     {
       "category": "Performance",
-      "description": "Verify endpoints return responses efficiently without unnecessary processing",
-      "validation_criteria": "HelloEndpointHandler must complete in < 10ms. HealthEndpointHandler must complete in < 5ms. No database calls or external API calls in either endpoint. Timestamp generation must use efficient datetime operations.",
+      "description": "Verify endpoints respond quickly without unnecessary processing",
+      "validation_criteria": "/hello endpoint must complete in under 100ms. /health endpoint must complete in under 50ms. No blocking I/O operations in request handlers. Timestamp generation must use efficient datetime methods.",
       "severity": "Medium"
     },
     {
       "category": "Data Integrity",
-      "description": "Verify response formats match API contract specifications exactly",
-      "validation_criteria": "HelloEndpointHandler must return JSON with exactly one key 'message' containing string value. HealthEndpointHandler must return JSON with exactly two keys: 'status' (value 'ok') and 'timestamp' (ISO 8601 UTC format). All responses must be valid JSON.",
+      "description": "Verify response schemas match API contract specifications exactly",
+      "validation_criteria": "/hello response must contain only 'message' key with string value. /health response must contain 'status' (value='ok') and 'timestamp' (ISO 8601 format) keys. Timestamp must be in UTC timezone. No additional fields in responses.",
       "severity": "High"
     },
     {
       "category": "Error Handling",
-      "description": "Verify error responses do not expose internal implementation details",
-      "validation_criteria": "Generic exceptions must return status 500 with message 'INTERNAL_SERVER_ERROR' without stack traces or internal error details. Logging must capture full error details server-side but client response must be generic.",
+      "description": "Verify exception handlers log errors appropriately without exposing sensitive information",
+      "validation_criteria": "Generic exceptions must be logged at ERROR level with full traceback. 500 error responses must NOT include internal error details. HTTPException details must be preserved in response. Logging must use Python logging module.",
       "severity": "High"
     }
   ],
-  "architecture_overview": "Simple single-tier REST API architecture using FastAPI framework. Application consists of four main components: (1) FastAPIApplicationFactory initializes the FastAPI application with middleware and exception handlers, (2) HelloEndpointHandler processes GET /hello requests with optional name parameter validation and personalized greeting logic, (3) HealthEndpointHandler processes GET /health requests and returns status with current UTC timestamp, (4) GlobalExceptionHandler provides centralized error handling for all exceptions with appropriate HTTP status codes and formatted error responses. No database layer, no external dependencies beyond FastAPI and standard library. All responses are JSON formatted. Error handling is comprehensive with validation for input parameters and graceful handling of unexpected errors.",
+  "architecture_overview": "Minimal three-layer REST API architecture using FastAPI framework. Application layer (FastAPIApplicationFactory) initializes and configures the FastAPI application with middleware and exception handlers. Endpoint layer (HelloEndpointHandler, HealthEndpointHandler) handles HTTP requests with input validation and response formatting. Error handling layer (GlobalExceptionHandler) provides centralized exception handling with consistent error response formatting. No database or external service dependencies. All responses are JSON formatted. CORS middleware enables cross-origin requests for development.",
   "technology_stack": {
     "language": "Python 3.12",
     "framework": "FastAPI 0.104.1",
-    "asgi_server": "uvicorn 0.24.0",
-    "http_client": "httpx (for testing)",
+    "asgi_server": "Uvicorn 0.24.0",
     "datetime_handling": "Python datetime module (stdlib)",
     "validation": "Pydantic v2 (included with FastAPI)",
-    "logging": "Python logging module (stdlib)"
+    "logging": "Python logging module (stdlib)",
+    "cors": "FastAPI CORSMiddleware (included)"
   },
   "assumptions": [
-    "FastAPI 0.104+ is available with Starlette ASGI support",
-    "Application runs on Python 3.12 with standard library modules available",
-    "Server timezone is UTC or timestamps will be explicitly converted to UTC",
-    "Name parameter validation uses only alphanumeric characters and spaces (no special characters, unicode, or emojis)",
-    "No authentication or authorization is required for either endpoint",
-    "No rate limiting is implemented at application level (can be added at infrastructure/gateway level if needed)",
-    "Application runs on a single instance (no distributed deployment considerations)",
-    "HTTP status codes follow REST conventions: 200 for success, 400 for client errors, 500 for server errors",
-    "All responses are JSON formatted with UTF-8 encoding",
-    "Error responses include both 'code' and 'message' fields for client-side error handling"
+    "FastAPI and Uvicorn are installed and available in the Python environment",
+    "Application runs on localhost:8000 by default (configurable via Uvicorn)",
+    "HTTPS/TLS is handled at infrastructure level (reverse proxy or load balancer)",
+    "Name parameter should only contain alphanumeric characters and spaces (no special characters)",
+    "All timestamps are in UTC timezone and formatted as ISO 8601 strings",
+    "No database persistence is required for this minimal API",
+    "CORS is enabled for all origins in development (should be restricted in production)",
+    "Logging output goes to stdout/stderr (configurable via logging configuration)",
+    "Request validation errors from Pydantic should be caught and formatted consistently"
   ],
-  "timestamp": "2025-11-27T02:26:24.794021"
+  "timestamp": "2025-12-02T22:28:38.951166"
 }

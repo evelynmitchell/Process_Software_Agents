@@ -4,15 +4,15 @@
 
 ## Architecture Overview
 
-Minimal three-tier architecture for a simple greeting API. HTTPServerFramework (SU-001) initializes the FastAPI application and sets up routing infrastructure. HelloRouteHandler (SU-002) implements the GET /hello endpoint that returns a JSON response with the greeting message. ResponseFormatter (SU-003) handles HTTP response formatting with appropriate status codes and content-type headers. FastAPI automatically handles JSON serialization, so no manual formatting is required. The application is stateless with no database or external dependencies.
+Simple three-tier architecture for a minimal HTTP API. HTTPServerFramework (SU-001) initializes FastAPI and configures the ASGI server. HelloRouteHandler (SU-002) registers the GET /hello route and delegates response formatting. ResponseFormatter (SU-003) handles JSON serialization and HTTP status codes. Request flow: HTTP GET /hello → FastAPI routing → HelloRouteHandler.hello() → ResponseFormatter.format_success_response() → JSON response with status 200. No database, caching, or external dependencies required.
 
 ## Technology Stack
 
-{'language': 'Python 3.12', 'framework': 'FastAPI 0.104.1', 'web_server': 'Uvicorn 0.24.0', 'json_serialization': 'FastAPI built-in (Pydantic v2)', 'http_client_testing': 'httpx 0.25.0'}
+{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'asgi_server': 'uvicorn 0.24+', 'json_serialization': 'FastAPI built-in (Pydantic v2+)', 'http_client_testing': 'httpx 0.25+ (for testing)'}
 
 ## Assumptions
 
-['The application runs on a single process (no clustering required)', 'No authentication or authorization is needed for the /hello endpoint', 'No rate limiting is required for this minimal endpoint', 'The server listens on localhost:8000 by default (standard Uvicorn configuration)', 'No database or external service dependencies are required', "The response message is exactly 'Hello World' with no variations", 'HTTPS/TLS is handled at infrastructure level (not in application code)', 'No request logging or monitoring is required beyond standard HTTP access logs']
+['FastAPI is installed and available in the Python environment', 'uvicorn ASGI server is used to run the application', 'Server runs on localhost (127.0.0.1) port 8000 by default', 'No authentication or authorization is required for the /hello endpoint', 'Response must be JSON format with Content-Type: application/json', 'HTTP status code 200 is returned for successful requests', 'No request body or query parameters are required for GET /hello', "Response message is exactly 'Hello World' (case-sensitive)", 'No database or persistent storage is required', 'Application runs in a single process (no clustering or load balancing)']
 
 ## API Contracts
 
@@ -33,17 +33,17 @@ Minimal three-tier architecture for a simple greeting API. HTTPServerFramework (
 - **Responsibility:** Initialize and configure the FastAPI HTTP server framework with routing infrastructure
 - **Semantic Unit:** SU-001
 - **Dependencies:** None
-- **Implementation Notes:** Use FastAPI 0.104+ to create the application instance. Configure with title='Hello World API' and version='1.0.0'. Set up CORS middleware if needed for cross-origin requests. Initialize the app with default settings (no custom middleware required for this minimal implementation). The app instance should be created at module level for use by route handlers.
+- **Implementation Notes:** Use FastAPI 0.104+ to create the application instance. Configure with title='Hello World API' and version='1.0.0'. Use uvicorn as the ASGI server (uvicorn 0.24+). Default host should be '127.0.0.1' and port 8000. Enable automatic OpenAPI documentation generation (default behavior). Configure logging to output startup messages.
 - **Interfaces:**
   - `create_app`
-  - `configure_routes`
+  - `start_server`
 
 ### HelloRouteHandler
 
-- **Responsibility:** Handle GET /hello requests and return a greeting message with proper response serialization
+- **Responsibility:** Handle GET /hello requests and return serialized JSON response with greeting message
 - **Semantic Unit:** SU-002
 - **Dependencies:** HTTPServerFramework
-- **Implementation Notes:** Implement as a FastAPI route handler decorated with @app.get('/hello'). Return a dictionary with key 'message' and value 'Hello World'. FastAPI automatically serializes the dictionary to JSON with Content-Type: application/json. The response status code defaults to 200 OK. No request body is expected or processed. Handler should be synchronous (not async) for this simple use case.
+- **Implementation Notes:** Register route handler using FastAPI @app.get('/hello') decorator. Return dictionary with key 'message' and value 'Hello World'. FastAPI automatically serializes to JSON with Content-Type: application/json. Handler must be synchronous function (no async required for this simple case). Ensure response status code is 200 (default for GET success).
 - **Interfaces:**
   - `hello`
 
@@ -52,11 +52,11 @@ Minimal three-tier architecture for a simple greeting API. HTTPServerFramework (
 - **Responsibility:** Format HTTP responses with appropriate status codes and content-type headers
 - **Semantic Unit:** SU-003
 - **Dependencies:** None
-- **Implementation Notes:** FastAPI handles response formatting automatically through Pydantic models or dict serialization. For success responses, return dict with data payload (e.g., {'message': 'Hello World'}). FastAPI sets Content-Type to application/json and status code to 200 by default. For error responses, use FastAPI's HTTPException with status_code parameter to set appropriate HTTP status (500 for internal errors). Include error_code and message in response body for client debugging. All responses should include proper Content-Type: application/json header (set automatically by FastAPI).
+- **Implementation Notes:** Use FastAPI's JSONResponse for explicit response control. Success responses return status_code=200 with Content-Type: application/json. Error responses return appropriate HTTP status codes (500 for internal errors). Include error_code and message fields in error responses. FastAPI handles serialization automatically via Pydantic models or dicts. Ensure all responses include proper Content-Type headers (application/json).
 - **Interfaces:**
   - `format_success_response`
   - `format_error_response`
 
 ---
 
-*Generated by Design Agent on 2025-11-21 20:12:29*
+*Generated by Design Agent on 2025-12-02 22:29:34*

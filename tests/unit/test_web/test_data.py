@@ -178,6 +178,7 @@ class TestGetRecentActivity:
         import asp.web.data as data_module
 
         monkeypatch.setattr(data_module, "ARTIFACTS_DIR", tmp_path / "nonexistent")
+        monkeypatch.setattr(data_module, "TELEMETRY_DB", tmp_path / "nonexistent.db")
 
         from asp.web.data import get_recent_activity
 
@@ -201,6 +202,7 @@ class TestGetRecentActivity:
         (task_dir / "design.md").write_text("# Design")
 
         monkeypatch.setattr(data_module, "ARTIFACTS_DIR", artifacts_dir)
+        monkeypatch.setattr(data_module, "TELEMETRY_DB", tmp_path / "nonexistent.db")
 
         from asp.web.data import get_recent_activity
 
@@ -224,6 +226,7 @@ class TestGetRecentActivity:
             (task_dir / f"file_{i}.txt").write_text(f"Content {i}")
 
         monkeypatch.setattr(data_module, "ARTIFACTS_DIR", artifacts_dir)
+        monkeypatch.setattr(data_module, "TELEMETRY_DB", tmp_path / "nonexistent.db")
 
         from asp.web.data import get_recent_activity
 

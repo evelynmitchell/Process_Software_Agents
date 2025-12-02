@@ -2,7 +2,7 @@
 
 **Project ID:** TEST-HW
 **Task ID:** HW-PLAN-001
-**Total Complexity:** 35
+**Total Complexity:** 38
 **PROBE-AI Enabled:** False
 **Agent Version:** 1.0.0
 
@@ -20,15 +20,15 @@
 
 ### SU-002: Create GET /hello route handler with JSON response
 
-- **Estimated Complexity:** 9
+- **Estimated Complexity:** 12
 - **API Interactions:** 0
 - **Data Transformations:** 1
-- **Logical Branches:** 0
+- **Logical Branches:** 1
 - **Code Entities Modified:** 1
 - **Novelty Multiplier:** 1.0
 - **Dependencies:** SU-001
 
-### SU-003: Implement request validation and error handling for /hello endpoint
+### SU-003: Implement error handling and response validation for /hello endpoint
 
 - **Estimated Complexity:** 15
 - **API Interactions:** 0

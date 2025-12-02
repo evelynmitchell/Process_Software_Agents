@@ -25,4 +25,4 @@ def test_developer_route():
     assert response.status_code == 200
     assert "Flow State Canvas" in response.text
     assert "Active Tasks" in response.text
-    assert "Current Context" in response.text
+    assert "Recent Activity" in response.text

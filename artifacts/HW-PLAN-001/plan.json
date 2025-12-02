@@ -18,17 +18,17 @@
       "description": "Create GET /hello route handler with JSON response",
       "api_interactions": 0,
       "data_transformations": 1,
-      "logical_branches": 0,
+      "logical_branches": 1,
       "code_entities_modified": 1,
       "novelty_multiplier": 1.0,
-      "est_complexity": 9,
+      "est_complexity": 12,
       "dependencies": [
         "SU-001"
       ]
     },
     {
       "unit_id": "SU-003",
-      "description": "Implement request validation and error handling for /hello endpoint",
+      "description": "Implement error handling and response validation for /hello endpoint",
       "api_interactions": 0,
       "data_transformations": 1,
       "logical_branches": 2,
@@ -40,7 +40,7 @@
       ]
     }
   ],
-  "total_est_complexity": 35,
+  "total_est_complexity": 38,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"
