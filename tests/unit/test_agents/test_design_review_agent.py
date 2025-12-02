@@ -37,10 +37,7 @@ from asp.models.design import (
     DesignReviewChecklistItem,
     DesignSpecification,
 )
-from asp.models.design_review import (
-    ChecklistItemReview,
-    DesignReviewReport,
-)
+from asp.models.design_review import ChecklistItemReview, DesignReviewReport
 from asp.models.planning import PROBEAIPrediction, ProjectPlan, SemanticUnit
 
 # =============================================================================

@@ -26,10 +26,7 @@ from pathlib import Path
 
 from asp.agents.postmortem_agent import PostmortemAgent
 from asp.approval.pip_review_service import PIPReviewService
-from asp.models.postmortem import (
-    PostmortemInput,
-    PostmortemReport,
-)
+from asp.models.postmortem import PostmortemInput, PostmortemReport
 from asp.prompts.prompt_versioner import PromptVersioner
 from asp.telemetry.cycle_tracker import CycleTracker
 
@@ -101,10 +98,10 @@ class ImprovementLoopOrchestrator:
         self.cycle_tracker = CycleTracker(cycles_dir) if enable_cycle_tracking else None
 
         logger.info(
-            f"ImprovementLoopOrchestrator initialized: "
-            f"HITL={enable_hitl}, "
-            f"PromptUpdates={enable_prompt_updates}, "
-            f"CycleTracking={enable_cycle_tracking}"
+            "ImprovementLoopOrchestrator initialized: HITL=%s, PromptUpdates=%s, CycleTracking=%s",
+            enable_hitl,
+            enable_prompt_updates,
+            enable_cycle_tracking,
         )
 
     def run_improvement_cycle(
@@ -131,7 +128,7 @@ class ImprovementLoopOrchestrator:
                 - updated_prompts: list of prompt files updated
                 - cycle_id: str (for tracking)
         """
-        logger.info(f"Running improvement cycle for task {postmortem_report.task_id}")
+        logger.info("Running improvement cycle for task %s", postmortem_report.task_id)
 
         result = {
             "pip_generated": False,
@@ -149,9 +146,9 @@ class ImprovementLoopOrchestrator:
             )
             result["pip_generated"] = True
             result["pip"] = pip
-            logger.info(f"PIP generated: {pip.proposal_id}")
+            logger.info("PIP generated: %s", pip.proposal_id)
         except Exception as e:
-            logger.error(f"Failed to generate PIP: {e}", exc_info=True)
+            logger.error("Failed to generate PIP: %s", e, exc_info=True)
             return result
 
         # Step 2: Track PIP creation
@@ -160,9 +157,9 @@ class ImprovementLoopOrchestrator:
                 defect_count = len(postmortem_input.defect_log)
                 cycle = self.cycle_tracker.record_pip_created(pip, defect_count)
                 result["cycle_id"] = pip.proposal_id
-                logger.info(f"Cycle tracking started: {cycle.pip_id}")
+                logger.info("Cycle tracking started: %s", cycle.pip_id)
             except Exception as e:
-                logger.warning(f"Failed to track PIP creation: {e}")
+                logger.warning("Failed to track PIP creation: %s", e)
 
         # Step 3: Review PIP (HITL or auto-approve)
         if auto_approve:
@@ -181,9 +178,9 @@ class ImprovementLoopOrchestrator:
                     self.cycle_tracker.record_pip_reviewed(pip)
 
                 result["pip_approved"] = pip.hitl_status == "approved"
-                logger.info(f"PIP review complete: {pip.hitl_status}")
+                logger.info("PIP review complete: %s", pip.hitl_status)
             except Exception as e:
-                logger.error(f"Failed to review PIP: {e}", exc_info=True)
+                logger.error("Failed to review PIP: %s", e, exc_info=True)
                 return result
         else:
             logger.warning(
@@ -207,18 +204,18 @@ class ImprovementLoopOrchestrator:
                         pip.proposal_id, list(updated_files.values())
                     )
 
-                logger.info(f"PIP applied: {len(updated_files)} prompts updated")
+                logger.info("PIP applied: %d prompts updated", len(updated_files))
             except Exception as e:
-                logger.error(f"Failed to apply PIP to prompts: {e}", exc_info=True)
+                logger.error("Failed to apply PIP to prompts: %s", e, exc_info=True)
                 # Continue even if prompt update fails
                 result["updated_prompts"] = [f"ERROR: {e}"]
 
         # Step 5: Summary
         logger.info(
-            f"Improvement cycle complete: "
-            f"PIP={pip.proposal_id}, "
-            f"Status={pip.hitl_status}, "
-            f"Prompts updated={len(result['updated_prompts'])}"
+            "Improvement cycle complete: PIP=%s, Status=%s, Prompts updated=%d",
+            pip.proposal_id,
+            pip.hitl_status,
+            len(result["updated_prompts"]),
         )
 
         return result
@@ -272,15 +269,17 @@ class ImprovementLoopOrchestrator:
             }
 
             logger.info(
-                f"Impact measured for PIP {pip_id}: "
-                f"{impact['baseline_defects']} → {impact['new_defects']} defects "
-                f"({impact['defect_reduction_percent']}% reduction)"
+                "Impact measured for PIP %s: %d → %d defects (%s%% reduction)",
+                pip_id,
+                impact["baseline_defects"],
+                impact["new_defects"],
+                impact["defect_reduction_percent"],
             )
 
             return impact
 
         except Exception as e:
-            logger.error(f"Failed to measure impact: {e}", exc_info=True)
+            logger.error("Failed to measure impact: %s", e, exc_info=True)
             return {}
 
     def get_cycle_report(self) -> dict:
@@ -300,7 +299,7 @@ class ImprovementLoopOrchestrator:
         try:
             return self.cycle_tracker.generate_report()
         except Exception as e:
-            logger.error(f"Failed to generate cycle report: {e}", exc_info=True)
+            logger.error("Failed to generate cycle report: %s", e, exc_info=True)
             return {"error": str(e)}
 
 
@@ -355,8 +354,9 @@ def integrate_with_tsp_orchestrator(
     tsp_orchestrator.auto_approve_pips = auto_approve_pips
 
     logger.info(
-        f"Improvement loop integrated with TSP Orchestrator: "
-        f"HITL={enable_hitl}, AutoApprove={auto_approve_pips}"
+        "Improvement loop integrated with TSP Orchestrator: HITL=%s, AutoApprove=%s",
+        enable_hitl,
+        auto_approve_pips,
     )
 
     return improvement_loop

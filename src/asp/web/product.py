@@ -5,15 +5,12 @@ This module implements the web UI for the Product Manager persona.
 Displays project progress, task pipeline, and delivery metrics.
 """
 
+# pylint: disable=no-value-for-parameter,undefined-variable,wildcard-import,unused-wildcard-import
+# FastHTML components use *args and star imports which pylint cannot analyze correctly
 from fasthtml.common import *
 
 from .components import theme_toggle
-from .data import (
-    get_agent_stats,
-    get_running_tasks,
-    get_tasks,
-    register_task_execution,
-)
+from .data import get_agent_stats, get_running_tasks, get_tasks, register_task_execution
 
 
 def product_routes(app, rt):
@@ -346,7 +343,9 @@ def product_routes(app, rt):
         )
 
     @rt("/product/new-feature", methods=["POST"])
-    def post_new_feature(task_id: str, description: str, requirements: str, priority: str = "normal"):
+    def post_new_feature(
+        task_id: str, description: str, requirements: str, priority: str = "normal"
+    ):
         """Handle feature request submission."""
         # Validate inputs
         if not task_id or not description or not requirements:
@@ -449,7 +448,14 @@ def product_routes(app, rt):
                                     ),
                                     style="display: flex; justify-content: space-between;",
                                 ),
-                                P(t["description"][:60] + "..." if len(t.get("description", "")) > 60 else t.get("description", ""), style="margin: 0.5rem 0;"),
+                                P(
+                                    (
+                                        t["description"][:60] + "..."
+                                        if len(t.get("description", "")) > 60
+                                        else t.get("description", "")
+                                    ),
+                                    style="margin: 0.5rem 0;",
+                                ),
                                 # Progress bar
                                 Div(
                                     Div(
@@ -457,7 +463,9 @@ def product_routes(app, rt):
                                     ),
                                     style="height: 8px; background: var(--pico-muted-border-color); border-radius: 4px; margin: 0.5rem 0;",
                                 ),
-                                Small(f"{t['progress_pct']}% complete", cls="secondary"),
+                                Small(
+                                    f"{t['progress_pct']}% complete", cls="secondary"
+                                ),
                                 cls="card",
                                 style="margin-bottom: 1rem;",
                             )
@@ -514,7 +522,14 @@ def product_routes(app, rt):
                             cls="pico-color-azure",
                         ),
                     ),
-                    P(t["description"][:60] + "..." if len(t.get("description", "")) > 60 else t.get("description", ""), style="margin: 0.5rem 0;"),
+                    P(
+                        (
+                            t["description"][:60] + "..."
+                            if len(t.get("description", "")) > 60
+                            else t.get("description", "")
+                        ),
+                        style="margin: 0.5rem 0;",
+                    ),
                     Div(
                         Div(
                             style=f"width: {t['progress_pct']}%; height: 100%; background: var(--pico-primary); border-radius: 4px;",

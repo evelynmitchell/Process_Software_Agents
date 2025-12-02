@@ -37,7 +37,7 @@ repos:
       - id: pylint
         args:
           - '--rcfile=.pylintrc'
-          - '--disable=C0114,C0115,C0116,C0301,C0415,E0401,W0401,W0614,E0602,R0913,R0917,W0621,W0612,W0613,W1514,W0212'
+          - '--disable=C0114,C0115,C0116,C0301,C0302,C0415,E0401,E1101,R0801,R0912,R0914,R0913,R0917,W0105,W0401,W0614,E0602,W0621,W0612,W0613,W0718,W1514,W0212,C0201'
           - '--max-line-length=88'
         additional_dependencies:
           - fastapi

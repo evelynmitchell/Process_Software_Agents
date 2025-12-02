@@ -18,12 +18,7 @@ import os
 from typing import Any
 
 from anthropic import Anthropic, APIConnectionError, APIStatusError, RateLimitError
-from tenacity import (
-    retry,
-    retry_if_exception,
-    stop_after_attempt,
-    wait_exponential,
-)
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +35,7 @@ def should_retry_api_error(exception):
     Does NOT retry on:
     - APIStatusError with 4xx status codes (client errors)
     """
-    if isinstance(exception, (APIConnectionError, RateLimitError)):
+    if isinstance(exception, APIConnectionError | RateLimitError):
         return True
     if isinstance(exception, APIStatusError):
         # Only retry server errors (5xx), not client errors (4xx)
@@ -147,8 +142,10 @@ class LLMClient:
 
         try:
             logger.debug(
-                f"Calling Anthropic API: model={model}, "
-                f"max_tokens={max_tokens}, temp={temperature}"
+                "Calling Anthropic API: model=%s, max_tokens=%d, temp=%s",
+                model,
+                max_tokens,
+                temperature,
             )
 
             # Build messages
@@ -186,10 +183,10 @@ class LLMClient:
             total_cost = input_cost + output_cost
 
             logger.info(
-                f"LLM call successful: "
-                f"input_tokens={response.usage.input_tokens}, "
-                f"output_tokens={response.usage.output_tokens}, "
-                f"cost=${total_cost:.4f}"
+                "LLM call successful: input_tokens=%d, output_tokens=%d, cost=$%.4f",
+                response.usage.input_tokens,
+                response.usage.output_tokens,
+                total_cost,
             )
 
             return {
@@ -204,28 +201,33 @@ class LLMClient:
                 "stop_reason": response.stop_reason,
             }
 
+        except RateLimitError as e:
+            logger.warning("Rate limit hit: %s. Will retry...", e)
+            raise
+
+        except APIConnectionError as e:
+            logger.warning("Connection error: %s. Will retry...", e)
+            raise
+
         except APIStatusError as e:
             if 400 <= e.status_code < 500:
                 # Client error - don't retry
                 logger.error(
-                    f"Client error (HTTP {e.status_code}): {e.message}\n"
-                    f"This is likely a bug in our code or prompt."
+                    "Client error (HTTP %d): %s. This is likely a bug in our code or prompt.",
+                    e.status_code,
+                    e.message,
                 )
                 raise
-            else:
-                # Server error - retry
-                logger.warning(
-                    f"Server error (HTTP {e.status_code}): {e.message}\n"
-                    f"Will retry with exponential backoff..."
-                )
-                raise
-
-        except (APIConnectionError, RateLimitError) as e:
-            logger.warning(f"Transient error: {e}. Will retry...")
+            # Server error - retry
+            logger.warning(
+                "Server error (HTTP %d): %s. Will retry with exponential backoff...",
+                e.status_code,
+                e.message,
+            )
             raise
 
         except Exception as e:
-            logger.error(f"Unexpected error during LLM call: {e}")
+            logger.error("Unexpected error during LLM call: %s", e)
             raise
 
     def _try_parse_json(self, text: str) -> Any:

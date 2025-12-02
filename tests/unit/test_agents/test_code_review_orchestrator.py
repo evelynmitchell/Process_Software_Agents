@@ -25,9 +25,7 @@ import pytest
 from asp.agents.base_agent import AgentExecutionError
 from asp.agents.code_review_orchestrator import CodeReviewOrchestrator
 from asp.models.code import GeneratedCode, GeneratedFile
-from asp.models.code_review import (
-    CodeReviewReport,
-)
+from asp.models.code_review import CodeReviewReport
 
 # =============================================================================
 # Test Fixtures

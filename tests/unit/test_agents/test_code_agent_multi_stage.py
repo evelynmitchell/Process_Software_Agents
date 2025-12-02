@@ -21,11 +21,7 @@ from pydantic import ValidationError
 from asp.agents.base_agent import AgentExecutionError
 from asp.agents.code_agent import CodeAgent
 from asp.models.code import CodeInput, FileManifest, FileMetadata
-from asp.models.design import (
-    APIContract,
-    ComponentLogic,
-    DesignSpecification,
-)
+from asp.models.design import APIContract, ComponentLogic, DesignSpecification
 
 # =============================================================================
 # Test Fixtures

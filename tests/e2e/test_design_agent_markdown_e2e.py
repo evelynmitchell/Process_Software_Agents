@@ -27,11 +27,7 @@ import pytest
 
 from asp.agents.design_agent import DesignAgent
 from asp.models.design import DesignInput, DesignSpecification
-from asp.models.planning import (
-    PROBEAIPrediction,
-    ProjectPlan,
-    SemanticUnit,
-)
+from asp.models.planning import PROBEAIPrediction, ProjectPlan, SemanticUnit
 
 # Skip all tests if no API key is available
 

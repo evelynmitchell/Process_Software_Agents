@@ -16,10 +16,7 @@ import pytest
 
 from asp.agents.base_agent import AgentExecutionError
 from asp.agents.planning_agent import PlanningAgent
-from asp.models.planning import (
-    ProjectPlan,
-    TaskRequirements,
-)
+from asp.models.planning import ProjectPlan, TaskRequirements
 
 
 # Helper function to create valid TaskRequirements for testing

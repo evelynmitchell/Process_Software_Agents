@@ -19,10 +19,10 @@ from typing import Any
 def _sanitize_text(text: str) -> str:
     """
     Sanitize text by removing invalid Unicode surrogate characters.
-    
+
     Args:
         text: Text that may contain invalid Unicode surrogates
-        
+
     Returns:
         Sanitized text safe for UTF-8 encoding
     """
@@ -30,7 +30,7 @@ def _sanitize_text(text: str) -> str:
         return text
     # Encode with 'surrogatepass' then decode with 'replace' to remove bad surrogates
     try:
-        return text.encode('utf-8', errors='replace').decode('utf-8', errors='replace')
+        return text.encode("utf-8", errors="replace").decode("utf-8", errors="replace")
     except Exception:
         return text
 
@@ -70,7 +70,9 @@ def get_tasks() -> list[dict[str, Any]]:
                 tasks.append(
                     {
                         "task_id": result.get("task_id", "Unknown"),
-                        "description": _sanitize_text(result.get("description", "No description")),
+                        "description": _sanitize_text(
+                            result.get("description", "No description")
+                        ),
                         "complexity": result.get("actual_total_complexity", 0),
                         "num_units": result.get("num_units", 0),
                         "execution_time": result.get("execution_time_seconds", 0),
@@ -143,7 +145,9 @@ def get_task_details(task_id: str) -> dict[str, Any] | None:
     # Load plan if exists
     plan_file = task_dir / "plan.md"
     if plan_file.exists():
-        details["plan"] = _sanitize_text(plan_file.read_text()[:1000])  # First 1000 chars
+        details["plan"] = _sanitize_text(
+            plan_file.read_text()[:1000]
+        )  # First 1000 chars
 
     # Load design if exists
     design_file = task_dir / "design.md"
@@ -204,7 +208,9 @@ def get_artifact_history(task_id: str) -> list[dict[str, Any]]:
             if artifact.suffix in (".md", ".txt", ".json", ".py"):
                 try:
                     content = artifact.read_text()
-                    preview = _sanitize_text(content[:200] + "..." if len(content) > 200 else content)
+                    preview = _sanitize_text(
+                        content[:200] + "..." if len(content) > 200 else content
+                    )
                 except OSError:
                     pass
 

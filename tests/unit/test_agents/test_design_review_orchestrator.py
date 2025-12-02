@@ -24,9 +24,7 @@ from asp.models.design import (
     DesignReviewChecklistItem,
     DesignSpecification,
 )
-from asp.models.design_review import (
-    DesignReviewReport,
-)
+from asp.models.design_review import DesignReviewReport
 
 # Helper functions for creating test data
 

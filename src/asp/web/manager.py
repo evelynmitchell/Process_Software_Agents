@@ -5,6 +5,8 @@ This module implements the web UI for the Engineering Manager persona.
 Displays high-level metrics, agent health, quality gates, and team overview.
 """
 
+# pylint: disable=no-value-for-parameter,undefined-variable,wildcard-import,unused-wildcard-import
+# FastHTML components use *args and star imports which pylint cannot analyze correctly
 from fasthtml.common import *
 
 from .components import theme_toggle
@@ -308,7 +310,10 @@ def manager_routes(app, rt):
                                         style="height: 8px; background: var(--pico-muted-border-color); "
                                         "border-radius: 4px; margin: 0.5rem 0;",
                                     ),
-                                    Small(f"{t['progress_pct']}% complete", cls="secondary"),
+                                    Small(
+                                        f"{t['progress_pct']}% complete",
+                                        cls="secondary",
+                                    ),
                                     style="margin-bottom: 0.5rem;",
                                 )
                                 for t in running_tasks[:3]  # Show max 3
