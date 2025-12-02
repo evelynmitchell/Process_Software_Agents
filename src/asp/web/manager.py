@@ -7,7 +7,7 @@ Displays high-level metrics, agent health, quality gates, and team overview.
 
 from fasthtml.common import *
 
-from .data import get_agent_stats, get_design_review_stats, get_tasks
+from .data import get_agent_health, get_agent_stats, get_design_review_stats, get_tasks
 
 
 def manager_routes(app, rt):
@@ -19,6 +19,7 @@ def manager_routes(app, rt):
         stats = get_agent_stats()
         review_stats = get_design_review_stats()
         tasks = get_tasks()
+        agent_health = get_agent_health()
 
         # Calculate high-level metrics
         success_rate = (
@@ -82,41 +83,21 @@ def manager_routes(app, rt):
                             Table(
                                 Thead(Tr(Th("Agent"), Th("Status"), Th("Last Active"))),
                                 Tbody(
-                                    Tr(
-                                        Td("Planning Agent"),
-                                        Td("Operational", cls="pico-color-green"),
-                                        Td("Active"),
-                                    ),
-                                    Tr(
-                                        Td("Design Agent"),
-                                        Td("Operational", cls="pico-color-green"),
-                                        Td("Active"),
-                                    ),
-                                    Tr(
-                                        Td("Design Review"),
-                                        Td("Operational", cls="pico-color-green"),
-                                        Td("Active"),
-                                    ),
-                                    Tr(
-                                        Td("Code Agent"),
-                                        Td("Operational", cls="pico-color-green"),
-                                        Td("Active"),
-                                    ),
-                                    Tr(
-                                        Td("Code Review"),
-                                        Td("Operational", cls="pico-color-green"),
-                                        Td("Active"),
-                                    ),
-                                    Tr(
-                                        Td("Test Agent"),
-                                        Td("Operational", cls="pico-color-green"),
-                                        Td("Active"),
-                                    ),
-                                    Tr(
-                                        Td("Postmortem Agent"),
-                                        Td("Operational", cls="pico-color-green"),
-                                        Td("Active"),
-                                    ),
+                                    *[
+                                        Tr(
+                                            Td(agent["name"]),
+                                            Td(
+                                                agent["status"],
+                                                cls=(
+                                                    "pico-color-green"
+                                                    if agent["status"] == "Operational"
+                                                    else "pico-color-yellow"
+                                                ),
+                                            ),
+                                            Td(agent["last_active"]),
+                                        )
+                                        for agent in agent_health
+                                    ]
                                 ),
                             ),
                             cls="card",
@@ -242,46 +223,27 @@ def manager_routes(app, rt):
     @rt("/manager/agent-status")
     def get_agent_status():
         """HTMX endpoint for agent status updates."""
+        agent_health = get_agent_health()
         return Div(
             H3("Agent Health"),
             Table(
                 Thead(Tr(Th("Agent"), Th("Status"), Th("Last Active"))),
                 Tbody(
-                    Tr(
-                        Td("Planning Agent"),
-                        Td("Operational", cls="pico-color-green"),
-                        Td("Active"),
-                    ),
-                    Tr(
-                        Td("Design Agent"),
-                        Td("Operational", cls="pico-color-green"),
-                        Td("Active"),
-                    ),
-                    Tr(
-                        Td("Design Review"),
-                        Td("Operational", cls="pico-color-green"),
-                        Td("Active"),
-                    ),
-                    Tr(
-                        Td("Code Agent"),
-                        Td("Operational", cls="pico-color-green"),
-                        Td("Active"),
-                    ),
-                    Tr(
-                        Td("Code Review"),
-                        Td("Operational", cls="pico-color-green"),
-                        Td("Active"),
-                    ),
-                    Tr(
-                        Td("Test Agent"),
-                        Td("Operational", cls="pico-color-green"),
-                        Td("Active"),
-                    ),
-                    Tr(
-                        Td("Postmortem Agent"),
-                        Td("Operational", cls="pico-color-green"),
-                        Td("Active"),
-                    ),
+                    *[
+                        Tr(
+                            Td(agent["name"]),
+                            Td(
+                                agent["status"],
+                                cls=(
+                                    "pico-color-green"
+                                    if agent["status"] == "Operational"
+                                    else "pico-color-yellow"
+                                ),
+                            ),
+                            Td(agent["last_active"]),
+                        )
+                        for agent in agent_health
+                    ]
                 ),
             ),
         )
