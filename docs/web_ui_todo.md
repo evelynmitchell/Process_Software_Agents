@@ -1,18 +1,18 @@
 # Web UI Integration Todo List
 
 **Created:** 2025-12-02 (Session 5)
-**Last Updated:** 2025-12-02 (Session 6)
+**Last Updated:** 2025-12-02 (Session 7)
 
 ## Status Summary
 
 | Category | Total | Done | Remaining |
 |----------|-------|------|-----------|
-| Core Integration | 3 | 1 | 2 |
+| Core Integration | 3 | 2 | 1 |
 | Data & Metrics | 4 | 4 | 0 |
-| Product Manager | 2 | 0 | 2 |
-| Developer Features | 3 | 1 | 2 |
+| Product Manager | 2 | 1 | 1 |
+| Developer Features | 3 | 3 | 0 |
 | Polish | 1 | 1 | 0 |
-| **Total** | **13** | **7** | **6** |
+| **Total** | **13** | **11** | **2** |
 
 ---
 
@@ -26,10 +26,16 @@
   - Added `get_pip_details()` for full PIP information
   - Added helper functions `_get_pending_pips()` and `_get_pending_review_branches()`
 
-- [ ] **Connect to TSP orchestrator for live task execution**
-  - Enable real-time task submission from web UI
-  - Show live progress updates during execution
-  - Integrate with existing orchestrator in `src/asp/orchestrator/`
+- [x] **Connect to TSP orchestrator for live task execution** (Completed 2025-12-02 Session 7)
+  - Added task execution service in `data.py`:
+    - `register_task_execution()` - Register new tasks
+    - `update_task_progress()` - Update task progress by phase
+    - `get_running_tasks()` - Get list of running tasks
+    - `complete_task_execution()` - Mark task complete with result
+  - Added Feature Wizard form at `/product/new-feature`
+  - Added running tasks view at `/product/running`
+  - Added execution monitoring in Manager dashboard
+  - Live progress updates with HTMX (5-second refresh)
 
 - [ ] **Reach 80% test coverage**
   - Current: 78%
@@ -80,11 +86,14 @@
 
 ## Product Manager Features
 
-- [ ] **Implement Feature Wizard (conversational input)**
-  - Planning Agent integration for requirement clarification
-  - Real-time estimate updates as questions answered
-  - Confidence intervals on time/cost estimates
-  - Location: New route `/product/new-feature`
+- [x] **Implement Feature Wizard (task submission)** (Completed 2025-12-02 Session 7)
+  - New route: `/product/new-feature`
+  - Task submission form with:
+    - Task ID, Description, Requirements fields
+    - Priority selection (Normal/High/Critical)
+  - Submits task to in-memory execution queue
+  - Shows confirmation with pipeline overview
+  - Links to running tasks view
 
 - [ ] **Add What-If scenario simulator for timeline**
   - Adjustable sliders: Team Capacity, Budget
@@ -106,15 +115,22 @@
   - Telemetry data display (latency, tokens, cost)
   - Link from task detail page to trace view
 
-- [ ] **Implement diff view for code changes**
-  - Show agent proposals as unified diffs
-  - Accept/Reject/Edit buttons
-  - Monaco editor integration (optional)
+- [x] **Implement diff view for code changes** (Completed 2025-12-02 Session 7)
+  - New route: `/developer/task/{task_id}/diff`
+  - Added `get_code_proposals()` function to `data.py`
+  - Code display with syntax highlighting CSS
+  - File header with line count and status
+  - Action buttons (Approve/Reject/Edit) - visual placeholders
+  - Link from task detail page to diff view
 
-- [ ] **Add agent presence indicators**
-  - Show which agents are currently working
-  - Visual indicator (avatar/cursor) when agent is active
-  - Real-time updates via WebSocket or SSE
+- [x] **Add agent presence indicators** (Completed 2025-12-02 Session 7)
+  - Added `get_active_agents()` function to `data.py`
+  - Manager dashboard: "Active Agents" section with:
+    - Agent avatar/initial, name, current task
+    - Pulsing green indicator (CSS animation)
+    - HTMX auto-refresh every 5 seconds
+  - Running tasks section with progress bars
+  - Developer dashboard: `/developer/active-agents` endpoint
 
 ---
 

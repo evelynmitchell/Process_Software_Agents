@@ -84,6 +84,50 @@ def create_app():
                 .theme-icon {
                     font-size: 1.2rem;
                 }
+
+                /* Agent presence pulse animation */
+                @keyframes pulse {
+                    0% { opacity: 1; transform: scale(1); }
+                    50% { opacity: 0.6; transform: scale(1.1); }
+                    100% { opacity: 1; transform: scale(1); }
+                }
+
+                /* Code diff view styles */
+                .diff-view {
+                    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    overflow-x: auto;
+                }
+                .diff-line {
+                    padding: 2px 8px;
+                    white-space: pre;
+                }
+                .diff-add {
+                    background: rgba(34, 197, 94, 0.2);
+                    color: #22c55e;
+                }
+                .diff-remove {
+                    background: rgba(239, 68, 68, 0.2);
+                    color: #ef4444;
+                }
+                .diff-header {
+                    background: var(--pico-muted-border-color);
+                    color: var(--pico-color);
+                    font-weight: bold;
+                }
+                .diff-hunk {
+                    background: rgba(59, 130, 246, 0.1);
+                    color: #3b82f6;
+                }
+                .line-number {
+                    display: inline-block;
+                    width: 40px;
+                    text-align: right;
+                    padding-right: 8px;
+                    color: var(--pico-muted-color);
+                    user-select: none;
+                }
             """
             ),
             # Theme initialization and toggle script
