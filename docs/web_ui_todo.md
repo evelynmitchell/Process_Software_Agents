@@ -8,11 +8,11 @@
 | Category | Total | Done | Remaining |
 |----------|-------|------|-----------|
 | Core Integration | 3 | 1 | 2 |
-| Data & Metrics | 4 | 0 | 4 |
+| Data & Metrics | 4 | 1 | 3 |
 | Product Manager | 2 | 0 | 2 |
 | Developer Features | 3 | 0 | 3 |
 | Polish | 1 | 0 | 1 |
-| **Total** | **13** | **1** | **12** |
+| **Total** | **13** | **2** | **11** |
 
 ---
 
@@ -40,11 +40,13 @@
 
 ## Data & Metrics Display
 
-- [ ] **Add cost tracking display**
-  - Show `total_cost_usd` from telemetry
-  - Show token usage (input/output)
-  - Add to Manager and Developer dashboards
-  - Data available via `get_cost_summary()` in `api.py`
+- [x] **Add cost tracking display** (Completed 2025-12-02)
+  - Added cost metrics row to Manager dashboard:
+    - API Cost (7 days), Total Tokens, Input Tokens, Output Tokens
+  - Added "API Cost Tracking" section to Developer stats page:
+    - Cost cards + Cost by Agent Role table
+  - Uses `get_cost_breakdown()` from `data.py`
+  - Gracefully handles empty telemetry database
 
 - [ ] **Add Sparklines/trend charts for metrics**
   - 30-day trends for cost, quality, velocity

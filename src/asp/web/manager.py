@@ -7,7 +7,13 @@ Displays high-level metrics, agent health, quality gates, and team overview.
 
 from fasthtml.common import *
 
-from .data import get_agent_health, get_agent_stats, get_design_review_stats, get_tasks
+from .data import (
+    get_agent_health,
+    get_agent_stats,
+    get_cost_breakdown,
+    get_design_review_stats,
+    get_tasks,
+)
 
 
 def manager_routes(app, rt):
@@ -20,6 +26,7 @@ def manager_routes(app, rt):
         review_stats = get_design_review_stats()
         tasks = get_tasks()
         agent_health = get_agent_health()
+        cost_data = get_cost_breakdown(days=7)
 
         # Calculate high-level metrics
         success_rate = (
@@ -31,6 +38,9 @@ def manager_routes(app, rt):
             [t for t in tasks if t["status"] in ("in_progress", "planning")]
         )
         completed_count = len([t for t in tasks if t["status"] == "completed"])
+        total_tokens = (
+            cost_data["token_usage"]["input"] + cost_data["token_usage"]["output"]
+        )
 
         return Titled(
             "ASP Overwatch - Sarah",
@@ -71,6 +81,46 @@ def manager_routes(app, rt):
                             style="text-align: center;",
                         ),
                         cls="grid",
+                    ),
+                    # Cost metrics row
+                    Div(
+                        Div(
+                            H3(
+                                f"${cost_data['total_usd']:.2f}",
+                                cls="pico-color-azure",
+                            ),
+                            P("API Cost (7 days)"),
+                            cls="card",
+                            style="text-align: center;",
+                        ),
+                        Div(
+                            H3(f"{total_tokens:,}" if total_tokens > 0 else "0"),
+                            P("Total Tokens"),
+                            cls="card",
+                            style="text-align: center;",
+                        ),
+                        Div(
+                            H3(
+                                f"{cost_data['token_usage']['input']:,}"
+                                if cost_data["token_usage"]["input"] > 0
+                                else "0"
+                            ),
+                            P("Input Tokens"),
+                            cls="card",
+                            style="text-align: center;",
+                        ),
+                        Div(
+                            H3(
+                                f"{cost_data['token_usage']['output']:,}"
+                                if cost_data["token_usage"]["output"] > 0
+                                else "0"
+                            ),
+                            P("Output Tokens"),
+                            cls="card",
+                            style="text-align: center;",
+                        ),
+                        cls="grid",
+                        style="margin-top: 1rem;",
                     ),
                     style="margin-bottom: 2rem;",
                 ),
