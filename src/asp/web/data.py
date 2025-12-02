@@ -196,6 +196,51 @@ def get_agent_stats() -> dict[str, Any]:
     return stats
 
 
+def get_agent_health() -> list[dict[str, Any]]:
+    """
+    Get health status for all ASP agents.
+
+    Returns:
+        List of agent status dictionaries with name, status, and last_active
+    """
+    # Define all 7 core agents
+    agents = [
+        "Planning Agent",
+        "Design Agent",
+        "Design Review",
+        "Code Agent",
+        "Code Review",
+        "Test Agent",
+        "Postmortem Agent",
+    ]
+
+    # Get last execution timestamp from bootstrap results
+    last_active = "Never"
+    status = "Idle"
+
+    if BOOTSTRAP_RESULTS.exists():
+        with open(BOOTSTRAP_RESULTS) as f:
+            data = json.load(f)
+            timestamp = data.get("timestamp", "")
+            if timestamp:
+                # Parse ISO timestamp and format for display
+                from datetime import datetime
+
+                try:
+                    dt = datetime.fromisoformat(timestamp)
+                    last_active = dt.strftime("%Y-%m-%d %H:%M")
+                    status = "Operational"
+                except ValueError:
+                    last_active = timestamp[:16]  # Fallback: first 16 chars
+                    status = "Operational"
+
+    # All agents share the same status based on bootstrap run
+    return [
+        {"name": agent, "status": status, "last_active": last_active}
+        for agent in agents
+    ]
+
+
 def get_design_review_stats() -> dict[str, Any]:
     """
     Get design review statistics from bootstrap data.
