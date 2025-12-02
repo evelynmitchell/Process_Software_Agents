@@ -729,3 +729,105 @@ def generate_sparkline_svg(
 
     svg_parts.append("</svg>")
     return "".join(svg_parts)
+
+
+def get_phase_yield_data() -> dict[str, Any]:
+    """
+    Get phase yield analysis data showing task flow through development phases.
+
+    Returns:
+        Dictionary with phase counts, transitions, and defect data
+    """
+    phases = ["Planning", "Design", "Code", "Test", "Complete"]
+    phase_counts = dict.fromkeys(phases, 0)
+    phase_defects = dict.fromkeys(phases, 0)
+    transitions = []
+
+    # Load bootstrap results
+    if BOOTSTRAP_RESULTS.exists():
+        with open(BOOTSTRAP_RESULTS) as f:
+            data = json.load(f)
+        results = data.get("results", [])
+
+        for result in results:
+            if result.get("success"):
+                phase_counts["Complete"] += 1
+            else:
+                # Failed tasks stuck in earlier phase
+                phase_counts["Code"] += 1
+
+    # Load design review results
+    design_review_file = DATA_DIR / "bootstrap_design_review_results.json"
+    if design_review_file.exists():
+        with open(design_review_file) as f:
+            data = json.load(f)
+        results = data.get("results", [])
+
+        for result in results:
+            if result.get("design_success"):
+                phase_counts["Design"] += 1
+            else:
+                phase_defects["Design"] += 1
+
+    # Check defect_log table
+    conn = _get_db_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT phase, COUNT(*) as count
+                FROM defect_log
+                GROUP BY phase
+                """
+            )
+            for row in cursor.fetchall():
+                phase = row["phase"]
+                if phase in phase_defects:
+                    phase_defects[phase] += row["count"]
+        except sqlite3.Error:
+            pass
+        finally:
+            conn.close()
+
+    # Calculate totals
+    total_started = sum(phase_counts.values())
+    total_defects = sum(phase_defects.values())
+
+    # Build transitions (simplified flow)
+    if total_started > 0:
+        transitions = [
+            {
+                "from": "Planning",
+                "to": "Design",
+                "count": phase_counts.get("Design", 0)
+                + phase_counts.get("Code", 0)
+                + phase_counts.get("Complete", 0),
+            },
+            {
+                "from": "Design",
+                "to": "Code",
+                "count": phase_counts.get("Code", 0) + phase_counts.get("Complete", 0),
+            },
+            {"from": "Code", "to": "Test", "count": phase_counts.get("Complete", 0)},
+            {
+                "from": "Test",
+                "to": "Complete",
+                "count": phase_counts.get("Complete", 0),
+            },
+        ]
+
+    return {
+        "phases": phases,
+        "phase_counts": phase_counts,
+        "phase_defects": phase_defects,
+        "transitions": transitions,
+        "total_started": total_started,
+        "total_completed": phase_counts.get("Complete", 0),
+        "total_defects": total_defects,
+        "yield_rate": (
+            phase_counts.get("Complete", 0) / total_started * 100
+            if total_started > 0
+            else 0
+        ),
+    }

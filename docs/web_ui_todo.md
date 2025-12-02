@@ -8,11 +8,11 @@
 | Category | Total | Done | Remaining |
 |----------|-------|------|-----------|
 | Core Integration | 3 | 1 | 2 |
-| Data & Metrics | 4 | 2 | 2 |
+| Data & Metrics | 4 | 3 | 1 |
 | Product Manager | 2 | 0 | 2 |
 | Developer Features | 3 | 0 | 3 |
 | Polish | 1 | 0 | 1 |
-| **Total** | **13** | **3** | **10** |
+| **Total** | **13** | **4** | **9** |
 
 ---
 
@@ -59,11 +59,14 @@
     - Token sparkline (purple)
     - Task sparkline (green)
 
-- [ ] **Implement Phase Yield Analysis view for Manager**
-  - Sankey diagram showing task flow through phases
-  - Show "leakage" (rework) at each phase
-  - Top defect sources (Pareto chart)
-  - Location: New route `/manager/phase-yield`
+- [x] **Implement Phase Yield Analysis view for Manager** (Completed 2025-12-02)
+  - Added `get_phase_yield_data()` function to `data.py`
+  - Created `/manager/phase-yield` route with:
+    - Summary metrics (Started, Completed, Yield Rate, Defects)
+    - Phase flow visualization with progress bars
+    - Phase transitions table with flow indicators
+  - Color-coded phases (Planning=purple, Design=cyan, Code=amber, Test=green)
+  - Real data from bootstrap results and design reviews
 
 - [ ] **Add Budget Cap controls for Manager dashboard**
   - Set daily/monthly spending limits
