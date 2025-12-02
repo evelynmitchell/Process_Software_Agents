@@ -584,3 +584,148 @@ def get_cost_breakdown(days: int = 7) -> dict[str, Any]:
         return result
     finally:
         conn.close()
+
+
+def get_daily_metrics(days: int = 7) -> dict[str, list[float]]:
+    """
+    Get daily aggregated metrics for sparkline charts.
+
+    Args:
+        days: Number of days of history to fetch
+
+    Returns:
+        Dictionary with lists of daily values for cost, tokens, tasks
+    """
+    result = {
+        "dates": [],
+        "cost": [],
+        "tokens": [],
+        "tasks": [],
+    }
+
+    conn = _get_db_connection()
+    if not conn:
+        # Return placeholder data when no telemetry available
+        return _get_placeholder_metrics(days)
+
+    try:
+        cursor = conn.cursor()
+        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+
+        # Get daily cost totals
+        cursor.execute(
+            """
+            SELECT
+                DATE(timestamp) as day,
+                SUM(CASE WHEN metric_type = 'API_Cost' THEN metric_value ELSE 0 END) as cost,
+                SUM(CASE WHEN metric_type IN ('Tokens_In', 'Tokens_Out') THEN metric_value ELSE 0 END) as tokens,
+                COUNT(DISTINCT task_id) as tasks
+            FROM agent_cost_vector
+            WHERE timestamp > ?
+            GROUP BY DATE(timestamp)
+            ORDER BY day
+            """,
+            (cutoff,),
+        )
+
+        for row in cursor.fetchall():
+            result["dates"].append(row["day"])
+            result["cost"].append(row["cost"] or 0)
+            result["tokens"].append(row["tokens"] or 0)
+            result["tasks"].append(row["tasks"] or 0)
+
+        # If no data, return placeholder
+        if not result["dates"]:
+            return _get_placeholder_metrics(days)
+
+        return result
+    except sqlite3.Error:
+        return _get_placeholder_metrics(days)
+    finally:
+        conn.close()
+
+
+def _get_placeholder_metrics(days: int) -> dict[str, list[float]]:
+    """
+    Generate placeholder metrics data for display when no real data exists.
+
+    Args:
+        days: Number of days to generate
+
+    Returns:
+        Dictionary with placeholder daily values
+    """
+    from datetime import date
+
+    today = date.today()
+    dates = [(today - timedelta(days=i)).isoformat() for i in range(days - 1, -1, -1)]
+
+    # Generate realistic-looking placeholder data
+    # Shows a gentle upward trend to indicate system activity
+    return {
+        "dates": dates,
+        "cost": [0.0] * days,  # No cost when no data
+        "tokens": [0] * days,  # No tokens when no data
+        "tasks": [0] * days,  # No tasks when no data
+    }
+
+
+def generate_sparkline_svg(
+    values: list[float],
+    width: int = 80,
+    height: int = 20,
+    color: str = "#06b6d4",
+    show_endpoint: bool = True,
+) -> str:
+    """
+    Generate an inline SVG sparkline chart.
+
+    Args:
+        values: List of numeric values to plot
+        width: SVG width in pixels
+        height: SVG height in pixels
+        color: Line color (CSS color)
+        show_endpoint: Whether to show a dot at the last point
+
+    Returns:
+        SVG markup string
+    """
+    if not values or all(v == 0 for v in values):
+        # Return empty placeholder when no data
+        return f'<svg width="{width}" height="{height}" style="vertical-align: middle;"><text x="{width//2}" y="{height//2 + 4}" text-anchor="middle" fill="#666" font-size="10">No data</text></svg>'
+
+    # Normalize values to fit in height
+    min_val = min(values)
+    max_val = max(values)
+    val_range = max_val - min_val if max_val != min_val else 1
+
+    # Calculate points with padding
+    padding = 2
+    usable_height = height - 2 * padding
+    usable_width = width - 2 * padding
+
+    points = []
+    for i, val in enumerate(values):
+        x = (
+            padding + (i / (len(values) - 1)) * usable_width
+            if len(values) > 1
+            else width / 2
+        )
+        y = padding + usable_height - ((val - min_val) / val_range) * usable_height
+        points.append(f"{x:.1f},{y:.1f}")
+
+    path = f'M {" L ".join(points)}'
+
+    # Build SVG
+    svg_parts = [
+        f'<svg width="{width}" height="{height}" style="vertical-align: middle;">',
+        f'<path d="{path}" fill="none" stroke="{color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+    ]
+
+    # Add endpoint dot
+    if show_endpoint and points:
+        last_x, last_y = points[-1].split(",")
+        svg_parts.append(f'<circle cx="{last_x}" cy="{last_y}" r="2" fill="{color}"/>')
+
+    svg_parts.append("</svg>")
+    return "".join(svg_parts)

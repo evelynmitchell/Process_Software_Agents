@@ -8,9 +8,11 @@ Displays high-level metrics, agent health, quality gates, and team overview.
 from fasthtml.common import *
 
 from .data import (
+    generate_sparkline_svg,
     get_agent_health,
     get_agent_stats,
     get_cost_breakdown,
+    get_daily_metrics,
     get_design_review_stats,
     get_tasks,
 )
@@ -27,6 +29,7 @@ def manager_routes(app, rt):
         tasks = get_tasks()
         agent_health = get_agent_health()
         cost_data = get_cost_breakdown(days=7)
+        daily_metrics = get_daily_metrics(days=7)
 
         # Calculate high-level metrics
         success_rate = (
@@ -40,6 +43,17 @@ def manager_routes(app, rt):
         completed_count = len([t for t in tasks if t["status"] == "completed"])
         total_tokens = (
             cost_data["token_usage"]["input"] + cost_data["token_usage"]["output"]
+        )
+
+        # Generate sparklines
+        cost_sparkline = generate_sparkline_svg(
+            daily_metrics["cost"], width=60, height=20, color="#06b6d4"
+        )
+        token_sparkline = generate_sparkline_svg(
+            daily_metrics["tokens"], width=60, height=20, color="#8b5cf6"
+        )
+        task_sparkline = generate_sparkline_svg(
+            daily_metrics["tasks"], width=60, height=20, color="#10b981"
         )
 
         return Titled(
@@ -82,30 +96,46 @@ def manager_routes(app, rt):
                         ),
                         cls="grid",
                     ),
-                    # Cost metrics row
+                    # Cost metrics row with sparklines
                     Div(
                         Div(
-                            H3(
-                                f"${cost_data['total_usd']:.2f}",
-                                cls="pico-color-azure",
+                            Div(
+                                H3(
+                                    f"${cost_data['total_usd']:.2f}",
+                                    cls="pico-color-azure",
+                                    style="display: inline;",
+                                ),
+                                NotStr(cost_sparkline),
+                                style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;",
                             ),
                             P("API Cost (7 days)"),
                             cls="card",
                             style="text-align: center;",
                         ),
                         Div(
-                            H3(f"{total_tokens:,}" if total_tokens > 0 else "0"),
+                            Div(
+                                H3(
+                                    f"{total_tokens:,}" if total_tokens > 0 else "0",
+                                    style="display: inline;",
+                                ),
+                                NotStr(token_sparkline),
+                                style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;",
+                            ),
                             P("Total Tokens"),
                             cls="card",
                             style="text-align: center;",
                         ),
                         Div(
-                            H3(
-                                f"{cost_data['token_usage']['input']:,}"
-                                if cost_data["token_usage"]["input"] > 0
-                                else "0"
+                            Div(
+                                H3(
+                                    f"{stats['total_tasks']}",
+                                    cls="pico-color-green",
+                                    style="display: inline;",
+                                ),
+                                NotStr(task_sparkline),
+                                style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;",
                             ),
-                            P("Input Tokens"),
+                            P("Tasks (7 days)"),
                             cls="card",
                             style="text-align: center;",
                         ),

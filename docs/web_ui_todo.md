@@ -8,11 +8,11 @@
 | Category | Total | Done | Remaining |
 |----------|-------|------|-----------|
 | Core Integration | 3 | 1 | 2 |
-| Data & Metrics | 4 | 1 | 3 |
+| Data & Metrics | 4 | 2 | 2 |
 | Product Manager | 2 | 0 | 2 |
 | Developer Features | 3 | 0 | 3 |
 | Polish | 1 | 0 | 1 |
-| **Total** | **13** | **2** | **11** |
+| **Total** | **13** | **3** | **10** |
 
 ---
 
@@ -48,10 +48,16 @@
   - Uses `get_cost_breakdown()` from `data.py`
   - Gracefully handles empty telemetry database
 
-- [ ] **Add Sparklines/trend charts for metrics**
-  - 30-day trends for cost, quality, velocity
-  - Use lightweight charting (Chart.js or inline SVG)
-  - Target: Manager dashboard metric cards
+- [x] **Add Sparklines/trend charts for metrics** (Completed 2025-12-02)
+  - Added `generate_sparkline_svg()` function to `data.py`:
+    - Creates inline SVG sparkline charts
+    - Configurable width, height, color
+    - Shows "No data" placeholder when empty
+  - Added `get_daily_metrics()` for 7-day historical data
+  - Integrated into Manager dashboard metric cards:
+    - Cost sparkline (cyan)
+    - Token sparkline (purple)
+    - Task sparkline (green)
 
 - [ ] **Implement Phase Yield Analysis view for Manager**
   - Sankey diagram showing task flow through phases
