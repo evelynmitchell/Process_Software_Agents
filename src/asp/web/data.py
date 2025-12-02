@@ -904,6 +904,265 @@ def get_budget_status(days: int = 7) -> dict[str, Any]:
     }
 
 
+# =============================================================================
+# Task Execution Service (TSP Orchestrator Integration)
+# =============================================================================
+
+# In-memory task execution state (in production, use Redis/DB)
+_running_tasks: dict[str, dict[str, Any]] = {}
+_task_results: dict[str, dict[str, Any]] = {}
+
+
+def get_running_tasks() -> list[dict[str, Any]]:
+    """
+    Get list of currently running tasks.
+
+    Returns:
+        List of running task dictionaries with id, status, progress
+    """
+    return [
+        {
+            "task_id": task_id,
+            "status": info.get("status", "unknown"),
+            "phase": info.get("current_phase", "initializing"),
+            "started_at": info.get("started_at"),
+            "progress_pct": info.get("progress_pct", 0),
+            "description": info.get("description", ""),
+        }
+        for task_id, info in _running_tasks.items()
+    ]
+
+
+def get_task_execution_status(task_id: str) -> dict[str, Any] | None:
+    """
+    Get execution status for a specific task.
+
+    Args:
+        task_id: Task identifier
+
+    Returns:
+        Task status dictionary or None if not found
+    """
+    if task_id in _running_tasks:
+        return _running_tasks[task_id]
+    if task_id in _task_results:
+        return _task_results[task_id]
+    return None
+
+
+def register_task_execution(
+    task_id: str, description: str, requirements: str
+) -> dict[str, Any]:
+    """
+    Register a new task for execution.
+
+    Args:
+        task_id: Unique task identifier
+        description: Task description
+        requirements: Task requirements
+
+    Returns:
+        Task registration info
+    """
+    now = datetime.now().isoformat()
+    _running_tasks[task_id] = {
+        "task_id": task_id,
+        "description": description,
+        "requirements": requirements,
+        "status": "pending",
+        "current_phase": "queued",
+        "started_at": now,
+        "progress_pct": 0,
+        "phases_completed": [],
+        "execution_log": [],
+    }
+    return _running_tasks[task_id]
+
+
+def update_task_progress(
+    task_id: str,
+    phase: str,
+    status: str = "running",
+    progress_pct: int | None = None,
+    log_entry: str | None = None,
+) -> None:
+    """
+    Update task execution progress.
+
+    Args:
+        task_id: Task identifier
+        phase: Current phase name
+        status: Task status (running, completed, failed)
+        progress_pct: Progress percentage (0-100)
+        log_entry: Optional log message
+    """
+    if task_id not in _running_tasks:
+        return
+
+    task = _running_tasks[task_id]
+    task["current_phase"] = phase
+    task["status"] = status
+
+    if progress_pct is not None:
+        task["progress_pct"] = progress_pct
+
+    if log_entry:
+        task["execution_log"].append(
+            {"timestamp": datetime.now().isoformat(), "message": log_entry}
+        )
+
+    # Track completed phases
+    phase_progress = {
+        "planning": 15,
+        "design": 30,
+        "design_review": 45,
+        "code": 60,
+        "code_review": 75,
+        "test": 90,
+        "postmortem": 100,
+    }
+    if phase in phase_progress and status == "completed":
+        if phase not in task["phases_completed"]:
+            task["phases_completed"].append(phase)
+        task["progress_pct"] = phase_progress[phase]
+
+
+def complete_task_execution(
+    task_id: str, result: dict[str, Any], success: bool = True
+) -> None:
+    """
+    Mark task execution as complete and store result.
+
+    Args:
+        task_id: Task identifier
+        result: Execution result
+        success: Whether task succeeded
+    """
+    if task_id in _running_tasks:
+        task = _running_tasks.pop(task_id)
+        task["status"] = "completed" if success else "failed"
+        task["progress_pct"] = 100
+        task["completed_at"] = datetime.now().isoformat()
+        task["result"] = result
+        _task_results[task_id] = task
+
+
+def get_active_agents() -> list[dict[str, Any]]:
+    """
+    Get list of currently active agents based on running tasks.
+
+    Returns:
+        List of active agent dictionaries with name and current task
+    """
+    active = []
+    phase_to_agent = {
+        "planning": "Planning Agent",
+        "design": "Design Agent",
+        "design_review": "Design Review Agent",
+        "code": "Code Agent",
+        "code_review": "Code Review Agent",
+        "test": "Test Agent",
+        "postmortem": "Postmortem Agent",
+    }
+
+    for task_id, info in _running_tasks.items():
+        phase = info.get("current_phase", "").lower()
+        if phase in phase_to_agent:
+            active.append(
+                {
+                    "agent_name": phase_to_agent[phase],
+                    "task_id": task_id,
+                    "phase": phase,
+                    "started_at": info.get("started_at"),
+                }
+            )
+
+    return active
+
+
+# =============================================================================
+# Code Diff Utilities
+# =============================================================================
+
+
+def generate_unified_diff(
+    original: str, modified: str, filename: str = "file.py"
+) -> str:
+    """
+    Generate a unified diff between two strings.
+
+    Args:
+        original: Original content
+        modified: Modified content
+        filename: Filename for diff header
+
+    Returns:
+        Unified diff string
+    """
+    import difflib
+
+    original_lines = original.splitlines(keepends=True)
+    modified_lines = modified.splitlines(keepends=True)
+
+    diff = difflib.unified_diff(
+        original_lines,
+        modified_lines,
+        fromfile=f"a/{filename}",
+        tofile=f"b/{filename}",
+        lineterm="",
+    )
+
+    return "".join(diff)
+
+
+def get_code_proposals(task_id: str) -> list[dict[str, Any]]:
+    """
+    Get code change proposals for a task.
+
+    Args:
+        task_id: Task identifier
+
+    Returns:
+        List of code proposals with filename, original, modified, diff
+    """
+    task_dir = ARTIFACTS_DIR / task_id
+    if not task_dir.exists():
+        return []
+
+    proposals = []
+    code_dir = task_dir / "code"
+
+    # Check for generated code files
+    if code_dir.exists():
+        for code_file in code_dir.glob("*.py"):
+            content = code_file.read_text()
+            proposals.append(
+                {
+                    "filename": code_file.name,
+                    "path": str(code_file.relative_to(PROJECT_ROOT)),
+                    "content": content,
+                    "lines": len(content.splitlines()),
+                    "status": "pending",  # pending, approved, rejected
+                }
+            )
+
+    # Also check for standalone .py files in task directory
+    for code_file in task_dir.glob("*.py"):
+        if code_file.name not in [p["filename"] for p in proposals]:
+            content = code_file.read_text()
+            proposals.append(
+                {
+                    "filename": code_file.name,
+                    "path": str(code_file.relative_to(PROJECT_ROOT)),
+                    "content": content,
+                    "lines": len(content.splitlines()),
+                    "status": "pending",
+                }
+            )
+
+    return proposals
+
+
 def get_phase_yield_data() -> dict[str, Any]:
     """
     Get phase yield analysis data showing task flow through development phases.

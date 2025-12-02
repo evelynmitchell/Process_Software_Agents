@@ -9,8 +9,10 @@ from fasthtml.common import *
 
 from .components import theme_toggle
 from .data import (
+    get_active_agents,
     get_agent_stats,
     get_artifact_history,
+    get_code_proposals,
     get_cost_breakdown,
     get_recent_activity,
     get_task_details,
@@ -409,13 +411,20 @@ def developer_routes(app, rt):
                     if details.get("design")
                     else None
                 ),
-                # Traceability link
+                # Action links
                 Div(
                     A(
                         "View Artifact Timeline",
                         href=f"/developer/task/{task_id}/trace",
                         role="button",
                         cls="outline",
+                    ),
+                    A(
+                        "Review Code",
+                        href=f"/developer/task/{task_id}/diff",
+                        role="button",
+                        cls="outline",
+                        style="margin-left: 0.5rem;",
                     ),
                     style="margin-top: 1rem;",
                 ),
@@ -714,4 +723,151 @@ def developer_routes(app, rt):
                 ),
                 style="max-width: 1000px; margin: 0 auto; padding: 2rem;",
             ),
+        )
+
+    @rt("/developer/task/{task_id}/diff")
+    def get_task_diff(task_id: str):
+        """Diff view - Show code proposals with unified diff display."""
+        proposals = get_code_proposals(task_id)
+        details = get_task_details(task_id)
+
+        if not details:
+            return Titled(
+                "Task Not Found",
+                Div(
+                    A("< Back", href="/developer/tasks"),
+                    H2(f"Task {task_id} not found"),
+                    P("This task does not exist or has no code proposals."),
+                    style="max-width: 800px; margin: 0 auto; padding: 2rem;",
+                ),
+            )
+
+        return Titled(
+            f"Code Review - {task_id}",
+            theme_toggle(),
+            Div(
+                A("< Back to Task", href=f"/developer/task/{task_id}"),
+                " | ",
+                A("Task Timeline", href=f"/developer/task/{task_id}/trace"),
+                H2(f"Code Proposals: {task_id}"),
+                P(
+                    f"{len(proposals)} file(s) proposed for this task",
+                    cls="secondary",
+                ),
+                # Code proposals list
+                (
+                    Div(
+                        *[
+                            Div(
+                                # File header
+                                Div(
+                                    Div(
+                                        Strong(p["filename"]),
+                                        Span(
+                                            f" ({p['lines']} lines)",
+                                            cls="secondary",
+                                        ),
+                                    ),
+                                    Div(
+                                        Span(
+                                            p["status"].upper(),
+                                            cls=f"pico-color-{'green' if p['status'] == 'approved' else ('red' if p['status'] == 'rejected' else 'azure')}",
+                                        ),
+                                    ),
+                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;",
+                                ),
+                                # Code display
+                                Div(
+                                    Pre(
+                                        p["content"],
+                                        style="font-size: 0.85rem; overflow-x: auto; max-height: 400px; overflow-y: auto;",
+                                    ),
+                                    cls="diff-view",
+                                    style="background: var(--pico-card-background-color); padding: 1rem; border-radius: 8px; border: 1px solid var(--pico-muted-border-color);",
+                                ),
+                                # Action buttons (visual only for now)
+                                Div(
+                                    Button(
+                                        "Approve",
+                                        cls="outline",
+                                        style="margin-right: 0.5rem;",
+                                        disabled=True,
+                                    ),
+                                    Button(
+                                        "Reject",
+                                        cls="outline secondary",
+                                        style="margin-right: 0.5rem;",
+                                        disabled=True,
+                                    ),
+                                    Button(
+                                        "Edit",
+                                        cls="outline",
+                                        disabled=True,
+                                    ),
+                                    Small(
+                                        " (Action buttons coming soon)",
+                                        cls="secondary",
+                                    ),
+                                    style="margin-top: 1rem;",
+                                ),
+                                cls="card",
+                                style="margin-bottom: 1.5rem;",
+                            )
+                            for p in proposals
+                        ]
+                    )
+                    if proposals
+                    else Div(
+                        P(
+                            "No code proposals available for this task.",
+                            cls="secondary",
+                            style="text-align: center; padding: 2rem;",
+                        ),
+                        P(
+                            "Code proposals appear after the Code Agent generates code.",
+                            style="text-align: center;",
+                        ),
+                        cls="card",
+                    )
+                ),
+                # Navigation
+                Div(
+                    A(
+                        "Back to Dashboard",
+                        href="/developer",
+                        role="button",
+                        cls="outline",
+                    ),
+                    style="margin-top: 2rem;",
+                ),
+                style="max-width: 1000px; margin: 0 auto; padding: 2rem;",
+            ),
+        )
+
+    @rt("/developer/active-agents")
+    def get_developer_active_agents():
+        """HTMX endpoint for active agents in developer view."""
+        active = get_active_agents()
+
+        if not active:
+            return Div(
+                P("No agents currently active", cls="secondary"),
+                style="text-align: center; padding: 1rem;",
+            )
+
+        return Div(
+            *[
+                Div(
+                    Div(
+                        style="width: 10px; height: 10px; border-radius: 50%; "
+                        "background: #22c55e; animation: pulse 2s infinite;",
+                    ),
+                    Span(
+                        f"{a['agent_name']} working on {a['task_id']}",
+                        style="margin-left: 0.5rem;",
+                    ),
+                    style="display: flex; align-items: center; margin-bottom: 0.5rem;",
+                )
+                for a in active
+            ]
         )

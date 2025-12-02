@@ -10,6 +10,7 @@ from fasthtml.common import *
 from .components import theme_toggle
 from .data import (
     generate_sparkline_svg,
+    get_active_agents,
     get_agent_health,
     get_agent_stats,
     get_budget_settings,
@@ -18,6 +19,7 @@ from .data import (
     get_daily_metrics,
     get_design_review_stats,
     get_phase_yield_data,
+    get_running_tasks,
     get_tasks,
     save_budget_settings,
 )
@@ -36,6 +38,8 @@ def manager_routes(app, rt):
         cost_data = get_cost_breakdown(days=7)
         daily_metrics = get_daily_metrics(days=7)
         budget = get_budget_status()
+        active_agents = get_active_agents()
+        running_tasks = get_running_tasks()
 
         # Calculate high-level metrics
         success_rate = (
@@ -222,6 +226,111 @@ def manager_routes(app, rt):
                         style="margin-top: 1rem;",
                     ),
                     style="margin-bottom: 2rem;",
+                ),
+                # Active Agents (Agent Presence Indicators)
+                (
+                    Div(
+                        H3(
+                            "Active Agents ",
+                            Span(
+                                f"({len(active_agents)})",
+                                cls="pico-color-green",
+                            ),
+                        ),
+                        Div(
+                            *[
+                                Div(
+                                    # Agent avatar/indicator
+                                    Div(
+                                        Span(
+                                            a["agent_name"][0],  # First letter
+                                            style="font-weight: bold; font-size: 1.2rem;",
+                                        ),
+                                        style="width: 40px; height: 40px; border-radius: 50%; "
+                                        "background: var(--pico-primary); color: white; "
+                                        "display: flex; align-items: center; justify-content: center;",
+                                    ),
+                                    Div(
+                                        Strong(a["agent_name"]),
+                                        P(
+                                            f"Working on {a['task_id']}",
+                                            style="margin: 0; font-size: 0.85rem;",
+                                            cls="secondary",
+                                        ),
+                                        style="margin-left: 0.75rem;",
+                                    ),
+                                    # Pulsing indicator
+                                    Div(
+                                        style="width: 12px; height: 12px; border-radius: 50%; "
+                                        "background: #22c55e; animation: pulse 2s infinite; margin-left: auto;",
+                                    ),
+                                    style="display: flex; align-items: center; padding: 0.75rem; "
+                                    "border: 1px solid var(--pico-muted-border-color); border-radius: 8px; "
+                                    "margin-right: 1rem; margin-bottom: 0.5rem;",
+                                )
+                                for a in active_agents
+                            ],
+                            style="display: flex; flex-wrap: wrap;",
+                        ),
+                        cls="card",
+                        style="margin-bottom: 2rem;",
+                        hx_get="/manager/active-agents",
+                        hx_trigger="every 5s",
+                        hx_swap="innerHTML",
+                    )
+                    if active_agents
+                    else None
+                ),
+                # Running Tasks (if any)
+                (
+                    Div(
+                        H3(
+                            "Running Pipeline Tasks ",
+                            Span(f"({len(running_tasks)})", cls="pico-color-azure"),
+                        ),
+                        Div(
+                            *[
+                                Div(
+                                    Div(
+                                        Strong(t["task_id"]),
+                                        Span(
+                                            f" - {t['phase'].replace('_', ' ').title()}",
+                                            cls="pico-color-azure",
+                                        ),
+                                    ),
+                                    # Progress bar
+                                    Div(
+                                        Div(
+                                            style=f"width: {t['progress_pct']}%; height: 100%; "
+                                            "background: var(--pico-primary); border-radius: 4px; "
+                                            "transition: width 0.3s;",
+                                        ),
+                                        style="height: 8px; background: var(--pico-muted-border-color); "
+                                        "border-radius: 4px; margin: 0.5rem 0;",
+                                    ),
+                                    Small(f"{t['progress_pct']}% complete", cls="secondary"),
+                                    style="margin-bottom: 0.5rem;",
+                                )
+                                for t in running_tasks[:3]  # Show max 3
+                            ],
+                        ),
+                        (
+                            A(
+                                f"View all {len(running_tasks)} running tasks",
+                                href="/product/running",
+                                style="font-size: 0.9rem;",
+                            )
+                            if len(running_tasks) > 3
+                            else None
+                        ),
+                        cls="card",
+                        style="margin-bottom: 2rem;",
+                        hx_get="/manager/running-tasks",
+                        hx_trigger="every 5s",
+                        hx_swap="innerHTML",
+                    )
+                    if running_tasks
+                    else None
                 ),
                 # Two-column layout
                 Div(
@@ -868,5 +977,102 @@ def manager_routes(app, rt):
                     style="flex: 1;",
                 ),
                 style="display: flex; gap: 2rem;",
+            ),
+        )
+
+    @rt("/manager/active-agents")
+    def get_active_agents_htmx():
+        """HTMX endpoint for active agents updates."""
+        active_agents = get_active_agents()
+
+        if not active_agents:
+            return Div()  # Empty when no active agents
+
+        return Div(
+            H3(
+                "Active Agents ",
+                Span(f"({len(active_agents)})", cls="pico-color-green"),
+            ),
+            Div(
+                *[
+                    Div(
+                        Div(
+                            Span(
+                                a["agent_name"][0],
+                                style="font-weight: bold; font-size: 1.2rem;",
+                            ),
+                            style="width: 40px; height: 40px; border-radius: 50%; "
+                            "background: var(--pico-primary); color: white; "
+                            "display: flex; align-items: center; justify-content: center;",
+                        ),
+                        Div(
+                            Strong(a["agent_name"]),
+                            P(
+                                f"Working on {a['task_id']}",
+                                style="margin: 0; font-size: 0.85rem;",
+                                cls="secondary",
+                            ),
+                            style="margin-left: 0.75rem;",
+                        ),
+                        Div(
+                            style="width: 12px; height: 12px; border-radius: 50%; "
+                            "background: #22c55e; animation: pulse 2s infinite; margin-left: auto;",
+                        ),
+                        style="display: flex; align-items: center; padding: 0.75rem; "
+                        "border: 1px solid var(--pico-muted-border-color); border-radius: 8px; "
+                        "margin-right: 1rem; margin-bottom: 0.5rem;",
+                    )
+                    for a in active_agents
+                ],
+                style="display: flex; flex-wrap: wrap;",
+            ),
+        )
+
+    @rt("/manager/running-tasks")
+    def get_running_tasks_htmx():
+        """HTMX endpoint for running tasks updates."""
+        running_tasks = get_running_tasks()
+
+        if not running_tasks:
+            return Div()  # Empty when no running tasks
+
+        return Div(
+            H3(
+                "Running Pipeline Tasks ",
+                Span(f"({len(running_tasks)})", cls="pico-color-azure"),
+            ),
+            Div(
+                *[
+                    Div(
+                        Div(
+                            Strong(t["task_id"]),
+                            Span(
+                                f" - {t['phase'].replace('_', ' ').title()}",
+                                cls="pico-color-azure",
+                            ),
+                        ),
+                        Div(
+                            Div(
+                                style=f"width: {t['progress_pct']}%; height: 100%; "
+                                "background: var(--pico-primary); border-radius: 4px; "
+                                "transition: width 0.3s;",
+                            ),
+                            style="height: 8px; background: var(--pico-muted-border-color); "
+                            "border-radius: 4px; margin: 0.5rem 0;",
+                        ),
+                        Small(f"{t['progress_pct']}% complete", cls="secondary"),
+                        style="margin-bottom: 0.5rem;",
+                    )
+                    for t in running_tasks[:3]
+                ],
+            ),
+            (
+                A(
+                    f"View all {len(running_tasks)} running tasks",
+                    href="/product/running",
+                    style="font-size: 0.9rem;",
+                )
+                if len(running_tasks) > 3
+                else None
             ),
         )
