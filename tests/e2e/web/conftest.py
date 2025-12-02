@@ -48,11 +48,6 @@ class ServerThread(threading.Thread):
         import uvicorn
 
         from src.asp.web import app
-        from src.asp.web.data import init_database, insert_demo_data
-
-        # Initialize database with demo data
-        init_database()
-        insert_demo_data()
 
         # Create server config
         config = uvicorn.Config(

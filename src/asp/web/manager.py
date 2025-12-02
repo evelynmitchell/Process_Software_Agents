@@ -81,7 +81,14 @@ def manager_routes(app, rt):
                         Div(
                             H3("Agent Health"),
                             Table(
-                                Thead(Tr(Th("Agent"), Th("Status"), Th("Last Active"))),
+                                Thead(
+                                    Tr(
+                                        Th("Agent"),
+                                        Th("Status"),
+                                        Th("Last Active"),
+                                        Th("Executions"),
+                                    )
+                                ),
                                 Tbody(
                                     *[
                                         Tr(
@@ -91,10 +98,15 @@ def manager_routes(app, rt):
                                                 cls=(
                                                     "pico-color-green"
                                                     if agent["status"] == "Operational"
-                                                    else "pico-color-yellow"
+                                                    else (
+                                                        "pico-color-yellow"
+                                                        if agent["status"] == "Idle"
+                                                        else "pico-color-grey"
+                                                    )
                                                 ),
                                             ),
                                             Td(agent["last_active"]),
+                                            Td(str(agent["executions"])),
                                         )
                                         for agent in agent_health
                                     ]
@@ -227,7 +239,14 @@ def manager_routes(app, rt):
         return Div(
             H3("Agent Health"),
             Table(
-                Thead(Tr(Th("Agent"), Th("Status"), Th("Last Active"))),
+                Thead(
+                    Tr(
+                        Th("Agent"),
+                        Th("Status"),
+                        Th("Last Active"),
+                        Th("Executions"),
+                    )
+                ),
                 Tbody(
                     *[
                         Tr(
@@ -237,10 +256,15 @@ def manager_routes(app, rt):
                                 cls=(
                                     "pico-color-green"
                                     if agent["status"] == "Operational"
-                                    else "pico-color-yellow"
+                                    else (
+                                        "pico-color-yellow"
+                                        if agent["status"] == "Idle"
+                                        else "pico-color-grey"
+                                    )
                                 ),
                             ),
                             Td(agent["last_active"]),
+                            Td(str(agent["executions"])),
                         )
                         for agent in agent_health
                     ]

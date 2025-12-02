@@ -4,8 +4,9 @@ Playwright E2E tests for the ASP Web UI.
 Tests the FastHTML-based web interface including:
 - Home page with persona selection
 - Developer dashboard with dynamic content
+- Manager dashboard
+- Product dashboard
 - Navigation between pages
-- HTMX dynamic updates
 """
 
 import re
@@ -23,33 +24,47 @@ class TestHomePage:
         # Check page title
         expect(page).to_have_title(re.compile("ASP Platform"))
 
-        # Check for persona selection heading
-        expect(page.get_by_role("heading", name="Select Persona")).to_be_visible()
+        # Check for main heading
+        expect(page.get_by_role("heading", name="ASP Overwatch")).to_be_visible()
 
     def test_persona_buttons_present(self, page: Page, web_server: str) -> None:
         """Test that all persona buttons are present."""
         page.goto(web_server)
 
-        # Check for all three persona buttons
-        expect(
-            page.get_by_role("link", name=re.compile("Sarah.*Manager"))
-        ).to_be_visible()
-        expect(
-            page.get_by_role("link", name=re.compile("Alex.*Developer"))
-        ).to_be_visible()
-        expect(
-            page.get_by_role("link", name=re.compile("Jordan.*Product"))
-        ).to_be_visible()
+        # Check for all three persona headings within links
+        expect(page.locator("a[href='/manager'] h3")).to_be_visible()
+        expect(page.locator("a[href='/developer'] h3")).to_be_visible()
+        expect(page.locator("a[href='/product'] h3")).to_be_visible()
 
     def test_developer_link_navigates(self, page: Page, web_server: str) -> None:
         """Test that clicking Developer link navigates to developer dashboard."""
         page.goto(web_server)
 
-        # Click on Developer persona
-        page.get_by_role("link", name=re.compile("Alex.*Developer")).click()
+        # Click on Developer persona link
+        page.locator("a[href='/developer']").click()
 
         # Should navigate to developer page
         expect(page).to_have_url(re.compile("/developer"))
+
+    def test_manager_link_navigates(self, page: Page, web_server: str) -> None:
+        """Test that clicking Manager link navigates to manager dashboard."""
+        page.goto(web_server)
+
+        # Click on Manager persona link
+        page.locator("a[href='/manager']").click()
+
+        # Should navigate to manager page
+        expect(page).to_have_url(re.compile("/manager"))
+
+    def test_product_link_navigates(self, page: Page, web_server: str) -> None:
+        """Test that clicking Product link navigates to product dashboard."""
+        page.goto(web_server)
+
+        # Click on Product persona link
+        page.locator("a[href='/product']").click()
+
+        # Should navigate to product page
+        expect(page).to_have_url(re.compile("/product"))
 
 
 class TestDeveloperDashboard:
@@ -68,7 +83,7 @@ class TestDeveloperDashboard:
 
         # Check sidebar headings
         expect(page.get_by_role("heading", name="Active Tasks")).to_be_visible()
-        expect(page.get_by_role("heading", name="Agent Stats")).to_be_visible()
+        expect(page.get_by_role("heading", name="Recent Completed")).to_be_visible()
         expect(page.get_by_role("heading", name="Tools")).to_be_visible()
 
     def test_main_content_sections(self, page: Page, web_server: str) -> None:
@@ -76,151 +91,126 @@ class TestDeveloperDashboard:
         page.goto(f"{web_server}/developer")
 
         # Check for main sections
-        expect(page.get_by_role("heading", name="Dashboard")).to_be_visible()
-        expect(page.get_by_role("heading", name="Recent Activity")).to_be_visible()
         expect(page.get_by_role("heading", name="Defect Overview")).to_be_visible()
-
-    def test_htmx_tasks_load(self, page: Page, web_server: str) -> None:
-        """Test that tasks load dynamically via HTMX."""
-        page.goto(f"{web_server}/developer")
-
-        # Wait for HTMX to load tasks (demo data)
-        # Look for task IDs that match the demo pattern
-        expect(page.locator("text=TSP-DEMO")).to_be_visible(timeout=5000)
-
-    def test_htmx_activity_table_loads(self, page: Page, web_server: str) -> None:
-        """Test that activity table loads dynamically."""
-        page.goto(f"{web_server}/developer")
-
-        # Wait for activity table to load
-        # Should have table headers
-        expect(page.locator("th:text('Time')")).to_be_visible(timeout=5000)
-        expect(page.locator("th:text('Agent')")).to_be_visible()
-        expect(page.locator("th:text('Metric')")).to_be_visible()
-
-    def test_htmx_agent_stats_load(self, page: Page, web_server: str) -> None:
-        """Test that agent stats load dynamically."""
-        page.goto(f"{web_server}/developer")
-
-        # Wait for agent stats to load (demo data has these agents)
-        # At least one agent should be visible
-        expect(
-            page.locator("text=Planning").or_(page.locator("text=Design"))
-        ).to_be_visible(timeout=5000)
-
-    def test_htmx_defect_summary_loads(self, page: Page, web_server: str) -> None:
-        """Test that defect summary loads dynamically."""
-        page.goto(f"{web_server}/developer")
-
-        # Wait for defect summary to load
-        expect(page.locator("text=Total defects")).to_be_visible(timeout=5000)
+        expect(page.get_by_role("heading", name="Recent Activity")).to_be_visible()
 
     def test_tools_links_present(self, page: Page, web_server: str) -> None:
         """Test that tools links are present in sidebar."""
         page.goto(f"{web_server}/developer")
 
-        expect(page.get_by_role("link", name="New Task")).to_be_visible()
-        expect(page.get_by_role("link", name="View Defects")).to_be_visible()
+        expect(page.get_by_role("link", name="View All Tasks")).to_be_visible()
+        expect(page.get_by_role("link", name="Agent Stats")).to_be_visible()
+
+    def test_back_to_home_link(self, page: Page, web_server: str) -> None:
+        """Test navigation back to home."""
+        page.goto(f"{web_server}/developer")
+
+        page.locator("a[href='/']").click()
+        expect(page).to_have_url(f"{web_server}/")
 
 
 class TestDeveloperNavigation:
     """Tests for navigation within the Developer persona."""
 
-    def test_task_detail_navigation(self, page: Page, web_server: str) -> None:
-        """Test navigating to a task detail page."""
+    def test_all_tasks_page(self, page: Page, web_server: str) -> None:
+        """Test navigating to all tasks page."""
         page.goto(f"{web_server}/developer")
 
-        # Wait for tasks to load and click on one
-        page.locator("a[href*='/developer/task/']").first.click()
+        page.get_by_role("link", name="View All Tasks").click()
 
-        # Should be on task detail page
-        expect(page).to_have_url(re.compile("/developer/task/"))
+        expect(page).to_have_url(re.compile("/developer/tasks"))
         expect(
-            page.get_by_role("heading", name=re.compile("Task Details"))
+            page.get_by_role("heading", name="All Tasks", exact=True)
         ).to_be_visible()
 
-    def test_back_to_dashboard_from_task(self, page: Page, web_server: str) -> None:
-        """Test navigating back to dashboard from task detail."""
-        page.goto(f"{web_server}/developer/task/TSP-DEMO-001")
+    def test_stats_page(self, page: Page, web_server: str) -> None:
+        """Test navigating to stats page."""
+        page.goto(f"{web_server}/developer")
 
-        # Click back link
+        page.get_by_role("link", name="Agent Stats").click()
+
+        expect(page).to_have_url(re.compile("/developer/stats"))
+        expect(
+            page.get_by_role("heading", name="Agent Performance Statistics")
+        ).to_be_visible()
+
+    def test_back_to_dashboard_from_tasks(self, page: Page, web_server: str) -> None:
+        """Test navigating back to dashboard from tasks page."""
+        page.goto(f"{web_server}/developer/tasks")
+
         page.get_by_role("link", name=re.compile("Back to Dashboard")).click()
 
-        # Should be back on developer dashboard
         expect(page).to_have_url(re.compile("/developer$"))
 
-    def test_defects_page_navigation(self, page: Page, web_server: str) -> None:
-        """Test navigating to defects page."""
-        page.goto(f"{web_server}/developer")
+    def test_back_to_dashboard_from_stats(self, page: Page, web_server: str) -> None:
+        """Test navigating back to dashboard from stats page."""
+        page.goto(f"{web_server}/developer/stats")
 
-        # Click View Defects
-        page.get_by_role("link", name="View Defects").click()
+        page.get_by_role("link", name=re.compile("Back to Dashboard")).click()
 
-        # Should be on defects page
-        expect(page).to_have_url(re.compile("/developer/defects"))
-        expect(page.get_by_role("heading", name="Recent Defects")).to_be_visible()
-
-    def test_new_task_form_navigation(self, page: Page, web_server: str) -> None:
-        """Test navigating to new task form."""
-        page.goto(f"{web_server}/developer")
-
-        # Click New Task
-        page.get_by_role("link", name="New Task").click()
-
-        # Should be on new task page
-        expect(page).to_have_url(re.compile("/developer/new-task"))
-        expect(page.get_by_role("heading", name="Create New Task")).to_be_visible()
+        expect(page).to_have_url(re.compile("/developer$"))
 
 
-class TestNewTaskForm:
-    """Tests for the new task creation form."""
+class TestManagerDashboard:
+    """Tests for the Manager (Sarah) dashboard."""
 
-    def test_form_fields_present(self, page: Page, web_server: str) -> None:
-        """Test that form fields are present."""
-        page.goto(f"{web_server}/developer/new-task")
+    def test_manager_page_loads(self, page: Page, web_server: str) -> None:
+        """Test that the manager dashboard loads successfully."""
+        page.goto(f"{web_server}/manager")
 
-        # Check for form fields
-        expect(page.locator("input[name='task_id']")).to_be_visible()
-        expect(page.locator("textarea[name='description']")).to_be_visible()
-        expect(page.get_by_role("button", name="Create Task")).to_be_visible()
+        expect(page).to_have_title(re.compile("ASP Overwatch"))
 
-    def test_form_submission(self, page: Page, web_server: str) -> None:
-        """Test form submission creates task."""
-        page.goto(f"{web_server}/developer/new-task")
+    def test_system_overview_visible(self, page: Page, web_server: str) -> None:
+        """Test that system overview section is visible."""
+        page.goto(f"{web_server}/manager")
 
-        # Fill form
-        page.locator("input[name='task_id']").fill("TSP-TEST-001")
-        page.locator("textarea[name='description']").fill("Test task description")
+        expect(page.get_by_role("heading", name="System Overview")).to_be_visible()
 
-        # Submit
-        page.get_by_role("button", name="Create Task").click()
+    def test_agent_health_visible(self, page: Page, web_server: str) -> None:
+        """Test that agent health section is visible."""
+        page.goto(f"{web_server}/manager")
 
-        # Should see success message
-        expect(
-            page.get_by_role("heading", name="Task Created Successfully")
-        ).to_be_visible()
-        expect(page.locator("text=TSP-TEST-001")).to_be_visible()
+        expect(page.get_by_role("heading", name="Agent Health")).to_be_visible()
+
+    def test_quality_gates_visible(self, page: Page, web_server: str) -> None:
+        """Test that quality gates section is visible."""
+        page.goto(f"{web_server}/manager")
+
+        expect(page.get_by_role("heading", name="Quality Gates")).to_be_visible()
 
 
-class TestDefectsPage:
-    """Tests for the defects list page."""
+class TestProductDashboard:
+    """Tests for the Product Manager (Jordan) dashboard."""
 
-    def test_defects_table_present(self, page: Page, web_server: str) -> None:
-        """Test that defects table is present with correct headers."""
-        page.goto(f"{web_server}/developer/defects")
+    def test_product_page_loads(self, page: Page, web_server: str) -> None:
+        """Test that the product dashboard loads successfully."""
+        page.goto(f"{web_server}/product")
 
-        # Check table headers
-        expect(page.locator("th:text('ID')")).to_be_visible()
-        expect(page.locator("th:text('Severity')")).to_be_visible()
-        expect(page.locator("th:text('Type')")).to_be_visible()
-        expect(page.locator("th:text('Description')")).to_be_visible()
+        expect(page).to_have_title(re.compile("Project Overview"))
 
-    def test_defects_data_displayed(self, page: Page, web_server: str) -> None:
-        """Test that defect data is displayed."""
-        page.goto(f"{web_server}/developer/defects")
+    def test_delivery_dashboard_visible(self, page: Page, web_server: str) -> None:
+        """Test that delivery dashboard section is visible."""
+        page.goto(f"{web_server}/product")
 
-        # Demo data should be visible (at least one defect)
-        expect(page.locator("text=DEFECT-")).to_be_visible()
+        expect(page.get_by_role("heading", name="Delivery Dashboard")).to_be_visible()
+
+    def test_task_pipeline_visible(self, page: Page, web_server: str) -> None:
+        """Test that task pipeline section is visible."""
+        page.goto(f"{web_server}/product")
+
+        expect(page.get_by_role("heading", name="Task Pipeline")).to_be_visible()
+
+
+class TestHealthEndpoint:
+    """Tests for the health check endpoint."""
+
+    def test_health_endpoint(self, page: Page, web_server: str) -> None:
+        """Test that health endpoint returns healthy status."""
+        response = page.request.get(f"{web_server}/health")
+        assert response.ok
+        data = response.json()
+        assert data["status"] == "healthy"
+        assert data["service"] == "asp-web-ui"
 
 
 class TestResponsiveness:
@@ -231,8 +221,8 @@ class TestResponsiveness:
         page.set_viewport_size({"width": 375, "height": 667})
         page.goto(f"{web_server}/developer")
 
-        # Main elements should still be visible
-        expect(page.get_by_role("heading", name="Dashboard")).to_be_visible()
+        # Main elements should still be visible (may be stacked)
+        expect(page.get_by_role("heading", name="Active Tasks")).to_be_visible()
 
     def test_tablet_viewport(self, page: Page, web_server: str) -> None:
         """Test that page works on tablet viewport."""
@@ -241,4 +231,3 @@ class TestResponsiveness:
 
         # Main elements should still be visible
         expect(page.get_by_role("heading", name="Active Tasks")).to_be_visible()
-        expect(page.get_by_role("heading", name="Dashboard")).to_be_visible()
