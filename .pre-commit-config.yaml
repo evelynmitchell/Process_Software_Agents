@@ -52,6 +52,12 @@ repos:
           - python-fasthtml
           - pytest
 
+  # Zizmor - GitHub Actions security linter
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.18.0
+    hooks:
+      - id: zizmor
+
   # Additional useful hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
