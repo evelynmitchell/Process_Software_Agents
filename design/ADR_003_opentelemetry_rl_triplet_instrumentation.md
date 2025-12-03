@@ -32,196 +32,239 @@ The ASP platform needs comprehensive instrumentation to support reinforcement le
 
 ## RL Triplet Schema
 
-### State (Context at Decision Time)
+### Design Principles
 
-The **state** captures all information available when an action is taken.
+1. **State is flexible** - We don't control state typing in detail; capture what's available
+2. **Action is the result** - Whatever the function call produced (success, error, output)
+3. **Reward is continuous** - Float between 0.0 and 1.0, assigned immediately or later
+4. **Sequence linking** - Triplets are linked for reward backpropagation
 
-```python
-@dataclass
-class RLState:
-    """State captured at the moment an action is taken."""
-
-    # === Request Context ===
-    task_id: str                    # Unique task identifier
-    task_description_hash: str      # SHA256 of task description (for dedup)
-    requirements_hash: str          # SHA256 of requirements text
-    context_file_count: int         # Number of context files provided
-
-    # === Agent Context ===
-    agent_role: str                 # "Planning", "Design", "Code", "Test", etc.
-    agent_version: str              # Agent version string
-    function_name: str              # Function being called
-
-    # === LLM Context ===
-    llm_model: str                  # Model name (e.g., "claude-sonnet-4-20250514")
-    llm_provider: str               # Provider (e.g., "anthropic")
-    prompt_hash: str                # SHA256 of formatted prompt
-    prompt_token_estimate: int      # Estimated input tokens
-    temperature: float              # Sampling temperature
-    max_tokens: int                 # Max output tokens requested
-
-    # === Pipeline Context ===
-    current_phase: str              # PSP phase (Planning, Design, Code, Test, Postmortem)
-    pipeline_iteration: int         # Retry/loop iteration count
-    prior_artifact_ids: list[str]   # IDs of artifacts available as context
-    feedback_item_count: int        # Design review feedback items (if any)
-
-    # === System Context ===
-    budget_remaining_pct: float     # Budget headroom (0.0 - 1.0)
-    pending_approvals: int          # HITL items awaiting approval
-    active_agent_count: int         # Currently executing agents
-    recent_success_rate: float      # Success rate of last N executions
-
-    # === Trace Context ===
-    trace_id: str                   # OpenTelemetry trace ID
-    parent_span_id: str | None      # Parent span (if nested)
-    span_id: str                    # Current span ID
-    call_depth: int                 # Nesting depth in call tree
-
-    # === Temporal Context ===
-    timestamp_utc: str              # ISO timestamp
-    wall_clock_ms: int              # Milliseconds since epoch
-```
-
-**Data Sources:**
-
-| Field | Source |
-|-------|--------|
-| `task_id` | `TaskRequirements.task_id` |
-| `task_description_hash` | `hashlib.sha256(TaskRequirements.description)` |
-| `agent_role` | `BaseAgent.agent_name` |
-| `llm_model` | `@track_agent_cost` decorator param |
-| `prompt_hash` | `hashlib.sha256(formatted_prompt)` |
-| `current_phase` | TSP orchestrator context |
-| `budget_remaining_pct` | `get_budget_status()` |
-| `trace_id` | `opentelemetry.trace.get_current_span().context.trace_id` |
-
-### Action (Function Call Result)
-
-The **action** captures the result/output of the function execution.
+### Core Triplet Structure
 
 ```python
 @dataclass
-class RLAction:
-    """Result of a function call / action taken."""
+class RLTriplet:
+    """
+    Minimal triplet structure for Agent Lightning.
+
+    Designed for flexibility - state and action are untyped dicts
+    that capture whatever context is available at instrumentation time.
+    """
 
     # === Identification ===
-    action_type: str                # "llm_call", "tool_call", "api_call", "db_query", "error"
-    function_name: str              # Function that produced this result
+    triplet_id: str               # Unique ID for this triplet (UUID)
+    sequence_id: str              # Links triplets in same workflow/episode
+    sequence_index: int           # Order within sequence (for backpropagation)
+    timestamp_utc: str            # ISO timestamp when triplet was created
 
-    # === Outcome ===
-    success: bool                   # Did it complete without exception?
-    error_type: str | None          # Exception class name (if failed)
-    error_message_hash: str | None  # SHA256 of error message (if failed)
+    # === The Triplet ===
+    state: dict                   # Context when action taken (flexible schema)
+    action: dict                  # Result of the action (flexible schema)
+    reward: float | None          # Continuous 0.0-1.0, initially None
 
-    # === LLM-Specific (action_type == "llm_call") ===
-    llm_response_hash: str | None   # SHA256 of response content
-    llm_tokens_in: int | None       # Actual input tokens used
-    llm_tokens_out: int | None      # Actual output tokens generated
-    llm_stop_reason: str | None     # "end_turn", "max_tokens", "stop_sequence"
-    llm_model_actual: str | None    # Actual model used (may differ from requested)
-
-    # === Artifact-Specific (action_type == "tool_call") ===
-    artifact_type: str | None       # "plan", "design", "code", "test", etc.
-    artifact_id: str | None         # File path or artifact ID
-    artifact_size_bytes: int | None # Size of generated artifact
-    validation_passed: bool | None  # Pydantic validation result
-    validation_error_count: int | None  # Number of validation errors
-
-    # === API-Specific (action_type == "api_call") ===
-    http_status: int | None         # HTTP response status
-    api_endpoint_hash: str | None   # SHA256 of endpoint URL
-
-    # === Timing ===
-    duration_ms: float              # Execution time in milliseconds
-
-    # === Output Summary ===
-    output_size_bytes: int          # Size of serialized output
-    output_hash: str                # SHA256 for identity/dedup
-    output_structure: str | None    # JSON schema or type info
+    # === Reward Metadata ===
+    reward_assigned_at: str | None    # When reward was assigned
+    reward_source: str | None         # How reward was determined (see below)
 ```
 
-**Data Sources:**
+### Sequence Scope Options
 
-| Field | Source |
-|-------|--------|
-| `success` | `try/except` wrapper result |
-| `error_type` | `type(exception).__name__` |
-| `llm_tokens_in` | `response["usage"]["input_tokens"]` |
-| `llm_stop_reason` | `response["stop_reason"]` |
-| `artifact_type` | `write_artifact_json()` parameter |
-| `validation_passed` | `model.model_validate()` success |
-| `duration_ms` | `(end_time - start_time) * 1000` |
+The `sequence_id` links triplets for reward attribution. The appropriate scope depends on the use case:
 
-### Reward (Quality Signals)
+| Scope | sequence_id | Use Case |
+|-------|-------------|----------|
+| **Agent Execution** | `{task_id}:{agent_role}` | Learn per-agent behavior |
+| **Pipeline Run** | `{task_id}` | Learn end-to-end workflow |
+| **User Session** | `{session_id}` | Learn user interaction patterns |
+| **Custom** | Caller-defined | Domain-specific grouping |
 
-The **reward** captures signals indicating the quality/value of the action.
+**Decision:** We will support all scopes. The decorator accepts a `sequence_scope` parameter, defaulting to pipeline (`task_id`).
+
+### State (Flexible Dict)
+
+The **state** captures context available when an action is taken. We are **agnostic about typing** - capture what's available and let the RL system determine what's useful.
+
+**Possible state fields** (not exhaustive, not required):
 
 ```python
-@dataclass
-class RLReward:
-    """Reward signals for the action taken."""
+state = {
+    # Request context
+    "task_id": "TASK-001",
+    "task_description": "Build authentication...",  # or hash
+    "requirements": "...",  # or hash
 
-    # === Immediate Rewards (available at action completion) ===
-    success_reward: float           # 1.0 if success, 0.0 if error
-    latency_reward: float           # Normalized: 1.0 - (latency / max_expected)
-    cost_efficiency: float          # Normalized: output_quality / cost
-    validation_reward: float        # 1.0 if valid, 0.0 if invalid
+    # Agent context
+    "agent_role": "Planning",
+    "agent_version": "1.0.0",
+    "function_name": "execute",
 
-    # === Delayed Rewards (available after downstream processing) ===
-    hitl_approval: float | None     # 1.0 approved, 0.5 modified, 0.0 rejected
-    downstream_success: float | None  # Did next agent succeed?
-    test_pass_rate: float | None    # % of tests passing (0.0 - 1.0)
-    defect_penalty: float | None    # Negative reward for defects found later
+    # LLM context (if applicable)
+    "llm_model": "claude-sonnet-4-20250514",
+    "prompt": "...",  # or hash
+    "prompt_tokens": 1500,
+    "temperature": 0.0,
 
-    # === Composite Reward ===
-    total_reward: float             # Weighted combination of signals
-    reward_version: str             # Schema version for reward calculation
+    # Pipeline context
+    "phase": "Planning",
+    "iteration": 1,
+    "prior_artifacts": ["plan.json", "design.json"],
+    "feedback_items": 0,
 
-    # === Metadata ===
-    reward_timestamp_utc: str       # When reward was calculated
-    reward_delay_ms: int            # Time between action and reward
+    # System context
+    "budget_remaining_pct": 0.85,
+    "pending_approvals": 2,
+    "active_agents": 1,
+
+    # Trace context
+    "trace_id": "abc123",
+    "parent_span_id": "def456",
+    "call_depth": 2,
+
+    # ... any other available context
+}
 ```
 
-**Reward Calculation:**
+**Implementation:** The `@rl_triplet` decorator will capture whatever state is accessible at the instrumentation point. Different call sites may have different state available.
+
+### Action (Flexible Dict)
+
+The **action** captures the result of the function call - whatever it produced.
+
+**Possible action fields** (not exhaustive):
 
 ```python
-def calculate_reward(action: RLAction, config: RewardConfig) -> RLReward:
-    """Calculate composite reward from action outcome."""
+action = {
+    # Outcome
+    "success": True,
+    "error_type": None,  # or "ValidationError", "TimeoutError", etc.
+    "error_message": None,  # or hash of message
 
-    # Immediate rewards
-    success_reward = 1.0 if action.success else 0.0
-    latency_reward = max(0, 1.0 - (action.duration_ms / config.max_latency_ms))
-    cost_efficiency = calculate_cost_efficiency(action)
-    validation_reward = 1.0 if action.validation_passed else 0.0
+    # LLM response (if applicable)
+    "llm_response": "...",  # or hash
+    "llm_tokens_in": 1500,
+    "llm_tokens_out": 500,
+    "llm_stop_reason": "end_turn",
 
-    # Weighted combination
-    total = (
-        config.w_success * success_reward +
-        config.w_latency * latency_reward +
-        config.w_cost * cost_efficiency +
-        config.w_validation * validation_reward
-    )
+    # Artifact output (if applicable)
+    "artifact_type": "plan",
+    "artifact_id": "artifacts/TASK-001/plan.json",
+    "artifact_size_bytes": 2048,
+    "validation_passed": True,
 
-    return RLReward(
-        success_reward=success_reward,
-        latency_reward=latency_reward,
-        cost_efficiency=cost_efficiency,
-        validation_reward=validation_reward,
-        total_reward=total,
-        reward_version="1.0.0",
-        ...
-    )
+    # API response (if applicable)
+    "http_status": 200,
+    "response_body": "...",  # or hash
+
+    # Timing
+    "duration_ms": 1250.5,
+
+    # Output summary
+    "output_size_bytes": 2048,
+    "output_hash": "sha256:...",
+}
 ```
 
-**Default Weights:**
+### Reward (Continuous 0.0 - 1.0)
 
-| Signal | Weight | Rationale |
-|--------|--------|-----------|
-| `success` | 0.4 | Most important - did it work? |
-| `latency` | 0.2 | Speed matters for UX |
-| `cost` | 0.2 | Token efficiency |
-| `validation` | 0.2 | Output quality |
+The **reward** is a single float value between 0.0 and 1.0, assigned either immediately or later via backpropagation.
+
+```python
+reward: float | None  # 0.0 = worst, 1.0 = best, None = not yet assigned
+```
+
+**Reward Attribution Strategies:**
+
+| Strategy | When Assigned | Attribution | Example |
+|----------|---------------|-------------|---------|
+| **Terminal** | Pipeline end | Backprop to all triplets | Task succeeded → all get 0.8 |
+| **Local** | Immediately | This triplet only | Tool call succeeded → 1.0 |
+| **Informational** | Immediately | Context quality signal | LLM asked for clarification → 0.3 |
+| **Manual/LLM-as-Judge** | Later | External evaluation | Human review → 0.9 |
+
+**Possible Reward Signals** (we don't know which we'll use):
+
+| Signal | Type | Interpretation |
+|--------|------|----------------|
+| Function success | Local | Did it execute without exception? |
+| Validation pass | Local | Did Pydantic validation succeed? |
+| Output non-empty | Local | Did it produce meaningful output? |
+| Clarification requested | Informational | LLM asked for more info (negative signal) |
+| Retry triggered | Informational | Needed multiple attempts (negative) |
+| Feedback loop | Informational | Design review sent back to planning (negative) |
+| Tests pass | Terminal | All tests passed at pipeline end |
+| HITL approved | Terminal | Human approved without modification |
+| Defects found | Terminal | Defects logged later (negative) |
+| Code merged | Terminal | PR was merged successfully |
+
+**Decision:** Reward assignment strategy is **not decided**. The system will:
+1. Store triplets with `reward: None` initially
+2. Provide APIs to assign rewards later (by triplet_id or sequence_id)
+3. Support both immediate and delayed assignment
+
+### Reference: Detailed Field Catalog
+
+For implementers, here is a comprehensive catalog of fields we **could** capture. This is for reference - actual capture depends on what's available at each instrumentation point.
+
+<details>
+<summary>Expand: Full State Field Catalog</summary>
+
+| Category | Field | Type | Source |
+|----------|-------|------|--------|
+| **Request** | task_id | str | TaskRequirements |
+| | task_description | str/hash | TaskRequirements |
+| | requirements | str/hash | TaskRequirements |
+| | context_files | list[str] | TaskRequirements |
+| **Agent** | agent_role | str | BaseAgent.agent_name |
+| | agent_version | str | BaseAgent.agent_version |
+| | function_name | str | func.__name__ |
+| **LLM** | llm_model | str | decorator param |
+| | llm_provider | str | decorator param |
+| | prompt | str/hash | formatted_prompt |
+| | prompt_tokens | int | tiktoken estimate |
+| | temperature | float | call param |
+| | max_tokens | int | call param |
+| **Pipeline** | current_phase | str | orchestrator context |
+| | iteration | int | loop counter |
+| | prior_artifacts | list[str] | artifact paths |
+| | feedback_count | int | len(feedback) |
+| **System** | budget_remaining | float | get_budget_status() |
+| | pending_approvals | int | get_tasks_pending_approval() |
+| | active_agents | int | get_active_agents() |
+| | recent_success_rate | float | computed from history |
+| **Trace** | trace_id | str | OTEL context |
+| | span_id | str | OTEL context |
+| | parent_span_id | str | OTEL context |
+| | call_depth | int | computed |
+| **Time** | timestamp_utc | str | datetime.utcnow() |
+| | wall_clock_ms | int | time.time() * 1000 |
+
+</details>
+
+<details>
+<summary>Expand: Full Action Field Catalog</summary>
+
+| Category | Field | Type | Source |
+|----------|-------|------|--------|
+| **Outcome** | success | bool | try/except |
+| | error_type | str | type(e).__name__ |
+| | error_message | str/hash | str(e) |
+| **LLM** | response | str/hash | response["content"] |
+| | tokens_in | int | response["usage"] |
+| | tokens_out | int | response["usage"] |
+| | stop_reason | str | response["stop_reason"] |
+| | model_actual | str | response["model"] |
+| **Artifact** | artifact_type | str | write_artifact param |
+| | artifact_id | str | file path |
+| | artifact_size | int | len(content) |
+| | validation_passed | bool | model_validate() |
+| | validation_errors | int | len(errors) |
+| **API** | http_status | int | response.status_code |
+| | endpoint | str/hash | request URL |
+| **Timing** | duration_ms | float | end - start |
+| **Output** | output_size | int | len(serialized) |
+| | output_hash | str | sha256(output) |
+
+</details>
 
 ## Considered Options
 
@@ -470,35 +513,44 @@ New file: `src/asp/telemetry/rl_triplet.py`
 """RL Triplet instrumentation decorator."""
 
 import functools
-import hashlib
+import json
 import time
-from dataclasses import asdict
-from typing import Callable
+import uuid
+from datetime import datetime
+from typing import Any, Callable
 
 from opentelemetry import trace
 
 from asp.telemetry.otel import get_tracer
-from asp.telemetry.rl_schemas import RLState, RLAction, RLReward
+
+# Thread-local sequence index counter
+_sequence_counters: dict[str, int] = {}
 
 
 def rl_triplet(
-    agent_role: str,
-    task_id_param: str = "input_data.task_id",
-    capture_prompt: bool = True,
+    agent_role: str = None,
+    sequence_scope: str = "pipeline",  # "agent", "pipeline", "session", or "custom"
+    state_capturer: Callable[..., dict] | None = None,
+    action_capturer: Callable[..., dict] | None = None,
 ):
     """
     Decorator to capture RL (state, action, reward) triplets.
 
     Wraps function execution with OpenTelemetry span containing
-    structured RL attributes for Agent Lightning integration.
+    flexible triplet data for Agent Lightning integration.
 
     Args:
-        agent_role: Agent role name (Planning, Design, Code, etc.)
-        task_id_param: Path to task_id in function arguments
-        capture_prompt: Whether to hash and record prompt content
+        agent_role: Optional agent role (auto-detected from class if not provided)
+        sequence_scope: How to group triplets for reward backpropagation
+            - "agent": {task_id}:{agent_role}
+            - "pipeline": {task_id}
+            - "session": {session_id}
+            - "custom": caller must set rl.sequence_id attribute
+        state_capturer: Optional custom function to capture state dict
+        action_capturer: Optional custom function to capture action dict
 
     Example:
-        @rl_triplet(agent_role="Planning")
+        @rl_triplet(sequence_scope="pipeline")
         @track_agent_cost(agent_role="Planning", ...)
         def execute(self, input_data: TaskRequirements) -> ProjectPlan:
             ...
@@ -507,17 +559,39 @@ def rl_triplet(
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             tracer = get_tracer()
-            span_name = f"{agent_role}.{func.__name__}"
+
+            # Determine agent role
+            role = agent_role
+            if role is None and args and hasattr(args[0], 'agent_name'):
+                role = args[0].agent_name
+            role = role or "Unknown"
+
+            span_name = f"{role}.{func.__name__}"
 
             with tracer.start_as_current_span(span_name) as span:
-                # === Capture State ===
-                state = _capture_state(
-                    func, args, kwargs,
-                    agent_role=agent_role,
-                    task_id_param=task_id_param,
-                    span=span,
-                )
-                _set_state_attributes(span, state)
+                # Generate triplet ID
+                triplet_id = str(uuid.uuid4())
+                span.set_attribute("rl.triplet_id", triplet_id)
+
+                # Determine sequence ID based on scope
+                sequence_id = _get_sequence_id(args, kwargs, sequence_scope, role)
+                span.set_attribute("rl.sequence_id", sequence_id)
+
+                # Get and increment sequence index
+                sequence_index = _get_next_sequence_index(sequence_id)
+                span.set_attribute("rl.sequence_index", sequence_index)
+
+                # Timestamp
+                span.set_attribute("rl.timestamp_utc", datetime.utcnow().isoformat())
+
+                # === Capture State (flexible dict) ===
+                if state_capturer:
+                    state = state_capturer(func, args, kwargs, span)
+                else:
+                    state = _default_state_capturer(func, args, kwargs, role, span)
+
+                # Store state as JSON (OTEL attributes are flat)
+                span.set_attribute("rl.state", json.dumps(state))
 
                 # === Execute Function ===
                 start_time = time.perf_counter()
@@ -533,42 +607,152 @@ def rl_triplet(
                 finally:
                     duration_ms = (time.perf_counter() - start_time) * 1000
 
-                    # === Capture Action ===
-                    action = _capture_action(
-                        result=result,
-                        error=error,
-                        duration_ms=duration_ms,
-                        func_name=func.__name__,
-                    )
-                    _set_action_attributes(span, action)
+                    # === Capture Action (flexible dict) ===
+                    if action_capturer:
+                        action = action_capturer(result, error, duration_ms)
+                    else:
+                        action = _default_action_capturer(result, error, duration_ms, func)
 
-                    # === Calculate Reward ===
-                    reward = _calculate_reward(action)
-                    _set_reward_attributes(span, reward)
+                    span.set_attribute("rl.action", json.dumps(action))
+
+                    # === Reward: Initially None ===
+                    # Reward is assigned later via assign_reward() API
+                    span.set_attribute("rl.reward", "null")  # JSON null
+                    span.set_attribute("rl.reward_assigned", False)
 
         return wrapper
     return decorator
 
 
-def _set_state_attributes(span: trace.Span, state: RLState):
-    """Set RL state attributes on span."""
-    for key, value in asdict(state).items():
-        if value is not None:
-            span.set_attribute(f"rl.state.{key}", value)
+def _get_sequence_id(args, kwargs, scope: str, role: str) -> str:
+    """Determine sequence_id based on scope."""
+    task_id = _extract_task_id(args, kwargs)
+
+    if scope == "agent":
+        return f"{task_id}:{role}"
+    elif scope == "pipeline":
+        return task_id
+    elif scope == "session":
+        # Would need session context - fall back to task_id for now
+        return task_id
+    else:  # custom
+        return "custom"  # Caller should override via span.set_attribute
 
 
-def _set_action_attributes(span: trace.Span, action: RLAction):
-    """Set RL action attributes on span."""
-    for key, value in asdict(action).items():
-        if value is not None:
-            span.set_attribute(f"rl.action.{key}", value)
+def _get_next_sequence_index(sequence_id: str) -> int:
+    """Get and increment sequence index for a sequence."""
+    global _sequence_counters
+    if sequence_id not in _sequence_counters:
+        _sequence_counters[sequence_id] = 0
+    index = _sequence_counters[sequence_id]
+    _sequence_counters[sequence_id] += 1
+    return index
 
 
-def _set_reward_attributes(span: trace.Span, reward: RLReward):
-    """Set RL reward attributes on span."""
-    for key, value in asdict(reward).items():
-        if value is not None:
-            span.set_attribute(f"rl.reward.{key}", value)
+def _extract_task_id(args, kwargs) -> str:
+    """Extract task_id from function arguments."""
+    # Try common patterns
+    if 'task_id' in kwargs:
+        return kwargs['task_id']
+    if 'input_data' in kwargs and hasattr(kwargs['input_data'], 'task_id'):
+        return kwargs['input_data'].task_id
+    if args and len(args) > 1 and hasattr(args[1], 'task_id'):
+        return args[1].task_id  # args[0] is self, args[1] is input_data
+    return "unknown"
+
+
+def _default_state_capturer(func, args, kwargs, role: str, span) -> dict:
+    """Default state capture - grab what's available."""
+    state = {
+        "agent_role": role,
+        "function_name": func.__name__,
+        "trace_id": format(span.get_span_context().trace_id, '032x'),
+        "span_id": format(span.get_span_context().span_id, '016x'),
+    }
+
+    # Try to extract task info
+    task_id = _extract_task_id(args, kwargs)
+    if task_id != "unknown":
+        state["task_id"] = task_id
+
+    # Try to get input_data fields
+    input_data = kwargs.get('input_data') or (args[1] if len(args) > 1 else None)
+    if input_data:
+        if hasattr(input_data, 'description'):
+            state["task_description"] = str(input_data.description)[:500]  # Truncate
+        if hasattr(input_data, 'requirements'):
+            state["requirements"] = str(input_data.requirements)[:500]
+
+    # Agent version if available
+    if args and hasattr(args[0], 'agent_version'):
+        state["agent_version"] = args[0].agent_version
+
+    return state
+
+
+def _default_action_capturer(result: Any, error: Exception | None, duration_ms: float, func) -> dict:
+    """Default action capture - record outcome."""
+    action = {
+        "success": error is None,
+        "duration_ms": duration_ms,
+        "function_name": func.__name__,
+    }
+
+    if error:
+        action["error_type"] = type(error).__name__
+        action["error_message"] = str(error)[:500]  # Truncate
+
+    if result is not None:
+        action["has_result"] = True
+        # Try to get size info
+        try:
+            action["result_type"] = type(result).__name__
+            if hasattr(result, '__len__'):
+                action["result_size"] = len(result)
+        except Exception:
+            pass
+
+    return action
+
+
+def assign_reward(triplet_id: str, reward: float, source: str = "unknown"):
+    """
+    Assign a reward to a triplet after the fact.
+
+    This would typically update the stored triplet in the collector/backend.
+
+    Args:
+        triplet_id: The triplet to update
+        reward: Reward value (0.0 - 1.0)
+        source: How the reward was determined
+
+    Note: Implementation depends on backend storage.
+    """
+    if not 0.0 <= reward <= 1.0:
+        raise ValueError(f"Reward must be between 0.0 and 1.0, got {reward}")
+
+    # TODO: Implement based on backend (OTLP collector, SQLite, etc.)
+    pass
+
+
+def assign_sequence_reward(sequence_id: str, reward: float, source: str = "terminal"):
+    """
+    Assign the same reward to all triplets in a sequence.
+
+    Used for terminal reward backpropagation.
+
+    Args:
+        sequence_id: The sequence to update
+        reward: Reward value (0.0 - 1.0)
+        source: How the reward was determined
+
+    Note: Implementation depends on backend storage.
+    """
+    if not 0.0 <= reward <= 1.0:
+        raise ValueError(f"Reward must be between 0.0 and 1.0, got {reward}")
+
+    # TODO: Implement based on backend
+    pass
 ```
 
 #### 4. Integration with Existing Decorators
@@ -725,25 +909,48 @@ ASP_RL_REWARD_WEIGHTS='{"success": 0.4, "latency": 0.2, "cost": 0.2, "validation
 - [ ] Validate triplet format compatibility
 - [ ] Test RL training pipeline
 
+## Design Decisions Made
+
+1. **State typing:** Flexible dict, not strictly typed
+   - We don't control state in detail
+   - Capture what's available, let RL determine usefulness
+
+2. **Reward range:** Continuous float, 0.0 to 1.0
+   - 0.0 = worst outcome
+   - 1.0 = best outcome
+   - Initially `None` until assigned
+
+3. **Sequence scope:** Configurable, supports multiple options
+   - Agent-level: `{task_id}:{agent_role}`
+   - Pipeline-level: `{task_id}` (default)
+   - Session-level: `{session_id}`
+   - Custom: caller-defined
+
+4. **Reward assignment:** Deferred decision
+   - System stores triplets with `reward: None`
+   - Provides APIs for later assignment
+   - Supports both immediate (local) and delayed (terminal) strategies
+
 ## Open Questions
 
-1. **Prompt Content:** Should we capture full prompt text, or just hash + token count?
-   - Full text: Complete for RL, but large storage
-   - Hash only: Compact, but loses semantic info
-   - **Proposed:** Hash by default, full text opt-in via config
+1. **Reward strategy:** Which signals will we actually use?
+   - Local (immediate success/failure)?
+   - Terminal (pipeline outcome backpropagated)?
+   - LLM-as-judge evaluation?
+   - **Status:** Not decided - will experiment
 
-2. **Reward Timing:** When should delayed rewards be attached?
-   - Same span (update attributes)
-   - Linked span (new span with reference)
-   - **Proposed:** New span with `follows_from` link to original
+2. **Agent Lightning integration:** Exact format/protocol?
+   - How does Agent Lightning consume OTLP data?
+   - Any required attributes beyond triplet_id, sequence_id, state, action, reward?
+   - **Status:** Need to verify with Agent Lightning docs
 
-3. **Sampling:** Should we sample triplets?
-   - 100% capture: Complete data, high volume
-   - Sampled: Reduced storage, potential bias
-   - **Proposed:** 100% for agents, sampled for web UI
+3. **State content:** How much context to capture?
+   - Full prompt text vs truncated vs hash?
+   - Include file contents or just paths?
+   - **Status:** Start with truncated (500 chars), iterate based on RL performance
 
-4. **Agent Lightning Format:** What exact format does Agent Lightning expect?
-   - **Action needed:** Get schema spec from Agent Lightning docs
+4. **Sampling:** Capture everything or sample?
+   - **Status:** Start with 100%, add sampling if volume is problematic
 
 ## Related Documents
 
