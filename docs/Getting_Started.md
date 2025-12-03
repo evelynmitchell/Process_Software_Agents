@@ -740,13 +740,30 @@ Build custom agents, modify prompts, or integrate with your workflow:
 
 → **[Developer Guide](Developer_Guide.md)**
 
-### 4. Explore API
+### 4. Launch the Web UI Dashboard
+
+Monitor agents, track costs, and manage approvals through the web interface:
+
+```bash
+# Start the web server
+uv run python -m asp.web.main
+
+# Open in browser
+# http://localhost:5001
+```
+
+**Three persona views:**
+- `/manager` - Agent health, cost tracking, HITL approvals
+- `/developer` - Task details, code diffs, traceability
+- `/product` - Feature wizard, What-If timeline simulator
+
+### 5. Explore API
 
 Work with ASP programmatically using the Python API:
 
 → **[API Reference](API_Reference.md)**
 
-### 5. Run Example Projects
+### 6. Run Example Projects
 
 Try more complex examples to see ASP's full capabilities:
 

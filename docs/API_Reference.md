@@ -1,7 +1,7 @@
 # ASP Platform API Reference
 
 **Version:** 1.0.0
-**Last Updated:** November 26, 2025
+**Last Updated:** December 3, 2025
 
 Complete API reference for the Agentic Software Process (ASP) Platform Python API.
 
@@ -2267,5 +2267,5 @@ except Exception as e:
 ---
 
 **Document Version:** 1.0.0
-**Generated:** November 26, 2025
+**Generated:** December 3, 2025
 **Total Lines:** ~2,800

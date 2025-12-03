@@ -1,7 +1,7 @@
 # ASP Platform - Agent Reference Documentation
 
 **Version:** 1.0.0
-**Last Updated:** November 25, 2025
+**Last Updated:** December 3, 2025
 **Status:** Production Ready
 
 ---

@@ -36,6 +36,7 @@ Process_Software_Agents/
 │   ├── models/                 # Pydantic/SQLAlchemy models
 │   ├── prompts/                # Versioned agent prompts
 │   ├── approval/               # HITL approval services
+│   ├── web/                    # Web UI dashboard
 │   └── utils/                  # Utility functions
 ├── artifacts/                  # Agent output artifacts (task-specific)
 ├── data/                       # Runtime data (database, bootstrap data)
@@ -72,6 +73,15 @@ For complete structure details, see [PROJECT_STRUCTURE.md](../PROJECT_STRUCTURE.
 - Versioned prompt templates (`.txt` files)
 - Naming convention: `{agent}_v{version}_{variant}.txt`
 - Loaded dynamically at runtime
+
+**src/asp/web/**
+- `main.py` - FastHTML application entry point
+- `data.py` - Data layer for telemetry and artifacts
+- `api.py` - API endpoints for HITL approvals
+- `manager.py` - Manager persona routes
+- `developer.py` - Developer persona routes
+- `product.py` - Product Manager persona routes
+- `components.py` - Shared UI components
 
 ---
 

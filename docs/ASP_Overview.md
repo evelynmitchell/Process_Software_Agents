@@ -155,8 +155,9 @@ ASP is implemented in five progressive phases, each building on the previous:
 - SQLite database schema (4 tables, 25+ indexes)
 - Langfuse Cloud integration for observability
 - Telemetry decorators (`@track_agent_cost`, `@log_defect`)
-- Planning Agent with full telemetry (102 unit tests, 8 E2E tests)
-- Bootstrap data collection (12+ planning tasks)
+- All 7 core agents with full telemetry
+- 740+ tests (unit, integration, E2E)
+- Bootstrap data collection infrastructure
 
 **Key Metrics:**
 - All agent actions logged to database
@@ -167,7 +168,7 @@ ASP is implemented in five progressive phases, each building on the previous:
 
 ### Phase 2: ASP1 - Estimation (Months 3-4)
 
-**Status:** ✅ COMPLETE
+**Status:** ⏳ IN PROGRESS
 
 **Goal:** Build PROBE-AI estimation engine using bootstrap data.
 
@@ -180,6 +181,8 @@ ASP is implemented in five progressive phases, each building on the previous:
 - Mean Absolute Percentage Error (MAPE) < 20%
 - Complexity scores calibrated to actual effort
 - Estimation improves over time
+
+**Current:** Data collection infrastructure complete, awaiting 30+ tasks for model training.
 
 ---
 
@@ -396,6 +399,11 @@ All telemetry stored in database
 - Agent performance dashboards
 - Cost analytics
 - Error tracking
+
+**Web UI Dashboard:** `http://localhost:5001`
+- **Manager View** (`/manager`) - Agent health, cost tracking, HITL approvals
+- **Developer View** (`/developer`) - Task details, code diffs, traceability
+- **Product Manager View** (`/product`) - Feature wizard, What-If timeline simulator
 
 ---
 
