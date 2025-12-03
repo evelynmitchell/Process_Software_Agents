@@ -565,7 +565,7 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-- **PSP/TSP Framework:** Watts Humphrey, Software Engineering Institute (SEI), Carnegie Mellon University
+- **PSP/TSP Framework:** Watts Humphrey, Software Engineering Institute (SEI), Carnegie Mellon University. Personal Software Process℠ (PSP℠) and Team Software Process℠ (TSP℠) are service marks of Carnegie Mellon University.
 - **Agentic AI Research:** Informed by recent research on specification-first AI development and agent observability
 
 ---
