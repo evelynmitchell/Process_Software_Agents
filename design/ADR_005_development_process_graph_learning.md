@@ -1053,4 +1053,66 @@ dependencies = [
 
 ---
 
-**Status:** Proposed - Awaiting review
+**Status:** Proposed - To be implemented in separate repository
+
+---
+
+## Addendum: Extraction Decision (2025-12-04 Session 2)
+
+### Decision
+
+After review, decided to implement this as a **standalone library** in a separate repository rather than within Process_Software_Agents.
+
+### Rationale
+
+1. **Multiple use cases exist** - User has other repos with session summary files
+2. **Generic functionality** - Parsers and mining logic have no ASP-specific dependencies
+3. **Broader applicability** - Could benefit other teams/projects
+4. **Cleaner separation** - Meta-tooling about development vs the product itself
+
+### Standalone Library Design
+
+**Project name:** `dev-process-mining` (or `devproc`)
+
+**Structure:**
+```
+dev-process-mining/
+├── src/devproc/
+│   ├── parsers/
+│   │   ├── summary_parser.py    # Configurable markdown parser
+│   │   ├── git_parser.py        # Generic git history parser
+│   │   └── github_parser.py     # Optional PR/issue events
+│   ├── events.py                # DevelopmentEvent schema
+│   ├── correlate.py             # Event correlation
+│   ├── mining.py                # PM4Py analysis
+│   └── export.py                # XES, CSV, JSON export
+├── tests/
+├── pyproject.toml
+└── README.md
+```
+
+**Key design changes from original ADR:**
+- Summary format is **configurable** via YAML config per project
+- Outputs standard formats (XES, CSV, JSON) for use with any PM tool
+- CLI interface: `devproc parse ./Summary --format xes`
+- Python API: `from devproc import parse_project, discover_process`
+
+**Example per-project configuration:**
+```yaml
+# devproc.yaml
+summary:
+  pattern: "summary*.md"
+  header_regex: "# Session Summary - (\\d{4}-\\d{2}-\\d{2}) Session (\\d+)"
+  sections:
+    objective: "## Objective"
+    completed: "## Completed Work"
+    files: "## Files Modified"
+    commits: "## Commits Made"
+```
+
+### What Remains in Process_Software_Agents
+
+- Integration layer linking dev events to runtime traces (ADR 004)
+- Web UI visualization pages
+- ASP-specific dashboards and analysis
+- This ADR as design documentation
