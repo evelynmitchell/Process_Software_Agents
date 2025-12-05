@@ -195,3 +195,8 @@ ignore = [
 "tests/**/*.py" = ["ARG", "S101"]  # unused arguments and assert usage in tests
 "src/asp/web/*.py" = ["F403", "F405"]  # star imports are standard for FastHTML
 "examples/*.py" = ["ARG001", "F841", "B007"]  # examples may have unused vars for demonstration
+
+[dependency-groups]
+dev = [
+    "lxml>=6.0.2",
+]
