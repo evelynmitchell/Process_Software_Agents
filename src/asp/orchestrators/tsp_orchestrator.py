@@ -55,16 +55,12 @@ logger = logging.getLogger(__name__)
 class QualityGateFailure(Exception):
     """Raised when a quality gate fails and no HITL override is provided."""
 
-    pass
-
 
 class MaxIterationsExceeded(Exception):
     """Raised when orchestrator exceeds maximum correction iterations."""
 
-    pass
 
-
-class TSPOrchestrator:
+class TSPOrchestrator:  # pylint: disable=too-many-instance-attributes
     """
     TSP Orchestrator: Complete autonomous development pipeline with quality gates.
 
@@ -255,11 +251,12 @@ class TSPOrchestrator:
             MaxIterationsExceeded: If correction loops exceed limits
             AgentExecutionError: If agent execution fails
         """
+        banner = "=" * 80
         logger.info(
-            "=" * 80 + "\n"
+            f"{banner}\n"
             f"TSP ORCHESTRATOR: Starting autonomous pipeline\n"
             f"Task: {requirements.task_id} - {requirements.description}\n"
-            f"=" * 80
+            f"{banner}"
         )
 
         start_time = datetime.now()
@@ -335,15 +332,16 @@ class TSPOrchestrator:
             total_tests = test_report.test_summary.get("total_tests", 0)
             passed_tests = test_report.test_summary.get("passed", 0)
 
+            banner = "=" * 80
             logger.info(
-                "\n" + "=" * 80 + "\n"
+                f"\n{banner}\n"
                 f"TSP ORCHESTRATOR: Pipeline COMPLETE\n"
                 f"Overall Status: {overall_status}\n"
                 f"Duration: {duration_seconds:.1f}s\n"
                 f"Files Generated: {generated_code.total_files}\n"
                 f"Tests Passed: {passed_tests}/{total_tests}\n"
                 f"HITL Overrides: {len(self.hitl_overrides)}\n"
-                f"=" * 80
+                f"{banner}"
             )
 
             return TSPExecutionResult(
@@ -472,14 +470,13 @@ class TSPOrchestrator:
                     # In a full implementation, would pass feedback to design agent
                     # For now, just retry
                     continue
-                else:
-                    # Exceeded iterations
-                    raise QualityGateFailure(
-                        f"Design Review FAILED after {design_iterations} iterations. "
-                        f"Critical: {design_review.critical_issue_count}, "
-                        f"High: {design_review.high_issue_count}. "
-                        f"Requires HITL approval to proceed."
-                    )
+                # Exceeded iterations
+                raise QualityGateFailure(
+                    f"Design Review FAILED after {design_iterations} iterations. "
+                    f"Critical: {design_review.critical_issue_count}, "
+                    f"High: {design_review.high_issue_count}. "
+                    f"Requires HITL approval to proceed."
+                )
 
         raise MaxIterationsExceeded(
             f"Exceeded max design iterations ({self.MAX_DESIGN_ITERATIONS})"
@@ -565,13 +562,12 @@ class TSPOrchestrator:
                 if code_iterations < self.MAX_CODE_ITERATIONS:
                     logger.info("Retrying code generation with feedback from review...")
                     continue
-                else:
-                    raise QualityGateFailure(
-                        f"Code Review FAILED after {code_iterations} iterations. "
-                        f"Critical: {code_review.critical_issues}, "
-                        f"High: {code_review.high_issues}. "
-                        f"Requires HITL approval to proceed."
-                    )
+                raise QualityGateFailure(
+                    f"Code Review FAILED after {code_iterations} iterations. "
+                    f"Critical: {code_review.critical_issues}, "
+                    f"High: {code_review.high_issues}. "
+                    f"Requires HITL approval to proceed."
+                )
 
         raise MaxIterationsExceeded(
             f"Exceeded max code iterations ({self.MAX_CODE_ITERATIONS})"
@@ -637,11 +633,8 @@ class TSPOrchestrator:
                 )
                 generated_code = self.code_agent.execute(code_input)
                 continue
-            else:
-                logger.error(
-                    f"✗ Tests still failing after {test_iterations} iterations"
-                )
-                return test_report
+            logger.error(f"✗ Tests still failing after {test_iterations} iterations")
+            return test_report
 
         return test_report
 
@@ -743,11 +736,10 @@ class TSPOrchestrator:
                     f"Approved by {response.reviewer}: {response.justification}",
                 )
                 return True
-            else:
-                logger.warning(
-                    f"Approval {response.decision.value}: {response.justification}"
-                )
-                return False
+            logger.warning(
+                f"Approval {response.decision.value}: {response.justification}"
+            )
+            return False
 
         # Priority 2: Fall back to legacy callable approver
         if hitl_approver:
