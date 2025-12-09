@@ -11,6 +11,7 @@ from asp.approval.base import (
     ApprovalService,
     ReviewDecision,
 )
+from asp.approval.database_service import DatabaseApprovalService, DecisionInput
 from asp.approval.local_pr import LocalPRApprovalService
 
 __all__ = [
@@ -19,4 +20,6 @@ __all__ = [
     "ApprovalResponse",
     "ReviewDecision",
     "LocalPRApprovalService",
+    "DatabaseApprovalService",
+    "DecisionInput",
 ]

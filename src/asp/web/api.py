@@ -5,6 +5,9 @@ Provides data access functions for the web UI views.
 Connects to the telemetry database to fetch real-time metrics.
 """
 
+# pylint: disable=logging-fstring-interpolation
+
+import contextlib
 import json
 import logging
 import sqlite3
@@ -343,6 +346,7 @@ def _get_pending_review_branches() -> list[dict[str, Any]]:
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,  # We handle non-zero exit codes manually
         )
 
         if result.returncode != 0:
@@ -434,5 +438,268 @@ def get_project_progress() -> dict[str, Any]:
         }
     except sqlite3.Error:
         return {"completed": 0, "in_progress": 0, "total": 0}
+    finally:
+        conn.close()
+
+
+# =============================================================================
+# HITL Approval API (Inter-container communication)
+# =============================================================================
+
+
+def get_pending_approval_requests(task_id: str | None = None) -> list[dict[str, Any]]:
+    """
+    Get pending HITL approval requests from database.
+
+    This is used by the WebUI to display pending requests from agent-runner.
+
+    Args:
+        task_id: Optional filter by task ID
+
+    Returns:
+        List of pending approval request dictionaries
+    """
+    conn = get_db_connection()
+    if not conn:
+        return []
+
+    try:
+        cursor = conn.cursor()
+
+        # Check if approval_requests table exists
+        cursor.execute(
+            """
+            SELECT name FROM sqlite_master
+            WHERE type='table' AND name='approval_requests'
+            """
+        )
+        if not cursor.fetchone():
+            return []
+
+        if task_id:
+            cursor.execute(
+                """
+                SELECT * FROM approval_requests
+                WHERE status = 'pending' AND task_id = ?
+                ORDER BY requested_at DESC
+                """,
+                (task_id,),
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT * FROM approval_requests
+                WHERE status = 'pending'
+                ORDER BY requested_at DESC
+                """
+            )
+
+        return [dict(row) for row in cursor.fetchall()]
+    except sqlite3.Error as e:
+        logger.warning(f"Failed to get pending approval requests: {e}")
+        return []
+    finally:
+        conn.close()
+
+
+def get_approval_request_details(request_id: str) -> dict[str, Any] | None:
+    """
+    Get full details of an approval request.
+
+    Args:
+        request_id: The approval request ID
+
+    Returns:
+        Full request data or None if not found
+    """
+    conn = get_db_connection()
+    if not conn:
+        return None
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT * FROM approval_requests WHERE request_id = ?",
+            (request_id,),
+        )
+        row = cursor.fetchone()
+
+        if row:
+            result = dict(row)
+            # Parse JSON quality_report - keep as string if invalid JSON
+            if result.get("quality_report"):
+                with contextlib.suppress(json.JSONDecodeError):
+                    result["quality_report"] = json.loads(result["quality_report"])
+            return result
+        return None
+    except sqlite3.Error as e:
+        logger.warning(f"Failed to get approval request {request_id}: {e}")
+        return None
+    finally:
+        conn.close()
+
+
+def submit_approval_decision(
+    request_id: str,
+    decision: str,
+    reviewer: str,
+    justification: str,
+) -> dict[str, Any]:
+    """
+    Submit an approval decision for a pending request.
+
+    This is called when a user approves/rejects via the WebUI.
+
+    Args:
+        request_id: The approval request ID
+        decision: 'approved', 'rejected', or 'deferred'
+        reviewer: Username/email of reviewer
+        justification: Reason for decision
+
+    Returns:
+        Result dictionary with success status and message
+    """
+    # Validate inputs
+    error = _validate_decision_inputs(decision, justification)
+    if error:
+        return {"success": False, "error": error}
+
+    conn = get_db_connection()
+    if not conn:
+        return {"success": False, "error": "Database not available"}
+
+    try:
+        cursor = conn.cursor()
+
+        # Verify request exists and is pending
+        error = _validate_request_status(cursor, request_id)
+        if error:
+            return {"success": False, "error": error}
+
+        # Insert decision and update status
+        cursor.execute(
+            """
+            INSERT INTO approval_decisions (
+                request_id, decision, reviewer, justification
+            ) VALUES (?, ?, ?, ?)
+            """,
+            (request_id, decision, reviewer, justification),
+        )
+        cursor.execute(
+            "UPDATE approval_requests SET status = ? WHERE request_id = ?",
+            (decision, request_id),
+        )
+        conn.commit()
+
+        logger.info(f"Approval decision: {request_id} -> {decision} by {reviewer}")
+        return {"success": True, "message": f"Decision recorded: {decision}"}
+
+    except sqlite3.Error as e:
+        logger.error(f"Failed to submit approval decision: {e}")
+        return {"success": False, "error": str(e)}
+    finally:
+        conn.close()
+
+
+def _validate_decision_inputs(decision: str, justification: str) -> str | None:
+    """Validate decision inputs, return error message or None if valid."""
+    if decision not in ("approved", "rejected", "deferred"):
+        return "Invalid decision"
+    if not justification.strip():
+        return "Justification required"
+    return None
+
+
+def _validate_request_status(cursor, request_id: str) -> str | None:
+    """Validate request exists and is pending, return error message or None."""
+    cursor.execute(
+        "SELECT status FROM approval_requests WHERE request_id = ?",
+        (request_id,),
+    )
+    row = cursor.fetchone()
+    if not row:
+        return "Request not found"
+    if row["status"] != "pending":
+        return f"Request not pending: {row['status']}"
+    return None
+
+
+def get_approval_history(
+    task_id: str | None = None, limit: int = 20
+) -> list[dict[str, Any]]:
+    """
+    Get history of approval decisions.
+
+    Args:
+        task_id: Optional filter by task ID
+        limit: Maximum number of records to return
+
+    Returns:
+        List of approval decision records
+    """
+    conn = get_db_connection()
+    if not conn:
+        return []
+
+    try:
+        cursor = conn.cursor()
+
+        # Check if tables exist
+        cursor.execute(
+            """
+            SELECT name FROM sqlite_master
+            WHERE type='table' AND name='approval_decisions'
+            """
+        )
+        if not cursor.fetchone():
+            return []
+
+        if task_id:
+            cursor.execute(
+                """
+                SELECT
+                    d.request_id,
+                    d.decision,
+                    d.reviewer,
+                    d.decided_at,
+                    d.justification,
+                    r.task_id,
+                    r.gate_type,
+                    r.gate_name,
+                    r.summary
+                FROM approval_decisions d
+                JOIN approval_requests r ON d.request_id = r.request_id
+                WHERE r.task_id = ?
+                ORDER BY d.decided_at DESC
+                LIMIT ?
+                """,
+                (task_id, limit),
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT
+                    d.request_id,
+                    d.decision,
+                    d.reviewer,
+                    d.decided_at,
+                    d.justification,
+                    r.task_id,
+                    r.gate_type,
+                    r.gate_name,
+                    r.summary
+                FROM approval_decisions d
+                JOIN approval_requests r ON d.request_id = r.request_id
+                ORDER BY d.decided_at DESC
+                LIMIT ?
+                """,
+                (limit,),
+            )
+
+        return [dict(row) for row in cursor.fetchall()]
+    except sqlite3.Error as e:
+        logger.warning(f"Failed to get approval history: {e}")
+        return []
     finally:
         conn.close()

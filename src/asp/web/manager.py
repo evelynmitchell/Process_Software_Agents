@@ -9,6 +9,12 @@ Displays high-level metrics, agent health, quality gates, and team overview.
 # FastHTML components use *args and star imports which pylint cannot analyze correctly
 from fasthtml.common import *
 
+from .api import (
+    get_approval_history,
+    get_approval_request_details,
+    get_pending_approval_requests,
+    submit_approval_decision,
+)
 from .components import theme_toggle
 from .data import (
     generate_sparkline_svg,
@@ -1081,3 +1087,353 @@ def manager_routes(app, rt):
                 else None
             ),
         )
+
+    # =========================================================================
+    # HITL Approval Routes (Inter-container communication)
+    # =========================================================================
+
+    @rt("/manager/approvals")
+    def get_approvals_page():
+        """HITL Approvals dashboard - pending quality gate approvals."""
+        pending = get_pending_approval_requests()
+        history = get_approval_history(limit=10)
+
+        return Titled(
+            "HITL Approvals - Manager",
+            theme_toggle(),
+            Div(
+                A("< Back to Dashboard", href="/manager"),
+                H2("Quality Gate Approvals"),
+                P(
+                    "Review and approve/reject quality gate failures from the "
+                    "agent pipeline.",
+                    cls="secondary",
+                ),
+                # Pending approvals section
+                Div(
+                    H3(
+                        "Pending Approvals ",
+                        Span(
+                            f"({len(pending)})",
+                            cls="pico-color-yellow" if pending else "",
+                        ),
+                    ),
+                    (
+                        Div(
+                            *[_render_approval_card(req) for req in pending],
+                            id="pending-approvals",
+                            hx_get="/manager/approvals/pending",
+                            hx_trigger="every 10s",
+                            hx_swap="innerHTML",
+                        )
+                        if pending
+                        else P(
+                            "No pending approvals. The agent pipeline will "
+                            "request approval here when quality gates fail.",
+                            cls="secondary",
+                        )
+                    ),
+                    cls="card",
+                    style="margin-bottom: 2rem;",
+                ),
+                # History section
+                Div(
+                    H3("Recent Decisions"),
+                    (
+                        Table(
+                            Thead(
+                                Tr(
+                                    Th("Task"),
+                                    Th("Gate"),
+                                    Th("Decision"),
+                                    Th("Reviewer"),
+                                    Th("Time"),
+                                )
+                            ),
+                            Tbody(
+                                *[
+                                    Tr(
+                                        Td(h["task_id"]),
+                                        Td(h["gate_name"]),
+                                        Td(
+                                            h["decision"].title(),
+                                            cls=(
+                                                "pico-color-green"
+                                                if h["decision"] == "approved"
+                                                else (
+                                                    "pico-color-red"
+                                                    if h["decision"] == "rejected"
+                                                    else "pico-color-yellow"
+                                                )
+                                            ),
+                                        ),
+                                        Td(h["reviewer"]),
+                                        Td(h["decided_at"][:16]),
+                                    )
+                                    for h in history
+                                ]
+                            ),
+                        )
+                        if history
+                        else P("No approval history yet.", cls="secondary")
+                    ),
+                    cls="card",
+                ),
+                style="max-width: 1000px; margin: 0 auto; padding: 2rem;",
+            ),
+        )
+
+    @rt("/manager/approvals/pending")
+    def get_pending_approvals_htmx():
+        """HTMX endpoint for pending approvals refresh."""
+        pending = get_pending_approval_requests()
+
+        if not pending:
+            return P(
+                "No pending approvals.",
+                cls="secondary",
+            )
+
+        return Div(
+            *[_render_approval_card(req) for req in pending],
+        )
+
+    @rt("/manager/approvals/{request_id}")
+    def get_approval_detail(request_id: str):
+        """View details of a specific approval request."""
+        req = get_approval_request_details(request_id)
+
+        if not req:
+            return Titled(
+                "Approval Not Found",
+                Div(
+                    A("< Back to Approvals", href="/manager/approvals"),
+                    P(f"Request {request_id} not found.", cls="pico-color-red"),
+                    style="max-width: 800px; margin: 0 auto; padding: 2rem;",
+                ),
+            )
+
+        return Titled(
+            f"Review: {req['gate_name']}",
+            theme_toggle(),
+            Div(
+                A("< Back to Approvals", href="/manager/approvals"),
+                H2(f"Quality Gate Review: {req['gate_name']}"),
+                # Summary card
+                Div(
+                    Div(
+                        Div(
+                            Strong("Task: "),
+                            Span(req["task_id"]),
+                        ),
+                        Div(
+                            Strong("Status: "),
+                            Span(
+                                req["status"].title(),
+                                cls=(
+                                    "pico-color-yellow"
+                                    if req["status"] == "pending"
+                                    else (
+                                        "pico-color-green"
+                                        if req["status"] == "approved"
+                                        else "pico-color-red"
+                                    )
+                                ),
+                            ),
+                        ),
+                        Div(
+                            Strong("Requested: "),
+                            Span(req["requested_at"][:19]),
+                        ),
+                        style="display: flex; gap: 2rem; margin-bottom: 1rem;",
+                    ),
+                    Div(
+                        Strong("Summary: "),
+                        Span(req.get("summary", "No summary")),
+                    ),
+                    Div(
+                        Span(
+                            f"Critical: {req.get('critical_issues', 0)}",
+                            cls="pico-color-red" if req.get("critical_issues") else "",
+                        ),
+                        Span(" | "),
+                        Span(
+                            f"High: {req.get('high_issues', 0)}",
+                            cls=("pico-color-yellow" if req.get("high_issues") else ""),
+                        ),
+                        style="margin-top: 0.5rem;",
+                    ),
+                    cls="card",
+                    style="margin-bottom: 1rem;",
+                ),
+                # Quality report details
+                (
+                    Div(
+                        H4("Quality Report Details"),
+                        Pre(
+                            _format_quality_report(req.get("quality_report", {})),
+                            style="max-height: 400px; overflow: auto; font-size: 0.85rem;",
+                        ),
+                        cls="card",
+                        style="margin-bottom: 1rem;",
+                    )
+                    if req.get("quality_report")
+                    else None
+                ),
+                # Decision form (only if pending)
+                (
+                    Div(
+                        H4("Submit Decision"),
+                        Form(
+                            Input(
+                                type="hidden",
+                                name="request_id",
+                                value=request_id,
+                            ),
+                            Div(
+                                Label("Decision", _for="decision"),
+                                Select(
+                                    Option("Select...", value=""),
+                                    Option(
+                                        "Approve - Proceed despite failures",
+                                        value="approved",
+                                    ),
+                                    Option(
+                                        "Reject - Stop pipeline",
+                                        value="rejected",
+                                    ),
+                                    Option(
+                                        "Defer - Review later",
+                                        value="deferred",
+                                    ),
+                                    name="decision",
+                                    id="decision",
+                                    required=True,
+                                ),
+                            ),
+                            Div(
+                                Label("Your Name/Email", _for="reviewer"),
+                                Input(
+                                    type="text",
+                                    name="reviewer",
+                                    id="reviewer",
+                                    placeholder="e.g., sarah@example.com",
+                                    required=True,
+                                ),
+                            ),
+                            Div(
+                                Label("Justification", _for="justification"),
+                                Textarea(
+                                    name="justification",
+                                    id="justification",
+                                    placeholder="Why are you making this decision?",
+                                    rows="3",
+                                    required=True,
+                                ),
+                            ),
+                            Div(
+                                Button(
+                                    "Submit Decision",
+                                    type="submit",
+                                    cls="primary",
+                                ),
+                                Span(id="decision-result", style="margin-left: 1rem;"),
+                            ),
+                            hx_post="/manager/approvals/decide",
+                            hx_target="#decision-result",
+                            hx_swap="innerHTML",
+                        ),
+                        cls="card",
+                    )
+                    if req["status"] == "pending"
+                    else Div(
+                        P(
+                            f"This request has been {req['status']}.",
+                            cls=(
+                                "pico-color-green"
+                                if req["status"] == "approved"
+                                else "pico-color-red"
+                            ),
+                        ),
+                        cls="card",
+                    )
+                ),
+                style="max-width: 900px; margin: 0 auto; padding: 2rem;",
+            ),
+        )
+
+    @rt("/manager/approvals/decide")
+    def post_approval_decision(
+        request_id: str,
+        decision: str,
+        reviewer: str,
+        justification: str,
+    ):
+        """Handle approval decision submission."""
+        result = submit_approval_decision(
+            request_id=request_id,
+            decision=decision,
+            reviewer=reviewer,
+            justification=justification,
+        )
+
+        if result["success"]:
+            return Span(
+                f"Decision recorded: {decision}. ",
+                A("Back to approvals", href="/manager/approvals"),
+                cls="pico-color-green",
+            )
+        return Span(
+            f"Error: {result.get('error', 'Unknown error')}",
+            cls="pico-color-red",
+        )
+
+
+def _render_approval_card(req: dict) -> Div:
+    """Render a single pending approval request card."""
+    return Div(
+        Div(
+            Div(
+                Strong(req["task_id"]),
+                Span(f" - {req['gate_name']}", cls="secondary"),
+            ),
+            Div(
+                Span(
+                    f"Critical: {req.get('critical_issues', 0)}",
+                    cls="pico-color-red" if req.get("critical_issues") else "",
+                ),
+                Span(" | "),
+                Span(
+                    f"High: {req.get('high_issues', 0)}",
+                    cls="pico-color-yellow" if req.get("high_issues") else "",
+                ),
+            ),
+            P(
+                req.get("summary", "Quality gate failed - needs review"),
+                cls="secondary",
+                style="margin: 0.5rem 0;",
+            ),
+            Div(
+                Small(f"Requested: {req['requested_at'][:16]}", cls="secondary"),
+                A(
+                    "Review & Decide",
+                    href=f"/manager/approvals/{req['request_id']}",
+                    role="button",
+                    cls="outline",
+                    style="margin-left: auto;",
+                ),
+                style="display: flex; align-items: center;",
+            ),
+        ),
+        style="border: 1px solid var(--pico-muted-border-color); "
+        "border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem;",
+    )
+
+
+def _format_quality_report(report: dict) -> str:
+    """Format quality report for display."""
+    import json as json_module
+
+    if isinstance(report, str):
+        return report
+    return json_module.dumps(report, indent=2, default=str)
