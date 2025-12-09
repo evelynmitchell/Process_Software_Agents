@@ -27,14 +27,15 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 # Add uv and virtualenv to PATH
 ENV PATH="/root/.local/bin:/app/.venv/bin:$PATH"
 
-# Copy project files for dependency installation
+# Copy project files and source for dependency installation
+# (setuptools needs src/ to exist for package discovery)
 COPY pyproject.toml uv.lock ./
+COPY src/ ./src/
 
 # Install dependencies using uv (production only, no dev dependencies)
 RUN uv sync --frozen --no-dev
 
-# Copy application code
-COPY src/ ./src/
+# Copy remaining application files
 COPY database/ ./database/
 COPY scripts/ ./scripts/
 

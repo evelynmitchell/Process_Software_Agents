@@ -68,13 +68,19 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/example/hello-world-api"
-Repository = "https://github.com/example/hello-world-api.git"
-Issues = "https://github.com/example/hello-world-api/issues"
-Documentation = "https://github.com/example/hello-world-api#readme"
+Homepage = "https://github.com/evelynmitchell/Process_Software_Agents"
+Repository = "https://github.com/evelynmitchell/Process_Software_Agents.git"
+Issues = "https://github.com/evelynmitchell/Process_Software_Agents/issues"
+Documentation = "https://github.com/evelynmitchell/Process_Software_Agents#readme"
 
-# Note: Demo FastAPI app moved to artifacts/demo_hello_world_api.py
-# No project scripts defined for the ASP platform itself
+[project.scripts]
+asp-cli = "asp.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["*.sql", "*.md", "*.txt"]
 
 [tool.black]
 line-length = 88
