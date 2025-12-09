@@ -151,6 +151,77 @@ sqlite3 data/asp_telemetry.db "SELECT COUNT(*) FROM agent_cost_vector;"
 
 ---
 
+## Docker Deployment
+
+**For running the ASP Web UI without a full development environment.**
+
+### Prerequisites
+
+- Docker and Docker Compose installed
+- (Optional) Anthropic API key for running agent pipelines
+
+### Quick Start with Docker
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/evelynmitchell/Process_Software_Agents.git
+cd Process_Software_Agents
+
+# 2. Initialize the database (required on first run)
+#    Requires Python 3.12+ and uv installed locally
+uv run python scripts/init_database.py --with-sample-data
+
+# 3. Start the Web UI
+docker compose -f docker-compose.webui.yml up
+
+# 4. Open http://localhost:8000 in your browser
+```
+
+### Services
+
+| Service | Port | Description |
+|---------|------|-------------|
+| `asp-webui` | 8000 | Production Web UI |
+| `asp-webui-dev` | 8001 | Development mode with live reload |
+
+### Development Mode
+
+For development with live code reload:
+
+```bash
+docker compose -f docker-compose.webui.yml --profile dev up
+```
+
+This mounts `src/` as read-only and enables uvicorn's `--reload` flag.
+
+### Data Persistence
+
+The `./data` directory is mounted as a volume, so your SQLite database persists across container restarts.
+
+### Running Agent Pipelines
+
+The Web UI is for monitoring only. To run agent pipelines (Planning, Design, Code, etc.), you need:
+
+1. **API Keys configured** - See [External API Requirements](#external-api-requirements) below
+2. **Python environment** - Use local development or GitHub Codespaces
+
+---
+
+## External API Requirements
+
+The ASP Platform requires external API access for full functionality:
+
+| Service | Required For | Cost | Free Tier |
+|---------|-------------|------|-----------|
+| **Anthropic API** | Running agent pipelines (Claude LLM) | ~$0.08-0.15/task | No |
+| **Langfuse** | Telemetry and tracing | Usage-based | Yes (generous) |
+
+**Web UI Only:** No API keys required - you can browse the dashboard and view historical data.
+
+**Running Agents:** Requires `ANTHROPIC_API_KEY` and Langfuse keys configured in `.env`.
+
+---
+
 ## Project Structure
 
 ```
