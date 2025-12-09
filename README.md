@@ -236,6 +236,39 @@ export LANGFUSE_SECRET_KEY=sk-lf-your-key
 
 Run `python -m asp.cli --help` for full options.
 
+### HITL Approval Modes
+
+The CLI supports three modes for Human-in-the-Loop (HITL) quality gate approval:
+
+| Mode | Flag | Description |
+|------|------|-------------|
+| **No approval** | (default) | Quality gate failures halt the pipeline |
+| **Auto-approve** | `--auto-approve` | All gates pass automatically (for testing) |
+| **Database HITL** | `--hitl-database` | Approvals via WebUI (inter-container workflow) |
+
+**Inter-container HITL workflow:**
+
+```bash
+# 1. Start the WebUI container
+docker compose -f docker-compose.webui.yml up asp-webui -d
+
+# 2. Ensure database is writable by containers
+chmod 666 ./data/asp_telemetry.db
+
+# 3. Run agent pipeline with database-based HITL
+docker compose -f docker-compose.webui.yml --profile agents run --rm asp-agent-runner \
+  python -m asp.cli run \
+    --task-id "TASK-001" \
+    --description "Add user authentication" \
+    --hitl-database \
+    --hitl-timeout 3600 \
+    --hitl-poll-interval 5
+
+# 4. Approve/reject quality gates at http://localhost:8000/manager/approvals
+```
+
+When a quality gate fails, the agent-runner writes an approval request to the shared database. The WebUI displays pending requests at `/manager/approvals`. Once you approve or reject, the agent-runner detects the decision and continues.
+
 ---
 
 ## External API Requirements

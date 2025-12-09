@@ -64,9 +64,8 @@ py-version=3.12
 # Discover python modules and packages in the file system subtree.
 recursive=no
 
-# When enabled, pylint would attempt to guess common misconfiguration and emit
-# user-friendly hints instead of false-positive error messages.
-suggestion-mode=yes
+# Note: suggestion-mode option was removed in Pylint 4.0
+# Pylint now always emits user suggestions by default
 
 # Allow loading of arbitrary C extensions. Extensions are imported into the
 # active Python interpreter and may run arbitrary code.

@@ -50,22 +50,15 @@ def setup_environment():
         logger.warning("Some features may not work without these.")
 
 
-def cmd_run(args):
-    """Execute a task through the TSP pipeline."""
-    # Delay imports to allow environment setup first
+def _build_task_requirements(args):
+    """Build TaskRequirements from CLI arguments."""
     from asp.models.planning import TaskRequirements
-    from asp.orchestrators import TSPOrchestrator
 
-    logger.info("=" * 60)
-    logger.info("ASP CLI - Task Execution")
-    logger.info("=" * 60)
-
-    # Build requirements from CLI args
     requirements_text = args.requirements
     if args.requirements_file:
         requirements_path = Path(args.requirements_file)
         if requirements_path.exists():
-            requirements_text = requirements_path.read_text()
+            requirements_text = requirements_path.read_text(encoding="utf-8")
         else:
             logger.error(f"Requirements file not found: {args.requirements_file}")
             sys.exit(1)
@@ -73,40 +66,75 @@ def cmd_run(args):
     if not requirements_text:
         requirements_text = args.description  # Use description as fallback
 
-    task_requirements = TaskRequirements(
+    return TaskRequirements(
         task_id=args.task_id,
         description=args.description,
         requirements=requirements_text,
     )
 
+
+def _configure_hitl(args, db_path):
+    """Configure HITL approval service based on CLI arguments."""
+    if args.auto_approve:
+        logger.warning("Auto-approve mode enabled - all quality gates will pass")
+
+        def auto_approve_all(gate_name=None, **kwargs):  # noqa: ARG001
+            logger.info(f"Auto-approving gate: {gate_name}")
+            return True
+
+        return None, auto_approve_all
+
+    if args.hitl_database:
+        from asp.approval.database_service import DatabaseApprovalService
+
+        hitl_timeout = getattr(args, "hitl_timeout", 3600.0)
+        hitl_poll = getattr(args, "hitl_poll_interval", 5.0)
+        approval_service = DatabaseApprovalService(
+            db_path=db_path, poll_interval=hitl_poll, timeout=hitl_timeout
+        )
+        logger.info(
+            f"HITL database mode enabled - approvals via WebUI "
+            f"(timeout: {hitl_timeout}s, poll: {hitl_poll}s)"
+        )
+        return approval_service, None
+
+    logger.info("No HITL mode - quality gate failures will halt pipeline")
+    return None, None
+
+
+def _save_result(result, output_path):
+    """Save execution result to JSON file."""
+    from dataclasses import asdict
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(asdict(result), f, indent=2, default=str)
+    logger.info(f"Results saved to: {output_path}")
+
+
+def cmd_run(args):
+    """Execute a task through the TSP pipeline."""
+    from asp.orchestrators import TSPOrchestrator
+
+    logger.info("=" * 60)
+    logger.info("ASP CLI - Task Execution")
+    logger.info("=" * 60)
+
+    task_requirements = _build_task_requirements(args)
     logger.info(f"Task ID: {task_requirements.task_id}")
     logger.info(f"Description: {task_requirements.description}")
     logger.info("-" * 60)
 
-    # Initialize orchestrator
     db_path = Path(args.db_path) if args.db_path else Path("data/asp_telemetry.db")
-    orchestrator = TSPOrchestrator(db_path=db_path)
-
-    # Define HITL approver based on mode
-    def auto_approve_all(gate_name=None, report=None, **kwargs):
-        """Auto-approve all quality gates for testing."""
-        logger.info(f"Auto-approving gate: {gate_name}")
-        return True
-
-    if args.auto_approve:
-        logger.warning("Auto-approve mode enabled - all quality gates will pass")
-        hitl_approver = auto_approve_all
-    else:
-        hitl_approver = None  # Will halt on quality gate failures
+    approval_service, hitl_approver = _configure_hitl(args, db_path)
+    orchestrator = TSPOrchestrator(db_path=db_path, approval_service=approval_service)
 
     try:
-        # Execute pipeline
         result = orchestrator.execute(
-            requirements=task_requirements,
-            hitl_approver=hitl_approver,
+            requirements=task_requirements, hitl_approver=hitl_approver
         )
 
-        # Output results
         logger.info("=" * 60)
         logger.info("EXECUTION COMPLETE")
         logger.info("=" * 60)
@@ -115,21 +143,12 @@ def cmd_run(args):
         logger.info(f"Files Generated: {result.generated_code.total_files}")
         logger.info(f"HITL Overrides: {len(result.hitl_overrides)}")
 
-        # Save result to JSON if output path specified
         if args.output:
-            output_path = Path(args.output)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, "w") as f:
-                json.dump(result.model_dump(), f, indent=2, default=str)
-            logger.info(f"Results saved to: {output_path}")
+            _save_result(result, args.output)
 
-        # Exit with appropriate code
-        if result.overall_status in ["PASS", "CONDITIONAL_PASS"]:
-            sys.exit(0)
-        else:
-            sys.exit(1)
+        sys.exit(0 if result.overall_status in ["PASS", "CONDITIONAL_PASS"] else 1)
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error(f"Pipeline execution failed: {e}", exc_info=True)
         sys.exit(2)
 
@@ -252,6 +271,9 @@ Examples:
   # Run with auto-approve for testing
   python -m asp.cli run --task-id TEST-001 --description "Test task" --auto-approve
 
+  # Run with database-based HITL approval (for inter-container workflow)
+  python -m asp.cli run --task-id TASK-001 --description "Add feature" --hitl-database
+
   # Check status
   python -m asp.cli status
 
@@ -297,6 +319,23 @@ Examples:
         "--auto-approve",
         action="store_true",
         help="Auto-approve all quality gates (for testing)",
+    )
+    run_parser.add_argument(
+        "--hitl-database",
+        action="store_true",
+        help="Use database-based HITL approval (for inter-container workflow)",
+    )
+    run_parser.add_argument(
+        "--hitl-timeout",
+        type=float,
+        default=3600.0,
+        help="HITL approval timeout in seconds (default: 3600)",
+    )
+    run_parser.add_argument(
+        "--hitl-poll-interval",
+        type=float,
+        default=5.0,
+        help="HITL poll interval in seconds (default: 5)",
     )
     run_parser.set_defaults(func=cmd_run)
 
