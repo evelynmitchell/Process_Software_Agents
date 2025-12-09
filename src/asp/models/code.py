@@ -8,10 +8,14 @@ Author: ASP Development Team
 Date: November 17, 2025
 """
 
-from pydantic import BaseModel, Field
+import logging
+
+from pydantic import BaseModel, Field, model_validator
 
 from asp.models.design import DesignSpecification
 from asp.models.design_review import DesignReviewReport
+
+logger = logging.getLogger(__name__)
 
 
 class FileMetadata(BaseModel):
@@ -120,6 +124,39 @@ class FileManifest(BaseModel):
         ge=0,
         description="Sum of all estimated_lines values from files",
     )
+
+    @model_validator(mode="after")
+    def deduplicate_file_paths(self) -> "FileManifest":
+        """
+        Remove duplicate file paths from the manifest.
+
+        LLM may generate manifests with duplicate file paths (e.g., multiple
+        entries for 'calculator.py'). This validator keeps only the first
+        occurrence of each file path and logs a warning about duplicates.
+        """
+        seen_paths: dict[str, int] = {}
+        unique_files: list[FileMetadata] = []
+        duplicates: dict[str, int] = {}
+
+        for file in self.files:
+            if file.file_path in seen_paths:
+                # Track duplicate for logging
+                duplicates[file.file_path] = duplicates.get(file.file_path, 1) + 1
+            else:
+                seen_paths[file.file_path] = 1
+                unique_files.append(file)
+
+        if duplicates:
+            # Log warning about removed duplicates
+            logger.warning(
+                "FileManifest contained duplicate file paths (kept first occurrence): %s",
+                duplicates,
+            )
+            # Update files list and total_files count
+            self.files = unique_files
+            self.total_files = len(unique_files)
+
+        return self
 
     class Config:
         json_schema_extra = {
