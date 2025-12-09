@@ -18,6 +18,8 @@ Author: ASP Development Team
 Date: November 22, 2025
 """
 
+# pylint: disable=logging-fstring-interpolation
+
 import logging
 from collections.abc import Callable
 from datetime import datetime
@@ -661,19 +663,24 @@ class TSPOrchestrator:
             # Build defect log from reviews and tests
             defect_log = self._build_defect_log(design_review, code_review, test_report)
 
+            # Calculate actual semantic complexity from the project plan
+            # (In full implementation, this would be recalculated post-execution)
+            actual_complexity = project_plan.total_est_complexity or 10.0
+
             postmortem_input = PostmortemInput(
                 task_id=requirements.task_id,
                 project_plan=project_plan,
                 effort_log=effort_log,
                 defect_log=defect_log,
+                actual_semantic_complexity=actual_complexity,
             )
 
             postmortem_report = self.postmortem_agent.execute(postmortem_input)
 
             logger.info(
                 f"✓ Postmortem complete: "
-                f"Defect density: {postmortem_report.defect_density:.3f}, "
-                f"PIPs generated: {len(postmortem_report.process_improvement_proposals)}"
+                f"Defect density: {postmortem_report.quality_metrics.defect_density:.3f}, "
+                f"Root causes: {len(postmortem_report.root_cause_analysis)}"
             )
 
             return postmortem_report
@@ -797,38 +804,42 @@ class TSPOrchestrator:
         """Build defect log from review reports and test results."""
         defects = []
 
-        # Design defects
-        for i, issue in enumerate(design_review.issues_found):
+        # Default effort vector for defects found in reviews
+        # (actual effort tracking would require telemetry integration)
+        default_effort = {"latency_ms": 0.0, "tokens": 0, "api_cost": 0.0}
+
+        # Design defects - map to AI Defect Taxonomy
+        for issue in design_review.issues_found:
             defects.append(
                 DefectLogEntry(
                     defect_id=f"D-{len(defects)+1:03d}",
                     task_id=design_review.task_id,
-                    defect_type="Design",
+                    defect_type="1_Planning_Failure",  # Design issues are planning failures
                     description=issue.description,
                     severity=issue.severity,
                     phase_injected="Design",
                     phase_removed="DesignReview",
-                    timestamp=datetime.now(),
+                    effort_to_fix_vector=default_effort,
                 )
             )
 
-        # Code defects
-        for i, issue in enumerate(code_review.issues_found):
+        # Code defects - map to AI Defect Taxonomy
+        for issue in code_review.issues_found:
             defects.append(
                 DefectLogEntry(
                     defect_id=f"D-{len(defects)+1:03d}",
                     task_id=code_review.task_id,
-                    defect_type="Code",
+                    defect_type="6_Conventional_Code_Bug",  # Code issues are conventional bugs
                     description=issue.description,
                     severity=issue.severity,
                     phase_injected="Code",
                     phase_removed="CodeReview",
-                    timestamp=datetime.now(),
+                    effort_to_fix_vector=default_effort,
                 )
             )
 
-        # Test defects
-        for i, defect in enumerate(test_report.defects_found):
+        # Test defects - use the defect_type from TestDefect
+        for defect in test_report.defects_found:
             defects.append(
                 DefectLogEntry(
                     defect_id=f"D-{len(defects)+1:03d}",
@@ -838,7 +849,7 @@ class TSPOrchestrator:
                     severity="High",  # Test failures are typically high severity
                     phase_injected=defect.phase_injected,
                     phase_removed="Test",
-                    timestamp=datetime.now(),
+                    effort_to_fix_vector=default_effort,
                 )
             )
 
