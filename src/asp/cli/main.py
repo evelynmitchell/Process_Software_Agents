@@ -88,8 +88,9 @@ def cmd_run(args):
     orchestrator = TSPOrchestrator(db_path=db_path)
 
     # Define HITL approver based on mode
-    def auto_approve_all(_gate_name, _report):
+    def auto_approve_all(gate_name=None, report=None, **kwargs):
         """Auto-approve all quality gates for testing."""
+        logger.info(f"Auto-approving gate: {gate_name}")
         return True
 
     if args.auto_approve:
