@@ -1,5 +1,10 @@
-# ASP Platform Web UI - Docker Compose
+# ASP Platform - Docker Compose
 # Run with: docker compose -f docker-compose.webui.yml up
+#
+# Services:
+#   asp-webui        - Web UI dashboard (port 8000)
+#   asp-webui-dev    - Web UI with live reload (port 8001, profile: dev)
+#   asp-agent-runner - Agent execution container (profile: agents)
 
 services:
   # ASP Web UI Service
@@ -44,3 +49,30 @@ services:
     command: uvicorn src.asp.web.main:app --host 0.0.0.0 --port 8000 --reload
     profiles:
       - dev
+
+  # ASP Agent Runner - Executes agent pipelines on tasks
+  # Run with: docker compose -f docker-compose.webui.yml --profile agents run asp-agent-runner
+  asp-agent-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.agents
+    container_name: asp-agent-runner
+    volumes:
+      # Shared data directory (database, telemetry)
+      - ./data:/app/data
+      # Artifacts output directory
+      - ./artifacts:/app/artifacts
+      # Target repository to work on (mount your project here)
+      - ${ASP_WORKSPACE:-./workspace}:/workspace
+    environment:
+      - PYTHONPATH=/app
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}
+      - LANGFUSE_HOST=${LANGFUSE_HOST:-https://cloud.langfuse.com}
+      - ASP_USER_ID=${ASP_USER_ID:-agent@asp-platform.local}
+    working_dir: /app
+    stdin_open: true
+    tty: true
+    profiles:
+      - agents
