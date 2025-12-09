@@ -126,11 +126,12 @@ class ImprovementSuggestion(BaseModel):
         "API Design",
         "Scalability",
     ] = Field(..., description="Suggestion category")
-    priority: Literal["High", "Medium", "Low"] = Field(
+    priority: Literal["Critical", "High", "Medium", "Low"] = Field(
         ...,
         description=(
             "Implementation priority:\n"
-            "- High: Addresses Critical/High severity issues, must implement\n"
+            "- Critical: Addresses Critical severity issues, must implement immediately\n"
+            "- High: Addresses High severity issues, must implement\n"
             "- Medium: Addresses Medium severity issues or improves quality\n"
             "- Low: Nice-to-have improvements, not blocking"
         ),
@@ -174,7 +175,7 @@ class ImprovementSuggestion(BaseModel):
                 "suggestion_id": "IMPROVE-001",
                 "related_issue_id": "ISSUE-001",
                 "category": "Security",
-                "priority": "High",
+                "priority": "Critical",
                 "description": "Implement bcrypt password hashing with salt in PasswordHashingService component",
                 "implementation_notes": "1. Add bcrypt dependency (bcrypt>=4.1.0). 2. Update PasswordHashingService to use bcrypt.hashpw() with auto-generated salt. 3. Store hashed password (60-char CHAR field) in database. 4. Use bcrypt.checkpw() for verification.",
             }

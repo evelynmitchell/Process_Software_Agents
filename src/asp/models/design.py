@@ -401,9 +401,8 @@ class ComponentLogic(BaseModel):
     )
 
     interfaces: list[dict[str, Any]] = Field(
-        ...,
-        description="Public methods/functions",
-        min_length=1,
+        default_factory=list,
+        description="Public methods/functions (can be empty for simple modules)",
         examples=[
             [
                 {
@@ -482,7 +481,7 @@ class DesignReviewChecklistItem(BaseModel):
     """
 
     category: str = Field(
-        ...,
+        default="General",
         description="Category of the check",
         examples=["Architecture", "Security", "Performance", "Data Integrity"],
     )
