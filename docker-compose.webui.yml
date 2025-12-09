@@ -5,6 +5,11 @@
 #   asp-webui        - Web UI dashboard (port 8000)
 #   asp-webui-dev    - Web UI with live reload (port 8001, profile: dev)
 #   asp-agent-runner - Agent execution container (profile: agents)
+#
+# IMPORTANT: Inter-container communication uses shared SQLite database.
+# The database file must be writable by container user (uid 999).
+# Run: chmod 666 ./data/asp_telemetry.db
+# Or initialize with proper permissions before starting containers.
 
 services:
   # ASP Web UI Service
