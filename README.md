@@ -198,12 +198,43 @@ This mounts `src/` as read-only and enables uvicorn's `--reload` flag.
 
 The `./data` directory is mounted as a volume, so your SQLite database persists across container restarts.
 
-### Running Agent Pipelines
+### Running Agent Pipelines in Docker
 
-The Web UI is for monitoring only. To run agent pipelines (Planning, Design, Code, etc.), you need:
+You can also run agent pipelines entirely in Docker using the `asp-agent-runner` container:
 
-1. **API Keys configured** - See [External API Requirements](#external-api-requirements) below
-2. **Python environment** - Use local development or GitHub Codespaces
+```bash
+# Check status (no API keys required)
+docker compose -f docker-compose.webui.yml --profile agents run --rm asp-agent-runner \
+  python -m asp.cli status
+
+# Run a task with auto-approve (requires ANTHROPIC_API_KEY in environment)
+docker compose -f docker-compose.webui.yml --profile agents run --rm asp-agent-runner \
+  python -m asp.cli run \
+    --task-id "MY-TASK-001" \
+    --description "Create a hello world function" \
+    --requirements "Create a function that prints hello world" \
+    --auto-approve
+```
+
+**Environment variables** are passed from your host to the container. Set them in your shell or `.env` file:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-your-key
+export LANGFUSE_PUBLIC_KEY=pk-lf-your-key
+export LANGFUSE_SECRET_KEY=sk-lf-your-key
+```
+
+**Artifacts** are written to `./artifacts/` on your host (shared volume).
+
+### CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `python -m asp.cli status` | Check database and environment |
+| `python -m asp.cli run` | Execute task through TSP pipeline |
+| `python -m asp.cli init-db` | Initialize the SQLite database |
+
+Run `python -m asp.cli --help` for full options.
 
 ---
 
