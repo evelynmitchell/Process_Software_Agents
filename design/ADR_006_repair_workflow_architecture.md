@@ -359,8 +359,50 @@ class TestExecutor:
 
         result = self.sandbox.execute(workspace, command)
 
-        parser = self.parsers[framework]
-        return parser.parse(result.stdout, result.stderr, result.exit_code)
+        parser = self.parsers.get(framework)
+
+        # FALLBACK MODE: If parser unavailable or fails, return raw output
+        # This ensures agents aren't blinded by parser bugs or unsupported frameworks
+        if parser is None:
+            return self._fallback_parse(result, framework)
+
+        try:
+            return parser.parse(result.stdout, result.stderr, result.exit_code)
+        except ParserError as e:
+            logger.warning(f"Parser failed for {framework}: {e}, using fallback")
+            return self._fallback_parse(result, framework)
+
+    def _fallback_parse(
+        self,
+        result: ExecutionResult,
+        framework: str,
+    ) -> TestResult:
+        """
+        Fallback parser when structured parsing fails.
+
+        Returns raw output so agents can still analyze failures.
+        Infers pass/fail from exit code only.
+        """
+        return TestResult(
+            framework=framework,
+            total_tests=-1,  # Unknown
+            passed=-1,
+            failed=-1 if result.exit_code != 0 else 0,
+            skipped=0,
+            errors=1 if result.exit_code != 0 else 0,
+            duration_seconds=result.duration_ms / 1000,
+            coverage_percent=None,
+            failures=[TestFailure(
+                test_name="unknown",
+                test_file="unknown",
+                line_number=None,
+                error_type="raw_output",
+                error_message=f"Exit code: {result.exit_code}",
+                stack_trace=f"STDOUT:\n{result.stdout}\n\nSTDERR:\n{result.stderr}",
+            )] if result.exit_code != 0 else [],
+            raw_output=result.stdout + "\n" + result.stderr,  # Preserve for LLM analysis
+            parsing_failed=True,
+        )
 
     def _detect_framework(self, workspace: Workspace) -> str:
         """Auto-detect test framework from project files."""
@@ -573,28 +615,59 @@ class DiagnosticAgent(BaseAgent):
         """
         Gather relevant source code context for analysis.
 
-        Reads files mentioned in stack traces, test failures, etc.
+        IMPORTANT: Has FULL REPOSITORY ACCESS, not just the failing file.
+        Root causes are often in dependencies, configs, or imports.
+
+        Context gathering strategy:
+        1. Files directly in stack trace (with ±20 line context)
+        2. Import dependencies of failing files
+        3. Configuration files (pyproject.toml, package.json, etc.)
+        4. Related test files
+        5. Files with similar names (e.g., if error in user.py, check user_test.py)
         """
         context = {}
+        repo_path = input_data.workspace.target_repo_path
 
-        # Extract file paths from stack trace
-        files_in_trace = self._extract_files_from_trace(
-            input_data.stack_trace
-        )
-
-        # Read each file
+        # 1. Files directly in stack trace
+        files_in_trace = self._extract_files_from_trace(input_data.stack_trace)
         for file_path, line_num in files_in_trace:
-            full_path = input_data.workspace.target_repo_path / file_path
+            full_path = repo_path / file_path
             if full_path.exists():
                 content = full_path.read_text()
-                # Include surrounding context (±20 lines)
-                context[file_path] = self._extract_lines(
-                    content,
-                    line_num - 20,
-                    line_num + 20
-                )
+                context[file_path] = self._extract_lines(content, line_num - 20, line_num + 20)
+
+        # 2. Import dependencies of failing files
+        for file_path in list(context.keys()):
+            imports = self._extract_imports(repo_path / file_path)
+            for imp in imports[:5]:  # Limit to avoid context explosion
+                imp_path = self._resolve_import(repo_path, imp)
+                if imp_path and imp_path.exists() and str(imp_path) not in context:
+                    context[str(imp_path.relative_to(repo_path))] = imp_path.read_text()[:2000]
+
+        # 3. Configuration files (often contain the real issue)
+        config_files = ["pyproject.toml", "setup.py", "package.json", "tsconfig.json", ".env.example"]
+        for cfg in config_files:
+            cfg_path = repo_path / cfg
+            if cfg_path.exists():
+                context[f"[CONFIG] {cfg}"] = cfg_path.read_text()[:1000]
+
+        # 4. Repository structure overview
+        context["[REPO_STRUCTURE]"] = self._get_repo_structure(repo_path, max_depth=3)
 
         return context
+
+    def _get_repo_structure(self, repo_path: Path, max_depth: int = 3) -> str:
+        """Get directory tree for orientation."""
+        # Similar to `tree -L 3` command
+        lines = []
+        for path in sorted(repo_path.rglob("*")):
+            if ".git" in path.parts:
+                continue
+            depth = len(path.relative_to(repo_path).parts)
+            if depth <= max_depth:
+                indent = "  " * (depth - 1)
+                lines.append(f"{indent}{path.name}")
+        return "\n".join(lines[:100])  # Limit size
 ```
 
 #### Diagnostic Prompt Template
@@ -707,11 +780,27 @@ class SurgicalEditor:
     - Rollback support
     - Conflict detection
     - Unified diff generation
+    - **Fuzzy matching** for resilience to line number drift
+    - **Search-replace mode** as alternative to line-based edits
+
+    IMPORTANT: LLMs are notoriously bad at counting line numbers. This editor
+    supports multiple strategies to handle line number inaccuracy:
+
+    1. SEARCH_REPLACE (preferred): Match on code content, not line numbers
+    2. FUZZY_LINE: Line-based with ±N line tolerance
+    3. EXACT_LINE: Strict line numbers (legacy, not recommended)
     """
 
-    def __init__(self, workspace: Workspace):
+    def __init__(
+        self,
+        workspace: Workspace,
+        match_mode: Literal["search_replace", "fuzzy_line", "exact_line"] = "search_replace",
+        fuzzy_tolerance: int = 5,  # Lines of drift allowed in fuzzy mode
+    ):
         self.workspace = workspace
         self.backups: dict[str, Path] = {}
+        self.match_mode = match_mode
+        self.fuzzy_tolerance = fuzzy_tolerance
 
     def apply_changes(
         self,
@@ -842,6 +931,115 @@ class SurgicalEditor:
             diffs.append("".join(diff))
 
         return "\n".join(diffs)
+
+    # =========================================================================
+    # SEARCH-REPLACE MODE (Preferred - resilient to line number errors)
+    # =========================================================================
+
+    def apply_search_replace(
+        self,
+        file_path: str,
+        search: str,
+        replace: str,
+        occurrence: int = 1,  # Which occurrence to replace (0 = all)
+    ) -> EditResult:
+        """
+        Apply change by searching for exact code block, not line numbers.
+
+        This is MORE RELIABLE than line-based edits because:
+        - LLMs are bad at counting lines
+        - Code may have shifted since analysis
+        - Works even if file was modified by other changes
+
+        Args:
+            file_path: Path to file
+            search: Exact code block to find
+            replace: Code to replace it with
+            occurrence: Which match to replace (1=first, 2=second, 0=all)
+
+        Returns:
+            EditResult with success status
+        """
+        full_path = self.workspace.target_repo_path / file_path
+        content = full_path.read_text()
+
+        # Normalize whitespace for matching
+        normalized_search = self._normalize_whitespace(search)
+
+        # Find all occurrences
+        matches = list(re.finditer(
+            re.escape(normalized_search),
+            self._normalize_whitespace(content)
+        ))
+
+        if not matches:
+            # Try fuzzy match
+            match = self._fuzzy_find(content, search)
+            if match:
+                matches = [match]
+
+        if not matches:
+            return EditResult(
+                success=False,
+                files_modified=[],
+                errors=[f"Could not find code block in {file_path}"],
+            )
+
+        # Apply replacement
+        if occurrence == 0:
+            new_content = content.replace(search, replace)
+        else:
+            # Replace specific occurrence
+            new_content = self._replace_nth(content, search, replace, occurrence)
+
+        # Backup and write
+        self.backups[file_path] = self._create_backup(full_path)
+        full_path.write_text(new_content)
+
+        return EditResult(success=True, files_modified=[file_path], errors=[])
+
+    def _fuzzy_find(
+        self,
+        content: str,
+        search: str,
+        threshold: float = 0.8,
+    ) -> re.Match | None:
+        """
+        Find code block using fuzzy matching.
+
+        Uses difflib.SequenceMatcher to find best match above threshold.
+        Handles minor whitespace/formatting differences.
+        """
+        search_lines = search.strip().splitlines()
+        content_lines = content.splitlines()
+
+        best_ratio = 0
+        best_start = -1
+
+        # Sliding window search
+        window_size = len(search_lines)
+        for i in range(len(content_lines) - window_size + 1):
+            window = "\n".join(content_lines[i:i + window_size])
+            ratio = difflib.SequenceMatcher(
+                None,
+                search.strip(),
+                window.strip()
+            ).ratio()
+
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_start = i
+
+        if best_ratio >= threshold:
+            # Return a match-like object
+            matched_text = "\n".join(content_lines[best_start:best_start + window_size])
+            return type('Match', (), {
+                'start': lambda: content.find(matched_text),
+                'end': lambda: content.find(matched_text) + len(matched_text),
+                'group': lambda: matched_text,
+            })()
+
+        return None
 ```
 
 ---
@@ -1435,6 +1633,227 @@ class SecurityConfig:
 
 ---
 
+## HITL (Human-In-The-Loop) Approval Gates
+
+Per Gemini's review feedback, explicit HITL gates are needed. The repair workflow supports both **autonomous** and **supervised** modes:
+
+### Approval Gate Configuration
+
+```python
+@dataclass
+class HITLConfig:
+    """Configuration for human approval gates."""
+
+    # Mode: "autonomous" (no approval), "supervised" (always approve), "threshold" (conditional)
+    mode: Literal["autonomous", "supervised", "threshold"] = "threshold"
+
+    # Threshold triggers (only in "threshold" mode)
+    require_approval_after_iterations: int = 2  # Escalate after N failed attempts
+    require_approval_for_confidence_below: float = 0.7  # Low confidence fixes need approval
+    require_approval_for_critical_files: list[str] = field(default_factory=lambda: [
+        "*.env*", "*.key", "*.pem",  # Secrets
+        "**/auth/**", "**/security/**",  # Security-critical
+        "Dockerfile", "docker-compose*",  # Infrastructure
+    ])
+
+    # What to show human
+    show_diff_preview: bool = True
+    show_test_results: bool = True
+    show_diagnostic_reasoning: bool = True
+```
+
+### Approval Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     APPROVAL GATE FLOW                               │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   RepairAgent generates fix                                          │
+│            │                                                         │
+│            ▼                                                         │
+│   ┌────────────────────┐                                            │
+│   │  Check HITL Config │                                            │
+│   └─────────┬──────────┘                                            │
+│             │                                                        │
+│    ┌────────┴────────┐                                              │
+│    │                 │                                               │
+│    ▼                 ▼                                               │
+│ autonomous?      threshold?                                          │
+│    │                 │                                               │
+│    │         ┌──────┴──────┐                                        │
+│    │         │             │                                         │
+│    │         ▼             ▼                                         │
+│    │    iterations > N?  confidence < 0.7?                          │
+│    │         │             │                                         │
+│    │         └──────┬──────┘                                        │
+│    │                │                                                │
+│    │           Yes  │  No                                            │
+│    │                │                                                │
+│    │    ┌───────────┴───────────┐                                   │
+│    │    ▼                       ▼                                    │
+│    │  Request                 Apply                                  │
+│    │  Human                   Changes                                │
+│    │  Approval                Directly                               │
+│    │    │                                                            │
+│    │    ▼                                                            │
+│    │  ┌─────────┐                                                   │
+│    │  │ Approve │────▶ Apply Changes                                │
+│    │  │ Reject  │────▶ Try Alternative / Escalate                   │
+│    │  │ Modify  │────▶ Apply Human Edits                            │
+│    │  └─────────┘                                                   │
+│    │                                                                 │
+│    └─────────────────────────────────────────────────────────────────│
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Approval Request Content
+
+When HITL is triggered, the human sees:
+
+```python
+@dataclass
+class ApprovalRequest:
+    """Request sent to human for approval."""
+    task_id: str
+    iteration: int
+    diagnostic_summary: str  # What's wrong
+    proposed_fix: str  # What we want to do
+    confidence: float  # How sure we are
+    diff_preview: str  # Unified diff of changes
+    files_affected: list[str]
+    test_results_before: TestResult
+    alternative_fixes: list[str] | None  # Other options if this is rejected
+    langfuse_trace_url: str  # Link to full execution trace
+```
+
+---
+
+## Confidence Score Calculation
+
+Per Gemini's review feedback, confidence scores need clear definition. They are **NOT just LLM self-reporting**.
+
+### Confidence Components
+
+```python
+@dataclass
+class ConfidenceBreakdown:
+    """Detailed confidence calculation."""
+
+    # Component scores (0.0 - 1.0)
+    diagnostic_confidence: float  # How sure we are about root cause
+    fix_confidence: float  # How sure we are the fix is correct
+    test_coverage_confidence: float  # How well tests cover the fix
+
+    # Calculated overall confidence
+    @property
+    def overall(self) -> float:
+        # Weighted average - test coverage weighs heavily
+        return (
+            self.diagnostic_confidence * 0.3 +
+            self.fix_confidence * 0.3 +
+            self.test_coverage_confidence * 0.4
+        )
+
+
+def calculate_confidence(
+    diagnostic: DiagnosticReport,
+    repair: RepairOutput,
+    test_result: TestResult,
+    workspace: Workspace,
+) -> ConfidenceBreakdown:
+    """
+    Calculate confidence score from multiple signals.
+
+    NOT just LLM self-reporting - uses objective metrics.
+    """
+
+    # 1. Diagnostic Confidence
+    # - Based on: stack trace clarity, single vs multiple root causes,
+    #   LLM's stated confidence, number of affected files
+    diagnostic_confidence = _calc_diagnostic_confidence(diagnostic)
+
+    # 2. Fix Confidence
+    # - Based on: fix size (smaller = more confident), previous attempt history,
+    #   LLM's stated confidence, fix strategy specificity
+    fix_confidence = _calc_fix_confidence(repair)
+
+    # 3. Test Coverage Confidence (OBJECTIVE - not LLM opinion)
+    # - Based on: actual test coverage of modified lines,
+    #   number of tests touching modified code, test pass rate
+    test_coverage_confidence = _calc_test_coverage_confidence(
+        repair.changes,
+        test_result,
+        workspace,
+    )
+
+    return ConfidenceBreakdown(
+        diagnostic_confidence=diagnostic_confidence,
+        fix_confidence=fix_confidence,
+        test_coverage_confidence=test_coverage_confidence,
+    )
+
+
+def _calc_test_coverage_confidence(
+    changes: list[CodeChange],
+    test_result: TestResult,
+    workspace: Workspace,
+) -> float:
+    """
+    Calculate confidence based on ACTUAL test coverage.
+
+    This is objective, not LLM opinion:
+    - Did tests actually run against the modified code?
+    - What % of modified lines are covered by tests?
+    - Did all tests pass?
+    """
+    if test_result.coverage_percent is None:
+        return 0.5  # Unknown coverage = medium confidence
+
+    # Base: coverage percentage
+    base = test_result.coverage_percent / 100.0
+
+    # Penalty for failing tests
+    if test_result.failed > 0:
+        base *= 0.5
+
+    # Bonus for high test count touching modified files
+    modified_files = {c.file_path for c in changes}
+    tests_touching_modified = _count_tests_for_files(modified_files, workspace)
+    if tests_touching_modified >= 5:
+        base = min(1.0, base * 1.2)
+
+    return base
+```
+
+### Confidence Thresholds
+
+| Confidence | Interpretation | Action |
+|------------|----------------|--------|
+| 0.9 - 1.0 | Very High | Apply automatically |
+| 0.7 - 0.9 | High | Apply, monitor |
+| 0.5 - 0.7 | Medium | Consider HITL approval |
+| 0.3 - 0.5 | Low | Require HITL approval |
+| 0.0 - 0.3 | Very Low | Reject, try alternative |
+
+---
+
+## Amendments from Review
+
+This section documents changes made based on external review feedback (Gemini, 2025-12-10):
+
+| Concern | Resolution |
+|---------|------------|
+| **TestExecutor parser maintenance burden** | Added `_fallback_parse()` method that returns raw stdout/stderr when parser fails or is unavailable. Agents can still analyze raw output. |
+| **SurgicalEditor line number accuracy** | Added `search_replace` mode as default (preferred over line-based). Implemented `_fuzzy_find()` with 80% similarity threshold. |
+| **Infinite repair loops** | Max 5 iterations with rollback. Each iteration tracked. HITL escalation after 2 failed attempts. |
+| **DiagnosticAgent context scope** | Clarified full repo access. Now gathers: stack trace files, import dependencies, config files, and repo structure. |
+| **HITL approval gates** | Added `HITLConfig` with three modes: autonomous, supervised, threshold. Configurable triggers. |
+| **Confidence score calculation** | Defined multi-signal calculation: diagnostic confidence, fix confidence, and **objective** test coverage confidence. Not just LLM self-reporting. |
+
+---
+
 ## Related Documents
 
 - `design/ADR_001_workspace_isolation_and_execution_tracking.md` - Workspace architecture
@@ -1444,5 +1863,5 @@ class SecurityConfig:
 
 ---
 
-**Status:** Proposed - awaiting review
-**Next Steps:** Review with team, refine based on feedback, begin Phase 1
+**Status:** Proposed - revised after Gemini review (2025-12-10)
+**Next Steps:** Final review, then begin Phase 1 implementation
