@@ -49,7 +49,8 @@ class ArchitectureReviewAgent(BaseAgent):
                 design_specification=design_spec.model_dump_json(indent=2),
             )
 
-            response = self.call_llm(prompt)
+            # Call LLM with higher token limit to avoid truncation
+            response = self.call_llm(prompt, max_tokens=8192)
 
             # Parse JSON response with robust extraction
             try:

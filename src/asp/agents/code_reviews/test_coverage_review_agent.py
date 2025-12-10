@@ -80,9 +80,9 @@ class TestCoverageReviewAgent(BaseAgent):
                 generated_code=generated_code.model_dump_json(indent=2),
             )
 
-            # Call LLM
+            # Call LLM with higher token limit to avoid truncation
             logger.debug("Calling LLM for test coverage review")
-            response = self.call_llm(prompt)
+            response = self.call_llm(prompt, max_tokens=8192)
 
             # Parse JSON response with robust extraction
             try:
