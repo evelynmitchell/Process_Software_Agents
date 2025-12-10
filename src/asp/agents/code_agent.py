@@ -196,9 +196,10 @@ class CodeAgent(BaseAgent):
                         agent_name="Code Agent",
                         artifact_files=artifact_files,
                     )
-                    logger.info(
-                        f"Committed {len(artifact_files)} artifacts: {commit_hash}"
-                    )
+                    if commit_hash:
+                        logger.info(
+                            f"Committed {len(artifact_files)} artifacts: {commit_hash}"
+                        )
                 else:
                     logger.warning("Not in git repository, skipping commit")
 

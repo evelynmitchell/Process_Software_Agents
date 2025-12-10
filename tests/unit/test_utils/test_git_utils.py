@@ -16,6 +16,7 @@ import pytest
 
 from asp.utils.git_utils import (
     GitError,
+    check_files_ignored,
     get_current_branch,
     get_git_root,
     git_add_files,
@@ -490,5 +491,117 @@ class TestGitCommitArtifact:
                     agent_name="Test Agent",
                     artifact_files=["file.txt"],
                 )
+        finally:
+            os.chdir(original_cwd)
+
+
+class TestCheckFilesIgnored:
+    """Test checking which files are ignored by .gitignore."""
+
+    def test_returns_all_files_when_none_ignored(self, git_repo):
+        """Test returns all files when no files are in .gitignore."""
+        import os
+
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(git_repo)
+
+            # Files not in .gitignore should be returned
+            files = ["src/main.py", "README.md"]
+            result = check_files_ignored(files)
+            assert set(result) == set(files)
+        finally:
+            os.chdir(original_cwd)
+
+    def test_filters_out_ignored_files(self, git_repo):
+        """Test filters out files that are in .gitignore."""
+        import os
+
+        # Create .gitignore
+        gitignore = git_repo / ".gitignore"
+        gitignore.write_text("artifacts/\n*.log\n")
+
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(git_repo)
+
+            files = ["src/main.py", "artifacts/plan.json", "app.log"]
+            result = check_files_ignored(files)
+
+            # Only src/main.py should remain (not ignored)
+            assert result == ["src/main.py"]
+        finally:
+            os.chdir(original_cwd)
+
+    def test_returns_empty_list_when_all_ignored(self, git_repo):
+        """Test returns empty list when all files are in .gitignore."""
+        import os
+
+        # Create .gitignore
+        gitignore = git_repo / ".gitignore"
+        gitignore.write_text("artifacts/\n")
+
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(git_repo)
+
+            files = ["artifacts/plan.json", "artifacts/plan.md"]
+            result = check_files_ignored(files)
+
+            assert result == []
+        finally:
+            os.chdir(original_cwd)
+
+    def test_returns_empty_list_for_empty_input(self, git_repo):
+        """Test returns empty list when given empty input."""
+        import os
+
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(git_repo)
+            result = check_files_ignored([])
+            assert result == []
+        finally:
+            os.chdir(original_cwd)
+
+
+class TestGitCommitArtifactWithIgnoredFiles:
+    """Test git_commit_artifact behavior with .gitignore files."""
+
+    def test_returns_none_when_all_files_ignored(self, git_repo):
+        """Test returns None when all artifact files are in .gitignore."""
+        import os
+
+        # Create .gitignore to exclude artifacts
+        gitignore = git_repo / ".gitignore"
+        gitignore.write_text("artifacts/\n")
+        subprocess.run(
+            ["git", "add", ".gitignore"], cwd=git_repo, check=True, capture_output=True
+        )
+        subprocess.run(
+            ["git", "commit", "-m", "Add .gitignore"],
+            cwd=git_repo,
+            check=True,
+            capture_output=True,
+        )
+
+        # Create artifact files (which would be ignored)
+        artifacts_dir = git_repo / "artifacts" / "TASK-004"
+        artifacts_dir.mkdir(parents=True)
+        plan_json = artifacts_dir / "plan.json"
+        plan_json.write_text("{}")
+
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(git_repo)
+
+            # Commit should return None (no files to commit)
+            commit_hash = git_commit_artifact(
+                task_id="TASK-004",
+                agent_name="Planning Agent",
+                artifact_files=[str(plan_json)],
+            )
+
+            assert commit_hash is None
         finally:
             os.chdir(original_cwd)

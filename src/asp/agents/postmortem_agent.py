@@ -188,11 +188,13 @@ class PostmortemAgent(BaseAgent):
 
                 # Git commit artifacts (if in git repository)
                 if is_git_repository():
-                    git_commit_artifact(
+                    commit_hash = git_commit_artifact(
                         task_id=report.task_id,
-                        artifact_type="postmortem_report",
-                        file_paths=artifact_files,
+                        agent_name="Postmortem Agent",
+                        artifact_files=artifact_files,
                     )
+                    if commit_hash:
+                        logger.info(f"Committed artifacts: {commit_hash}")
 
             except Exception as e:
                 logger.warning(f"Failed to write artifacts: {e}")

@@ -158,9 +158,10 @@ class TestAgent(BaseAgent):
                         agent_name="Test Agent",
                         artifact_files=artifact_files,
                     )
-                    logger.info(
-                        f"Committed {len(artifact_files)} artifacts: {commit_hash}"
-                    )
+                    if commit_hash:
+                        logger.info(
+                            f"Committed {len(artifact_files)} artifacts: {commit_hash}"
+                        )
                 else:
                     logger.warning("Not in git repository, skipping commit")
 
