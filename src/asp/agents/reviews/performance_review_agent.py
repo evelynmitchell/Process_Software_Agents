@@ -9,13 +9,15 @@ This agent focuses exclusively on performance aspects of design specifications:
 - Batch vs real-time processing decisions
 """
 
-import json
+# pylint: disable=logging-fstring-interpolation,arguments-renamed
+
 import logging
 from typing import Any
 
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.models.design import DesignSpecification
 from asp.telemetry.telemetry import track_agent_cost
+from asp.utils.json_extraction import JSONExtractionError, extract_json_from_response
 
 logger = logging.getLogger(__name__)
 
@@ -81,17 +83,12 @@ class PerformanceReviewAgent(BaseAgent):
             logger.debug("Calling LLM for performance review")
             response = self.call_llm(prompt)
 
-            # Parse JSON response
+            # Parse JSON response with robust extraction
             try:
-                content = response.get("content", {})
-                if isinstance(content, str):
-                    content = json.loads(content)
-
-                # Validate response structure
-                if "issues_found" not in content:
-                    raise ValueError("Response missing 'issues_found' field")
-                if "improvement_suggestions" not in content:
-                    raise ValueError("Response missing 'improvement_suggestions' field")
+                content = extract_json_from_response(
+                    response,
+                    required_fields=["issues_found", "improvement_suggestions"],
+                )
 
                 logger.info(
                     f"Performance review completed: found {len(content['issues_found'])} issues, "
@@ -100,11 +97,8 @@ class PerformanceReviewAgent(BaseAgent):
 
                 return content
 
-            except (json.JSONDecodeError, KeyError, ValueError) as e:
-                logger.error(f"Failed to parse LLM response: {e}")
-                raise AgentExecutionError(
-                    f"Failed to parse performance review response: {e}"
-                ) from e
+            except JSONExtractionError as e:
+                raise AgentExecutionError(f"Failed to parse LLM response: {e}") from e
 
         except Exception as e:
             logger.error(f"Performance review failed: {e}", exc_info=True)

@@ -4,13 +4,15 @@ Maintainability Review Agent: Specialist agent for maintainability design review
 Focuses on: Coupling, cohesion, component boundaries, error handling consistency.
 """
 
-import json
+# pylint: disable=logging-fstring-interpolation,arguments-renamed
+
 import logging
 from typing import Any
 
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
 from asp.models.design import DesignSpecification
 from asp.telemetry.telemetry import track_agent_cost
+from asp.utils.json_extraction import JSONExtractionError, extract_json_from_response
 
 logger = logging.getLogger(__name__)
 
@@ -49,22 +51,22 @@ class MaintainabilityReviewAgent(BaseAgent):
 
             response = self.call_llm(prompt)
 
-            content = response.get("content", {})
-            if isinstance(content, str):
-                content = json.loads(content)
+            # Parse JSON response with robust extraction
+            try:
+                content = extract_json_from_response(
+                    response,
+                    required_fields=["issues_found", "improvement_suggestions"],
+                )
 
-            if (
-                "issues_found" not in content
-                or "improvement_suggestions" not in content
-            ):
-                raise ValueError("Response missing required fields")
+                logger.info(
+                    f"Maintainability review completed: {len(content['issues_found'])} issues, "
+                    f"{len(content['improvement_suggestions'])} suggestions"
+                )
 
-            logger.info(
-                f"Maintainability review completed: {len(content['issues_found'])} issues, "
-                f"{len(content['improvement_suggestions'])} suggestions"
-            )
+                return content
 
-            return content
+            except JSONExtractionError as e:
+                raise AgentExecutionError(f"Failed to parse LLM response: {e}") from e
 
         except Exception as e:
             logger.error(f"Maintainability review failed: {e}", exc_info=True)

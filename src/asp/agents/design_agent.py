@@ -13,6 +13,8 @@ Author: ASP Development Team
 Date: November 13, 2025
 """
 
+# pylint: disable=logging-fstring-interpolation,no-else-return
+
 import logging
 import os
 from pathlib import Path
@@ -24,6 +26,7 @@ from asp.parsers.design_markdown_parser import DesignMarkdownParser
 from asp.telemetry import track_agent_cost
 from asp.utils.artifact_io import write_artifact_json, write_artifact_markdown
 from asp.utils.git_utils import git_commit_artifact, is_git_repository
+from asp.utils.json_extraction import JSONExtractionError, extract_json_from_response
 from asp.utils.markdown_renderer import render_design_markdown
 
 logger = logging.getLogger(__name__)
@@ -257,13 +260,11 @@ class DesignAgent(BaseAgent):
             temperature=0.1,  # Low temperature for consistency
         )
 
-        # Parse response
-        content = response.get("content")
-        if not isinstance(content, dict):
-            raise AgentExecutionError(
-                f"LLM returned non-JSON response: {content}\n"
-                f"Expected JSON matching DesignSpecification schema"
-            )
+        # Parse response with robust JSON extraction
+        try:
+            content = extract_json_from_response(response)
+        except JSONExtractionError as e:
+            raise AgentExecutionError(f"Design generation failed: {e}") from e
 
         logger.debug(f"Received LLM response with {len(content)} top-level keys")
 

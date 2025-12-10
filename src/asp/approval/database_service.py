@@ -15,6 +15,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 from asp.approval.base import (
     ApprovalRequest,
@@ -24,6 +25,13 @@ from asp.approval.base import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _json_serializer(obj: Any) -> str:
+    """Custom JSON serializer for objects not serializable by default json code."""
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 
 @dataclass
@@ -182,7 +190,7 @@ class DatabaseApprovalService(ApprovalService):
                     request.task_id,
                     request.gate_type,
                     request.gate_type.replace("_", " ").title(),
-                    json.dumps(request.quality_report),
+                    json.dumps(request.quality_report, default=_json_serializer),
                     summary,
                     critical,
                     high,
