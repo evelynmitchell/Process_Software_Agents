@@ -80,7 +80,7 @@ class DataIntegrityReviewAgent(BaseAgent):
 
             # Call LLM
             logger.debug("Calling LLM for data integrity review")
-            response = self.call_llm(prompt)
+            response = self.call_llm(prompt, max_tokens=8192)
 
             # Parse JSON response with robust extraction
             try:

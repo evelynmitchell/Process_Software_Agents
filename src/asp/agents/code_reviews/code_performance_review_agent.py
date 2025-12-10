@@ -82,7 +82,7 @@ class CodePerformanceReviewAgent(BaseAgent):
 
             # Call LLM
             logger.debug("Calling LLM for performance review")
-            response = self.call_llm(prompt)
+            response = self.call_llm(prompt, max_tokens=8192)
 
             # Parse JSON response with robust extraction
             try:
