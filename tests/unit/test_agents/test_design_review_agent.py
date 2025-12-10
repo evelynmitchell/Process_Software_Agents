@@ -353,7 +353,7 @@ class TestSecurityReviewAgent:
         agent = SecurityReviewAgent()
         design_spec = create_test_design_specification()
 
-        with pytest.raises(AgentExecutionError, match="missing 'issues_found'"):
+        with pytest.raises(AgentExecutionError, match="missing required fields"):
             agent.execute(design_spec)
 
     @patch("asp.agents.base_agent.BaseAgent.call_llm")

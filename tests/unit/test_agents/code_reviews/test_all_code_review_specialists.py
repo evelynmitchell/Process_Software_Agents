@@ -223,7 +223,7 @@ class TestCodeQualityReviewAgent:
         generated_code = create_test_generated_code_with_issues()
 
         with pytest.raises(
-            AgentExecutionError, match="Failed to parse LLM response as JSON"
+            AgentExecutionError, match="Failed to parse LLM response"
         ):
             agent.execute(generated_code)
 

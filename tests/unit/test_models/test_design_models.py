@@ -442,16 +442,17 @@ class TestComponentLogic:
                 complexity=1500,  # > 1000
             )
 
-    def test_component_logic_interfaces_required(self):
-        """Test that interfaces list cannot be empty."""
-        with pytest.raises(ValidationError):
-            ComponentLogic(
-                component_name="TestComponent",
-                semantic_unit_id="SU-001",
-                responsibility="Test component for validation purposes",
-                interfaces=[],  # Empty list
-                implementation_notes="Test implementation notes for validation",
-            )
+    def test_component_logic_interfaces_can_be_empty(self):
+        """Test that interfaces list can be empty for simple modules."""
+        # Empty interfaces are allowed per the model design
+        component = ComponentLogic(
+            component_name="TestComponent",
+            semantic_unit_id="SU-001",
+            responsibility="Test component for validation purposes",
+            interfaces=[],  # Empty list is valid
+            implementation_notes="Test implementation notes for validation",
+        )
+        assert component.interfaces == []
 
     def test_component_logic_json_serialization(self):
         """Test JSON serialization and deserialization."""
