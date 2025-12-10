@@ -42,7 +42,27 @@ CREATE TABLE IF NOT EXISTS agent_cost_vector (
 
     -- Constraints
     CHECK (metric_value >= 0),
-    CHECK (agent_role IN ('Planning', 'Design', 'DesignReview', 'Code', 'CodeReview', 'Test', 'Postmortem')),
+    CHECK (agent_role IN (
+        'Planning',
+        'Design',
+        'DesignReview',
+        'SecurityReview',
+        'PerformanceReview',
+        'DataIntegrityReview',
+        'MaintainabilityReview',
+        'ArchitectureReview',
+        'APIDesignReview',
+        'Code',
+        'CodeReview',
+        'CodeQualityReview',
+        'CodeSecurityReview',
+        'BestPracticesReview',
+        'TestCoverageReview',
+        'CodePerformanceReview',
+        'DocumentationReview',
+        'Test',
+        'Postmortem'
+    )),
     CHECK (metric_type IN ('Latency', 'Tokens_In', 'Tokens_Out', 'API_Cost', 'Memory_Usage', 'Tool_Calls', 'Retries'))
 );
 
