@@ -168,7 +168,19 @@ Create a Summaryyyymmdd.md file for every new workday, and update it with progre
 
 Use the summary to track work done, issues discovered, and good practices learned.
 
-Update Claude.md when you have learned a new good practice.
+### Memory & Learning Protocol
+
+**1. Memory Management (Tiered Context):**
+To manage context window limits, do not read all files in `Summary/`.
+- **Read:** `docs/KNOWLEDGE_BASE.md` (Long-term Memory)
+- **Read:** `Claude.md` (Behavioral Instructions)
+- **Read:** The latest `Summary/weekly_reflection_*.md` (Recent Context)
+- **Read:** The last 3 `Summary/summaryYYYYMMDD.md` files (Immediate Context)
+
+**2. The Learning Loop (Weekly):**
+- **Capture:** In daily summaries, mark potential permanent lessons under `## Candidate for Evergreen`.
+- **Synthesize:** In weekly reflections, review these candidates.
+- **Promote:** Move verified lessons to `docs/KNOWLEDGE_BASE.md` (for system facts) or `Claude.md` (for behavioral instructions).
 
 ### Testing Philosophy
 
