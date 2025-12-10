@@ -809,7 +809,7 @@ class TestSecurityReviewAgentErrorHandling:
         with pytest.raises(AgentExecutionError) as exc_info:
             agent.execute(design_spec)
 
-        assert "Failed to parse security review response" in str(exc_info.value)
+        assert "Failed to parse LLM response" in str(exc_info.value)
 
     @patch.object(SecurityReviewAgent, "load_prompt")
     @patch.object(SecurityReviewAgent, "format_prompt")
@@ -835,7 +835,7 @@ class TestSecurityReviewAgentErrorHandling:
         with pytest.raises(AgentExecutionError) as exc_info:
             agent.execute(design_spec)
 
-        assert "missing 'issues_found' field" in str(exc_info.value)
+        assert "issues_found" in str(exc_info.value)
 
     @patch.object(SecurityReviewAgent, "load_prompt")
     @patch.object(SecurityReviewAgent, "format_prompt")

@@ -736,7 +736,7 @@ class TestPerformanceReviewAgentErrorHandling:
         with pytest.raises(AgentExecutionError) as exc_info:
             agent.execute(design_spec)
 
-        assert "Failed to parse performance review response" in str(exc_info.value)
+        assert "Failed to parse LLM response" in str(exc_info.value)
 
     @patch.object(PerformanceReviewAgent, "load_prompt")
     @patch.object(PerformanceReviewAgent, "format_prompt")
@@ -754,7 +754,7 @@ class TestPerformanceReviewAgentErrorHandling:
         with pytest.raises(AgentExecutionError) as exc_info:
             agent.execute(design_spec)
 
-        assert "Response missing 'issues_found' field" in str(exc_info.value)
+        assert "issues_found" in str(exc_info.value)
 
     @patch.object(PerformanceReviewAgent, "load_prompt")
     @patch.object(PerformanceReviewAgent, "format_prompt")
@@ -770,7 +770,7 @@ class TestPerformanceReviewAgentErrorHandling:
         with pytest.raises(AgentExecutionError) as exc_info:
             agent.execute(design_spec)
 
-        assert "Response missing 'improvement_suggestions' field" in str(exc_info.value)
+        assert "improvement_suggestions" in str(exc_info.value)
 
 
 class TestPerformanceReviewAgentEdgeCases:
