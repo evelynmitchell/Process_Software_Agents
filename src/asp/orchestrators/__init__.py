@@ -32,7 +32,11 @@ from asp.orchestrators.repair_orchestrator import (
     RepairRequest,
 )
 from asp.orchestrators.tsp_orchestrator import TSPOrchestrator
-from asp.orchestrators.types import PlanningDesignResult, TSPExecutionResult
+from asp.orchestrators.types import (
+    PlanningDesignResult,
+    RepairExecutionResult,
+    TSPExecutionResult,
+)
 
 __all__ = [
     # Planning/Design
@@ -41,6 +45,7 @@ __all__ = [
     # TSP
     "TSPOrchestrator",
     "TSPExecutionResult",
+    "RepairExecutionResult",
     # Repair Orchestration (ADR 006)
     "RepairOrchestrator",
     "RepairRequest",

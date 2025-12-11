@@ -3,11 +3,13 @@ ASP CLI - Main entry point for command-line agent execution.
 
 Provides commands for:
 - run: Execute a task through the TSP pipeline
+- repair: Execute repair workflow on existing code
 - status: Check agent/task status
 - init-db: Initialize the database
 
 Usage:
     python -m asp.cli run --task-id TASK-001 --description "Add feature X"
+    python -m asp.cli repair --task-id REPAIR-001 --workspace /path/to/repo
     python -m asp.cli status
     python -m asp.cli init-db
 
@@ -15,7 +17,7 @@ Author: ASP Development Team
 Date: December 2025
 """
 
-# pylint: disable=logging-fstring-interpolation
+# pylint: disable=logging-fstring-interpolation,too-many-statements
 
 import argparse
 import json
@@ -153,6 +155,165 @@ def cmd_run(args):
         sys.exit(2)
 
 
+def cmd_repair(args):
+    """Execute repair workflow on existing code."""
+    import asyncio
+    from datetime import datetime
+
+    from asp.models.execution import SandboxConfig
+    from asp.orchestrators.hitl_config import AUTONOMOUS_CONFIG, HITLConfig
+    from asp.orchestrators.repair_orchestrator import RepairOrchestrator, RepairRequest
+    from asp.orchestrators.types import RepairExecutionResult
+    from services.sandbox_executor import SubprocessSandboxExecutor
+    from services.surgical_editor import SurgicalEditor
+    from services.test_executor import TestExecutor
+    from services.workspace_manager import Workspace
+
+    logger.info("=" * 60)
+    logger.info("ASP CLI - Repair Workflow")
+    logger.info("=" * 60)
+
+    # Validate workspace path
+    workspace_path = Path(args.workspace)
+    if not workspace_path.exists():
+        logger.error(f"Workspace path does not exist: {workspace_path}")
+        sys.exit(1)
+
+    logger.info(f"Task ID: {args.task_id}")
+    logger.info(f"Workspace: {workspace_path}")
+    logger.info(f"Max iterations: {args.max_iterations}")
+    logger.info("-" * 60)
+
+    # Create workspace object
+    workspace = Workspace(
+        task_id=args.task_id,
+        path=workspace_path,
+        target_repo_path=workspace_path,
+        asp_path=workspace_path / ".asp",
+        created_at=datetime.now(),
+    )
+
+    # Create workspace .asp directory if it doesn't exist
+    workspace.asp_path.mkdir(parents=True, exist_ok=True)
+
+    # Configure HITL
+    if args.auto_approve:
+        hitl_config = AUTONOMOUS_CONFIG
+        logger.warning("Auto-approve mode - all repairs will proceed automatically")
+        approval_callback = None
+    else:
+        # Use threshold mode for manual approval
+        hitl_config = HITLConfig(
+            mode="threshold",
+            require_approval_after_iterations=args.hitl_threshold_iterations,
+            require_approval_for_confidence_below=args.hitl_threshold_confidence,
+        )
+
+        def approval_callback(reason, confidence, files, iteration):
+            logger.warning(f"HITL Approval Required (iteration {iteration}):")
+            logger.warning(f"  Reason: {reason}")
+            logger.warning(f"  Confidence: {confidence:.2f}")
+            logger.warning(f"  Files: {', '.join(files)}")
+            # In interactive mode, we would prompt the user
+            # For now, reject to require explicit --auto-approve
+            logger.error(
+                "No interactive approval - use --auto-approve or configure HITL"
+            )
+            return False
+
+    # Create services
+    db_path = Path(args.db_path) if args.db_path else Path("data/asp_telemetry.db")
+    sandbox_config = SandboxConfig(
+        timeout_seconds=args.timeout,
+        memory_limit_mb=512,
+    )
+    sandbox = SubprocessSandboxExecutor(config=sandbox_config)
+    test_executor = TestExecutor(sandbox=sandbox)
+    surgical_editor = SurgicalEditor(workspace_path=workspace_path)
+
+    # Create orchestrator
+    orchestrator = RepairOrchestrator(
+        sandbox=sandbox,
+        test_executor=test_executor,
+        surgical_editor=surgical_editor,
+        db_path=db_path,
+    )
+
+    # Build repair request
+    request = RepairRequest(
+        task_id=args.task_id,
+        workspace=workspace,
+        issue_description=args.issue_description,
+        target_tests=args.target_tests.split(",") if args.target_tests else None,
+        max_iterations=args.max_iterations,
+        test_command=args.test_command,
+        hitl_config=hitl_config,
+    )
+
+    start_time = datetime.now()
+
+    try:
+        # Run repair workflow
+        if args.dry_run:
+            logger.info("DRY RUN - Previewing changes without applying")
+            diagnostic, repair_output, diff = asyncio.run(orchestrator.dry_run(request))
+            logger.info("=" * 60)
+            logger.info("DRY RUN RESULTS")
+            logger.info("=" * 60)
+            logger.info(f"Issue Type: {diagnostic.issue_type.value}")
+            logger.info(f"Root Cause: {diagnostic.root_cause}")
+            logger.info(f"Changes: {len(repair_output.changes)}")
+            logger.info("")
+            logger.info("DIFF PREVIEW:")
+            logger.info(diff)
+            sys.exit(0)
+
+        result = asyncio.run(orchestrator.repair(request, approval_callback))
+
+        end_time = datetime.now()
+        duration = (end_time - start_time).total_seconds()
+
+        # Determine overall status
+        if result.success:
+            overall_status = "PASS"
+        elif result.escalated_to_human:
+            overall_status = "ESCALATED"
+        else:
+            overall_status = "FAIL"
+
+        logger.info("=" * 60)
+        logger.info("REPAIR COMPLETE")
+        logger.info("=" * 60)
+        logger.info(f"Overall Status: {overall_status}")
+        logger.info(f"Success: {result.success}")
+        logger.info(f"Iterations Used: {result.iterations_used}")
+        logger.info(f"Changes Made: {len(result.changes_made)}")
+        logger.info(f"Duration: {duration:.1f}s")
+
+        if result.escalation_reason:
+            logger.info(f"Escalation Reason: {result.escalation_reason}")
+
+        # Save result if output path specified
+        if args.output:
+            execution_result = RepairExecutionResult(
+                task_id=args.task_id,
+                timestamp=start_time,
+                overall_status=overall_status,
+                repair_result=result,
+                total_duration_seconds=duration,
+                execution_log=[],
+            )
+            _save_result(execution_result, args.output)
+
+        sys.exit(0 if result.success else 1)
+
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error(f"Repair workflow failed: {e}", exc_info=True)
+        sys.exit(2)
+    finally:
+        orchestrator.cleanup()
+
+
 def cmd_status(args):
     """Check agent/database status."""
     logger.info("ASP Platform Status")
@@ -274,6 +435,12 @@ Examples:
   # Run with database-based HITL approval (for inter-container workflow)
   python -m asp.cli run --task-id TASK-001 --description "Add feature" --hitl-database
 
+  # Repair existing code with failing tests
+  python -m asp.cli repair --task-id REPAIR-001 --workspace ./my-project --auto-approve
+
+  # Preview repair without applying changes
+  python -m asp.cli repair --task-id REPAIR-001 --workspace ./my-project --dry-run
+
   # Check status
   python -m asp.cli status
 
@@ -338,6 +505,77 @@ Examples:
         help="HITL poll interval in seconds (default: 5)",
     )
     run_parser.set_defaults(func=cmd_run)
+
+    # Repair command
+    repair_parser = subparsers.add_parser(
+        "repair", help="Execute repair workflow on existing code"
+    )
+    repair_parser.add_argument(
+        "--task-id",
+        required=True,
+        help="Unique task identifier for this repair (e.g., REPAIR-001)",
+    )
+    repair_parser.add_argument(
+        "--workspace",
+        required=True,
+        help="Path to workspace/repository to repair",
+    )
+    repair_parser.add_argument(
+        "--issue-description",
+        help="Description of the issue to fix (optional, will auto-detect from tests)",
+    )
+    repair_parser.add_argument(
+        "--target-tests",
+        help="Comma-separated list of specific test files/patterns to run",
+    )
+    repair_parser.add_argument(
+        "--test-command",
+        help="Custom test command (default: pytest -v)",
+    )
+    repair_parser.add_argument(
+        "--max-iterations",
+        type=int,
+        default=5,
+        help="Maximum repair iterations (default: 5)",
+    )
+    repair_parser.add_argument(
+        "--timeout",
+        type=int,
+        default=300,
+        help="Test execution timeout in seconds (default: 300)",
+    )
+    repair_parser.add_argument(
+        "--db-path",
+        help="Path to SQLite database (default: data/asp_telemetry.db)",
+    )
+    repair_parser.add_argument(
+        "--output",
+        "-o",
+        help="Path to save JSON results",
+    )
+    repair_parser.add_argument(
+        "--auto-approve",
+        action="store_true",
+        help="Auto-approve all repairs (run autonomously)",
+    )
+    repair_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview changes without applying them",
+    )
+    repair_parser.add_argument(
+        "--hitl-threshold-iterations",
+        type=int,
+        default=2,
+        help="Request approval after this many iterations (default: 2)",
+    )
+    repair_parser.add_argument(
+        "--hitl-threshold-confidence",
+        type=float,
+        default=0.7,
+        help="Request approval if confidence below this (default: 0.7)",
+    )
+    repair_parser.set_defaults(func=cmd_repair)
 
     # Status command
     status_parser = subparsers.add_parser("status", help="Check platform status")
