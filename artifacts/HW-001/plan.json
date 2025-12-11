@@ -32,28 +32,43 @@
       "api_interactions": 0,
       "data_transformations": 2,
       "logical_branches": 1,
-      "code_entities_modified": 2,
+      "code_entities_modified": 1,
       "novelty_multiplier": 1.0,
-      "est_complexity": 21,
+      "est_complexity": 17,
       "dependencies": [
         "SU-001"
       ]
     },
     {
       "unit_id": "SU-004",
-      "description": "Add global error handling middleware with appropriate HTTP status codes and error response formatting",
+      "description": "Add global error handling middleware and HTTP status code management",
       "api_interactions": 0,
-      "data_transformations": 2,
+      "data_transformations": 1,
       "logical_branches": 3,
       "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 27,
+      "est_complexity": 22,
       "dependencies": [
         "SU-001"
       ]
+    },
+    {
+      "unit_id": "SU-005",
+      "description": "Create application entry point with server configuration and startup validation",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 2,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 15,
+      "dependencies": [
+        "SU-002",
+        "SU-003",
+        "SU-004"
+      ]
     }
   ],
-  "total_est_complexity": 83,
+  "total_est_complexity": 89,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"

@@ -4,15 +4,15 @@
 
 ## Architecture Overview
 
-Minimal three-layer REST API architecture using FastAPI framework. Application layer (FastAPIApplicationFactory) initializes and configures the FastAPI application with middleware and exception handlers. Endpoint layer (HelloEndpointHandler, HealthEndpointHandler) handles HTTP requests with input validation and response formatting. Error handling layer (GlobalExceptionHandler) provides centralized exception handling with consistent error response formatting. No database or external service dependencies. All responses are JSON formatted. CORS middleware enables cross-origin requests for development.
+The Hello World API is a minimal 3-layer FastAPI application. The ApplicationEntryPoint (SU-005) initializes and starts the server using FastAPIApplicationFactory (SU-001). The factory sets up the FastAPI app with global error handling via GlobalErrorHandler (SU-004). Two endpoint handlers process requests: HelloEndpointHandler (SU-002) handles GET /hello with optional name parameter validation and personalized greeting logic, and HealthEndpointHandler (SU-003) handles GET /health with timestamp generation. All errors are caught by GlobalErrorHandler which returns consistent JSON error responses with appropriate HTTP status codes. No database or external dependencies are required.
 
 ## Technology Stack
 
-{'language': 'Python 3.12', 'framework': 'FastAPI 0.104.1', 'asgi_server': 'Uvicorn 0.24.0', 'datetime_handling': 'Python datetime module (stdlib)', 'validation': 'Pydantic v2 (included with FastAPI)', 'logging': 'Python logging module (stdlib)', 'cors': 'FastAPI CORSMiddleware (included)'}
+{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104.1', 'asgi_server': 'uvicorn 0.24.0', 'datetime_handling': 'Python standard library datetime module', 'validation': 'Pydantic v2 (included with FastAPI)', 'http_client': 'httpx (for testing, optional)'}
 
 ## Assumptions
 
-['FastAPI and Uvicorn are installed and available in the Python environment', 'Application runs on localhost:8000 by default (configurable via Uvicorn)', 'HTTPS/TLS is handled at infrastructure level (reverse proxy or load balancer)', 'Name parameter should only contain alphanumeric characters and spaces (no special characters)', 'All timestamps are in UTC timezone and formatted as ISO 8601 strings', 'No database persistence is required for this minimal API', 'CORS is enabled for all origins in development (should be restricted in production)', 'Logging output goes to stdout/stderr (configurable via logging configuration)', 'Request validation errors from Pydantic should be caught and formatted consistently']
+['FastAPI and uvicorn are installed as project dependencies', 'Application runs on localhost:8000 by default', 'All timestamps are in UTC timezone', 'Name parameter accepts only alphanumeric characters and spaces (no special characters)', 'No authentication or authorization is required for either endpoint', 'No database or persistent storage is needed', 'CORS is not required (single-origin API)', 'Request/response logging is handled by uvicorn default logging', 'Application is stateless with no session management', 'ISO 8601 timestamp format includes timezone information']
 
 ## API Contracts
 
@@ -22,7 +22,7 @@ Minimal three-layer REST API architecture using FastAPI framework. Application l
 - **Authentication:** False
 - **Response Schema:**
 ```json
-{'message': "string (format: 'Hello, {name}!' or 'Hello, World!')"}
+{'message': "string (greeting message in format 'Hello, {name}!' or 'Hello, World!')"}
 ```
 - **Error Responses:** N/A, N/A, N/A
 
@@ -32,7 +32,7 @@ Minimal three-layer REST API architecture using FastAPI framework. Application l
 - **Authentication:** False
 - **Response Schema:**
 ```json
-{'status': "string (value: 'ok')", 'timestamp': 'string (ISO 8601 format, UTC timezone)'}
+{'status': "string (always 'ok' for healthy state)", 'timestamp': 'string (ISO 8601 formatted UTC timestamp)'}
 ```
 - **Error Responses:** N/A
 
@@ -40,10 +40,10 @@ Minimal three-layer REST API architecture using FastAPI framework. Application l
 
 ### FastAPIApplicationFactory
 
-- **Responsibility:** Initializes and configures the FastAPI application with middleware, exception handlers, and startup configuration.
+- **Responsibility:** Initializes and configures the FastAPI application with middleware, exception handlers, and core settings.
 - **Semantic Unit:** SU-001
 - **Dependencies:** None
-- **Implementation Notes:** Use FastAPI 0.104+ with Uvicorn ASGI server. Set title='Hello World API', version='1.0.0', description='Minimal REST API with hello and health endpoints'. Configure JSON response encoding with ensure_ascii=False. Add CORS middleware with allow_origins=['*'] for development. Set up exception handlers in setup_exception_handlers() method. Use dependency injection for request validation.
+- **Implementation Notes:** Use FastAPI 0.104+ for application creation. Set title='Hello World API', version='1.0.0', description='Minimal REST API with hello and health endpoints'. Configure CORS if needed (allow all origins for simplicity). Register exception handlers in setup_exception_handlers method. Use dependency injection for request validation.
 - **Interfaces:**
   - `create_app`
   - `setup_exception_handlers`
@@ -52,35 +52,46 @@ Minimal three-layer REST API architecture using FastAPI framework. Application l
 
 - **Responsibility:** Handles GET /hello requests with optional name parameter and returns personalized greeting message.
 - **Semantic Unit:** SU-002
-- **Dependencies:** None
-- **Implementation Notes:** Implement as FastAPI route handler using @app.get('/hello'). Accept name as Query parameter with Query(None, max_length=255). Validate name using regex pattern ^[a-zA-Z0-9 ]*$ to allow only alphanumeric and spaces. Strip whitespace from name input. If name is None or empty string, use 'World' as default. Return dict with 'message' key containing formatted string. Raise HTTPException(status_code=400, detail='...') for validation failures.
+- **Dependencies:** FastAPIApplicationFactory
+- **Implementation Notes:** Use FastAPI Query parameter with default=None for optional name. Validate name using regex pattern '^[a-zA-Z0-9 ]*$' to allow only alphanumeric and spaces. Check length <= 255 characters. Raise HTTPException(status_code=400, detail=...) for validation failures. Return dict with 'message' key. Handle None name by returning 'Hello, World!'. Strip whitespace from name input.
 - **Interfaces:**
   - `get_hello`
-  - `validate_name_parameter`
-  - `format_greeting_message`
+  - `validate_name`
+  - `format_greeting`
 
 ### HealthEndpointHandler
 
 - **Responsibility:** Handles GET /health requests and returns API health status with current UTC timestamp.
 - **Semantic Unit:** SU-003
-- **Dependencies:** None
-- **Implementation Notes:** Implement as FastAPI route handler using @app.get('/health'). Use datetime.datetime.utcnow() or datetime.datetime.now(datetime.timezone.utc) to get current time. Format timestamp using isoformat() method to produce ISO 8601 format (e.g., '2024-01-15T10:30:45.123456+00:00'). Always return status='ok' to indicate API is running. Return dict with 'status' and 'timestamp' keys. No parameters required.
+- **Dependencies:** FastAPIApplicationFactory
+- **Implementation Notes:** Use datetime.datetime.utcnow() or datetime.datetime.now(datetime.timezone.utc) to get current time. Format timestamp using isoformat() method to produce ISO 8601 format (e.g., '2024-01-15T10:30:45.123456+00:00'). Always return status='ok'. Return dict with 'status' and 'timestamp' keys. No validation needed for this endpoint.
 - **Interfaces:**
   - `get_health`
   - `get_current_timestamp`
 
-### GlobalExceptionHandler
+### GlobalErrorHandler
 
-- **Responsibility:** Handles all exceptions globally and returns properly formatted error responses with appropriate HTTP status codes.
+- **Responsibility:** Manages global exception handling and HTTP status code responses for all API errors.
 - **Semantic Unit:** SU-004
 - **Dependencies:** None
-- **Implementation Notes:** Register exception handlers using @app.exception_handler(ExceptionType) decorator. For HTTPException: extract status_code and detail, return JSONResponse with status_code and formatted error dict. For RequestValidationError: return 400 status with error_code='VALIDATION_ERROR' and message from validation error details. For generic Exception: log error with logging module at ERROR level, return 500 status with error_code='INTERNAL_SERVER_ERROR'. Error response format: {"error_code": "CODE", "message": "description"}. Never expose internal error details in 500 responses.
+- **Implementation Notes:** Register exception handlers using @app.exception_handler(ExceptionType) decorator. For HTTPException: extract status_code and detail, return JSONResponse with status_code. For RequestValidationError: return 400 with error_code='VALIDATION_ERROR'. For generic Exception: log error, return 500 with error_code='INTERNAL_SERVER_ERROR'. Error response format: {"error": {"code": "ERROR_CODE", "message": "error message"}}. Always include status_code in JSONResponse.
 - **Interfaces:**
   - `handle_http_exception`
   - `handle_validation_error`
   - `handle_generic_exception`
   - `format_error_response`
 
+### ApplicationEntryPoint
+
+- **Responsibility:** Provides the main entry point for running the FastAPI application with server configuration and startup validation.
+- **Semantic Unit:** SU-005
+- **Dependencies:** FastAPIApplicationFactory, HelloEndpointHandler, HealthEndpointHandler, GlobalErrorHandler
+- **Implementation Notes:** Use uvicorn.run() to start server with host='0.0.0.0', port=8000, reload=False for production. Create app using FastAPIApplicationFactory.create_app(). Validate that both /hello and /health routes are registered. Log startup message with server URL. Handle KeyboardInterrupt gracefully. Use if __name__ == '__main__': pattern for entry point. Set log_level='info' for uvicorn.
+- **Interfaces:**
+  - `main`
+  - `validate_startup`
+  - `run_server`
+
 ---
 
-*Generated by Design Agent on 2025-12-02 22:28:38*
+*Generated by Design Agent on 2025-12-11 18:59:26*

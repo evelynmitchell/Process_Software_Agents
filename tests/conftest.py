@@ -1,8 +1,8 @@
 """
-Pytest configuration and fixtures for Hello World API tests.
+Pytest configuration and fixtures for ASP Platform tests.
 
-Provides test database setup, test client fixtures, and mock data generation
-for comprehensive testing of the Hello World API application.
+Provides test database setup, test client fixtures, mock data generation,
+and Hypothesis profiles for property-based testing.
 
 Author: ASP Code Agent
 """
@@ -11,6 +11,47 @@ import os
 from typing import Any
 
 import pytest
+
+# ============================================================================
+# Hypothesis Configuration (Property-Based Testing)
+# See: design/testing_strategies.md
+# ============================================================================
+
+try:
+    from hypothesis import Phase, Verbosity, settings
+
+    # Dev profile: Fast for local development
+    settings.register_profile(
+        "dev",
+        max_examples=10,
+        deadline=500,  # 500ms per example max
+        verbosity=Verbosity.normal,
+    )
+
+    # CI profile: Balanced for continuous integration
+    settings.register_profile(
+        "ci",
+        max_examples=50,
+        deadline=1000,  # 1 second per example max
+        verbosity=Verbosity.normal,
+        suppress_health_check=[],
+    )
+
+    # Thorough profile: Comprehensive but expensive
+    settings.register_profile(
+        "thorough",
+        max_examples=500,
+        deadline=5000,  # 5 seconds per example max
+        verbosity=Verbosity.verbose,
+        phases=[Phase.explicit, Phase.reuse, Phase.generate, Phase.shrink],
+    )
+
+    # Load profile from environment (default: dev)
+    settings.load_profile(os.getenv("HYPOTHESIS_PROFILE", "dev"))
+
+except ImportError:
+    # Hypothesis not installed, skip configuration
+    pass
 
 # Demo app fixtures removed - demo app moved to artifacts/
 # ASP platform tests use MockLLMClient and don't need FastAPI/database fixtures

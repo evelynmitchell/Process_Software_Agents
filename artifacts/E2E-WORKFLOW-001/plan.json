@@ -4,43 +4,119 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Implement API endpoint handler",
-      "api_interactions": 2,
-      "data_transformations": 1,
-      "logical_branches": 2,
+      "description": "Design database schema for blog posts and users with PostgreSQL, create migration scripts",
+      "api_interactions": 1,
+      "data_transformations": 2,
+      "logical_branches": 1,
       "code_entities_modified": 3,
-      "novelty_multiplier": 1.2,
-      "est_complexity": 32,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 27,
       "dependencies": []
     },
     {
       "unit_id": "SU-002",
-      "description": "Add validation logic",
-      "api_interactions": 0,
+      "description": "Implement API key authentication middleware with validation and error handling",
+      "api_interactions": 1,
       "data_transformations": 2,
       "logical_branches": 3,
       "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 27,
+      "est_complexity": 29,
       "dependencies": [
         "SU-001"
       ]
     },
     {
       "unit_id": "SU-003",
-      "description": "Implement error handling",
-      "api_interactions": 0,
-      "data_transformations": 1,
+      "description": "Create POST /posts endpoint with request validation, data persistence, and response serialization",
+      "api_interactions": 2,
+      "data_transformations": 3,
+      "logical_branches": 3,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 40,
+      "dependencies": [
+        "SU-001",
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Implement GET /posts/:id endpoint with database query, error handling for missing posts",
+      "api_interactions": 1,
+      "data_transformations": 2,
+      "logical_branches": 2,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 26,
+      "dependencies": [
+        "SU-001",
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-005",
+      "description": "Build GET /posts endpoint with pagination logic (limit/offset), filtering, and response formatting",
+      "api_interactions": 1,
+      "data_transformations": 3,
       "logical_branches": 4,
       "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 25,
+      "est_complexity": 37,
       "dependencies": [
-        "SU-001"
+        "SU-001",
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-006",
+      "description": "Implement PUT /posts/:id endpoint with update validation, authorization checks, and data persistence",
+      "api_interactions": 2,
+      "data_transformations": 3,
+      "logical_branches": 4,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 43,
+      "dependencies": [
+        "SU-001",
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-007",
+      "description": "Create DELETE /posts/:id endpoint with authorization validation and database deletion",
+      "api_interactions": 2,
+      "data_transformations": 1,
+      "logical_branches": 3,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 26,
+      "dependencies": [
+        "SU-001",
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-008",
+      "description": "Integrate FastAPI application setup, configure CORS, error handlers, and database connection pooling",
+      "api_interactions": 2,
+      "data_transformations": 2,
+      "logical_branches": 2,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 36,
+      "dependencies": [
+        "SU-001",
+        "SU-002",
+        "SU-003",
+        "SU-004",
+        "SU-005",
+        "SU-006",
+        "SU-007"
       ]
     }
   ],
-  "total_est_complexity": 84,
+  "total_est_complexity": 264,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"

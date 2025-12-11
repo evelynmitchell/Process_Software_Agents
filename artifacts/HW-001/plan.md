@@ -2,7 +2,7 @@
 
 **Project ID:** HELLO-WORLD-E2E
 **Task ID:** HW-001
-**Total Complexity:** 83
+**Total Complexity:** 89
 **PROBE-AI Enabled:** False
 **Agent Version:** 1.0.0
 
@@ -30,21 +30,31 @@
 
 ### SU-003: Implement GET /health endpoint with timestamp generation and JSON response formatting
 
-- **Estimated Complexity:** 21
+- **Estimated Complexity:** 17
 - **API Interactions:** 0
 - **Data Transformations:** 2
 - **Logical Branches:** 1
-- **Code Entities Modified:** 2
+- **Code Entities Modified:** 1
 - **Novelty Multiplier:** 1.0
 - **Dependencies:** SU-001
 
-### SU-004: Add global error handling middleware with appropriate HTTP status codes and error response formatting
+### SU-004: Add global error handling middleware and HTTP status code management
 
-- **Estimated Complexity:** 27
+- **Estimated Complexity:** 22
 - **API Interactions:** 0
-- **Data Transformations:** 2
+- **Data Transformations:** 1
 - **Logical Branches:** 3
 - **Code Entities Modified:** 2
 - **Novelty Multiplier:** 1.0
 - **Dependencies:** SU-001
+
+### SU-005: Create application entry point with server configuration and startup validation
+
+- **Estimated Complexity:** 15
+- **API Interactions:** 0
+- **Data Transformations:** 1
+- **Logical Branches:** 2
+- **Code Entities Modified:** 1
+- **Novelty Multiplier:** 1.0
+- **Dependencies:** SU-002, SU-003, SU-004
 

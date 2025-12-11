@@ -65,7 +65,12 @@ dev = [
     "mkdocstrings[python]>=0.24.0",
     "pytest-playwright>=0.4.0",
     "playwright>=1.40.0",
-    "lxml>=6.0.2"
+    "lxml>=6.0.2",
+    # Advanced testing strategies (see design/testing_strategies.md)
+    "allpairspy>=2.5.0",      # Pairwise/combination testing
+    "hypothesis>=6.100.0",    # Property-based testing
+    "mutmut>=2.4.0",          # Mutation testing
+    "pyDOE2>=1.3.0",          # Design of Experiments
 ]
 
 [project.urls]

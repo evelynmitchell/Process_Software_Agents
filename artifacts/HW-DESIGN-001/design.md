@@ -4,15 +4,15 @@
 
 ## Architecture Overview
 
-Simple three-tier architecture for a minimal HTTP API. HTTPServerFramework (SU-001) initializes FastAPI and configures the ASGI server. HelloRouteHandler (SU-002) registers the GET /hello route and delegates response formatting. ResponseFormatter (SU-003) handles JSON serialization and HTTP status codes. Request flow: HTTP GET /hello → FastAPI routing → HelloRouteHandler.hello() → ResponseFormatter.format_success_response() → JSON response with status 200. No database, caching, or external dependencies required.
+Minimal three-tier architecture for a simple greeting API. HTTPServerFramework initializes and configures the FastAPI application with routing infrastructure. HelloRouteHandler implements the GET /hello endpoint that returns a JSON response with a greeting message. ResponseFormatter ensures all HTTP responses (success and error) are properly formatted with correct status codes and Content-Type headers. The application uses FastAPI's built-in JSON serialization and automatic OpenAPI documentation generation. No database, authentication, or complex business logic required.
 
 ## Technology Stack
 
-{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'asgi_server': 'uvicorn 0.24+', 'json_serialization': 'FastAPI built-in (Pydantic v2+)', 'http_client_testing': 'httpx 0.25+ (for testing)'}
+{'language': 'Python 3.12', 'framework': 'FastAPI 0.104.1', 'asgi_server': 'uvicorn 0.24.0', 'json_serialization': 'FastAPI built-in (uses pydantic v2 for serialization)', 'http_client_testing': 'httpx 0.25.0 (for testing)'}
 
 ## Assumptions
 
-['FastAPI is installed and available in the Python environment', 'uvicorn ASGI server is used to run the application', 'Server runs on localhost (127.0.0.1) port 8000 by default', 'No authentication or authorization is required for the /hello endpoint', 'Response must be JSON format with Content-Type: application/json', 'HTTP status code 200 is returned for successful requests', 'No request body or query parameters are required for GET /hello', "Response message is exactly 'Hello World' (case-sensitive)", 'No database or persistent storage is required', 'Application runs in a single process (no clustering or load balancing)']
+['FastAPI is installed and available in the Python environment', 'uvicorn ASGI server is used to run the application', 'No authentication or authorization is required for the /hello endpoint', 'No database or persistent storage is needed', 'The application runs on localhost:8000 by default (standard uvicorn configuration)', 'JSON response format is acceptable (no XML or other formats required)', 'No request body or query parameters are needed for the /hello endpoint', 'HTTP 200 OK is the only success status code needed', "FastAPI's automatic OpenAPI/Swagger documentation generation is acceptable"]
 
 ## API Contracts
 
@@ -33,30 +33,30 @@ Simple three-tier architecture for a minimal HTTP API. HTTPServerFramework (SU-0
 - **Responsibility:** Initialize and configure the FastAPI HTTP server framework with routing infrastructure
 - **Semantic Unit:** SU-001
 - **Dependencies:** None
-- **Implementation Notes:** Use FastAPI 0.104+ to create the application instance. Configure with title='Hello World API' and version='1.0.0'. Use uvicorn as the ASGI server (uvicorn 0.24+). Default host should be '127.0.0.1' and port 8000. Enable automatic OpenAPI documentation generation (default behavior). Configure logging to output startup messages.
+- **Implementation Notes:** Use FastAPI 0.104+ to create the application instance. Configure with title='Hello World API' and version='1.0.0'. Set up CORS if needed for cross-origin requests. Use uvicorn as the ASGI server for local development and production. Initialize app with default settings (no custom middleware required for this minimal implementation).
 - **Interfaces:**
   - `create_app`
-  - `start_server`
+  - `configure_routes`
 
 ### HelloRouteHandler
 
-- **Responsibility:** Handle GET /hello requests and return serialized JSON response with greeting message
+- **Responsibility:** Handle GET /hello requests and return a greeting message with proper response serialization
 - **Semantic Unit:** SU-002
 - **Dependencies:** HTTPServerFramework
-- **Implementation Notes:** Register route handler using FastAPI @app.get('/hello') decorator. Return dictionary with key 'message' and value 'Hello World'. FastAPI automatically serializes to JSON with Content-Type: application/json. Handler must be synchronous function (no async required for this simple case). Ensure response status code is 200 (default for GET success).
+- **Implementation Notes:** Implement as a FastAPI route handler decorated with @app.get('/hello'). Return a dictionary with key 'message' and value 'Hello World'. FastAPI automatically serializes the dictionary to JSON with Content-Type: application/json. No request parameters or query strings required. Handler should be synchronous (no async needed for this simple operation). Response status code defaults to 200 OK.
 - **Interfaces:**
   - `hello`
 
 ### ResponseFormatter
 
-- **Responsibility:** Format HTTP responses with appropriate status codes and content-type headers
+- **Responsibility:** Format HTTP responses with proper status codes and content-type headers for JSON serialization
 - **Semantic Unit:** SU-003
 - **Dependencies:** None
-- **Implementation Notes:** Use FastAPI's JSONResponse for explicit response control. Success responses return status_code=200 with Content-Type: application/json. Error responses return appropriate HTTP status codes (500 for internal errors). Include error_code and message fields in error responses. FastAPI handles serialization automatically via Pydantic models or dicts. Ensure all responses include proper Content-Type headers (application/json).
+- **Implementation Notes:** For success responses, return the data dictionary as-is (FastAPI handles JSON serialization automatically with status_code=200). For error responses, use FastAPI's HTTPException with status_code parameter and detail containing error_code and message. Set Content-Type header to application/json (FastAPI default). Handle 500 Internal Server Error by catching unexpected exceptions in route handlers and returning formatted error response. All responses must include proper HTTP status codes (200 for success, 500 for errors).
 - **Interfaces:**
   - `format_success_response`
   - `format_error_response`
 
 ---
 
-*Generated by Design Agent on 2025-12-02 22:29:34*
+*Generated by Design Agent on 2025-12-11 19:00:19*
