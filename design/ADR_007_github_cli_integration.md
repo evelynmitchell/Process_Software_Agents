@@ -579,9 +579,10 @@ def clone_or_fork(self, owner: str, repo: str, workspace: Workspace) -> Path:
 - [x] Unit tests for Phase 3 (7 tests)
 
 ### Phase 4: Dogfooding
-- [ ] Test on real issues in this repo
-- [ ] Document workflow and limitations
-- [ ] Iterate based on feedback
+- [x] Test on real issues in this repo (issue #97)
+- [x] Document workflow and limitations
+- [x] Fixed TestExecutor API mismatch discovered during testing
+- [ ] Iterate based on feedback (ongoing)
 
 ---
 

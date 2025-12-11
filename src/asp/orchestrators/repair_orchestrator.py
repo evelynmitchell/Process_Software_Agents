@@ -478,24 +478,18 @@ class RepairOrchestrator:
         Returns:
             Parsed test results
         """
-        workspace_path = request.workspace.target_repo_path
+        # Determine test path if specific tests requested
+        test_path = None
+        if request.target_tests:
+            test_path = " ".join(request.target_tests)
 
-        # Build test command
-        if request.test_command:
-            test_cmd = request.test_command
-        elif request.target_tests:
-            tests = " ".join(request.target_tests)
-            test_cmd = f"pytest {tests} -v"
-        else:
-            test_cmd = "pytest -v"
+        logger.debug(f"Running tests in {request.workspace.target_repo_path}")
 
-        logger.debug(f"Running tests: {test_cmd}")
-
-        # Execute tests
+        # Execute tests using TestExecutor's expected interface
         result = await asyncio.to_thread(
             self.test_executor.run_tests,
-            command=test_cmd,
-            working_dir=workspace_path,
+            workspace=request.workspace,
+            test_path=test_path,
         )
 
         logger.info(
