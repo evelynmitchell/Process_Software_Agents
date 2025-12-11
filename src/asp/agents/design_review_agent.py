@@ -176,7 +176,8 @@ class DesignReviewAgent(BaseAgent):
                         agent_name="Design Review Agent",
                         artifact_files=[str(json_path), str(md_path)],
                     )
-                    logger.info(f"Committed artifacts: {commit_hash}")
+                    if commit_hash:
+                        logger.info(f"Committed artifacts: {commit_hash}")
                 else:
                     logger.warning("Not in git repository, skipping commit")
 

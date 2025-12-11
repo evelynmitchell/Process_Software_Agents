@@ -64,7 +64,8 @@ dev = [
     "mkdocs-material>=9.5.0",
     "mkdocstrings[python]>=0.24.0",
     "pytest-playwright>=0.4.0",
-    "playwright>=1.40.0"
+    "playwright>=1.40.0",
+    "lxml>=6.0.2"
 ]
 
 [project.urls]

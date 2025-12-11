@@ -78,7 +78,7 @@ class DataIntegrityReviewAgent(BaseAgent):
                 design_specification=design_spec.model_dump_json(indent=2),
             )
 
-            # Call LLM
+            # Call LLM with higher token limit to avoid truncation
             logger.debug("Calling LLM for data integrity review")
             response = self.call_llm(prompt, max_tokens=8192)
 

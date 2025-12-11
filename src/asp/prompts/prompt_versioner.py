@@ -127,12 +127,14 @@ class PromptVersioner:
                 ]
                 changed_files.append(str(self.version_history_file))
 
-                git_commit_artifact(
+                commit_hash = git_commit_artifact(
                     task_id=pip.task_id,
-                    artifact_type="prompt_update",
-                    file_paths=changed_files,
-                    message=f"Apply PIP-{pip.proposal_id}: {pip.analysis[:50]}...",
+                    agent_name="Prompt Versioner",
+                    artifact_files=changed_files,
+                    status=f"PIP-{pip.proposal_id}",
                 )
+                if commit_hash:
+                    logger.info(f"Committed prompt updates: {commit_hash}")
 
         logger.info(f"PIP {pip.proposal_id} applied: {len(results)} prompts updated")
         return results

@@ -115,6 +115,50 @@ def git_status_check(path: str | None = None) -> dict[str, any]:
         raise GitError("Git command not found. Is git installed?") from e
 
 
+def check_files_ignored(file_paths: list[str], path: str | None = None) -> list[str]:
+    """
+    Check which files are ignored by .gitignore.
+
+    Args:
+        file_paths: List of file paths to check (relative to repo root)
+        path: Optional path to git repository (defaults to current directory)
+
+    Returns:
+        List of file paths that are NOT ignored (can be added to git)
+
+    Example:
+        >>> check_files_ignored(["artifacts/plan.json", "src/main.py"])
+        ["src/main.py"]  # artifacts/ is in .gitignore
+    """
+    if not file_paths:
+        return []
+
+    try:
+        # git check-ignore returns exit code 0 for ignored files, 1 for not ignored
+        # Use --stdin to check multiple files at once
+        cmd = ["git", "check-ignore", "--stdin"]
+        result = subprocess.run(
+            cmd,
+            cwd=path,
+            input="\n".join(file_paths),
+            capture_output=True,
+            text=True,
+            check=False,  # Don't raise on non-zero exit (expected for non-ignored files)
+        )
+
+        # Parse ignored files from output
+        ignored_files = (
+            set(result.stdout.strip().split("\n")) if result.stdout.strip() else set()
+        )
+
+        # Return files that are NOT ignored
+        return [f for f in file_paths if f not in ignored_files]
+
+    except FileNotFoundError:
+        # Git not installed, assume no files ignored
+        return file_paths
+
+
 def git_add_files(file_paths: list[str], path: str | None = None) -> None:
     """
     Stage files for commit.
@@ -133,8 +177,19 @@ def git_add_files(file_paths: list[str], path: str | None = None) -> None:
         logger.warning("No files provided to git_add_files")
         return
 
+    # Filter out ignored files
+    addable_files = check_files_ignored(file_paths, path)
+
+    if not addable_files:
+        logger.debug(f"All {len(file_paths)} files are in .gitignore, skipping git add")
+        return
+
+    if len(addable_files) < len(file_paths):
+        ignored_count = len(file_paths) - len(addable_files)
+        logger.debug(f"Skipping {ignored_count} files in .gitignore")
+
     try:
-        cmd = ["git", "add"] + file_paths
+        cmd = ["git", "add"] + addable_files
         result = subprocess.run(
             cmd,
             cwd=path,
@@ -143,7 +198,7 @@ def git_add_files(file_paths: list[str], path: str | None = None) -> None:
             check=True,
         )
 
-        logger.debug(f"Added {len(file_paths)} files to git staging area")
+        logger.debug(f"Added {len(addable_files)} files to git staging area")
 
     except subprocess.CalledProcessError as e:
         raise GitError(f"Git add failed: {e.stderr}") from e
@@ -207,7 +262,7 @@ def git_commit_artifact(
     artifact_files: list[str],
     status: str | None = None,
     path: str | None = None,
-) -> str:
+) -> str | None:
     """
     Commit artifact files with standardized message format.
 
@@ -221,7 +276,7 @@ def git_commit_artifact(
         path: Optional path to git repository (defaults to current directory)
 
     Returns:
-        Commit hash (short SHA)
+        Commit hash (short SHA), or None if all files are in .gitignore
 
     Raises:
         GitError: If commit fails
@@ -239,6 +294,14 @@ def git_commit_artifact(
         if not is_git_repository(path):
             raise GitError("Not in a git repository")
 
+        # Check which files can be added (not in .gitignore)
+        addable_files = check_files_ignored(artifact_files, path)
+        if not addable_files:
+            logger.debug(
+                f"All artifact files for {task_id} are in .gitignore, skipping commit"
+            )
+            return None
+
         # Stage files
         git_add_files(artifact_files, path)
 
@@ -249,13 +312,13 @@ def git_commit_artifact(
         else:
             message = f"{agent_name}: {action} for {task_id}"
 
-        # Add file list to commit body
-        file_count = len(artifact_files)
+        # Add file list to commit body (only addable files)
+        file_count = len(addable_files)
         if file_count == 1:
-            message += f"\n\nFiles: {artifact_files[0]}"
+            message += f"\n\nFiles: {addable_files[0]}"
         else:
             message += f"\n\nFiles ({file_count}):"
-            for file_path in artifact_files:
+            for file_path in addable_files:
                 message += f"\n- {file_path}"
 
         # Add co-author footer
@@ -296,6 +359,8 @@ def _get_action_for_agent(agent_name: str) -> str:
         "Code Review Agent": "Add code review",
         "Test Agent": "Add tests",
         "Integration Agent": "Add integration validation",
+        "Postmortem Agent": "Add postmortem report",
+        "Prompt Versioner": "Update prompts",
     }
 
     return action_map.get(agent_name, "Add artifact")

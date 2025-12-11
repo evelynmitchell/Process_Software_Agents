@@ -8,9 +8,11 @@ Author: ASP Development Team
 Date: November 20, 2025
 """
 
+# pylint: disable=too-many-instance-attributes
+
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from asp.models.code import GeneratedCode
 from asp.models.code_review import CodeReviewReport
@@ -18,6 +20,7 @@ from asp.models.design import DesignSpecification
 from asp.models.design_review import DesignReviewReport
 from asp.models.planning import ProjectPlan
 from asp.models.postmortem import PostmortemReport
+from asp.models.repair import RepairResult
 from asp.models.test import TestReport
 
 
@@ -96,3 +99,34 @@ class TSPExecutionResult:
     execution_log: list[dict[str, Any]]
     hitl_overrides: list[dict[str, Any]]
     total_duration_seconds: float
+
+    # Execution mode (greenfield = new development, repair = bug fixing)
+    mode: Literal["greenfield", "repair"] = "greenfield"
+
+    # Repair result (only set when mode="repair")
+    repair_result: RepairResult | None = None
+
+
+@dataclass
+class RepairExecutionResult:
+    """
+    Result from repair mode execution.
+
+    A simplified result type for standalone repair operations that don't
+    go through the full TSP pipeline.
+
+    Attributes:
+        task_id: Unique task identifier
+        timestamp: When execution started
+        overall_status: PASS (fixed), FAIL (couldn't fix), ESCALATED (needs human)
+        repair_result: The detailed repair result from RepairOrchestrator
+        total_duration_seconds: Total execution time
+        execution_log: List of repair iteration events
+    """
+
+    task_id: str
+    timestamp: datetime
+    overall_status: str  # PASS, FAIL, ESCALATED
+    repair_result: RepairResult
+    total_duration_seconds: float
+    execution_log: list[dict[str, Any]]
