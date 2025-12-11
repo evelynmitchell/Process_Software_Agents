@@ -15,6 +15,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from services.github_service import (
+    PR_BODY_TEMPLATE,
     GitHubAuthError,
     GitHubCLINotFoundError,
     GitHubIssue,
@@ -502,3 +503,231 @@ class TestGitHubPR:
         assert pr.owner == "owner"
         assert pr.number == 456
         assert pr.branch == "fix/issue-123"
+
+
+# =============================================================================
+# Push Branch Tests
+# =============================================================================
+
+
+class TestPushBranch:
+    """Tests for push_branch method."""
+
+    @patch("subprocess.run")
+    def test_push_branch_success(self, mock_run, github_service, tmp_path):
+        """Test successful branch push."""
+        mock_run.return_value = MagicMock(returncode=0)
+
+        github_service.push_branch(tmp_path, "fix/issue-123")
+
+        mock_run.assert_called_once()
+        call_args = mock_run.call_args
+        cmd = call_args[0][0]
+        assert "git" in cmd
+        assert "push" in cmd
+        assert "-u" in cmd
+        assert "origin" in cmd
+        assert "fix/issue-123" in cmd
+
+    @patch("subprocess.run")
+    def test_push_branch_force(self, mock_run, github_service, tmp_path):
+        """Test force push."""
+        mock_run.return_value = MagicMock(returncode=0)
+
+        github_service.push_branch(tmp_path, "fix/issue-123", force=True)
+
+        call_args = mock_run.call_args
+        cmd = call_args[0][0]
+        assert "--force" in cmd
+
+    @patch("subprocess.run")
+    def test_push_branch_failure(self, mock_run, github_service, tmp_path):
+        """Test push failure."""
+        mock_run.side_effect = subprocess.CalledProcessError(
+            1, "git", stderr="Permission denied"
+        )
+
+        with pytest.raises(GitHubServiceError, match="Failed to push branch"):
+            github_service.push_branch(tmp_path, "fix/issue-123")
+
+
+# =============================================================================
+# Create PR Tests
+# =============================================================================
+
+
+class TestCreatePR:
+    """Tests for create_pr method."""
+
+    @patch("subprocess.run")
+    def test_create_pr_success(self, mock_run, github_service, tmp_path):
+        """Test successful PR creation."""
+        # Mock gh pr create, gh pr view, git remote get-url, git branch
+        mock_run.side_effect = [
+            MagicMock(
+                returncode=0,
+                stdout="https://github.com/owner/repo/pull/456",
+            ),
+            MagicMock(
+                returncode=0,
+                stdout=json.dumps({"number": 456, "url": "https://github.com/owner/repo/pull/456"}),
+            ),
+            MagicMock(returncode=0, stdout="https://github.com/owner/repo.git\n"),
+            MagicMock(returncode=0, stdout="fix/issue-123\n"),
+        ]
+
+        pr = github_service.create_pr(
+            tmp_path,
+            title="Fix issue #123",
+            body="This fixes the bug",
+        )
+
+        assert pr.number == 456
+        assert pr.title == "Fix issue #123"
+        assert pr.owner == "owner"
+        assert pr.repo == "repo"
+
+    @patch("subprocess.run")
+    def test_create_pr_draft(self, mock_run, github_service, tmp_path):
+        """Test draft PR creation."""
+        mock_run.side_effect = [
+            MagicMock(returncode=0, stdout="https://github.com/owner/repo/pull/789"),
+            MagicMock(
+                returncode=0,
+                stdout=json.dumps({"number": 789, "url": "https://github.com/owner/repo/pull/789"}),
+            ),
+            MagicMock(returncode=0, stdout="https://github.com/owner/repo.git\n"),
+            MagicMock(returncode=0, stdout="fix/issue-456\n"),
+        ]
+
+        github_service.create_pr(
+            tmp_path,
+            title="WIP: Fix issue",
+            body="Work in progress",
+            draft=True,
+        )
+
+        # Check the first call (gh pr create) includes --draft
+        first_call = mock_run.call_args_list[0]
+        cmd = first_call[0][0]
+        assert "--draft" in cmd
+
+    @patch("subprocess.run")
+    def test_create_pr_custom_base(self, mock_run, github_service, tmp_path):
+        """Test PR with custom base branch."""
+        mock_run.side_effect = [
+            MagicMock(returncode=0, stdout="https://github.com/owner/repo/pull/111"),
+            MagicMock(
+                returncode=0,
+                stdout=json.dumps({"number": 111, "url": "https://github.com/owner/repo/pull/111"}),
+            ),
+            MagicMock(returncode=0, stdout="https://github.com/owner/repo.git\n"),
+            MagicMock(returncode=0, stdout="hotfix/urgent\n"),
+        ]
+
+        github_service.create_pr(
+            tmp_path,
+            title="Hotfix",
+            body="Urgent fix",
+            base_branch="develop",
+        )
+
+        first_call = mock_run.call_args_list[0]
+        cmd = first_call[0][0]
+        assert "--base" in cmd
+        # Find the index of --base and check the next element
+        base_idx = cmd.index("--base")
+        assert cmd[base_idx + 1] == "develop"
+
+    @patch("subprocess.run")
+    def test_create_pr_failure(self, mock_run, github_service, tmp_path):
+        """Test PR creation failure."""
+        mock_run.side_effect = subprocess.CalledProcessError(
+            1, "gh", stderr="Failed to create PR"
+        )
+
+        with pytest.raises(GitHubServiceError, match="Failed to create PR"):
+            github_service.create_pr(tmp_path, title="Fix", body="Body")
+
+    @patch("subprocess.run")
+    def test_create_pr_fallback_parsing(self, mock_run, github_service, tmp_path):
+        """Test PR number parsing when gh pr view fails."""
+        mock_run.side_effect = [
+            MagicMock(returncode=0, stdout="https://github.com/owner/repo/pull/999"),
+            subprocess.CalledProcessError(1, "gh", stderr="PR view failed"),
+            MagicMock(returncode=0, stdout="https://github.com/owner/repo.git\n"),
+            MagicMock(returncode=0, stdout="feature-branch\n"),
+        ]
+
+        pr = github_service.create_pr(tmp_path, title="Fix", body="Body")
+
+        assert pr.number == 999  # Parsed from URL
+
+
+# =============================================================================
+# Format PR Body Tests
+# =============================================================================
+
+
+class TestFormatPRBody:
+    """Tests for format_pr_body method."""
+
+    def test_format_pr_body_basic(self, github_service, sample_issue):
+        """Test basic PR body formatting."""
+        body = github_service.format_pr_body(
+            issue=sample_issue,
+            changes_summary="Fixed the null pointer check",
+            tests_run=10,
+            tests_passed=10,
+            coverage=85.5,
+            iterations=2,
+            confidence=0.95,
+            diagnostic_summary="Null check was missing",
+        )
+
+        assert "Fixes #123" in body
+        assert sample_issue.title in body
+        assert "Fixed the null pointer check" in body
+        assert "Tests Run:** 10" in body
+        assert "Tests Passed:** 10" in body
+        assert "Coverage:** 85.5%" in body
+        assert "Iterations:** 2" in body
+        assert "Confidence:** 95%" in body
+
+    def test_format_pr_body_defaults(self, github_service, sample_issue):
+        """Test PR body with default values."""
+        body = github_service.format_pr_body(issue=sample_issue)
+
+        assert "Fixes #123" in body
+        assert "See diff for details" in body
+        assert "Tests Run:** 0" in body
+        assert "N/A" in body
+
+
+class TestPRBodyTemplate:
+    """Tests for PR_BODY_TEMPLATE constant."""
+
+    def test_template_contains_required_sections(self):
+        """Test that template has all required sections."""
+        assert "## Summary" in PR_BODY_TEMPLATE
+        assert "## Changes Made" in PR_BODY_TEMPLATE
+        assert "## Test Results" in PR_BODY_TEMPLATE
+        assert "## Repair Process" in PR_BODY_TEMPLATE
+        assert "Fixes #{issue_number}" in PR_BODY_TEMPLATE
+
+    def test_template_formatting_placeholders(self):
+        """Test all placeholders are present."""
+        placeholders = [
+            "{issue_number}",
+            "{issue_title}",
+            "{changes_summary}",
+            "{tests_run}",
+            "{tests_passed}",
+            "{coverage}",
+            "{iterations}",
+            "{confidence:.0%}",
+            "{diagnostic_summary}",
+        ]
+
+        for placeholder in placeholders:
+            assert placeholder in PR_BODY_TEMPLATE, f"Missing placeholder: {placeholder}"

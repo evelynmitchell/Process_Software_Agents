@@ -780,6 +780,7 @@ dev = [
 [package.dev-dependencies]
 dev = [
     { name = "lxml" },
+    { name = "pytest-cov" },
 ]
 
 [package.metadata]
@@ -831,7 +832,10 @@ requires-dist = [
 provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "lxml", specifier = ">=6.0.2" }]
+dev = [
+    { name = "lxml", specifier = ">=6.0.2" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
+]
 
 [[package]]
 name = "httpcore"

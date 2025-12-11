@@ -467,10 +467,209 @@ class GitHubService:
             f"Could not parse remote URL: {remote_url}"
         )
 
+    def push_branch(
+        self,
+        repo_path: Path,
+        branch: str,
+        force: bool = False,
+    ) -> None:
+        """
+        Push branch to origin.
+
+        Args:
+            repo_path: Path to the repository
+            branch: Branch name to push
+            force: Force push (default: False)
+
+        Raises:
+            GitHubServiceError: If push fails
+        """
+        logger.info("Pushing branch %s from %s", branch, repo_path)
+
+        cmd = ["git", "push", "-u", "origin", branch]
+        if force:
+            cmd.insert(2, "--force")
+
+        try:
+            subprocess.run(
+                cmd,
+                cwd=repo_path,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as e:
+            raise GitHubServiceError(
+                f"Failed to push branch {branch}: {e.stderr}"  # noqa: not logging
+            ) from e
+
+        logger.info("Pushed branch %s to origin", branch)
+
+    def create_pr(
+        self,
+        repo_path: Path,
+        title: str,
+        body: str,
+        base_branch: str = "main",
+        draft: bool = False,
+    ) -> GitHubPR:
+        """
+        Create a pull request.
+
+        Args:
+            repo_path: Path to repository with committed changes
+            title: PR title
+            body: PR description (markdown)
+            base_branch: Target branch (default: main)
+            draft: Create as draft PR (default: False)
+
+        Returns:
+            GitHubPR with URL and number
+
+        Raises:
+            GitHubServiceError: If PR creation fails
+        """
+        logger.info("Creating PR: %s", title)
+
+        cmd = [
+            "gh",
+            "pr",
+            "create",
+            "--title",
+            title,
+            "--body",
+            body,
+            "--base",
+            base_branch,
+        ]
+
+        if draft:
+            cmd.append("--draft")
+
+        try:
+            result = subprocess.run(
+                cmd,
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError as e:
+            raise GitHubServiceError(
+                f"Failed to create PR: {e.stderr}"  # noqa: not logging
+            ) from e
+
+        # Parse URL from output (gh pr create outputs the URL)
+        pr_url = result.stdout.strip()
+
+        # Get PR details via JSON
+        try:
+            pr_info = subprocess.run(
+                ["gh", "pr", "view", "--json", "number,url"],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            pr_data = json.loads(pr_info.stdout)
+        except (subprocess.CalledProcessError, json.JSONDecodeError):
+            # Fallback: extract number from URL
+            match = re.search(r"/pull/(\d+)", pr_url)
+            pr_number = int(match.group(1)) if match else 0
+            pr_data = {"number": pr_number, "url": pr_url}
+
+        owner, repo = self.get_remote_info(repo_path)
+        current_branch = self.get_current_branch(repo_path)
+
+        pr = GitHubPR(
+            owner=owner,
+            repo=repo,
+            number=pr_data["number"],
+            url=pr_data.get("url", pr_url),
+            title=title,
+            branch=current_branch,
+        )
+
+        logger.info("Created PR #%s: %s", pr.number, pr.url)
+        return pr
+
+    def format_pr_body(
+        self,
+        issue: GitHubIssue,
+        changes_summary: str = "See diff for details.",
+        tests_run: int = 0,
+        tests_passed: int = 0,
+        coverage: float = 0.0,
+        iterations: int = 1,
+        confidence: float = 0.0,
+        diagnostic_summary: str = "N/A",
+    ) -> str:
+        """
+        Format PR body using the template.
+
+        Args:
+            issue: The GitHub issue being fixed
+            changes_summary: Description of changes made
+            tests_run: Number of tests executed
+            tests_passed: Number of tests that passed
+            coverage: Code coverage percentage
+            iterations: Number of repair iterations
+            confidence: Confidence score (0.0 to 1.0)
+            diagnostic_summary: Summary of diagnostic findings
+
+        Returns:
+            Formatted PR body string
+        """
+        from services.github_service import PR_BODY_TEMPLATE
+
+        return PR_BODY_TEMPLATE.format(
+            issue_number=issue.number,
+            issue_title=issue.title,
+            changes_summary=changes_summary,
+            tests_run=tests_run,
+            tests_passed=tests_passed,
+            coverage=coverage,
+            iterations=iterations,
+            confidence=confidence,
+            diagnostic_summary=diagnostic_summary,
+        )
+
 
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
+
+# =============================================================================
+# PR Body Template
+# =============================================================================
+
+PR_BODY_TEMPLATE = """## Summary
+
+Automated fix for #{issue_number}: {issue_title}
+
+## Changes Made
+
+{changes_summary}
+
+## Test Results
+
+- **Tests Run:** {tests_run}
+- **Tests Passed:** {tests_passed}
+- **Coverage:** {coverage}%
+
+## Repair Process
+
+- **Iterations:** {iterations}
+- **Confidence:** {confidence:.0%}
+- **Diagnostic:** {diagnostic_summary}
+
+---
+
+*This PR was generated by [ASP Repair Workflow](https://github.com/evelynmitchell/Process_Software_Agents)*
+
+Fixes #{issue_number}
+"""
 
 
 def generate_branch_name(issue: GitHubIssue) -> str:

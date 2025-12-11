@@ -565,10 +565,12 @@ def clone_or_fork(self, owner: str, repo: str, workspace: Workspace) -> Path:
 - [x] Unit tests with mocked `gh` calls (29 tests)
 
 ### Phase 2: PR Creation
-- [ ] Implement `push_branch()`
-- [ ] Implement `create_pr()` with body template
-- [ ] Add branch naming convention
-- [ ] Add "Fixes #N" linking
+- [x] Implement `push_branch()`
+- [x] Implement `create_pr()` with body template
+- [x] Add branch naming convention
+- [x] Add "Fixes #N" linking
+- [x] Add `format_pr_body()` helper method
+- [x] Unit tests for Phase 2 methods (12 tests)
 
 ### Phase 3: Integration
 - [ ] Add `repair_from_issue()` to RepairOrchestrator

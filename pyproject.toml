@@ -211,4 +211,5 @@ ignore = [
 [dependency-groups]
 dev = [
     "lxml>=6.0.2",
+    "pytest-cov>=7.0.0",
 ]
