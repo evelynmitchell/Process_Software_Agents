@@ -10,6 +10,7 @@ This document describes three advanced testing strategies and how to integrate t
 | Strategy | Purpose | Compute Cost | Default |
 |----------|---------|--------------|---------|
 | Combination Testing | Test parameter interactions | Low | Enabled |
+| Design of Experiments | Statistical test design, factor analysis | Medium | Disabled |
 | Property-Based (Hypothesis) | Find edge cases via random generation | **High** | Disabled |
 | Mutation Testing | Measure test effectiveness | **Very High** | Disabled |
 
@@ -85,7 +86,222 @@ pytest -m "not combinations"
 
 ---
 
-## 2. Property-Based Testing (Hypothesis)
+## 2. Design of Experiments (DoE)
+
+### What It Is
+
+Design of Experiments is the **statistical foundation** underneath combination testing. While pairwise testing is a practical heuristic, DoE provides rigorous mathematical frameworks for selecting test cases that maximize information gained per test run.
+
+### Key Concepts
+
+| Concept | Description | Use Case |
+|---------|-------------|----------|
+| **Full Factorial** | Test all combinations | Small parameter spaces, critical code |
+| **Fractional Factorial** | Statistically selected subset | Large spaces, need interaction info |
+| **Orthogonal Arrays** | Balanced designs (Taguchi L9, L18, L27) | When you need statistical independence |
+| **Screening Designs** | Identify which factors matter | Early exploration, many factors |
+| **Response Surface** | Find optimal parameter values | Performance tuning, threshold finding |
+| **Latin Hypercube** | Space-filling for continuous params | Numerical optimization, simulations |
+
+### Why Use DoE Over Ad-Hoc Testing
+
+1. **Quantify interactions** - Not just "does it work" but "which factors affect the outcome"
+2. **Statistical confidence** - Know how much you can trust your results
+3. **Efficient coverage** - Maximize information per test case
+4. **Identify main effects** - Which parameters matter most
+
+### Implementation
+
+```python
+# requirements-dev.txt
+pyDOE2>=1.3.0
+doepy>=0.0.1
+
+# tests/doe/test_factorial_designs.py
+import pytest
+import pyDOE2 as doe
+import numpy as np
+
+# Define factors and levels
+FACTORS = {
+    'max_iterations': [1, 5, 10],
+    'confidence_threshold': [0.5, 0.7, 0.9],
+    'hitl_mode': [0, 1, 2],  # autonomous, supervised, threshold
+    'timeout_seconds': [60, 300, 600],
+}
+
+@pytest.mark.doe
+def test_full_factorial():
+    """
+    Full factorial design - tests ALL combinations.
+    Use for critical code with few factors.
+
+    3^4 = 81 test cases
+    """
+    design = doe.fullfact([3, 3, 3, 3])  # 3 levels each
+
+    for row in design:
+        config = {
+            'max_iterations': FACTORS['max_iterations'][int(row[0])],
+            'confidence_threshold': FACTORS['confidence_threshold'][int(row[1])],
+            'hitl_mode': ['autonomous', 'supervised', 'threshold'][int(row[2])],
+            'timeout_seconds': FACTORS['timeout_seconds'][int(row[3])],
+        }
+        result = run_repair_with_config(config)
+        assert result.is_valid()
+
+
+@pytest.mark.doe
+def test_fractional_factorial():
+    """
+    Fractional factorial - statistically selected subset.
+    Resolution IV: main effects not aliased with 2-factor interactions.
+
+    Reduces 81 tests to ~27 while preserving main effect estimates.
+    """
+    # 2-level fractional factorial (need to discretize)
+    design = doe.fracfact('a b c d')  # 2^(4-1) = 8 runs
+
+    for row in design:
+        # Map -1/+1 to actual values
+        config = {
+            'max_iterations': 1 if row[0] < 0 else 10,
+            'confidence_threshold': 0.5 if row[1] < 0 else 0.9,
+            'hitl_mode': 'autonomous' if row[2] < 0 else 'threshold',
+            'timeout_seconds': 60 if row[3] < 0 else 600,
+        }
+        result = run_repair_with_config(config)
+        assert result.is_valid()
+
+
+@pytest.mark.doe
+def test_latin_hypercube():
+    """
+    Latin Hypercube Sampling - for continuous parameters.
+    Space-filling design that ensures good coverage.
+
+    Useful for: timeout values, confidence thresholds, numerical params.
+    """
+    # 20 samples across 3 continuous dimensions
+    design = doe.lhs(3, samples=20)
+
+    for row in design:
+        config = {
+            # Scale [0,1] to actual ranges
+            'confidence_threshold': 0.5 + row[0] * 0.5,  # [0.5, 1.0]
+            'timeout_seconds': 60 + row[1] * 540,        # [60, 600]
+            'memory_limit_mb': 256 + row[2] * 768,       # [256, 1024]
+        }
+        result = run_repair_with_config(config)
+        assert result.is_valid()
+```
+
+### Orthogonal Arrays (Taguchi Method)
+
+```python
+# Taguchi L9 orthogonal array for 4 factors at 3 levels
+# Only 9 tests instead of 81, but statistically balanced
+
+L9 = [
+    [0, 0, 0, 0],
+    [0, 1, 1, 1],
+    [0, 2, 2, 2],
+    [1, 0, 1, 2],
+    [1, 1, 2, 0],
+    [1, 2, 0, 1],
+    [2, 0, 2, 1],
+    [2, 1, 0, 2],
+    [2, 2, 1, 0],
+]
+
+@pytest.mark.doe
+@pytest.mark.parametrize("levels", L9)
+def test_taguchi_l9_design(levels):
+    """
+    Taguchi L9 orthogonal array.
+
+    Properties:
+    - Each level appears exactly 3 times per factor
+    - All pairs of levels appear exactly once
+    - Main effects can be estimated independently
+    """
+    config = {
+        'max_iterations': [1, 5, 10][levels[0]],
+        'confidence_threshold': [0.5, 0.7, 0.9][levels[1]],
+        'hitl_mode': ['autonomous', 'supervised', 'threshold'][levels[2]],
+        'timeout_seconds': [60, 300, 600][levels[3]],
+    }
+    result = run_repair_with_config(config)
+    assert result.is_valid()
+```
+
+### Analyzing Results
+
+```python
+# After running DoE tests, analyze which factors matter
+
+import pandas as pd
+from scipy import stats
+
+def analyze_doe_results(results_df):
+    """
+    Analyze DoE results to identify significant factors.
+
+    Args:
+        results_df: DataFrame with factor columns and 'success' outcome
+
+    Returns:
+        Dict of factor -> effect size
+    """
+    effects = {}
+
+    for factor in ['max_iterations', 'confidence_threshold', 'hitl_mode']:
+        # Group by factor level and compute success rate
+        grouped = results_df.groupby(factor)['success'].mean()
+
+        # Effect size: difference between best and worst level
+        effects[factor] = grouped.max() - grouped.min()
+
+    # Sort by effect size
+    return dict(sorted(effects.items(), key=lambda x: -x[1]))
+
+# Example output:
+# {'confidence_threshold': 0.35, 'max_iterations': 0.22, 'hitl_mode': 0.08}
+# -> confidence_threshold has the biggest impact on success
+```
+
+### When to Use Each Design
+
+| Design | Factors | Levels | Tests | Use When |
+|--------|---------|--------|-------|----------|
+| Full Factorial | 2-3 | 2-3 | <30 | Critical code, need all interactions |
+| Fractional Factorial | 4-8 | 2 | 8-32 | Many factors, main effects sufficient |
+| Taguchi L9/L18 | 4-8 | 3 | 9-18 | Balanced design, moderate factors |
+| Latin Hypercube | Any | Continuous | 10-50 | Numerical optimization |
+| Pairwise | Many | Many | Varies | Practical coverage, less rigor |
+
+### Enablement
+
+```ini
+# pytest.ini
+[pytest]
+markers =
+    doe: Design of Experiments tests (opt-in, medium compute)
+```
+
+```bash
+# Run DoE tests
+pytest -m doe
+
+# Run specific design
+pytest -m doe -k "taguchi"
+```
+
+**Cost:** Medium - more rigorous than pairwise, less than full factorial. Worth it for understanding factor effects.
+
+---
+
+## 3. Property-Based Testing (Hypothesis)
 
 ### What It Does
 
@@ -235,7 +451,7 @@ jobs:
 
 ---
 
-## 3. Mutation Testing
+## 4. Mutation Testing
 
 ### What It Does
 
@@ -355,7 +571,7 @@ jobs:
 
 ---
 
-## 4. Unit Test Evaluation Rubric
+## 5. Unit Test Evaluation Rubric
 
 Use this rubric to assess test quality:
 
@@ -390,7 +606,7 @@ def pytest_collection_modifyitems(session, config, items):
 
 ---
 
-## 5. Recommended Test Pyramid
+## 6. Recommended Test Pyramid
 
 ```
                     ┌─────────────┐
@@ -415,7 +631,7 @@ Mutation Testing: Run nightly on critical paths only
 
 ---
 
-## 6. Configuration Summary
+## 7. Configuration Summary
 
 ### pytest.ini
 
@@ -425,6 +641,7 @@ markers =
     unit: Unit tests (default, always run)
     integration: Integration tests (run on CI)
     combinations: Pairwise combination tests (always run)
+    doe: Design of Experiments tests (opt-in, medium compute)
     hypothesis: Property-based tests (opt-in, high compute)
     mutation: Mutation test targets (nightly only)
     e2e: End-to-end tests (manual/pre-release)
@@ -455,7 +672,7 @@ test-mutation:  ## Run mutation tests (very expensive)
 
 ---
 
-## 7. Adding New Tests - Guidelines
+## 8. Adding New Tests - Guidelines
 
 ### Unit Tests (Always)
 - Fast (<100ms per test)
@@ -487,6 +704,7 @@ test-mutation:  ## Run mutation tests (very expensive)
 |----------|---------|-----|---------|--------|
 | Unit | ✅ | ✅ | ✅ | ✅ |
 | Combination | ✅ | ✅ | ✅ | ✅ |
+| DoE | ❌ | ❌ | ✅ | ✅ |
 | Hypothesis | ❌ | ✅ (limited) | ✅ (full) | ✅ |
 | Mutation | ❌ | ❌ | ✅ | ✅ |
 | E2E | ❌ | ❌ | ❌ | ✅ |
