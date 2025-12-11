@@ -80,10 +80,10 @@ class PytestResultParser:
         r"_+\s*(?P<test_name>[\w\[\]-]+)\s*_+",
     )
 
-    # Pattern for "FAILED file.py::test_name - reason"
+    # Pattern for "FAILED file.py::test_name - reason" (must be at start of line or after newline)
     FAILED_LINE_PATTERN = re.compile(
-        r"FAILED\s+(?P<file>[\w/\\.]+\.py)::(?P<test>[\w\[\]-]+)\s*-?\s*(?P<reason>.*)?",
-        re.IGNORECASE,
+        r"(?:^|\n)FAILED\s+(?P<file>[\w/\\.]+\.py)::(?P<test>[\w\[\]-]+)\s*-?\s*(?P<reason>[^\n]*)?",
+        re.IGNORECASE | re.MULTILINE,
     )
 
     # Pattern for coverage percentage
