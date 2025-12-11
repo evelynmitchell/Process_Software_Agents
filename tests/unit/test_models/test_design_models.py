@@ -442,14 +442,14 @@ class TestComponentLogic:
                 complexity=1500,  # > 1000
             )
 
-    def test_component_logic_interfaces_optional(self):
-        """Test that interfaces list can be empty (for simple modules)."""
-        # Model was updated to allow empty interfaces with default_factory=list
+    def test_component_logic_interfaces_can_be_empty(self):
+        """Test that interfaces list can be empty for simple modules."""
+        # Empty interfaces are allowed per the model design
         component = ComponentLogic(
             component_name="TestComponent",
             semantic_unit_id="SU-001",
             responsibility="Test component for validation purposes",
-            interfaces=[],  # Empty list now allowed
+            interfaces=[],  # Empty list is valid
             implementation_notes="Test implementation notes for validation",
         )
         assert component.interfaces == []

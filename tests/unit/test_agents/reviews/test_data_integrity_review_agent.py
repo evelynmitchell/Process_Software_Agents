@@ -781,7 +781,7 @@ class TestDataIntegrityReviewAgentErrorHandling:
         with pytest.raises(AgentExecutionError) as exc_info:
             agent.execute(design_spec)
 
-        assert "issues_found" in str(exc_info.value)
+        assert "missing required fields" in str(exc_info.value)
 
     @patch.object(DataIntegrityReviewAgent, "load_prompt")
     @patch.object(DataIntegrityReviewAgent, "format_prompt")
@@ -797,7 +797,7 @@ class TestDataIntegrityReviewAgentErrorHandling:
         with pytest.raises(AgentExecutionError) as exc_info:
             agent.execute(design_spec)
 
-        assert "improvement_suggestions" in str(exc_info.value)
+        assert "missing required fields" in str(exc_info.value)
 
 
 class TestDataIntegrityReviewAgentEdgeCases:

@@ -155,6 +155,7 @@ class PostmortemAgent(BaseAgent):
                 recommendations=recommendations,
             )
 
+            # pylint: disable=no-member  # Pydantic model attributes are valid
             logger.info(
                 f"Postmortem analysis complete: "
                 f"latency_variance={estimation_accuracy.latency_ms.variance_percent:.1f}%, "
@@ -162,6 +163,7 @@ class PostmortemAgent(BaseAgent):
                 f"defect_density={quality_metrics.defect_density:.2f}, "
                 f"root_causes={len(root_cause_analysis)}"
             )
+            # pylint: enable=no-member
 
             # Write artifacts to filesystem (if enabled)
             try:
@@ -190,7 +192,7 @@ class PostmortemAgent(BaseAgent):
                 if is_git_repository():
                     commit_hash = git_commit_artifact(
                         task_id=report.task_id,
-                        agent_name="Postmortem Agent",
+                        agent_name="PostmortemAgent",
                         artifact_files=artifact_files,
                     )
                     if commit_hash:

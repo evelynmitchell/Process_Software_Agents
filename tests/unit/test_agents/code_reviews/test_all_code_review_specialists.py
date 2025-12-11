@@ -222,7 +222,9 @@ class TestCodeQualityReviewAgent:
         agent = CodeQualityReviewAgent(llm_client=mock_llm)
         generated_code = create_test_generated_code_with_issues()
 
-        with pytest.raises(AgentExecutionError, match="Failed to parse LLM response"):
+        with pytest.raises(
+            AgentExecutionError, match="Failed to parse LLM response"
+        ):
             agent.execute(generated_code)
 
 
