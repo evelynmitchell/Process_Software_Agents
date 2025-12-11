@@ -25,6 +25,8 @@ from asp.models.execution import TestFailure, TestResult
 from asp.models.repair import RepairOutput
 from asp.orchestrators.hitl_config import AUTONOMOUS_CONFIG, HITLConfig
 from asp.orchestrators.repair_orchestrator import (
+    GitHubRepairRequest,
+    GitHubRepairResult,
     HumanRejectedRepair,
     RepairOrchestrator,
     RepairRequest,
@@ -867,3 +869,236 @@ class TestCleanup:
         mock_surgical_editor.cleanup_backups.side_effect = Exception("Error")
         # Should not raise
         orchestrator.cleanup()
+
+
+# =============================================================================
+# GitHub Integration Tests (ADR 007 Phase 3)
+# =============================================================================
+
+
+class TestGitHubRepairRequest:
+    """Tests for GitHubRepairRequest dataclass."""
+
+    def test_create_with_defaults(self, tmp_path):
+        """Test creating request with default values."""
+        request = GitHubRepairRequest(
+            issue_url="https://github.com/owner/repo/issues/123",
+            workspace_base=tmp_path,
+        )
+
+        assert request.issue_url == "https://github.com/owner/repo/issues/123"
+        assert request.workspace_base == tmp_path
+        assert request.max_iterations == 5
+        assert request.create_pr is True
+        assert request.draft_pr is True
+        assert request.test_command is None
+
+    def test_create_with_custom_values(self, tmp_path):
+        """Test creating request with custom values."""
+        request = GitHubRepairRequest(
+            issue_url="https://github.com/owner/repo/issues/456",
+            workspace_base=tmp_path,
+            max_iterations=10,
+            create_pr=False,
+            draft_pr=False,
+            test_command="pytest -v tests/",
+        )
+
+        assert request.max_iterations == 10
+        assert request.create_pr is False
+        assert request.draft_pr is False
+        assert request.test_command == "pytest -v tests/"
+
+
+class TestGitHubRepairResult:
+    """Tests for GitHubRepairResult dataclass."""
+
+    def test_create_result(self, tmp_path):
+        """Test creating a result."""
+        from asp.models.execution import TestResult
+        from asp.models.repair import RepairResult
+        from services.github_service import GitHubIssue, GitHubPR
+
+        issue = GitHubIssue(
+            owner="owner",
+            repo="repo",
+            number=123,
+            title="Test issue",
+            body="Description",
+        )
+
+        test_result = TestResult(
+            framework="pytest",
+            success=True,
+            passed=10,
+            failed=0,
+            total_tests=10,
+            duration_seconds=1.5,
+            failures=[],
+            raw_output="All tests passed",
+        )
+
+        repair_result = RepairResult(
+            task_id="owner/repo#123",
+            success=True,
+            iterations_used=2,
+            final_test_result=test_result,
+            changes_made=[],
+            diagnostic_reports=[],
+            repair_attempts=[],
+        )
+
+        pr = GitHubPR(
+            owner="owner",
+            repo="repo",
+            number=456,
+            url="https://github.com/owner/repo/pull/456",
+            title="Fix #123: Test issue",
+            branch="fix/issue-123-test-issue",
+        )
+
+        result = GitHubRepairResult(
+            issue=issue,
+            repair_result=repair_result,
+            pr=pr,
+            branch="fix/issue-123-test-issue",
+            workspace_path=tmp_path / "repo",
+        )
+
+        assert result.issue.number == 123
+        assert result.repair_result.success is True
+        assert result.pr.number == 456
+        assert result.branch == "fix/issue-123-test-issue"
+
+    def test_create_result_no_pr(self, tmp_path):
+        """Test creating a result without PR (repair failed or PR disabled)."""
+        from asp.models.execution import TestResult
+        from asp.models.repair import RepairResult
+        from services.github_service import GitHubIssue
+
+        issue = GitHubIssue(
+            owner="owner",
+            repo="repo",
+            number=123,
+            title="Test issue",
+            body="Description",
+        )
+
+        test_result = TestResult(
+            framework="pytest",
+            success=False,
+            passed=5,
+            failed=3,
+            total_tests=8,
+            duration_seconds=2.0,
+            failures=[],
+            raw_output="Tests failed",
+        )
+
+        repair_result = RepairResult(
+            task_id="owner/repo#123",
+            success=False,
+            iterations_used=5,
+            final_test_result=test_result,
+            changes_made=[],
+            diagnostic_reports=[],
+            repair_attempts=[],
+            escalation_reason="Max iterations reached",
+        )
+
+        result = GitHubRepairResult(
+            issue=issue,
+            repair_result=repair_result,
+            pr=None,
+            branch="fix/issue-123-test-issue",
+            workspace_path=tmp_path / "repo",
+        )
+
+        assert result.pr is None
+        assert result.repair_result.success is False
+
+
+class TestRepairOrchestratorSummarizeChanges:
+    """Tests for _summarize_changes helper method."""
+
+    def test_summarize_no_changes(
+        self,
+        orchestrator,
+    ):
+        """Test summarizing when no changes were made."""
+        from asp.models.execution import TestResult
+        from asp.models.repair import RepairResult
+
+        test_result = TestResult(
+            framework="pytest",
+            success=False,
+            passed=0,
+            failed=1,
+            total_tests=1,
+            duration_seconds=0.5,
+            failures=[],
+            raw_output="Test failed",
+        )
+
+        result = RepairResult(
+            task_id="TEST-001",
+            success=False,
+            iterations_used=0,
+            final_test_result=test_result,
+            changes_made=[],
+            diagnostic_reports=[],
+            repair_attempts=[],
+        )
+
+        summary = orchestrator._summarize_changes(result)
+        assert summary == "No changes made."
+
+    def test_summarize_with_changes(
+        self,
+        orchestrator,
+    ):
+        """Test summarizing changes made."""
+        from asp.models.diagnostic import CodeChange
+        from asp.models.execution import TestResult
+        from asp.models.repair import RepairResult
+
+        test_result = TestResult(
+            framework="pytest",
+            success=True,
+            passed=5,
+            failed=0,
+            total_tests=5,
+            duration_seconds=1.0,
+            failures=[],
+            raw_output="All passed",
+        )
+
+        changes = [
+            CodeChange(
+                file_path="src/main.py",
+                search_text="old code",
+                replace_text="new code",
+                description="Fixed bug",
+            ),
+            CodeChange(
+                file_path="src/utils.py",
+                search_text="old helper",
+                replace_text="new helper",
+                description="Fixed helper",
+            ),
+        ]
+
+        result = RepairResult(
+            task_id="TEST-001",
+            success=True,
+            iterations_used=1,
+            final_test_result=test_result,
+            changes_made=changes,
+            diagnostic_reports=[],
+            repair_attempts=[],
+        )
+
+        summary = orchestrator._summarize_changes(result)
+        assert "Modified 2 file(s)" in summary
+        assert "src/main.py" in summary
+        assert "src/utils.py" in summary

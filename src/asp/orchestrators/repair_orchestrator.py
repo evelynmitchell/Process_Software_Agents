@@ -19,6 +19,7 @@ import asyncio
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -31,6 +32,7 @@ from asp.orchestrators.confidence import calculate_confidence
 from asp.orchestrators.hitl_config import DEFAULT_CONFIG, HITLConfig
 
 if TYPE_CHECKING:
+    from services.github_service import GitHubIssue, GitHubPR, GitHubService
     from services.sandbox_executor import SubprocessSandboxExecutor
     from services.surgical_editor import EditResult, SurgicalEditor
     from services.test_executor import TestExecutor
@@ -66,6 +68,50 @@ class RepairRequest:
     max_iterations: int = 5
     test_command: str | None = None
     hitl_config: HITLConfig = field(default_factory=lambda: DEFAULT_CONFIG)
+
+
+@dataclass
+class GitHubRepairRequest:
+    """
+    Request to repair from a GitHub issue.
+
+    Attributes:
+        issue_url: Full GitHub issue URL (e.g., github.com/owner/repo/issues/123)
+        workspace_base: Base directory for workspaces
+        max_iterations: Maximum repair iterations
+        create_pr: Whether to create a PR with the fix
+        draft_pr: Create as draft PR (safer default)
+        test_command: Custom test command (default: auto-detect)
+        hitl_config: Human-in-the-loop configuration
+    """
+
+    issue_url: str
+    workspace_base: Path
+    max_iterations: int = 5
+    create_pr: bool = True
+    draft_pr: bool = True
+    test_command: str | None = None
+    hitl_config: HITLConfig = field(default_factory=lambda: DEFAULT_CONFIG)
+
+
+@dataclass
+class GitHubRepairResult:
+    """
+    Result of GitHub-integrated repair.
+
+    Attributes:
+        issue: The GitHub issue that was repaired
+        repair_result: The underlying repair result
+        pr: Created PR (if create_pr was True and repair succeeded)
+        branch: Branch name used for the fix
+        workspace_path: Path to the cloned workspace
+    """
+
+    issue: GitHubIssue
+    repair_result: RepairResult
+    pr: GitHubPR | None
+    branch: str
+    workspace_path: Path
 
 
 # Type alias for approval callback
@@ -682,3 +728,150 @@ class RepairOrchestrator:
         diff = self.surgical_editor.generate_diff(repair_output.changes)
 
         return diagnostic, repair_output, diff
+
+    # =========================================================================
+    # GitHub Integration (ADR 007)
+    # =========================================================================
+
+    async def repair_from_issue(
+        self,
+        request: GitHubRepairRequest,
+        github_service: GitHubService,
+        approval_callback: ApprovalCallback | None = None,
+    ) -> GitHubRepairResult:
+        """
+        Full workflow: GitHub Issue -> Clone -> Repair -> PR.
+
+        Fetches an issue from GitHub, clones the repository, runs the repair
+        workflow, and optionally creates a PR with the fix.
+
+        Args:
+            request: GitHubRepairRequest with issue URL and options
+            github_service: Configured GitHubService instance
+            approval_callback: Optional callback for HITL approval
+
+        Returns:
+            GitHubRepairResult with PR URL if successful
+
+        Example:
+            >>> from services.github_service import GitHubService
+            >>> github = GitHubService()
+            >>> request = GitHubRepairRequest(
+            ...     issue_url="https://github.com/owner/repo/issues/123",
+            ...     workspace_base=Path("/tmp/repairs"),
+            ... )
+            >>> result = await orchestrator.repair_from_issue(request, github)
+            >>> if result.repair_result.success:
+            ...     print(f"PR created: {result.pr.url}")
+        """
+        from services.github_service import generate_branch_name
+        from services.workspace_manager import Workspace
+
+        # 1. Fetch issue details
+        logger.info(f"Fetching issue from: {request.issue_url}")
+        issue = github_service.fetch_issue(request.issue_url)
+        logger.info(f"Fetched issue #{issue.number}: {issue.title}")
+
+        # 2. Create workspace directory
+        workspace_name = f"repair-{issue.owner}-{issue.repo}-{issue.number}"
+        workspace_path = request.workspace_base / workspace_name
+        workspace_path.mkdir(parents=True, exist_ok=True)
+
+        # 3. Clone repository
+        repo_path = workspace_path / issue.repo
+        if not repo_path.exists():
+            logger.info(f"Cloning {issue.owner}/{issue.repo} to {repo_path}")
+            github_service.clone_repo(issue.owner, issue.repo, repo_path)
+        else:
+            logger.info(f"Using existing clone at {repo_path}")
+
+        # 4. Create fix branch
+        branch = generate_branch_name(issue)
+        logger.info(f"Creating branch: {branch}")
+        github_service.create_branch(repo_path, branch)
+
+        # 5. Create Workspace object for repair
+        workspace = Workspace(
+            task_id=f"{issue.owner}/{issue.repo}#{issue.number}",
+            path=workspace_path,
+            target_repo_path=repo_path,
+            asp_path=workspace_path / ".asp",
+            created_at=datetime.now(),
+        )
+        workspace.asp_path.mkdir(parents=True, exist_ok=True)
+
+        # 6. Build repair request
+        issue_description = f"{issue.title}\n\n{issue.body}"
+        repair_request = RepairRequest(
+            task_id=f"{issue.owner}/{issue.repo}#{issue.number}",
+            workspace=workspace,
+            issue_description=issue_description,
+            max_iterations=request.max_iterations,
+            test_command=request.test_command,
+            hitl_config=request.hitl_config,
+        )
+
+        # 7. Run repair workflow
+        logger.info("Starting repair workflow")
+        repair_result = await self.repair(repair_request, approval_callback)
+
+        # 8. Create PR if successful
+        pr = None
+        if repair_result.success and request.create_pr:
+            logger.info("Repair successful, creating PR")
+
+            # Commit changes
+            commit_msg = f"Fix #{issue.number}: {issue.title}"
+            github_service.commit_changes(repo_path, commit_msg)
+
+            # Push branch
+            github_service.push_branch(repo_path, branch)
+
+            # Format PR body
+            pr_body = github_service.format_pr_body(
+                issue=issue,
+                changes_summary=self._summarize_changes(repair_result),
+                tests_run=repair_result.final_test_result.total_tests
+                if repair_result.final_test_result
+                else 0,
+                tests_passed=repair_result.final_test_result.passed
+                if repair_result.final_test_result
+                else 0,
+                iterations=repair_result.iterations_used,
+                confidence=repair_result.repair_attempts[-1].test_result.passed
+                / max(repair_result.repair_attempts[-1].test_result.total_tests, 1)
+                if repair_result.repair_attempts
+                else 0.0,
+                diagnostic_summary=repair_result.diagnostic_reports[-1].root_cause
+                if repair_result.diagnostic_reports
+                else "N/A",
+            )
+
+            # Create PR
+            pr = github_service.create_pr(
+                repo_path=repo_path,
+                title=f"Fix #{issue.number}: {issue.title}",
+                body=pr_body,
+                draft=request.draft_pr,
+            )
+            logger.info(f"Created PR: {pr.url}")
+        elif not repair_result.success:
+            logger.warning(
+                f"Repair failed after {repair_result.iterations_used} iterations"
+            )
+
+        return GitHubRepairResult(
+            issue=issue,
+            repair_result=repair_result,
+            pr=pr,
+            branch=branch,
+            workspace_path=repo_path,
+        )
+
+    def _summarize_changes(self, result: RepairResult) -> str:
+        """Summarize changes made during repair."""
+        if not result.changes_made:
+            return "No changes made."
+
+        files_changed = set(c.file_path for c in result.changes_made)
+        return f"Modified {len(files_changed)} file(s): {', '.join(files_changed)}"

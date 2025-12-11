@@ -314,6 +314,160 @@ def cmd_repair(args):
         orchestrator.cleanup()
 
 
+def cmd_repair_issue(args):
+    """Execute repair workflow from a GitHub issue."""
+    import asyncio
+    from datetime import datetime
+
+    from asp.models.execution import SandboxConfig
+    from asp.orchestrators.hitl_config import AUTONOMOUS_CONFIG, HITLConfig
+    from asp.orchestrators.repair_orchestrator import (
+        GitHubRepairRequest,
+        RepairOrchestrator,
+    )
+    from asp.orchestrators.types import RepairExecutionResult
+    from services.github_service import GitHubService
+    from services.sandbox_executor import SubprocessSandboxExecutor
+    from services.surgical_editor import SurgicalEditor
+    from services.test_executor import TestExecutor
+
+    logger.info("=" * 60)
+    logger.info("ASP CLI - Repair from GitHub Issue")
+    logger.info("=" * 60)
+
+    # Verify GitHub CLI
+    github_service = GitHubService()
+    try:
+        github_service.verify_gh_installed()
+        github_service.verify_gh_authenticated()
+    except Exception as e:
+        logger.error(f"GitHub CLI error: {e}")
+        sys.exit(1)
+
+    logger.info(f"Issue URL: {args.issue_url}")
+    logger.info(f"Workspace base: {args.workspace_base}")
+    logger.info(f"Max iterations: {args.max_iterations}")
+    logger.info(f"Create PR: {not args.no_pr}")
+    logger.info(f"Draft PR: {args.draft}")
+    logger.info("-" * 60)
+
+    workspace_base = Path(args.workspace_base)
+    workspace_base.mkdir(parents=True, exist_ok=True)
+
+    # Configure HITL
+    if args.auto_approve:
+        hitl_config = AUTONOMOUS_CONFIG
+        logger.warning("Auto-approve mode - all repairs will proceed automatically")
+        approval_callback = None
+    else:
+        hitl_config = HITLConfig(
+            mode="threshold",
+            require_approval_after_iterations=args.hitl_threshold_iterations,
+            require_approval_for_confidence_below=args.hitl_threshold_confidence,
+        )
+
+        def approval_callback(reason, confidence, files, iteration):
+            logger.warning(f"HITL Approval Required (iteration {iteration}):")
+            logger.warning(f"  Reason: {reason}")
+            logger.warning(f"  Confidence: {confidence:.2f}")
+            logger.warning(f"  Files: {', '.join(files)}")
+            logger.error(
+                "No interactive approval - use --auto-approve or configure HITL"
+            )
+            return False
+
+    # We need a temporary workspace to initialize the orchestrator
+    # The actual workspace will be created by repair_from_issue
+    temp_workspace = workspace_base / ".temp"
+    temp_workspace.mkdir(parents=True, exist_ok=True)
+
+    # Create services
+    db_path = Path(args.db_path) if args.db_path else Path("data/asp_telemetry.db")
+    sandbox_config = SandboxConfig(
+        timeout_seconds=args.timeout,
+        memory_limit_mb=512,
+    )
+    sandbox = SubprocessSandboxExecutor(config=sandbox_config)
+    test_executor = TestExecutor(sandbox=sandbox)
+    surgical_editor = SurgicalEditor(workspace_path=temp_workspace)
+
+    # Create orchestrator
+    orchestrator = RepairOrchestrator(
+        sandbox=sandbox,
+        test_executor=test_executor,
+        surgical_editor=surgical_editor,
+        db_path=db_path,
+    )
+
+    # Build GitHub repair request
+    github_request = GitHubRepairRequest(
+        issue_url=args.issue_url,
+        workspace_base=workspace_base,
+        max_iterations=args.max_iterations,
+        create_pr=not args.no_pr,
+        draft_pr=args.draft,
+        test_command=args.test_command,
+        hitl_config=hitl_config,
+    )
+
+    start_time = datetime.now()
+
+    try:
+        result = asyncio.run(
+            orchestrator.repair_from_issue(
+                github_request, github_service, approval_callback
+            )
+        )
+
+        end_time = datetime.now()
+        duration = (end_time - start_time).total_seconds()
+
+        # Determine overall status
+        if result.repair_result.success:
+            overall_status = "PASS"
+        elif result.repair_result.escalated_to_human:
+            overall_status = "ESCALATED"
+        else:
+            overall_status = "FAIL"
+
+        logger.info("=" * 60)
+        logger.info("REPAIR FROM ISSUE COMPLETE")
+        logger.info("=" * 60)
+        logger.info(f"Issue: #{result.issue.number} - {result.issue.title}")
+        logger.info(f"Overall Status: {overall_status}")
+        logger.info(f"Success: {result.repair_result.success}")
+        logger.info(f"Iterations Used: {result.repair_result.iterations_used}")
+        logger.info(f"Branch: {result.branch}")
+        logger.info(f"Workspace: {result.workspace_path}")
+        logger.info(f"Duration: {duration:.1f}s")
+
+        if result.pr:
+            logger.info(f"PR Created: {result.pr.url}")
+
+        if result.repair_result.escalation_reason:
+            logger.info(f"Escalation Reason: {result.repair_result.escalation_reason}")
+
+        # Save result if output path specified
+        if args.output:
+            execution_result = RepairExecutionResult(
+                task_id=f"{result.issue.owner}/{result.issue.repo}#{result.issue.number}",
+                timestamp=start_time,
+                overall_status=overall_status,
+                repair_result=result.repair_result,
+                total_duration_seconds=duration,
+                execution_log=[],
+            )
+            _save_result(execution_result, args.output)
+
+        sys.exit(0 if result.repair_result.success else 1)
+
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error(f"Repair from issue failed: {e}", exc_info=True)
+        sys.exit(2)
+    finally:
+        orchestrator.cleanup()
+
+
 def cmd_status(args):
     """Check agent/database status."""
     logger.info("ASP Platform Status")
@@ -440,6 +594,12 @@ Examples:
 
   # Preview repair without applying changes
   python -m asp.cli repair --task-id REPAIR-001 --workspace ./my-project --dry-run
+
+  # Repair from a GitHub issue (ADR 007)
+  python -m asp.cli repair-issue https://github.com/owner/repo/issues/123 --auto-approve
+
+  # Repair from issue without creating PR
+  python -m asp.cli repair-issue https://github.com/owner/repo/issues/123 --no-pr
 
   # Check status
   python -m asp.cli status
@@ -576,6 +736,75 @@ Examples:
         help="Request approval if confidence below this (default: 0.7)",
     )
     repair_parser.set_defaults(func=cmd_repair)
+
+    # Repair-issue command (GitHub integration - ADR 007)
+    repair_issue_parser = subparsers.add_parser(
+        "repair-issue", help="Repair a bug from a GitHub issue (clone, fix, PR)"
+    )
+    repair_issue_parser.add_argument(
+        "issue_url",
+        help="GitHub issue URL (e.g., https://github.com/owner/repo/issues/123)",
+    )
+    repair_issue_parser.add_argument(
+        "--workspace-base",
+        default="/tmp/asp-repairs",
+        help="Base directory for cloned workspaces (default: /tmp/asp-repairs)",
+    )
+    repair_issue_parser.add_argument(
+        "--max-iterations",
+        type=int,
+        default=5,
+        help="Maximum repair iterations (default: 5)",
+    )
+    repair_issue_parser.add_argument(
+        "--timeout",
+        type=int,
+        default=300,
+        help="Test execution timeout in seconds (default: 300)",
+    )
+    repair_issue_parser.add_argument(
+        "--test-command",
+        help="Custom test command (default: auto-detect)",
+    )
+    repair_issue_parser.add_argument(
+        "--no-pr",
+        action="store_true",
+        help="Don't create a PR after successful repair",
+    )
+    repair_issue_parser.add_argument(
+        "--draft/--no-draft",
+        dest="draft",
+        default=True,
+        action="store_true",
+        help="Create PR as draft (default: True)",
+    )
+    repair_issue_parser.add_argument(
+        "--db-path",
+        help="Path to SQLite database (default: data/asp_telemetry.db)",
+    )
+    repair_issue_parser.add_argument(
+        "--output",
+        "-o",
+        help="Path to save JSON results",
+    )
+    repair_issue_parser.add_argument(
+        "--auto-approve",
+        action="store_true",
+        help="Auto-approve all repairs (run autonomously)",
+    )
+    repair_issue_parser.add_argument(
+        "--hitl-threshold-iterations",
+        type=int,
+        default=2,
+        help="Request approval after this many iterations (default: 2)",
+    )
+    repair_issue_parser.add_argument(
+        "--hitl-threshold-confidence",
+        type=float,
+        default=0.7,
+        help="Request approval if confidence below this (default: 0.7)",
+    )
+    repair_issue_parser.set_defaults(func=cmd_repair_issue)
 
     # Status command
     status_parser = subparsers.add_parser("status", help="Check platform status")

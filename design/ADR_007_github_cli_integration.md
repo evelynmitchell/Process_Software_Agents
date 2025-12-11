@@ -573,9 +573,10 @@ def clone_or_fork(self, owner: str, repo: str, workspace: Workspace) -> Path:
 - [x] Unit tests for Phase 2 methods (12 tests)
 
 ### Phase 3: Integration
-- [ ] Add `repair_from_issue()` to RepairOrchestrator
-- [ ] Add `repair-issue` CLI command
-- [ ] Integration tests with test repo
+- [x] Add `repair_from_issue()` to RepairOrchestrator
+- [x] Add `GitHubRepairRequest` and `GitHubRepairResult` dataclasses
+- [x] Add `repair-issue` CLI command
+- [x] Unit tests for Phase 3 (7 tests)
 
 ### Phase 4: Dogfooding
 - [ ] Test on real issues in this repo
