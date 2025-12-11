@@ -570,7 +570,9 @@ class TestCreatePR:
             ),
             MagicMock(
                 returncode=0,
-                stdout=json.dumps({"number": 456, "url": "https://github.com/owner/repo/pull/456"}),
+                stdout=json.dumps(
+                    {"number": 456, "url": "https://github.com/owner/repo/pull/456"}
+                ),
             ),
             MagicMock(returncode=0, stdout="https://github.com/owner/repo.git\n"),
             MagicMock(returncode=0, stdout="fix/issue-123\n"),
@@ -594,7 +596,9 @@ class TestCreatePR:
             MagicMock(returncode=0, stdout="https://github.com/owner/repo/pull/789"),
             MagicMock(
                 returncode=0,
-                stdout=json.dumps({"number": 789, "url": "https://github.com/owner/repo/pull/789"}),
+                stdout=json.dumps(
+                    {"number": 789, "url": "https://github.com/owner/repo/pull/789"}
+                ),
             ),
             MagicMock(returncode=0, stdout="https://github.com/owner/repo.git\n"),
             MagicMock(returncode=0, stdout="fix/issue-456\n"),
@@ -619,7 +623,9 @@ class TestCreatePR:
             MagicMock(returncode=0, stdout="https://github.com/owner/repo/pull/111"),
             MagicMock(
                 returncode=0,
-                stdout=json.dumps({"number": 111, "url": "https://github.com/owner/repo/pull/111"}),
+                stdout=json.dumps(
+                    {"number": 111, "url": "https://github.com/owner/repo/pull/111"}
+                ),
             ),
             MagicMock(returncode=0, stdout="https://github.com/owner/repo.git\n"),
             MagicMock(returncode=0, stdout="hotfix/urgent\n"),
@@ -730,4 +736,6 @@ class TestPRBodyTemplate:
         ]
 
         for placeholder in placeholders:
-            assert placeholder in PR_BODY_TEMPLATE, f"Missing placeholder: {placeholder}"
+            assert (
+                placeholder in PR_BODY_TEMPLATE
+            ), f"Missing placeholder: {placeholder}"

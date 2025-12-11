@@ -825,20 +825,28 @@ class RepairOrchestrator:
             pr_body = github_service.format_pr_body(
                 issue=issue,
                 changes_summary=self._summarize_changes(repair_result),
-                tests_run=repair_result.final_test_result.total_tests
-                if repair_result.final_test_result
-                else 0,
-                tests_passed=repair_result.final_test_result.passed
-                if repair_result.final_test_result
-                else 0,
+                tests_run=(
+                    repair_result.final_test_result.total_tests
+                    if repair_result.final_test_result
+                    else 0
+                ),
+                tests_passed=(
+                    repair_result.final_test_result.passed
+                    if repair_result.final_test_result
+                    else 0
+                ),
                 iterations=repair_result.iterations_used,
-                confidence=repair_result.repair_attempts[-1].test_result.passed
-                / max(repair_result.repair_attempts[-1].test_result.total_tests, 1)
-                if repair_result.repair_attempts
-                else 0.0,
-                diagnostic_summary=repair_result.diagnostic_reports[-1].root_cause
-                if repair_result.diagnostic_reports
-                else "N/A",
+                confidence=(
+                    repair_result.repair_attempts[-1].test_result.passed
+                    / max(repair_result.repair_attempts[-1].test_result.total_tests, 1)
+                    if repair_result.repair_attempts
+                    else 0.0
+                ),
+                diagnostic_summary=(
+                    repair_result.diagnostic_reports[-1].root_cause
+                    if repair_result.diagnostic_reports
+                    else "N/A"
+                ),
             )
 
             # Create PR
