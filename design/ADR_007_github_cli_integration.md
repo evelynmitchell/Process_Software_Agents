@@ -558,11 +558,11 @@ def clone_or_fork(self, owner: str, repo: str, workspace: Workspace) -> Path:
 ## Implementation Plan
 
 ### Phase 1: Core GitHub Operations
-- [ ] Implement `GitHubService` class
-- [ ] Add `fetch_issue()` with URL parsing
-- [ ] Add `clone_repo()` using `gh repo clone`
-- [ ] Add `create_branch()` and `commit_changes()`
-- [ ] Unit tests with mocked `gh` calls
+- [x] Implement `GitHubService` class
+- [x] Add `fetch_issue()` with URL parsing
+- [x] Add `clone_repo()` using `gh repo clone`
+- [x] Add `create_branch()` and `commit_changes()`
+- [x] Unit tests with mocked `gh` calls (29 tests)
 
 ### Phase 2: PR Creation
 - [ ] Implement `push_branch()`

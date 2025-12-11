@@ -1,0 +1,494 @@
+"""
+GitHub Service for repository and issue operations.
+
+Provides GitHub integration using the `gh` CLI for the repair workflow.
+Enables fetching issues, cloning repos, creating branches, and managing PRs.
+
+Classes:
+    - GitHubIssue: Parsed GitHub issue data
+    - GitHubPR: Created pull request data
+    - GitHubService: Service wrapping `gh` CLI operations
+
+Part of ADR 007: GitHub CLI Integration.
+
+Author: ASP Development Team
+Date: December 11, 2025
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import re
+import subprocess
+from dataclasses import dataclass, field
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Data Classes
+# =============================================================================
+
+
+@dataclass
+class GitHubIssue:  # pylint: disable=too-many-instance-attributes
+    """
+    Parsed GitHub issue.
+
+    Attributes:
+        owner: Repository owner (user or organization)
+        repo: Repository name
+        number: Issue number
+        title: Issue title
+        body: Issue body/description (markdown)
+        labels: List of label names
+        state: Issue state (open, closed)
+        url: Full URL to the issue
+    """
+
+    owner: str
+    repo: str
+    number: int
+    title: str
+    body: str
+    labels: list[str] = field(default_factory=list)
+    state: str = "open"
+    url: str = ""
+
+
+@dataclass
+class GitHubPR:
+    """
+    Created pull request.
+
+    Attributes:
+        owner: Repository owner
+        repo: Repository name
+        number: PR number
+        url: Full URL to the PR
+        title: PR title
+        branch: Source branch name
+    """
+
+    owner: str
+    repo: str
+    number: int
+    url: str
+    title: str
+    branch: str
+
+
+# =============================================================================
+# Exceptions
+# =============================================================================
+
+
+class GitHubServiceError(Exception):
+    """Base exception for GitHub service errors."""
+
+
+class GitHubCLINotFoundError(GitHubServiceError):
+    """Raised when gh CLI is not installed."""
+
+
+class GitHubAuthError(GitHubServiceError):
+    """Raised when gh CLI is not authenticated."""
+
+
+class GitHubURLParseError(GitHubServiceError):
+    """Raised when a GitHub URL cannot be parsed."""
+
+
+# =============================================================================
+# GitHub Service
+# =============================================================================
+
+
+class GitHubService:
+    """
+    Service for GitHub operations using `gh` CLI.
+
+    Requires: `gh` CLI installed and authenticated (`gh auth login`)
+
+    Example:
+        >>> service = GitHubService(Path("/workspaces"))
+        >>> issue = service.fetch_issue("https://github.com/owner/repo/issues/123")
+        >>> print(f"Issue: {issue.title}")
+
+    Note:
+        All methods that interact with GitHub require network access
+        and valid authentication.
+    """
+
+    def __init__(self, workspace_base: Path | None = None):
+        """
+        Initialize GitHub service.
+
+        Args:
+            workspace_base: Base directory for workspaces (optional)
+        """
+        self.workspace_base = workspace_base or Path.cwd()
+        logger.debug(
+            "GitHubService initialized with workspace_base=%s", self.workspace_base
+        )
+
+    def verify_gh_installed(self) -> bool:
+        """
+        Verify gh CLI is available.
+
+        Returns:
+            True if gh CLI is installed
+
+        Raises:
+            GitHubCLINotFoundError: If gh CLI is not found
+        """
+        try:
+            result = subprocess.run(
+                ["gh", "--version"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode != 0:
+                raise GitHubCLINotFoundError(
+                    "GitHub CLI (gh) not found. Install from: https://cli.github.com/"
+                )
+            version = result.stdout.strip().split()[2] if result.stdout else "unknown"
+            logger.debug("gh CLI version: %s", version)
+            return True
+        except FileNotFoundError as e:
+            raise GitHubCLINotFoundError(
+                "GitHub CLI (gh) not found. Install from: https://cli.github.com/"
+            ) from e
+
+    def verify_gh_authenticated(self) -> bool:
+        """
+        Verify gh CLI is authenticated.
+
+        Returns:
+            True if authenticated
+
+        Raises:
+            GitHubAuthError: If not authenticated
+        """
+        result = subprocess.run(
+            ["gh", "auth", "status"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise GitHubAuthError("GitHub CLI not authenticated. Run: gh auth login")
+        logger.debug("gh CLI is authenticated")
+        return True
+
+    def parse_issue_url(self, url: str) -> tuple[str, str, int]:
+        """
+        Parse GitHub issue/PR URL into components.
+
+        Args:
+            url: Full URL like github.com/owner/repo/issues/123
+
+        Returns:
+            Tuple of (owner, repo, number)
+
+        Raises:
+            GitHubURLParseError: If URL cannot be parsed
+        """
+        patterns = [
+            r"github\.com/([^/]+)/([^/]+)/issues/(\d+)",
+            r"github\.com/([^/]+)/([^/]+)/pull/(\d+)",
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, url)
+            if match:
+                owner, repo, number = (
+                    match.group(1),
+                    match.group(2),
+                    int(match.group(3)),
+                )
+                logger.debug(
+                    "Parsed URL: owner=%s, repo=%s, number=%s", owner, repo, number
+                )
+                return owner, repo, number
+
+        raise GitHubURLParseError(f"Could not parse GitHub URL: {url}")
+
+    def fetch_issue(self, issue_url: str) -> GitHubIssue:
+        """
+        Fetch issue details from GitHub.
+
+        Args:
+            issue_url: Full URL like github.com/owner/repo/issues/123
+
+        Returns:
+            GitHubIssue with title, body, labels
+
+        Raises:
+            GitHubServiceError: If fetch fails
+        """
+        owner, repo, number = self.parse_issue_url(issue_url)
+
+        logger.info("Fetching issue %s/%s#%s", owner, repo, number)
+
+        try:
+            result = subprocess.run(
+                [
+                    "gh",
+                    "issue",
+                    "view",
+                    str(number),
+                    "--repo",
+                    f"{owner}/{repo}",
+                    "--json",
+                    "title,body,labels,state,url",
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError as e:
+            raise GitHubServiceError(
+                f"Failed to fetch issue {owner}/{repo}#{number}: {e.stderr}"  # noqa: not logging
+            ) from e
+
+        data = json.loads(result.stdout)
+
+        issue = GitHubIssue(
+            owner=owner,
+            repo=repo,
+            number=number,
+            title=data.get("title", ""),
+            body=data.get("body", "") or "",
+            labels=[label["name"] for label in data.get("labels", [])],
+            state=data.get("state", "open"),
+            url=data.get("url", issue_url),
+        )
+
+        logger.info("Fetched issue #%s: %s", number, issue.title)
+        return issue
+
+    def clone_repo(
+        self,
+        owner: str,
+        repo: str,
+        target_path: Path,
+        branch: str | None = None,
+    ) -> Path:
+        """
+        Clone repository to target path.
+
+        Args:
+            owner: Repository owner
+            repo: Repository name
+            target_path: Directory to clone into
+            branch: Optional branch to checkout
+
+        Returns:
+            Path to cloned repository
+
+        Raises:
+            GitHubServiceError: If clone fails
+        """
+        logger.info("Cloning %s/%s to %s", owner, repo, target_path)
+
+        cmd = [
+            "gh",
+            "repo",
+            "clone",
+            f"{owner}/{repo}",
+            str(target_path),
+        ]
+
+        if branch:
+            cmd.extend(["--", "--branch", branch])
+
+        try:
+            subprocess.run(cmd, check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError as e:
+            raise GitHubServiceError(
+                f"Failed to clone {owner}/{repo}: {e.stderr}"  # noqa: not logging
+            ) from e
+
+        logger.info("Cloned %s/%s to %s", owner, repo, target_path)
+        return target_path
+
+    def create_branch(
+        self,
+        repo_path: Path,
+        branch_name: str,
+    ) -> None:
+        """
+        Create and checkout a new branch.
+
+        Args:
+            repo_path: Path to the repository
+            branch_name: Name of the new branch
+
+        Raises:
+            GitHubServiceError: If branch creation fails
+        """
+        logger.info("Creating branch %s in %s", branch_name, repo_path)
+
+        try:
+            subprocess.run(
+                ["git", "checkout", "-b", branch_name],
+                cwd=repo_path,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as e:
+            raise GitHubServiceError(
+                f"Failed to create branch {branch_name}: {e.stderr}"  # noqa: not logging
+            ) from e
+
+        logger.info("Created and checked out branch %s", branch_name)
+
+    def commit_changes(
+        self,
+        repo_path: Path,
+        message: str,
+    ) -> str:
+        """
+        Stage and commit all changes.
+
+        Args:
+            repo_path: Path to the repository
+            message: Commit message
+
+        Returns:
+            Commit SHA
+
+        Raises:
+            GitHubServiceError: If commit fails
+        """
+        logger.info("Committing changes in %s", repo_path)
+
+        # Stage all changes
+        try:
+            subprocess.run(
+                ["git", "add", "-A"],
+                cwd=repo_path,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as e:
+            raise GitHubServiceError(  # noqa: not logging
+                f"Failed to stage changes: {e.stderr}"
+            ) from e
+
+        # Commit
+        try:
+            subprocess.run(
+                ["git", "commit", "-m", message],
+                cwd=repo_path,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as e:
+            # Check if there's nothing to commit
+            if "nothing to commit" in e.stdout or "nothing to commit" in e.stderr:
+                logger.warning("Nothing to commit")
+                raise GitHubServiceError("Nothing to commit") from e
+            raise GitHubServiceError(  # noqa: not logging
+                f"Failed to commit: {e.stderr}"
+            ) from e
+
+        # Get commit SHA
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        commit_sha = result.stdout.strip()
+        logger.info("Committed changes: %s", commit_sha[:8])
+        return commit_sha
+
+    def get_current_branch(self, repo_path: Path) -> str:
+        """
+        Get the current branch name.
+
+        Args:
+            repo_path: Path to the repository
+
+        Returns:
+            Current branch name
+        """
+        result = subprocess.run(
+            ["git", "branch", "--show-current"],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return result.stdout.strip()
+
+    def get_remote_info(self, repo_path: Path) -> tuple[str, str]:
+        """
+        Get owner and repo from git remote.
+
+        Args:
+            repo_path: Path to the repository
+
+        Returns:
+            Tuple of (owner, repo)
+        """
+        result = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        remote_url = result.stdout.strip()
+
+        # Parse owner/repo from remote URL
+        # Handles: git@github.com:owner/repo.git or https://github.com/owner/repo.git
+        patterns = [
+            r"github\.com[:/]([^/]+)/([^/]+?)(?:\.git)?$",
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, remote_url)
+            if match:
+                return match.group(1), match.group(2)
+
+        raise GitHubServiceError(  # noqa: not logging
+            f"Could not parse remote URL: {remote_url}"
+        )
+
+
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
+
+def generate_branch_name(issue: GitHubIssue) -> str:
+    """
+    Generate branch name from issue.
+
+    Format: fix/issue-{number}-{slug}
+    Example: fix/issue-123-null-pointer-exception
+
+    Args:
+        issue: GitHubIssue to generate branch name for
+
+    Returns:
+        Branch name string
+    """
+    # Create slug from title
+    slug = issue.title.lower()
+    slug = re.sub(r"[^a-z0-9]+", "-", slug)
+    slug = slug.strip("-")[:30]  # Limit length
+
+    return f"fix/issue-{issue.number}-{slug}"
