@@ -140,7 +140,13 @@ class SubprocessSandboxExecutor:
                 )
                 timed_out = True
                 self._kill_process_tree(process)
-                stdout, stderr = process.communicate()
+                # Use a short timeout for communicate after kill to avoid hanging
+                try:
+                    stdout, stderr = process.communicate(timeout=5)
+                except subprocess.TimeoutExpired:
+                    # Process didn't respond to kill, force terminate
+                    process.kill()
+                    stdout, stderr = "", ""
                 exit_code = -9  # SIGKILL
 
         except FileNotFoundError as e:
@@ -258,14 +264,18 @@ class SubprocessSandboxExecutor:
         Args:
             process: Process to kill
         """
+        # First try to kill just the process
+        with contextlib.suppress(ProcessLookupError, OSError):
+            process.kill()
+
+        # Then try to kill the process group if possible
         try:
-            # Try to kill the process group
             pgid = os.getpgid(process.pid)
-            os.killpg(pgid, signal.SIGKILL)
+            if pgid != os.getpgid(0):  # Don't kill our own process group
+                os.killpg(pgid, signal.SIGKILL)
         except (ProcessLookupError, PermissionError, OSError):
             # Process already dead or we can't kill the group
-            with contextlib.suppress(ProcessLookupError, OSError):
-                process.kill()
+            pass
 
     def execute_simple(
         self,
