@@ -28,7 +28,10 @@ class TestEventLoopOverhead:
             task = asyncio.create_task(simple_task())
             return await task
 
-        result = benchmark(asyncio.run, run_task())
+        def run():
+            return asyncio.run(run_task())
+
+        result = benchmark(run)
         assert result == 42
 
     def test_benchmark_empty_coroutine(self, benchmark):
@@ -36,7 +39,10 @@ class TestEventLoopOverhead:
         async def empty():
             pass
 
-        benchmark(asyncio.run, empty())
+        def run_empty():
+            asyncio.run(empty())
+
+        benchmark(run_empty)
 
     def test_benchmark_await_overhead(self, benchmark):
         """Benchmark await overhead - measures suspend/resume cost."""
@@ -45,7 +51,10 @@ class TestEventLoopOverhead:
                 return 42
             return await inner()
 
-        result = benchmark(asyncio.run, await_chain())
+        def run_await():
+            return asyncio.run(await_chain())
+
+        result = benchmark(run_await)
         assert result == 42
 
 
@@ -62,7 +71,10 @@ class TestConcurrentTasks:
             results = await asyncio.gather(*[task(i) for i in range(10)])
             return results
 
-        results = benchmark(asyncio.run, run_concurrent())
+        def run_wrapper():
+            return asyncio.run(run_concurrent())
+
+        results = benchmark(run_wrapper)
         assert len(results) == 10
 
     def test_benchmark_gather_100_tasks(self, benchmark):
@@ -75,7 +87,10 @@ class TestConcurrentTasks:
             results = await asyncio.gather(*[task(i) for i in range(100)])
             return results
 
-        results = benchmark(asyncio.run, run_concurrent())
+        def run_wrapper():
+            return asyncio.run(run_concurrent())
+
+        results = benchmark(run_wrapper)
         assert len(results) == 100
 
     def test_benchmark_gather_1000_tasks(self, benchmark):
@@ -88,7 +103,10 @@ class TestConcurrentTasks:
             results = await asyncio.gather(*[task(i) for i in range(1000)])
             return results
 
-        results = benchmark(asyncio.run, run_concurrent())
+        def run_wrapper():
+            return asyncio.run(run_concurrent())
+
+        results = benchmark(run_wrapper)
         assert len(results) == 1000
 
     def test_benchmark_task_group(self, benchmark):
@@ -104,7 +122,10 @@ class TestConcurrentTasks:
             return [t.result() for t in tasks]
 
         try:
-            results = benchmark(asyncio.run, run_task_group())
+            def run_wrapper():
+                return asyncio.run(run_task_group())
+
+            results = benchmark(run_wrapper)
             assert len(results) == 100
         except AttributeError:
             pytest.skip("TaskGroup not available (Python < 3.11)")
@@ -125,7 +146,10 @@ class TestAsyncIteration:
                 result.append(item)
             return result
 
-        results = benchmark(asyncio.run, consume())
+        def run_wrapper():
+            return asyncio.run(consume())
+
+        results = benchmark(run_wrapper)
         assert len(results) == 1000
 
     def test_benchmark_async_comprehension(self, benchmark):
@@ -137,7 +161,10 @@ class TestAsyncIteration:
         async def comprehend():
             return [item async for item in async_gen()]
 
-        results = benchmark(asyncio.run, comprehend())
+        def run_wrapper():
+            return asyncio.run(comprehend())
+
+        results = benchmark(run_wrapper)
         assert len(results) == 1000
 
 
@@ -152,7 +179,10 @@ class TestSynchronization:
                 async with lock:
                     pass
 
-        benchmark(asyncio.run, lock_operations())
+        def run_wrapper():
+            return asyncio.run(lock_operations())
+
+        benchmark(run_wrapper)
 
     def test_benchmark_semaphore(self, benchmark):
         """Benchmark semaphore operations."""
@@ -162,7 +192,10 @@ class TestSynchronization:
                 async with sem:
                     pass
 
-        benchmark(asyncio.run, semaphore_operations())
+        def run_wrapper():
+            return asyncio.run(semaphore_operations())
+
+        benchmark(run_wrapper)
 
     def test_benchmark_event_wait_set(self, benchmark):
         """Benchmark event wait/set operations."""
@@ -179,7 +212,10 @@ class TestSynchronization:
             await setter()
             await waiter_task
 
-        benchmark(asyncio.run, event_operations())
+        def run_wrapper():
+            return asyncio.run(event_operations())
+
+        benchmark(run_wrapper)
 
     def test_benchmark_queue_operations(self, benchmark):
         """Benchmark queue put/get operations - tests FIFO overhead."""
@@ -195,7 +231,10 @@ class TestSynchronization:
             
             return results
 
-        results = benchmark(asyncio.run, queue_operations())
+        def run_wrapper():
+            return asyncio.run(queue_operations())
+
+        results = benchmark(run_wrapper)
         assert len(results) == 100
 
 
@@ -216,7 +255,10 @@ class TestCPUBoundAsync:
             result = await loop.run_in_executor(None, cpu_bound_work)
             return result
 
-        result = benchmark(asyncio.run, run_in_executor())
+        def run_wrapper():
+            return asyncio.run(run_in_executor())
+
+        result = benchmark(run_wrapper)
         assert result > 0
 
     def test_benchmark_multiple_executors(self, benchmark):
@@ -236,7 +278,10 @@ class TestCPUBoundAsync:
             results = await asyncio.gather(*tasks)
             return results
 
-        results = benchmark(asyncio.run, run_concurrent_cpu())
+        def run_wrapper():
+            return asyncio.run(run_concurrent_cpu())
+
+        results = benchmark(run_wrapper)
         assert len(results) == 10
 
 
@@ -248,7 +293,10 @@ class TestIOSimulation:
         async def single_sleep():
             await asyncio.sleep(0.001)  # 1ms
 
-        benchmark(asyncio.run, single_sleep())
+        def run_wrapper():
+            return asyncio.run(single_sleep())
+
+        benchmark(run_wrapper)
 
     def test_benchmark_many_sleeps(self, benchmark):
         """Benchmark many sequential sleeps."""
@@ -256,14 +304,20 @@ class TestIOSimulation:
             for _ in range(100):
                 await asyncio.sleep(0)
 
-        benchmark(asyncio.run, many_sleeps())
+        def run_wrapper():
+            return asyncio.run(many_sleeps())
+
+        benchmark(run_wrapper)
 
     def test_benchmark_concurrent_sleeps(self, benchmark):
         """Benchmark concurrent sleeps - measures timer scheduling."""
         async def concurrent_sleeps():
             await asyncio.gather(*[asyncio.sleep(0.001) for _ in range(100)])
 
-        benchmark(asyncio.run, concurrent_sleeps())
+        def run_wrapper():
+            return asyncio.run(concurrent_sleeps())
+
+        benchmark(run_wrapper)
 
 
 class TestComplexWorkloads:
@@ -295,7 +349,10 @@ class TestComplexWorkloads:
             await prod_task
             return results
 
-        results = benchmark(asyncio.run, producer_consumer())
+        def run_wrapper():
+            return asyncio.run(producer_consumer())
+
+        results = benchmark(run_wrapper)
         assert len(results) == 100
 
     def test_benchmark_pipeline(self, benchmark):
@@ -322,7 +379,10 @@ class TestComplexWorkloads:
             results = await asyncio.gather(*[process(i) for i in range(100)])
             return results
 
-        results = benchmark(asyncio.run, pipeline())
+        def run_wrapper():
+            return asyncio.run(pipeline())
+
+        results = benchmark(run_wrapper)
         assert len(results) == 100
 
     def test_benchmark_fan_out_fan_in(self, benchmark):
@@ -341,7 +401,10 @@ class TestComplexWorkloads:
             # Aggregate
             return sum(results)
 
-        result = benchmark(asyncio.run, fan_out_fan_in())
+        def run_wrapper():
+            return asyncio.run(fan_out_fan_in())
+
+        result = benchmark(run_wrapper)
         assert result > 0
 
 
@@ -363,4 +426,7 @@ class TestAsyncContextManagers:
                 async with AsyncResource():
                     pass
 
-        benchmark(asyncio.run, use_context())
+        def run_wrapper():
+            return asyncio.run(use_context())
+
+        benchmark(run_wrapper)

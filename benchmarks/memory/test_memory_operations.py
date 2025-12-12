@@ -120,8 +120,12 @@ class TestGarbageCollection:
         """Benchmark weak reference overhead."""
         import weakref
 
+        class WeakRefable:
+            """Object that supports weak references."""
+            pass
+
         def create_weakrefs():
-            objects = [object() for _ in range(1000)]
+            objects = [WeakRefable() for _ in range(1000)]
             weakrefs = [weakref.ref(obj) for obj in objects]
             # Keep objects alive
             return len([wr() for wr in weakrefs if wr() is not None])
