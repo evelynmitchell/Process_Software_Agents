@@ -214,3 +214,10 @@ test_artifacts_repo/
 
 # Generated test artifacts (timestamps change on each run)
 artifacts/
+
+# Benchmark results
+benchmark_results/
+comparison_results/
+benchmarks/**/*.json
+benchmarks/**/venv_*
+.benchmarks/
