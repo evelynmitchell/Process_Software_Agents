@@ -111,12 +111,19 @@ def compare_memory_overhead(func1: Callable, func2: Callable, iterations: int = 
     print(f"  Peak memory: {stats2['peak_mb']:.2f} MB")
     
     # Calculate difference
-    diff_current = stats2['current_mb'] - stats1['current_mb']
-    diff_peak = stats2['peak_mb'] - stats1['peak_mb']
+    if stats1['current_mb'] > 0:
+        diff_current_pct = diff_current / stats1['current_mb'] * 100
+    else:
+        diff_current_pct = 0
+    
+    if stats1['peak_mb'] > 0:
+        diff_peak_pct = diff_peak / stats1['peak_mb'] * 100
+    else:
+        diff_peak_pct = 0
     
     print("\nDifference (Function 2 - Function 1):")
-    print(f"  Current: {diff_current:+.2f} MB ({diff_current/stats1['current_mb']*100:+.1f}%)")
-    print(f"  Peak: {diff_peak:+.2f} MB ({diff_peak/stats1['peak_mb']*100:+.1f}%)")
+    print(f"  Current: {diff_current:+.2f} MB ({diff_current_pct:+.1f}%)")
+    print(f"  Peak: {diff_peak:+.2f} MB ({diff_peak_pct:+.1f}%)")
 
 
 def print_memory_snapshot():

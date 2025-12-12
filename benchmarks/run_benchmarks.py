@@ -148,6 +148,9 @@ def generate_summary(results_file):
     
     # Print summary for each category
     for cat_name, cat_benchmarks in sorted(categories.items()):
+        if not cat_benchmarks:
+            continue
+            
         print(f"\n{cat_name} Benchmarks ({len(cat_benchmarks)} tests)")
         print("-" * 80)
         
@@ -170,14 +173,19 @@ def generate_summary(results_file):
             print(f"    {i}. {test_name[:60]:<60} {mean_ms:>10.4f} ms")
     
     # Overall statistics
-    all_times = [b['stats']['mean'] for b in benchmarks]
-    total_time = sum(all_times)
-    
-    print("\n" + "=" * 80)
-    print(f"Total benchmarks: {len(benchmarks)}")
-    print(f"Total time: {total_time:.2f} seconds")
-    print(f"Average per benchmark: {total_time/len(benchmarks)*1000:.4f} ms")
-    print("=" * 80)
+    if benchmarks:
+        all_times = [b['stats']['mean'] for b in benchmarks]
+        total_time = sum(all_times)
+        
+        print("\n" + "=" * 80)
+        print(f"Total benchmarks: {len(benchmarks)}")
+        print(f"Total time: {total_time:.2f} seconds")
+        print(f"Average per benchmark: {total_time/len(benchmarks)*1000:.4f} ms")
+        print("=" * 80)
+    else:
+        print("\n" + "=" * 80)
+        print("No benchmarks found in results")
+        print("=" * 80)
 
 
 def main():
