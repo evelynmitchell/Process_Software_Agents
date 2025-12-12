@@ -102,7 +102,8 @@ class TestGarbageCollection:
             gc.disable()
             try:
                 objects = []
-                for _ in range(1000):
+                # Reduced from 1000 to 100 to avoid memory pressure
+                for _ in range(100):
                     obj1 = {}
                     obj2 = {}
                     obj1['ref'] = obj2

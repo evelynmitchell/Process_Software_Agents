@@ -40,7 +40,7 @@ def profile_memory(func: Callable, *args, **kwargs) -> Tuple[Any, dict]:
     
     stats['top_allocations'] = [
         {
-            'file': stat.traceback.format()[0] if stat.traceback else 'unknown',
+            'file': stat.traceback.format()[0] if stat.traceback and stat.traceback.format() else 'unknown',
             'size_mb': stat.size / 1024 / 1024,
             'count': stat.count,
         }

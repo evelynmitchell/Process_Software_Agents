@@ -96,8 +96,8 @@ def compare_benchmarks(
             print(f"  {change:+.2f}% - {name}")
     
     total_benchmarks = len(common_benchmarks)
-    improved = len([c for _, c in improvements])
-    regressed = len([c for _, c in regressions])
+    improved = len(improvements)
+    regressed = len(regressions)
     neutral = total_benchmarks - improved - regressed
     
     print(f"\nTotal benchmarks: {total_benchmarks}")
