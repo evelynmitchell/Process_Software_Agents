@@ -5,8 +5,9 @@ import pytest
 # PyTorch import with fallback
 try:
     import torch
-    import torch.nn as nn
     import torch.nn.functional as F
+    from torch import nn
+
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
@@ -57,7 +58,6 @@ if TORCH_AVAILABLE:
             result = benchmark(lambda t: t.cpu(), cuda_tensor)
             assert not result.is_cuda
 
-
     class TestTensorArithmetic:
         """Test basic tensor arithmetic - measures vectorization and kernel performance."""
 
@@ -96,7 +96,6 @@ if TORCH_AVAILABLE:
             b = torch.rand(500, 500)
             result = benchmark(torch.matmul, a, b)
             assert result.shape == (500, 500)
-
 
     class TestNeuralNetworkOps:
         """Test neural network operations - measures optimized kernels."""
@@ -141,15 +140,15 @@ if TORCH_AVAILABLE:
             result = benchmark(linear, x)
             assert result.shape == (32, 512)
 
-
     class TestGradients:
         """Test gradient computation - measures autograd performance."""
 
         def test_benchmark_simple_backward(self, benchmark):
             """Benchmark simple backward pass."""
+
             def backward_pass():
                 x = torch.randn(1000, 1000, requires_grad=True)
-                y = x ** 2
+                y = x**2
                 loss = y.sum()
                 loss.backward()
                 return x.grad
@@ -159,6 +158,7 @@ if TORCH_AVAILABLE:
 
         def test_benchmark_matmul_backward(self, benchmark):
             """Benchmark matrix multiplication backward pass."""
+
             def backward_pass():
                 x = torch.randn(500, 500, requires_grad=True)
                 w = torch.randn(500, 500, requires_grad=True)
@@ -172,6 +172,7 @@ if TORCH_AVAILABLE:
 
         def test_benchmark_mlp_backward(self, benchmark):
             """Benchmark multi-layer perceptron backward pass."""
+
             class SimpleMLP(nn.Module):
                 def __init__(self):
                     super().__init__()
@@ -188,7 +189,7 @@ if TORCH_AVAILABLE:
                 model = SimpleMLP()
                 x = torch.randn(32, 512)
                 y = torch.randint(0, 10, (32,))
-                
+
                 output = model(x)
                 loss = F.cross_entropy(output, y)
                 loss.backward()
@@ -196,7 +197,6 @@ if TORCH_AVAILABLE:
 
             result = benchmark(train_step)
             assert result > 0
-
 
     class TestMemoryOperations:
         """Test memory-related operations - measures allocation patterns."""
@@ -231,7 +231,6 @@ if TORCH_AVAILABLE:
             result = benchmark(torch.cat, tensors, dim=0)
             assert result.shape == (1000, 1000)
 
-
     class TestComplexModels:
         """Test complex model operations - end-to-end performance."""
 
@@ -251,6 +250,7 @@ if TORCH_AVAILABLE:
 
         def test_benchmark_resnet_block(self, benchmark):
             """Benchmark ResNet-style block."""
+
             class ResNetBlock(nn.Module):
                 def __init__(self):
                     super().__init__()
@@ -270,7 +270,6 @@ if TORCH_AVAILABLE:
             x = torch.randn(32, 64, 56, 56)
             result = benchmark(block, x)
             assert result.shape == (32, 64, 56, 56)
-
 
     class TestDataTypes:
         """Test different data types - measures precision vs performance tradeoffs."""

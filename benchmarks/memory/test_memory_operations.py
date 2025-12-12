@@ -2,7 +2,6 @@
 
 import gc
 import sys
-import pytest
 
 
 class TestObjectAllocation:
@@ -30,6 +29,7 @@ class TestObjectAllocation:
 
     def test_benchmark_object_creation(self, benchmark):
         """Benchmark custom object creation - measures class instance allocation."""
+
         class SimpleObject:
             def __init__(self, value):
                 self.value = value
@@ -46,6 +46,7 @@ class TestMemoryReuse:
 
     def test_benchmark_list_append_realloc(self, benchmark):
         """Benchmark list append with reallocations - measures resize overhead."""
+
         def append_many():
             lst = []
             for i in range(10000):
@@ -57,6 +58,7 @@ class TestMemoryReuse:
 
     def test_benchmark_list_preallocated(self, benchmark):
         """Benchmark list with preallocation - no resizing."""
+
         def preallocated():
             lst = [None] * 10000
             for i in range(10000):
@@ -68,6 +70,7 @@ class TestMemoryReuse:
 
     def test_benchmark_dict_preallocated(self, benchmark):
         """Benchmark dict with preallocation hint."""
+
         def create_dict():
             d = {}
             for i in range(10000):
@@ -83,6 +86,7 @@ class TestGarbageCollection:
 
     def test_benchmark_gc_collect(self, benchmark):
         """Benchmark explicit garbage collection - measures GC cycle time."""
+
         # Create garbage
         def create_garbage():
             garbage = []
@@ -92,12 +96,13 @@ class TestGarbageCollection:
             garbage.clear()
 
         create_garbage()
-        
+
         result = benchmark(gc.collect)
         assert result >= 0
 
     def test_benchmark_reference_cycles(self, benchmark):
         """Benchmark reference cycle creation and collection."""
+
         def create_cycles():
             gc.disable()
             try:
@@ -106,8 +111,8 @@ class TestGarbageCollection:
                 for _ in range(100):
                     obj1 = {}
                     obj2 = {}
-                    obj1['ref'] = obj2
-                    obj2['ref'] = obj1
+                    obj1["ref"] = obj2
+                    obj2["ref"] = obj1
                     objects.append(obj1)
                 objects.clear()
                 return gc.collect()
@@ -123,7 +128,6 @@ class TestGarbageCollection:
 
         class WeakRefable:
             """Object that supports weak references."""
-            pass
 
         def create_weakrefs():
             objects = [WeakRefable() for _ in range(1000)]
@@ -136,6 +140,7 @@ class TestGarbageCollection:
 
     def test_benchmark_gc_disabled(self, benchmark):
         """Benchmark with GC disabled - measures allocation without GC overhead."""
+
         def allocate_without_gc():
             gc.disable()
             try:
@@ -154,6 +159,7 @@ class TestReferenceCounting:
 
     def test_benchmark_reference_increment(self, benchmark):
         """Benchmark reference increment/decrement - measures refcount overhead."""
+
         def ref_counting():
             obj = [1, 2, 3, 4, 5]
             refs = []
@@ -169,6 +175,7 @@ class TestReferenceCounting:
 
     def test_benchmark_container_references(self, benchmark):
         """Benchmark container reference management."""
+
         def container_refs():
             items = list(range(1000))
             containers = []
@@ -185,6 +192,7 @@ class TestMemoryLayout:
 
     def test_benchmark_slots_vs_dict(self, benchmark):
         """Benchmark __slots__ vs __dict__ - measures memory layout overhead."""
+
         class WithDict:
             def __init__(self, x, y):
                 self.x = x
@@ -198,9 +206,10 @@ class TestMemoryLayout:
 
     def test_benchmark_slots_class(self, benchmark):
         """Benchmark class with __slots__ - optimized memory layout."""
+
         class WithSlots:
-            __slots__ = ['x', 'y']
-            
+            __slots__ = ["x", "y"]
+
             def __init__(self, x, y):
                 self.x = x
                 self.y = y
@@ -217,6 +226,7 @@ class TestStringOperations:
 
     def test_benchmark_string_concatenation(self, benchmark):
         """Benchmark string concatenation - measures repeated allocation."""
+
         def concat_strings():
             s = ""
             for i in range(1000):
@@ -228,6 +238,7 @@ class TestStringOperations:
 
     def test_benchmark_string_join(self, benchmark):
         """Benchmark string join - optimized allocation."""
+
         def join_strings():
             return "".join(str(i) for i in range(1000))
 
@@ -236,6 +247,7 @@ class TestStringOperations:
 
     def test_benchmark_string_formatting(self, benchmark):
         """Benchmark f-string formatting - measures format overhead."""
+
         def format_strings():
             return [f"value_{i}" for i in range(1000)]
 
@@ -244,6 +256,7 @@ class TestStringOperations:
 
     def test_benchmark_string_interning(self, benchmark):
         """Benchmark string interning - measures intern cache."""
+
         def intern_strings():
             # Short strings are automatically interned
             strings = []
@@ -273,6 +286,7 @@ class TestBufferProtocol:
 
     def test_benchmark_bytes_vs_bytearray(self, benchmark):
         """Benchmark bytes (immutable) vs bytearray (mutable)."""
+
         def create_bytearray():
             ba = bytearray(10000)
             for i in range(100):
@@ -304,12 +318,13 @@ class TestCaching:
 
         # Warm up cache
         compute_fib()
-        
+
         result = benchmark(compute_fib)
         assert len(result) == 20
 
     def test_benchmark_no_cache(self, benchmark):
         """Benchmark without cache - baseline for comparison."""
+
         def fibonacci(n):
             if n < 2:
                 return n
@@ -330,6 +345,7 @@ class TestGenerators:
 
     def test_benchmark_list_comprehension(self, benchmark):
         """Benchmark list comprehension - eager evaluation."""
+
         def create_list():
             return [i * 2 for i in range(10000)]
 
@@ -338,6 +354,7 @@ class TestGenerators:
 
     def test_benchmark_generator_expression(self, benchmark):
         """Benchmark generator expression - lazy evaluation."""
+
         def use_generator():
             gen = (i * 2 for i in range(10000))
             return sum(gen)
@@ -347,6 +364,7 @@ class TestGenerators:
 
     def test_benchmark_generator_function(self, benchmark):
         """Benchmark generator function - measures frame overhead."""
+
         def gen_func():
             for i in range(10000):
                 yield i * 2

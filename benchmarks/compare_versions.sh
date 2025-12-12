@@ -44,40 +44,40 @@ for version in "${VERSIONS[@]}"; do
     echo "Benchmarking Python ${version}"
     echo "========================================"
     echo ""
-    
+
     # Create/activate virtual environment
     VENV_DIR="venv_${version//./_}"
-    
+
     if [ ! -d "$VENV_DIR" ]; then
         echo "Creating virtual environment for Python ${version}..."
         pyenv local "$version"
         python -m venv "$VENV_DIR"
     fi
-    
+
     # Activate and install dependencies
     source "${VENV_DIR}/bin/activate"
-    
+
     echo "Installing dependencies..."
     pip install -q --upgrade pip
     pip install -q pytest pytest-benchmark numpy
-    
+
     # Try to install PyTorch (may fail on some platforms)
     pip install -q torch 2>/dev/null || echo "⚠️  PyTorch install failed, skipping PyTorch benchmarks"
-    
+
     # Run benchmarks
     echo "Running benchmarks..."
     RESULT_FILE="${RESULTS_DIR}/results_${version//./_}.json"
-    
+
     python benchmarks/run_benchmarks.py \
         --output-dir "$RESULTS_DIR" \
         --categories numpy async memory startup
-    
+
     # Rename the generated file for consistency
     LATEST=$(ls -t "${RESULTS_DIR}"/benchmarks_*.json | head -1)
     mv "$LATEST" "$RESULT_FILE"
-    
+
     echo "✅ Results saved to: ${RESULT_FILE}"
-    
+
     deactivate
 done
 

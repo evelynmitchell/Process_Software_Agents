@@ -272,7 +272,7 @@ class PlanningAgent(BaseAgent):
 
             except Exception as e:
                 raise AgentExecutionError(
-                    f"Failed to validate semantic unit {i}: {e}\n" f"Data: {unit_data}"
+                    f"Failed to validate semantic unit {i}: {e}\nData: {unit_data}"
                 ) from e
 
         logger.info(
@@ -387,7 +387,7 @@ class PlanningAgent(BaseAgent):
 
             except Exception as e:
                 raise AgentExecutionError(
-                    f"Failed to validate semantic unit {i}: {e}\n" f"Data: {unit_data}"
+                    f"Failed to validate semantic unit {i}: {e}\nData: {unit_data}"
                 ) from e
 
         logger.info(

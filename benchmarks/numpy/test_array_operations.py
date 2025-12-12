@@ -116,27 +116,27 @@ class TestReductions:
     def test_benchmark_sum(self, benchmark, large_array):
         """Benchmark sum reduction."""
         result = benchmark(np.sum, large_array)
-        assert isinstance(result, (float, np.floating))
+        assert isinstance(result, float | np.floating)
 
     def test_benchmark_mean(self, benchmark, large_array):
         """Benchmark mean calculation."""
         result = benchmark(np.mean, large_array)
-        assert isinstance(result, (float, np.floating))
+        assert isinstance(result, float | np.floating)
 
     def test_benchmark_std(self, benchmark, large_array):
         """Benchmark standard deviation - tests variance calculation."""
         result = benchmark(np.std, large_array)
-        assert isinstance(result, (float, np.floating))
+        assert isinstance(result, float | np.floating)
 
     def test_benchmark_max(self, benchmark, large_array):
         """Benchmark max reduction."""
         result = benchmark(np.max, large_array)
-        assert isinstance(result, (float, np.floating))
+        assert isinstance(result, float | np.floating)
 
     def test_benchmark_argmax(self, benchmark, large_array):
         """Benchmark argmax - tests indexing."""
         result = benchmark(np.argmax, large_array)
-        assert isinstance(result, (int, np.integer))
+        assert isinstance(result, int | np.integer)
 
 
 class TestIndexingSlicing:
@@ -150,7 +150,7 @@ class TestIndexingSlicing:
     def test_benchmark_basic_indexing(self, benchmark, array_3d):
         """Benchmark basic indexing - tests direct memory access."""
         result = benchmark(lambda a: a[50, 50, 50], array_3d)
-        assert isinstance(result, (float, np.floating))
+        assert isinstance(result, float | np.floating)
 
     def test_benchmark_slicing(self, benchmark, array_3d):
         """Benchmark array slicing - tests view creation."""
@@ -195,14 +195,14 @@ class TestMemoryLayout:
     def test_benchmark_c_contiguous_sum(self, benchmark):
         """Benchmark sum on C-contiguous array - row-major order."""
         a = np.random.rand(1000, 1000)
-        assert a.flags['C_CONTIGUOUS']
+        assert a.flags["C_CONTIGUOUS"]
         result = benchmark(np.sum, a, axis=1)
         assert len(result) == 1000
 
     def test_benchmark_f_contiguous_sum(self, benchmark):
         """Benchmark sum on Fortran-contiguous array - column-major order."""
         a = np.asfortranarray(np.random.rand(1000, 1000))
-        assert a.flags['F_CONTIGUOUS']
+        assert a.flags["F_CONTIGUOUS"]
         result = benchmark(np.sum, a, axis=0)
         assert len(result) == 1000
 
@@ -210,4 +210,4 @@ class TestMemoryLayout:
         """Benchmark converting C-contiguous to Fortran-contiguous."""
         a = np.random.rand(1000, 1000)
         result = benchmark(np.asfortranarray, a)
-        assert result.flags['F_CONTIGUOUS']
+        assert result.flags["F_CONTIGUOUS"]

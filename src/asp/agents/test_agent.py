@@ -269,7 +269,7 @@ class TestAgent(BaseAgent):
             return test_report
         except Exception as e:
             raise AgentExecutionError(
-                f"Failed to validate TestReport: {e}\n" f"Response content: {content}"
+                f"Failed to validate TestReport: {e}\nResponse content: {content}"
             ) from e
 
     def _validate_test_report(self, report: TestReport) -> None:

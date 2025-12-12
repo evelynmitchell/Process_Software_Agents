@@ -153,9 +153,9 @@ def initialize_database(
     # Create parent directory if it doesn't exist
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print("Initializing ASP Telemetry Database")
-    print(f"{'='*50}")
+    print(f"{'=' * 50}")
     print(f"Database: {db_path}")
     print(f"SQL Directory: {sql_dir}\n")
 
@@ -196,9 +196,9 @@ def initialize_database(
         # Close connection
         conn.close()
 
-        print(f"\n{'='*50}")
+        print(f"\n{'=' * 50}")
         print("[OK] Database initialization completed successfully!")
-        print(f"{'='*50}\n")
+        print(f"{'=' * 50}\n")
         print(f"Database location: {db_path}")
         print(f"Database size: {db_path.stat().st_size:,} bytes\n")
 

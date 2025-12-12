@@ -623,7 +623,7 @@ def developer_routes(app, rt):
                                     Td("Success Rate"),
                                     Td(
                                         Strong(
-                                            f"{(stats['successful']/stats['total_tasks']*100):.1f}%"
+                                            f"{(stats['successful'] / stats['total_tasks'] * 100):.1f}%"
                                             if stats["total_tasks"] > 0
                                             else "N/A"
                                         )

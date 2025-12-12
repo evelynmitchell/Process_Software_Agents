@@ -1,7 +1,5 @@
 """Pytest configuration for benchmarks."""
 
-import pytest
-
 
 def pytest_configure(config):
     """Configure pytest for benchmarking."""
@@ -15,10 +13,10 @@ def pytest_configure(config):
 
 def pytest_benchmark_update_json(config, benchmarks, output_json):
     """Add custom information to benchmark JSON output."""
-    import sys
     import platform
-    
-    output_json['python_version'] = sys.version
-    output_json['python_implementation'] = platform.python_implementation()
-    output_json['platform'] = platform.platform()
-    output_json['processor'] = platform.processor()
+    import sys
+
+    output_json["python_version"] = sys.version
+    output_json["python_implementation"] = platform.python_implementation()
+    output_json["platform"] = platform.platform()
+    output_json["processor"] = platform.processor()
