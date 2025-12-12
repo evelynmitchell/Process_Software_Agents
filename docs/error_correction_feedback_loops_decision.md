@@ -71,7 +71,7 @@ As we implement the Code Agent (FR-4) and prepare for the main TSP Orchestrator,
 
 ## Considered Options
 
-### Option 1: Single-Step Feedback (Current Implementation) 
+### Option 1: Single-Step Feedback (Current Implementation)
 
 **Architecture:**
 - Each review agent can only fail back to the immediately preceding agent

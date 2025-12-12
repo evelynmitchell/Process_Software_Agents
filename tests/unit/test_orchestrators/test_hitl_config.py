@@ -133,7 +133,8 @@ class TestThresholdMode:
     def test_high_confidence_auto_approves(self, config):
         """Test very high confidence auto-approves."""
         requires, reason = config.should_require_approval(
-            iteration=1, confidence=0.95  # > 0.9 auto_approve threshold
+            iteration=1,
+            confidence=0.95,  # > 0.9 auto_approve threshold
         )
         assert requires is False
 

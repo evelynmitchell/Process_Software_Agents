@@ -875,5 +875,5 @@ class RepairOrchestrator:
         if not result.changes_made:
             return "No changes made."
 
-        files_changed = set(c.file_path for c in result.changes_made)
+        files_changed = {c.file_path for c in result.changes_made}
         return f"Modified {len(files_changed)} file(s): {', '.join(files_changed)}"

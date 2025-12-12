@@ -78,9 +78,9 @@ def make_checklist_review(count: int = 1) -> list[ChecklistItemReview]:
     """Helper to create checklist review items."""
     return [
         ChecklistItemReview(
-            checklist_item_id=f"CHECK-{i+1:03d}",
+            checklist_item_id=f"CHECK-{i + 1:03d}",
             category="Security",
-            description=f"Validate security requirements for component {i+1}",
+            description=f"Validate security requirements for component {i + 1}",
             status="Pass",
             notes="All requirements have been verified and passed inspection",
         )

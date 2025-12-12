@@ -671,7 +671,7 @@ class CodeReviewOrchestrator(BaseAgent):
 
             checklist_review.append(
                 {
-                    "item_id": f"CODE-CHECK-{i+1:03d}",
+                    "item_id": f"CODE-CHECK-{i + 1:03d}",
                     "item_description": item["description"],
                     "status": status,
                     "notes": " | ".join(notes_parts),

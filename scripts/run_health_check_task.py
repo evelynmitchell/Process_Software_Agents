@@ -33,9 +33,9 @@ from asp.models.planning import ProjectPlan, TaskRequirements
 
 def print_section(title: str):
     """Print a section header."""
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(f"{title}")
-    print(f"{'='*80}\n")
+    print(f"{'=' * 80}\n")
 
 
 def main():

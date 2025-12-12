@@ -403,7 +403,7 @@ def manager_routes(app, rt):
                                         Td("Pass Rate"),
                                         Td(
                                             (
-                                                f"{(review_stats['passed']/review_stats['total_reviews']*100):.0f}%"
+                                                f"{(review_stats['passed'] / review_stats['total_reviews'] * 100):.0f}%"
                                                 if review_stats["total_reviews"] > 0
                                                 else "N/A"
                                             ),
@@ -557,7 +557,7 @@ def manager_routes(app, rt):
                     P(
                         f"Total: {len(tasks)} | Completed: {stats['successful']} | "
                         f"Failed: {stats['failed']} | "
-                        f"Success Rate: {(stats['successful']/stats['total_tasks']*100):.0f}%"
+                        f"Success Rate: {(stats['successful'] / stats['total_tasks'] * 100):.0f}%"
                         if stats["total_tasks"] > 0
                         else "No data"
                     ),

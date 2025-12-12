@@ -262,9 +262,9 @@ def run_bootstrap_collection():
     results = []
 
     for i, task_def in enumerate(BOOTSTRAP_TASKS, 1):
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print(f"TASK {i}/{len(BOOTSTRAP_TASKS)}: {task_def['task_id']}")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print(f"Description: {task_def['description']}")
         print(f"Expected: {task_def['expected_complexity']}")
         print()
@@ -369,9 +369,9 @@ def run_bootstrap_collection():
             indent=2,
         )
 
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("BOOTSTRAP COLLECTION COMPLETE")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     print(f"Results saved to: {output_file}")
     print(f"Successful: {sum(1 for r in results if r['success'])}/{len(results)}")
     print(f"Failed: {sum(1 for r in results if not r['success'])}/{len(results)}")

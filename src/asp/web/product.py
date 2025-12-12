@@ -100,7 +100,7 @@ def product_routes(app, rt):
                                 ],
                                 P(
                                     (
-                                        f"+{len(planning)-5} more"
+                                        f"+{len(planning) - 5} more"
                                         if len(planning) > 5
                                         else ""
                                     ),
@@ -134,7 +134,7 @@ def product_routes(app, rt):
                                 ],
                                 P(
                                     (
-                                        f"+{len(in_progress)-5} more"
+                                        f"+{len(in_progress) - 5} more"
                                         if len(in_progress) > 5
                                         else ""
                                     ),
@@ -158,7 +158,7 @@ def product_routes(app, rt):
                                 ],
                                 P(
                                     (
-                                        f"+{len(completed)-5} more"
+                                        f"+{len(completed) - 5} more"
                                         if len(completed) > 5
                                         else ""
                                     ),
@@ -221,7 +221,7 @@ def product_routes(app, rt):
                                         Td("Avg Units per Task"),
                                         Td(
                                             Strong(
-                                                f"{stats['total_units']/stats['total_tasks']:.1f}"
+                                                f"{stats['total_units'] / stats['total_tasks']:.1f}"
                                                 if stats["total_tasks"] > 0
                                                 else "N/A"
                                             )
@@ -251,7 +251,7 @@ def product_routes(app, rt):
                                         Td("Success Rate"),
                                         Td(
                                             Strong(
-                                                f"{(stats['successful']/stats['total_tasks']*100):.0f}%"
+                                                f"{(stats['successful'] / stats['total_tasks'] * 100):.0f}%"
                                                 if stats["total_tasks"] > 0
                                                 else "N/A"
                                             ),

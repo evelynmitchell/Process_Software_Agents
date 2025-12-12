@@ -454,7 +454,9 @@ class TestProjectPlan:
         # Invalid: empty list
         with pytest.raises(ValidationError):
             ProjectPlan(
-                task_id="TASK-001", semantic_units=[], total_est_complexity=0  # Empty
+                task_id="TASK-001",
+                semantic_units=[],
+                total_est_complexity=0,  # Empty
             )
 
         # Invalid: too many units (more than 15)

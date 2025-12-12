@@ -289,7 +289,7 @@ class TestCalculateFixConfidence:
                 CodeChange(
                     file_path="src/calculator.py",
                     search_text=f"line_{i} = {i}",
-                    replace_text=f"line_{i} = {i+1}",
+                    replace_text=f"line_{i} = {i + 1}",
                 )
                 for i in range(6)  # Total of 7 changes
             ]

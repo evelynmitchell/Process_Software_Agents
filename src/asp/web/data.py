@@ -792,7 +792,7 @@ def generate_sparkline_svg(
     """
     if not values or all(v == 0 for v in values):
         # Return empty placeholder when no data
-        return f'<svg width="{width}" height="{height}" style="vertical-align: middle;"><text x="{width//2}" y="{height//2 + 4}" text-anchor="middle" fill="#666" font-size="10">No data</text></svg>'
+        return f'<svg width="{width}" height="{height}" style="vertical-align: middle;"><text x="{width // 2}" y="{height // 2 + 4}" text-anchor="middle" fill="#666" font-size="10">No data</text></svg>'
 
     # Normalize values to fit in height
     min_val = min(values)
@@ -814,7 +814,7 @@ def generate_sparkline_svg(
         y = padding + usable_height - ((val - min_val) / val_range) * usable_height
         points.append(f"{x:.1f},{y:.1f}")
 
-    path = f'M {" L ".join(points)}'
+    path = f"M {' L '.join(points)}"
 
     # Build SVG
     svg_parts = [

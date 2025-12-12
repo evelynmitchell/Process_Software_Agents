@@ -252,7 +252,7 @@ class GitHubService:
             )
         except subprocess.CalledProcessError as e:
             raise GitHubServiceError(
-                f"Failed to fetch issue {owner}/{repo}#{number}: {e.stderr}"  # noqa: not logging
+                f"Failed to fetch issue {owner}/{repo}#{number}: {e.stderr}"  # not logging stderr to avoid leaking secrets
             ) from e
 
         data = json.loads(result.stdout)
@@ -310,7 +310,7 @@ class GitHubService:
             subprocess.run(cmd, check=True, capture_output=True, text=True)
         except subprocess.CalledProcessError as e:
             raise GitHubServiceError(
-                f"Failed to clone {owner}/{repo}: {e.stderr}"  # noqa: not logging
+                f"Failed to clone {owner}/{repo}: {e.stderr}"  # not logging stderr to avoid leaking secrets
             ) from e
 
         logger.info("Cloned %s/%s to %s", owner, repo, target_path)
@@ -343,7 +343,7 @@ class GitHubService:
             )
         except subprocess.CalledProcessError as e:
             raise GitHubServiceError(
-                f"Failed to create branch {branch_name}: {e.stderr}"  # noqa: not logging
+                f"Failed to create branch {branch_name}: {e.stderr}"  # not logging stderr to avoid leaking secrets
             ) from e
 
         logger.info("Created and checked out branch %s", branch_name)
@@ -378,7 +378,7 @@ class GitHubService:
                 text=True,
             )
         except subprocess.CalledProcessError as e:
-            raise GitHubServiceError(  # noqa: not logging
+            raise GitHubServiceError(  # not logging stderr to avoid leaking secrets
                 f"Failed to stage changes: {e.stderr}"
             ) from e
 
@@ -396,7 +396,7 @@ class GitHubService:
             if "nothing to commit" in e.stdout or "nothing to commit" in e.stderr:
                 logger.warning("Nothing to commit")
                 raise GitHubServiceError("Nothing to commit") from e
-            raise GitHubServiceError(  # noqa: not logging
+            raise GitHubServiceError(  # not logging stderr to avoid leaking secrets
                 f"Failed to commit: {e.stderr}"
             ) from e
 
@@ -463,7 +463,7 @@ class GitHubService:
             if match:
                 return match.group(1), match.group(2)
 
-        raise GitHubServiceError(  # noqa: not logging
+        raise GitHubServiceError(  # not logging stderr to avoid leaking secrets
             f"Could not parse remote URL: {remote_url}"
         )
 
@@ -500,7 +500,7 @@ class GitHubService:
             )
         except subprocess.CalledProcessError as e:
             raise GitHubServiceError(
-                f"Failed to push branch {branch}: {e.stderr}"  # noqa: not logging
+                f"Failed to push branch {branch}: {e.stderr}"  # not logging stderr to avoid leaking secrets
             ) from e
 
         logger.info("Pushed branch %s to origin", branch)
@@ -556,7 +556,7 @@ class GitHubService:
             )
         except subprocess.CalledProcessError as e:
             raise GitHubServiceError(
-                f"Failed to create PR: {e.stderr}"  # noqa: not logging
+                f"Failed to create PR: {e.stderr}"  # not logging stderr to avoid leaking secrets
             ) from e
 
         # Parse URL from output (gh pr create outputs the URL)

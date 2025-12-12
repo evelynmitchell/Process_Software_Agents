@@ -1,0 +1,25 @@
+# Python Performance Benchmarking Requirements
+#
+# Install with: pip install -r benchmarks/requirements.txt
+
+# Core benchmarking
+pytest>=7.4.3
+pytest-benchmark>=4.0.0
+pytest-asyncio>=0.21.1
+
+# Numerical computing
+numpy>=1.24.0
+torch>=2.0.0; sys_platform != 'darwin' or platform_machine != 'arm64'
+# For Apple Silicon, use: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+# Memory profiling
+memory-profiler>=0.61.0
+psutil>=5.9.0
+
+# Analysis and visualization
+matplotlib>=3.7.0
+pandas>=2.0.0
+seaborn>=0.12.0
+
+# Additional utilities
+tabulate>=0.9.0

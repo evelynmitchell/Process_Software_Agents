@@ -204,9 +204,9 @@ def print_test_summary(
     title: str, design: DesignSpecification, metrics: dict[str, Any]
 ):
     """Print formatted test summary."""
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(f"{title}")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     print(f"Task ID: {design.task_id}")
     print("\nMetrics:")
     for key, value in metrics.items():
@@ -225,7 +225,7 @@ def print_test_summary(
     for i, component in enumerate(design.component_logic, 1):
         print(f"  {i}. {component.component_name} [{component.semantic_unit_id}]")
     print(f"\nDesign Review Checklist: {len(design.design_review_checklist)} items")
-    print(f"{'='*80}\n")
+    print(f"{'=' * 80}\n")
 
 
 @pytest.mark.e2e
@@ -510,7 +510,7 @@ class TestDesignAgentMarkdownComparison:
         print(f"  JSON:     {time_json:.2f}s")
         print(f"  Markdown: {time_md:.2f}s")
         print(
-            f"  Delta:    {abs(time_json - time_md):.2f}s ({'+' if time_md > time_json else '-'}{abs(1 - time_md/time_json)*100:.1f}%)"
+            f"  Delta:    {abs(time_json - time_md):.2f}s ({'+' if time_md > time_json else '-'}{abs(1 - time_md / time_json) * 100:.1f}%)"
         )
 
         print("\nAPI Contracts:")
@@ -588,7 +588,7 @@ class TestDesignAgentMarkdownComparison:
         print(f"  JSON:     {time_json:.2f}s")
         print(f"  Markdown: {time_md:.2f}s")
         print(
-            f"  Delta:    {abs(time_json - time_md):.2f}s ({'+' if time_md > time_json else '-'}{abs(1 - time_md/time_json)*100:.1f}%)"
+            f"  Delta:    {abs(time_json - time_md):.2f}s ({'+' if time_md > time_json else '-'}{abs(1 - time_md / time_json) * 100:.1f}%)"
         )
 
         print("\nAPI Contracts:")
@@ -637,12 +637,12 @@ class TestDesignAgentMarkdownParsing:
         assert "component_logic" in design_dict
         assert "design_review_checklist" in design_dict
 
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("Markdown Parsing Validation")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print("Successfully parsed and validated markdown output")
         print(f"Design dict keys: {list(design_dict.keys())}")
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
 
 
 if __name__ == "__main__":

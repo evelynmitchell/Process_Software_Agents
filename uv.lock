@@ -782,6 +782,7 @@ dev = [
     { name = "lxml" },
     { name = "pre-commit" },
     { name = "pytest-cov" },
+    { name = "ruff" },
 ]
 
 [package.metadata]
@@ -837,6 +838,7 @@ dev = [
     { name = "lxml", specifier = ">=6.0.2" },
     { name = "pre-commit", specifier = ">=4.5.0" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "ruff", specifier = ">=0.14.7" },
 ]
 
 [[package]]

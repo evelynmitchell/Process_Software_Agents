@@ -66,9 +66,9 @@ class TestPlanningAgentE2E:
             assert unit.est_complexity > 0
 
         # Log results for calibration
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("E2E Test: Simple REST API Endpoint")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Units created: {len(plan.semantic_units)}")
         print(f"Total complexity: {plan.total_est_complexity}")
         print("\nSemantic Units:")
@@ -115,9 +115,9 @@ class TestPlanningAgentE2E:
         assert plan.total_est_complexity > 30  # Should be moderate complexity
 
         # Log results
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("E2E Test: JWT Authentication System")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Units created: {len(plan.semantic_units)}")
         print(f"Total complexity: {plan.total_est_complexity}")
         print("\nSemantic Units:")
@@ -165,9 +165,9 @@ class TestPlanningAgentE2E:
         assert len(plan.semantic_units) > 0
 
         # Log results
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("E2E Test: Add Pagination (with context)")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Context files: {', '.join(requirements.context_files)}")
         print(f"Units created: {len(plan.semantic_units)}")
         print(f"Total complexity: {plan.total_est_complexity}")
@@ -218,9 +218,9 @@ class TestPlanningAgentE2E:
                 assert dep in unit_ids, f"Dependency {dep} not found in unit IDs"
 
         # Log results
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("E2E Test: Complex ETL Data Pipeline")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Units created: {len(plan.semantic_units)}")
         print(f"Total complexity: {plan.total_est_complexity}")
         print("\nDependency Graph:")
@@ -256,9 +256,9 @@ class TestPlanningAgentE2E:
         assert isinstance(plan, ProjectPlan)
         assert len(plan.semantic_units) > 0
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("E2E Test: Telemetry Integration")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Telemetry captured for task: {requirements.task_id}")
         print(f"Database: {db_path}")
         print("Check Langfuse dashboard for trace data")
@@ -288,9 +288,9 @@ class TestComplexityCalibration:
 
         plan = agent.execute(requirements)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Calibration: Trivial Task")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print("Expected: Complexity < 10")
         print(f"Actual: {plan.total_est_complexity}")
         print(f"Result: {' PASS' if plan.total_est_complexity <= 10 else ' FAIL'}")
@@ -313,9 +313,9 @@ class TestComplexityCalibration:
 
         plan = agent.execute(requirements)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Calibration: Simple Task")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print("Expected: Complexity 11-30")
         print(f"Actual: {plan.total_est_complexity}")
         print(
@@ -343,9 +343,9 @@ class TestComplexityCalibration:
 
         plan = agent.execute(requirements)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Calibration: Moderate Task")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print("Expected: Complexity 31-60")
         print(f"Actual: {plan.total_est_complexity}")
         print(
