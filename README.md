@@ -489,13 +489,21 @@ uv run python -m asp.web.main
 - **[HITL Integration Guide](docs/HITL_Integration.md)** - Human-In-The-Loop approval workflows
 - **[Agent Reference](docs/Agents_Reference.md)** - Complete reference for all 7 agents
 - **[API Reference](docs/API_Reference.md)** - Python API documentation
+- **[Planning Agent Guide](docs/planning_agent_user_guide.md)** - Task decomposition and complexity scoring
+- **[Coding Agent Guide](docs/coding_agent_user_guide.md)** - Code generation and file management
+- **[Test Agent Guide](docs/test_agent_user_guide.md)** - Test generation and defect logging
+- **[Postmortem Agent Guide](docs/postmortem_agent_user_guide.md)** - Process improvement and RCA
+- **[Web UI Guide](docs/web_ui_user_guide.md)** - Dashboard usage for Manager/Developer/Product
 - [design_review_agent_user_guide.md](docs/design_review_agent_user_guide.md) - Design Review Agent deep dive
 - [artifact_persistence_user_guide.md](docs/artifact_persistence_user_guide.md) - Artifact system usage
 - [telemetry_user_guide.md](docs/telemetry_user_guide.md) - Telemetry and observability
-- [web_ui_todo.md](docs/web_ui_todo.md) - Web UI feature status
 
 ### 👨‍💻 Developer Documentation
 - **[Developer Guide](docs/Developer_Guide.md)** - Extending, customizing, and contributing
+- **[Utils Reference](docs/utils_reference.md)** - Shared utilities reference
+- **[Prompt Engineering Guide](docs/prompt_engineering_guide.md)** - Prompt versioning and standards
+- **[Specialist Agent Guide](docs/specialist_agent_dev_guide.md)** - Creating new specialist agents
+- **[Orchestrator Internals](docs/orchestrator_internals_guide.md)** - State machine and logic guide
 - [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Directory organization
 - [Claude.md](Claude.md) - Development guidelines
 - [.env.example](.env.example) - Environment variables reference
