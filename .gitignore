@@ -214,3 +214,6 @@ test_artifacts_repo/
 
 # Generated test artifacts (timestamps change on each run)
 artifacts/
+
+# Private repo mapping (local only - never commit)
+.private_repos.yaml

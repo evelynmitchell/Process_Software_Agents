@@ -1,18 +1,19 @@
 # Sum Numbers Function
 
-A simple Python utility module that provides a function to add two integers together.
+A simple Python utility that adds two integers together with comprehensive input validation and error handling.
 
 ## Overview
 
-The `sum_numbers` function is a basic arithmetic utility that takes two integer parameters and returns their sum. This module demonstrates proper Python practices including type hints, comprehensive documentation, and robust error handling.
+The `sum_numbers` function is a basic arithmetic utility that takes two integer parameters and returns their sum. It includes robust error handling for edge cases such as None values, type mismatches, and provides clear documentation for developers.
 
 ## Features
 
-- **Type-safe function signature** with Python 3.12+ type hints
-- **Comprehensive error handling** for None values, type mismatches, and invalid inputs
-- **Complete documentation** with docstrings and usage examples
-- **Edge case handling** including boolean rejection and overflow support
-- **Pure function** with no side effects or external dependencies
+- Simple addition of two integers
+- Comprehensive input validation (None checks and type validation)
+- Support for positive, negative, and zero values
+- Arbitrary precision integer arithmetic (Python 3.12+)
+- Clear error messages for invalid inputs
+- Complete docstring documentation with examples
 
 ## Prerequisites
 
@@ -22,170 +23,141 @@ The `sum_numbers` function is a basic arithmetic utility that takes two integer 
 ## Installation
 
 1. Clone or download the project files
-2. Ensure Python 3.12+ is installed:
+2. Ensure Python 3.12+ is installed on your system:
    ```bash
    python --version
    ```
 
-## Running the Module
+## Running the Application
 
 ### Interactive Python Shell
 
+Start Python and import the function:
+
 ```bash
-python3
+python
 >>> from sum_numbers import sum_numbers
->>> result = sum_numbers(2, 3)
+>>> result = sum_numbers(5, 3)
 >>> print(result)
-5
+8
 ```
 
-### As a Script
+### Running as a Script
 
-Create a test script `test_usage.py`:
+Create a script file (e.g., `example.py`):
 
 ```python
 from sum_numbers import sum_numbers
 
 # Basic usage
-print(sum_numbers(2, 3))        # Output: 5
-print(sum_numbers(-2, 3))       # Output: 1
-print(sum_numbers(-2, -3))      # Output: -5
-print(sum_numbers(0, 0))        # Output: 0
-print(sum_numbers(100, 200))    # Output: 300
+result = sum_numbers(10, 20)
+print(f"10 + 20 = {result}")
+
+# Negative numbers
+result = sum_numbers(-5, 3)
+print(f"-5 + 3 = {result}")
+
+# Zero values
+result = sum_numbers(0, 42)
+print(f"0 + 42 = {result}")
 ```
 
 Run the script:
 
 ```bash
-python3 test_usage.py
+python example.py
 ```
 
-## API Documentation
+## Usage Examples
 
-### Function Signature
-
-```python
-def sum_numbers(a: int, b: int) -> int:
-    """
-    Add two integers together and return the result.
-    
-    This function takes two integer parameters and returns their arithmetic sum.
-    It includes comprehensive validation to ensure both parameters are valid
-    integers and handles edge cases appropriately.
-    
-    Args:
-        a (int): The first integer to add.
-        b (int): The second integer to add.
-    
-    Returns:
-        int: The sum of a and b.
-    
-    Raises:
-        TypeError: If either parameter is None, not an integer, or is a boolean.
-        ValueError: If an unexpected error occurs during addition.
-    
-    Examples:
-        >>> sum_numbers(2, 3)
-        5
-        
-        >>> sum_numbers(-2, 3)
-        1
-        
-        >>> sum_numbers(-2, -3)
-        -5
-        
-        >>> sum_numbers(0, 0)
-        0
-        
-        >>> sum_numbers(100, 200)
-        300
-    """
-```
-
-### Parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `a` | `int` | The first integer to add |
-| `b` | `int` | The second integer to add |
-
-### Return Value
-
-| Type | Description |
-|------|-------------|
-| `int` | The arithmetic sum of parameters `a` and `b` |
-
-### Exceptions
-
-| Exception | Condition |
-|-----------|-----------|
-| `TypeError` | If either parameter is `None` |
-| `TypeError` | If either parameter is not an integer |
-| `TypeError` | If either parameter is a boolean value |
-| `ValueError` | If an unexpected error occurs during computation |
-
-### Usage Examples
-
-#### Basic Addition
+### Basic Addition
 
 ```python
 from sum_numbers import sum_numbers
 
-result = sum_numbers(2, 3)
+# Add two positive integers
+result = sum_numbers(5, 3)
+print(result)  # Output: 8
+```
+
+### Negative Numbers
+
+```python
+# Add negative integers
+result = sum_numbers(-10, -5)
+print(result)  # Output: -15
+
+# Mix positive and negative
+result = sum_numbers(-7, 12)
 print(result)  # Output: 5
 ```
 
-#### Negative Numbers
+### Zero Values
 
 ```python
-result = sum_numbers(-5, 3)
-print(result)  # Output: -2
+# Add with zero
+result = sum_numbers(0, 100)
+print(result)  # Output: 100
+
+# Both zero
+result = sum_numbers(0, 0)
+print(result)  # Output: 0
 ```
 
-#### Zero Values
+### Large Numbers
 
 ```python
-result = sum_numbers(0, 10)
-print(result)  # Output: 10
+# Python 3 supports arbitrary precision integers
+result = sum_numbers(999999999999999999, 1)
+print(result)  # Output: 1000000000000000000
 ```
 
-#### Large Numbers
+## Error Handling
+
+The function validates inputs and raises appropriate exceptions for invalid cases.
+
+### None Values
+
+Passing None as either argument raises a TypeError:
 
 ```python
-result = sum_numbers(10**100, 10**100)
-print(result)  # Output: 2 followed by 100 zeros
-```
-
-#### Error Handling
-
-```python
-try:
-    sum_numbers(None, 5)
-except TypeError as e:
-    print(f"Error: {e}")  # Output: Error: Parameter a cannot be None
-
-try:
-    sum_numbers("5", 3)
-except TypeError as e:
-    print(f"Error: {e}")  # Output: Error: Parameter a must be an integer, got str
+from sum_numbers import sum_numbers
 
 try:
-    sum_numbers(True, 5)
+    result = sum_numbers(None, 5)
 except TypeError as e:
-    print(f"Error: {e}")  # Output: Error: Parameter a must be an integer, got bool
+    print(e)  # Output: Arguments cannot be None
 ```
 
-## Running Tests
+### Type Mismatches
 
-### Using pytest
+Passing non-integer values raises a TypeError:
 
-Install pytest if not already installed:
+```python
+from sum_numbers import sum_numbers
 
-```bash
-pip install pytest
+try:
+    result = sum_numbers("5", 3)
+except TypeError as e:
+    print(e)  # Output: Both arguments must be integers
 ```
 
-Run the test suite:
+### Valid Type: Booleans
+
+Note: In Python, `bool` is a subclass of `int`, so boolean values are accepted:
+
+```python
+from sum_numbers import sum_numbers
+
+result = sum_numbers(True, False)
+print(result)  # Output: 1 (True=1, False=0)
+```
+
+## Testing
+
+### Running Tests
+
+Run the test suite using pytest:
 
 ```bash
 pytest tests/ -v
@@ -197,137 +169,153 @@ Run tests with coverage report:
 pytest tests/ --cov=. --cov-report=html
 ```
 
-### Using unittest
-
-Run tests with Python's built-in unittest:
+Run tests with verbose output:
 
 ```bash
-python -m unittest discover tests/ -v
+pytest tests/ -v -s
 ```
 
 ### Test Coverage
 
 The test suite includes:
 
-- **Happy path tests**: Valid integer inputs with expected results
-- **Edge case tests**: Zero values, negative numbers, large numbers
-- **Error case tests**: None values, type mismatches, boolean inputs
-- **Boundary tests**: Minimum and maximum integer values
-- **Integration tests**: Multiple function calls in sequence
+- **Happy path tests:** Basic addition with positive, negative, and zero values
+- **Edge case tests:** Large numbers, zero values, negative numbers
+- **Error case tests:** None values, type mismatches, invalid inputs
+- **Type validation tests:** Boolean values, string inputs, float inputs
+- **Response validation tests:** Correct return types and values
 
-Expected coverage: 80%+ of source code
+### Example Test Run
+
+```bash
+$ pytest tests/ -v
+tests/test_sum_numbers.py::test_sum_positive_integers PASSED
+tests/test_sum_numbers.py::test_sum_negative_integers PASSED
+tests/test_sum_numbers.py::test_sum_mixed_signs PASSED
+tests/test_sum_numbers.py::test_sum_with_zero PASSED
+tests/test_sum_numbers.py::test_sum_large_numbers PASSED
+tests/test_sum_numbers.py::test_none_first_argument PASSED
+tests/test_sum_numbers.py::test_none_second_argument PASSED
+tests/test_sum_numbers.py::test_non_integer_first_argument PASSED
+tests/test_sum_numbers.py::test_non_integer_second_argument PASSED
+tests/test_sum_numbers.py::test_float_arguments PASSED
+tests/test_sum_numbers.py::test_string_arguments PASSED
+tests/test_sum_numbers.py::test_boolean_arguments PASSED
+
+======================== 12 passed in 0.05s ========================
+```
+
+## Function Signature
+
+```python
+def sum_numbers(a: int, b: int) -> int:
+    """
+    Sum two integer numbers and return the result.
+    
+    Args:
+        a: First integer to sum
+        b: Second integer to sum
+    
+    Returns:
+        The sum of a and b as an integer
+    
+    Raises:
+        TypeError: If either argument is None or not an integer
+    
+    Examples:
+        >>> sum_numbers(5, 3)
+        8
+        >>> sum_numbers(-5, 3)
+        -2
+    """
+```
+
+## Implementation Details
+
+### Input Validation
+
+The function performs two levels of validation:
+
+1. **None Check:** Ensures neither argument is None
+2. **Type Check:** Ensures both arguments are integers using `isinstance()`
+
+### Arithmetic Operation
+
+The function uses Python's built-in addition operator (`+`) to compute the sum. Python 3 provides arbitrary precision integer arithmetic, so there are no overflow concerns.
+
+### Return Value
+
+The function returns the computed sum as an integer.
 
 ## Troubleshooting
 
 ### ImportError: No module named 'sum_numbers'
 
-**Problem:** Python cannot find the `sum_numbers` module.
-
-**Solution:** Ensure you are running Python from the correct directory where `sum_numbers.py` is located:
+Ensure the `sum_numbers.py` file is in your Python path or current working directory:
 
 ```bash
 # Check current directory
-ls -la sum_numbers.py
+ls sum_numbers.py
 
-# Run Python from the correct directory
-python3
->>> from sum_numbers import sum_numbers
+# Or add to Python path
+export PYTHONPATH="${PYTHONPATH}:/path/to/project"
 ```
 
-### TypeError: Parameter a cannot be None
+### TypeError: Both arguments must be integers
 
-**Problem:** You passed `None` as one of the parameters.
-
-**Solution:** Ensure both parameters are valid integers:
+Verify you're passing integer values, not strings or other types:
 
 ```python
 # Incorrect
-sum_numbers(None, 5)
+result = sum_numbers("5", "3")
 
 # Correct
-sum_numbers(0, 5)
+result = sum_numbers(5, 3)
 ```
 
-### TypeError: Parameter a must be an integer, got str
+### TypeError: Arguments cannot be None
 
-**Problem:** You passed a string instead of an integer.
-
-**Solution:** Convert the value to an integer or pass an integer directly:
+Ensure neither argument is None:
 
 ```python
 # Incorrect
-sum_numbers("5", 3)
+result = sum_numbers(None, 5)
 
 # Correct
-sum_numbers(5, 3)
-sum_numbers(int("5"), 3)
-```
-
-### TypeError: Parameter a must be an integer, got bool
-
-**Problem:** You passed a boolean value (True or False) instead of an integer.
-
-**Solution:** Use integer values instead of booleans:
-
-```python
-# Incorrect
-sum_numbers(True, False)
-
-# Correct
-sum_numbers(1, 0)
+result = sum_numbers(0, 5)
 ```
 
 ### Python Version Error
 
-**Problem:** `SyntaxError` or type hint errors when running the module.
-
-**Solution:** Ensure you are using Python 3.12 or higher:
+Ensure you're using Python 3.12 or higher:
 
 ```bash
-python3 --version
+python --version
 # Should output: Python 3.12.x or higher
-
-# If not, install Python 3.12+
-# On macOS with Homebrew:
-brew install python@3.12
-
-# On Ubuntu/Debian:
-sudo apt-get install python3.12
-
-# On Windows:
-# Download from https://www.python.org/downloads/
 ```
 
-### Module Not Executing
+## Project Structure
 
-**Problem:** Running `python sum_numbers.py` produces no output.
-
-**Solution:** The module is designed to be imported, not executed directly. Use it in another script or the Python interactive shell:
-
-```bash
-# Correct usage
-python3
->>> from sum_numbers import sum_numbers
->>> print(sum_numbers(2, 3))
-5
-
-# Or create a test script
-cat > test.py << 'EOF'
-from sum_numbers import sum_numbers
-print(sum_numbers(2, 3))
-EOF
-python3 test.py
+```
+project/
+├── sum_numbers.py          # Main function implementation
+├── tests/
+│   └── test_sum_numbers.py # Unit tests
+├── README.md               # This file
+└── requirements.txt        # Project dependencies (if any)
 ```
 
 ## Performance Characteristics
 
-- **Time Complexity:** O(1) - constant time operation
-- **Space Complexity:** O(1) - constant space usage
+- **Time Complexity:** O(1) - constant time addition
+- **Space Complexity:** O(1) - no additional memory allocation
 - **Execution Speed:** Microseconds for typical integer values
-- **Scalability:** Handles arbitrary precision integers (Python 3 feature)
 
-## Design Notes
+## Limitations and Notes
 
-### Architecture
+- The function accepts boolean values (True/False) as integers since `bool` is a subclass of `int` in Python
+- Python 3 provides arbitrary precision integers, so very large numbers are supported without overflow
+- Type hints are not enforced at runtime by default; they serve as documentation and can be checked with static analysis tools like mypy
+- The function is pure (no side effects) and deterministic
 
-The `sum_numbers` function is implemented as a pure function with four integrated layers:
+## Contributing

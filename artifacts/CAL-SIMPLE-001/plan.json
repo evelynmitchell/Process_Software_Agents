@@ -4,43 +4,55 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Implement API endpoint handler",
-      "api_interactions": 2,
+      "description": "Create email validation utility function with regex pattern matching",
+      "api_interactions": 0,
       "data_transformations": 1,
       "logical_branches": 2,
-      "code_entities_modified": 3,
-      "novelty_multiplier": 1.2,
-      "est_complexity": 32,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 15,
       "dependencies": []
     },
     {
       "unit_id": "SU-002",
-      "description": "Add validation logic",
+      "description": "Create password length validation utility function",
       "api_interactions": 0,
-      "data_transformations": 2,
-      "logical_branches": 3,
-      "code_entities_modified": 2,
+      "data_transformations": 1,
+      "logical_branches": 1,
+      "code_entities_modified": 1,
       "novelty_multiplier": 1.0,
-      "est_complexity": 27,
-      "dependencies": [
-        "SU-001"
-      ]
+      "est_complexity": 12,
+      "dependencies": []
     },
     {
       "unit_id": "SU-003",
-      "description": "Implement error handling",
+      "description": "Integrate validation functions into POST /users endpoint handler",
       "api_interactions": 0,
       "data_transformations": 1,
-      "logical_branches": 4,
-      "code_entities_modified": 2,
+      "logical_branches": 3,
+      "code_entities_modified": 1,
       "novelty_multiplier": 1.0,
-      "est_complexity": 25,
+      "est_complexity": 18,
       "dependencies": [
-        "SU-001"
+        "SU-001",
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Implement 400 error response with structured error messages for validation failures",
+      "api_interactions": 0,
+      "data_transformations": 2,
+      "logical_branches": 2,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 20,
+      "dependencies": [
+        "SU-003"
       ]
     }
   ],
-  "total_est_complexity": 84,
+  "total_est_complexity": 65,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"

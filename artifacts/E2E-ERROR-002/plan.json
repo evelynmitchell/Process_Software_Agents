@@ -4,43 +4,83 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Implement API endpoint handler",
+      "description": "Analyze current error handling implementation and identify performance bottlenecks",
       "api_interactions": 2,
       "data_transformations": 1,
       "logical_branches": 2,
       "code_entities_modified": 3,
-      "novelty_multiplier": 1.2,
-      "est_complexity": 32,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 27,
       "dependencies": []
     },
     {
       "unit_id": "SU-002",
-      "description": "Add validation logic",
-      "api_interactions": 0,
-      "data_transformations": 2,
+      "description": "Implement error logging and monitoring infrastructure with structured logging",
+      "api_interactions": 3,
+      "data_transformations": 3,
       "logical_branches": 3,
-      "code_entities_modified": 2,
+      "code_entities_modified": 4,
       "novelty_multiplier": 1.0,
-      "est_complexity": 27,
+      "est_complexity": 46,
       "dependencies": [
         "SU-001"
       ]
     },
     {
       "unit_id": "SU-003",
-      "description": "Implement error handling",
-      "api_interactions": 0,
-      "data_transformations": 1,
-      "logical_branches": 4,
-      "code_entities_modified": 2,
+      "description": "Create centralized error handling middleware with retry logic and exponential backoff",
+      "api_interactions": 1,
+      "data_transformations": 2,
+      "logical_branches": 5,
+      "code_entities_modified": 3,
       "novelty_multiplier": 1.0,
-      "est_complexity": 25,
+      "est_complexity": 39,
       "dependencies": [
         "SU-001"
       ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Build error recovery mechanisms with circuit breaker pattern implementation",
+      "api_interactions": 2,
+      "data_transformations": 2,
+      "logical_branches": 4,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 63,
+      "dependencies": [
+        "SU-003"
+      ]
+    },
+    {
+      "unit_id": "SU-005",
+      "description": "Optimize error response serialization and caching for frequently occurring errors",
+      "api_interactions": 1,
+      "data_transformations": 4,
+      "logical_branches": 2,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 40,
+      "dependencies": [
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-006",
+      "description": "Implement comprehensive error tracking and alerting system with threshold-based notifications",
+      "api_interactions": 3,
+      "data_transformations": 3,
+      "logical_branches": 4,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 74,
+      "dependencies": [
+        "SU-002",
+        "SU-004"
+      ]
     }
   ],
-  "total_est_complexity": 84,
+  "total_est_complexity": 289,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"

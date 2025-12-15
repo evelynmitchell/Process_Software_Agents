@@ -4,43 +4,96 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Implement API endpoint handler",
-      "api_interactions": 2,
-      "data_transformations": 1,
-      "logical_branches": 2,
-      "code_entities_modified": 3,
-      "novelty_multiplier": 1.2,
-      "est_complexity": 32,
+      "description": "Analyze and document conflicting requirements, identify architectural constraints and propose resolution strategy",
+      "api_interactions": 0,
+      "data_transformations": 2,
+      "logical_branches": 5,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 44,
       "dependencies": []
     },
     {
       "unit_id": "SU-002",
-      "description": "Add validation logic",
-      "api_interactions": 0,
-      "data_transformations": 2,
-      "logical_branches": 3,
-      "code_entities_modified": 2,
-      "novelty_multiplier": 1.0,
-      "est_complexity": 27,
+      "description": "Design hybrid state management using client-side storage (IndexedDB/localStorage) with stateless server validation layer",
+      "api_interactions": 2,
+      "data_transformations": 4,
+      "logical_branches": 4,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 72,
       "dependencies": [
         "SU-001"
       ]
     },
     {
       "unit_id": "SU-003",
-      "description": "Implement error handling",
-      "api_interactions": 0,
-      "data_transformations": 1,
-      "logical_branches": 4,
-      "code_entities_modified": 2,
-      "novelty_multiplier": 1.0,
-      "est_complexity": 25,
+      "description": "Implement session tracking via cryptographically signed JWT tokens stored client-side with server-side validation only",
+      "api_interactions": 2,
+      "data_transformations": 3,
+      "logical_branches": 5,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 75,
       "dependencies": [
         "SU-001"
       ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Build offline-first data persistence layer using service workers and local storage with eventual consistency sync",
+      "api_interactions": 3,
+      "data_transformations": 6,
+      "logical_branches": 6,
+      "code_entities_modified": 5,
+      "novelty_multiplier": 2.0,
+      "est_complexity": 148,
+      "dependencies": [
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-005",
+      "description": "Implement real-time synchronization using WebSocket with conflict resolution for offline changes",
+      "api_interactions": 4,
+      "data_transformations": 5,
+      "logical_branches": 7,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 2.0,
+      "est_complexity": 140,
+      "dependencies": [
+        "SU-003",
+        "SU-004"
+      ]
+    },
+    {
+      "unit_id": "SU-006",
+      "description": "Create stateless API endpoints that validate and process requests without server-side session storage",
+      "api_interactions": 3,
+      "data_transformations": 4,
+      "logical_branches": 5,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 86,
+      "dependencies": [
+        "SU-003"
+      ]
+    },
+    {
+      "unit_id": "SU-007",
+      "description": "Implement data durability through client-side backup export and server-side validation without persistent storage",
+      "api_interactions": 2,
+      "data_transformations": 5,
+      "logical_branches": 4,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 80,
+      "dependencies": [
+        "SU-004"
+      ]
     }
   ],
-  "total_est_complexity": 84,
+  "total_est_complexity": 645,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"

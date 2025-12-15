@@ -4,43 +4,54 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Implement API endpoint handler",
-      "api_interactions": 2,
+      "description": "Set up route handler for GET /users/:id with parameter validation and type checking",
+      "api_interactions": 0,
       "data_transformations": 1,
       "logical_branches": 2,
-      "code_entities_modified": 3,
-      "novelty_multiplier": 1.2,
-      "est_complexity": 32,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 19,
       "dependencies": []
     },
     {
       "unit_id": "SU-002",
-      "description": "Add validation logic",
-      "api_interactions": 0,
-      "data_transformations": 2,
-      "logical_branches": 3,
+      "description": "Implement database query function to fetch user by ID from database",
+      "api_interactions": 1,
+      "data_transformations": 1,
+      "logical_branches": 1,
       "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 27,
-      "dependencies": [
-        "SU-001"
-      ]
+      "est_complexity": 18,
+      "dependencies": []
     },
     {
       "unit_id": "SU-003",
-      "description": "Implement error handling",
+      "description": "Add error handling for database failures and user not found scenarios with appropriate HTTP status codes",
       "api_interactions": 0,
       "data_transformations": 1,
-      "logical_branches": 4,
+      "logical_branches": 3,
       "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 25,
+      "est_complexity": 22,
       "dependencies": [
-        "SU-001"
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Format and serialize user data to JSON response with proper content-type headers",
+      "api_interactions": 0,
+      "data_transformations": 2,
+      "logical_branches": 1,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 17,
+      "dependencies": [
+        "SU-002"
       ]
     }
   ],
-  "total_est_complexity": 84,
+  "total_est_complexity": 76,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"

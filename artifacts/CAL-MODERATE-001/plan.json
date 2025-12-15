@@ -4,18 +4,42 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Implement API endpoint handler",
-      "api_interactions": 2,
-      "data_transformations": 1,
+      "description": "Set up Redis client connection and configuration management for rate limiting",
+      "api_interactions": 1,
+      "data_transformations": 2,
       "logical_branches": 2,
-      "code_entities_modified": 3,
-      "novelty_multiplier": 1.2,
-      "est_complexity": 32,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 26,
       "dependencies": []
     },
     {
       "unit_id": "SU-002",
-      "description": "Add validation logic",
+      "description": "Implement IP address extraction and normalization logic from request headers",
+      "api_interactions": 0,
+      "data_transformations": 3,
+      "logical_branches": 3,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 28,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Create rate limit counter logic with Redis key management and TTL handling",
+      "api_interactions": 3,
+      "data_transformations": 2,
+      "logical_branches": 4,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 36,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Build Express middleware function with configurable rate limit parameters",
       "api_interactions": 0,
       "data_transformations": 2,
       "logical_branches": 3,
@@ -23,24 +47,54 @@
       "novelty_multiplier": 1.0,
       "est_complexity": 27,
       "dependencies": [
-        "SU-001"
+        "SU-002",
+        "SU-003"
       ]
     },
     {
-      "unit_id": "SU-003",
-      "description": "Implement error handling",
+      "unit_id": "SU-005",
+      "description": "Implement 429 response with Retry-After header calculation and formatting",
       "api_interactions": 0,
-      "data_transformations": 1,
+      "data_transformations": 2,
+      "logical_branches": 2,
+      "code_entities_modified": 1,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 20,
+      "dependencies": [
+        "SU-004"
+      ]
+    },
+    {
+      "unit_id": "SU-006",
+      "description": "Add monitoring metrics collection (request counts, limit violations, response times)",
+      "api_interactions": 2,
+      "data_transformations": 3,
+      "logical_branches": 2,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 50,
+      "dependencies": [
+        "SU-004"
+      ]
+    },
+    {
+      "unit_id": "SU-007",
+      "description": "Create middleware factory function with configuration validation and error handling",
+      "api_interactions": 1,
+      "data_transformations": 2,
       "logical_branches": 4,
       "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 25,
+      "est_complexity": 32,
       "dependencies": [
-        "SU-001"
+        "SU-001",
+        "SU-004",
+        "SU-005",
+        "SU-006"
       ]
     }
   ],
-  "total_est_complexity": 84,
+  "total_est_complexity": 219,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"

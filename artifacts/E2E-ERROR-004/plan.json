@@ -4,18 +4,57 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Implement API endpoint handler",
-      "api_interactions": 2,
-      "data_transformations": 1,
-      "logical_branches": 2,
-      "code_entities_modified": 3,
-      "novelty_multiplier": 1.2,
-      "est_complexity": 32,
+      "description": "Implement input sanitization and escaping utilities for JSON, HTML, SQL, and URL special characters",
+      "api_interactions": 0,
+      "data_transformations": 5,
+      "logical_branches": 4,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 53,
       "dependencies": []
     },
     {
       "unit_id": "SU-002",
-      "description": "Add validation logic",
+      "description": "Build JSON request parser with quote and escape sequence handling",
+      "api_interactions": 1,
+      "data_transformations": 4,
+      "logical_branches": 3,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 39,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Create HTML content validator and sanitizer to prevent injection attacks",
+      "api_interactions": 0,
+      "data_transformations": 3,
+      "logical_branches": 5,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 42,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Implement SQL query parameter binding and escaping for quoted strings and special characters",
+      "api_interactions": 1,
+      "data_transformations": 4,
+      "logical_branches": 4,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 46,
+      "dependencies": [
+        "SU-001"
+      ]
+    },
+    {
+      "unit_id": "SU-005",
+      "description": "Build regex pattern validator with special character handling and pattern compilation",
       "api_interactions": 0,
       "data_transformations": 2,
       "logical_branches": 3,
@@ -27,20 +66,50 @@
       ]
     },
     {
-      "unit_id": "SU-003",
-      "description": "Implement error handling",
+      "unit_id": "SU-006",
+      "description": "Create URL parser and query parameter decoder with ampersand and equals sign handling",
       "api_interactions": 0,
-      "data_transformations": 1,
-      "logical_branches": 4,
+      "data_transformations": 4,
+      "logical_branches": 3,
       "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 25,
+      "est_complexity": 37,
       "dependencies": [
         "SU-001"
       ]
+    },
+    {
+      "unit_id": "SU-007",
+      "description": "Build unified API endpoint that accepts and processes all special character types with comprehensive error handling",
+      "api_interactions": 2,
+      "data_transformations": 5,
+      "logical_branches": 6,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 59,
+      "dependencies": [
+        "SU-002",
+        "SU-003",
+        "SU-004",
+        "SU-005",
+        "SU-006"
+      ]
+    },
+    {
+      "unit_id": "SU-008",
+      "description": "Implement comprehensive test suite covering edge cases for all special character scenarios",
+      "api_interactions": 1,
+      "data_transformations": 3,
+      "logical_branches": 5,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 40,
+      "dependencies": [
+        "SU-007"
+      ]
     }
   ],
-  "total_est_complexity": 84,
+  "total_est_complexity": 343,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"

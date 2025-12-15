@@ -4,43 +4,109 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Implement API endpoint handler",
+      "description": "Design ETL pipeline architecture and implement Kafka consumer with connection pooling",
       "api_interactions": 2,
-      "data_transformations": 1,
+      "data_transformations": 2,
       "logical_branches": 2,
-      "code_entities_modified": 3,
-      "novelty_multiplier": 1.2,
-      "est_complexity": 32,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 54,
       "dependencies": []
     },
     {
       "unit_id": "SU-002",
-      "description": "Add validation logic",
+      "description": "Implement event validation and data cleansing logic with schema enforcement",
       "api_interactions": 0,
-      "data_transformations": 2,
-      "logical_branches": 3,
-      "code_entities_modified": 2,
+      "data_transformations": 5,
+      "logical_branches": 4,
+      "code_entities_modified": 3,
       "novelty_multiplier": 1.0,
-      "est_complexity": 27,
+      "est_complexity": 49,
       "dependencies": [
         "SU-001"
       ]
     },
     {
       "unit_id": "SU-003",
-      "description": "Implement error handling",
+      "description": "Build customer metadata enrichment with PostgreSQL lookups and caching strategy",
+      "api_interactions": 3,
+      "data_transformations": 3,
+      "logical_branches": 3,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 69,
+      "dependencies": [
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Implement event transformation to analytics schema with field mapping and type conversions",
       "api_interactions": 0,
-      "data_transformations": 1,
-      "logical_branches": 4,
-      "code_entities_modified": 2,
+      "data_transformations": 7,
+      "logical_branches": 3,
+      "code_entities_modified": 3,
       "novelty_multiplier": 1.0,
-      "est_complexity": 25,
+      "est_complexity": 56,
+      "dependencies": [
+        "SU-003"
+      ]
+    },
+    {
+      "unit_id": "SU-005",
+      "description": "Build time-windowed aggregation engine (hourly and daily) with state management",
+      "api_interactions": 1,
+      "data_transformations": 6,
+      "logical_branches": 5,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 94,
+      "dependencies": [
+        "SU-004"
+      ]
+    },
+    {
+      "unit_id": "SU-006",
+      "description": "Implement Snowflake writer with batch optimization, idempotency keys, and transaction handling",
+      "api_interactions": 3,
+      "data_transformations": 4,
+      "logical_branches": 4,
+      "code_entities_modified": 4,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 81,
+      "dependencies": [
+        "SU-005"
+      ]
+    },
+    {
+      "unit_id": "SU-007",
+      "description": "Build error handling framework with dead letter queue, retry logic, and recovery mechanisms",
+      "api_interactions": 2,
+      "data_transformations": 2,
+      "logical_branches": 6,
+      "code_entities_modified": 5,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 78,
       "dependencies": [
         "SU-001"
       ]
+    },
+    {
+      "unit_id": "SU-008",
+      "description": "Implement monitoring, alerting, and performance optimization for 10k events/sec throughput",
+      "api_interactions": 3,
+      "data_transformations": 2,
+      "logical_branches": 4,
+      "code_entities_modified": 5,
+      "novelty_multiplier": 1.5,
+      "est_complexity": 72,
+      "dependencies": [
+        "SU-006",
+        "SU-007"
+      ]
     }
   ],
-  "total_est_complexity": 84,
+  "total_est_complexity": 553,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"

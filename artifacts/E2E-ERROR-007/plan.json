@@ -4,18 +4,43 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Implement API endpoint handler",
-      "api_interactions": 2,
+      "description": "Create missing directory structure and file1.py for authentication module",
+      "api_interactions": 0,
       "data_transformations": 1,
-      "logical_branches": 2,
-      "code_entities_modified": 3,
-      "novelty_multiplier": 1.2,
-      "est_complexity": 32,
+      "logical_branches": 1,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 16,
       "dependencies": []
     },
     {
       "unit_id": "SU-002",
-      "description": "Add validation logic",
+      "description": "Create missing directory structure and file2.py for authentication utilities",
+      "api_interactions": 0,
+      "data_transformations": 1,
+      "logical_branches": 1,
+      "code_entities_modified": 2,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 16,
+      "dependencies": []
+    },
+    {
+      "unit_id": "SU-003",
+      "description": "Implement user authentication logic with credential validation",
+      "api_interactions": 1,
+      "data_transformations": 3,
+      "logical_branches": 4,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 41,
+      "dependencies": [
+        "SU-001",
+        "SU-002"
+      ]
+    },
+    {
+      "unit_id": "SU-004",
+      "description": "Add password hashing and security mechanisms to authentication flow",
       "api_interactions": 0,
       "data_transformations": 2,
       "logical_branches": 3,
@@ -23,24 +48,37 @@
       "novelty_multiplier": 1.0,
       "est_complexity": 27,
       "dependencies": [
-        "SU-001"
+        "SU-003"
       ]
     },
     {
-      "unit_id": "SU-003",
-      "description": "Implement error handling",
+      "unit_id": "SU-005",
+      "description": "Implement session management and token generation for authenticated users",
+      "api_interactions": 2,
+      "data_transformations": 3,
+      "logical_branches": 3,
+      "code_entities_modified": 3,
+      "novelty_multiplier": 1.0,
+      "est_complexity": 40,
+      "dependencies": [
+        "SU-003"
+      ]
+    },
+    {
+      "unit_id": "SU-006",
+      "description": "Create authentication middleware for route protection and access control",
       "api_interactions": 0,
-      "data_transformations": 1,
+      "data_transformations": 2,
       "logical_branches": 4,
       "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 25,
+      "est_complexity": 30,
       "dependencies": [
-        "SU-001"
+        "SU-005"
       ]
     }
   ],
-  "total_est_complexity": 84,
+  "total_est_complexity": 170,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"

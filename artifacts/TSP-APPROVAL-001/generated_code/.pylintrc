@@ -1,226 +1,145 @@
-[tool:pylint]
-
-# Pylint configuration file for PEP 8 compliance and code quality standards
-# This configuration enforces consistent code style and quality across the project
-
 [MASTER]
-
-# Add files or directories to the blacklist. They should be base names, not
-# paths.
-ignore=CVS
-
-# Add files or directories matching the regex patterns to the blacklist. The
-# regex matches against base names, not paths.
-ignore-patterns=test_.*?\.py
-
-# Python code to execute, usually for sys.path manipulation such as
-# pygtk.require().
-#init-hook=
-
-# Use multiple processes to speed up Pylint. Specifying 0 will auto-detect the
-# number of processors available to use.
-jobs=1
-
-# Control the amount of potential inferred values when inferring a single
-# object. This can help the performance when dealing with large functions or
-# complex, nested conditions.
-limit-inference-results=100
-
-# List of plugins (as comma separated). Plugins are modules names not files
-# names.
-load-plugins=
-
-# Minimum Python version to target. Used for version dependent checks and
-# features activation, by default it will attempt to guess a default value
-# based on the version of Python used to run pylint.
-py-version=3.12
-
-# When enabled, pylint would attempt to guess common misconfiguration and emit
-# user-friendly hints instead of false-positive error messages.
-suggestion-mode=yes
-
-# Allow optimization of some checking when you estimate you won't change the
-# code. This feature is experimental, and disabled by default.
-unsafe-load-any-extension=no
+# Pylint configuration file
+# Enforces PEP 8 compliance and code quality standards
+# Reference: https://pylint.pycqa.org/en/latest/
 
 [MESSAGES CONTROL]
-
-# Only show warnings with the listed confidence levels. Leave empty to show
-# all. Valid levels: HIGH, INFERENCE, INFERENCE_FAILURE, UNDEFINED.
-confidence=
-
-# Disable the message, report, category or checker with the given id(s). You
-# can either give multiple identifiers separated by comma (,) or put this
-# option multiple times (only on the command line, not in the configuration
-# file where it should appear only once). You can also use "--disable=all" to
-# disable everything first and then reenable specific checks. For example, if
-# you want to run only the similarities checker, you can use "--disable=all
-# --enable=similarities". If you want to run only the classes checker, but have
-# no Warning level messages displayed, use "--disable=all --enable=classes
-# --disable=W".
+# Disable specific warnings that conflict with project standards
 disable=
-    raw-checker-failed,
-    bad-inline-option-value,
-    locally-disabled,
-    file-ignored,
-    suppressed-message,
-    useless-suppression,
-    deprecated-pragma,
-    use-symbolic-message,
     missing-module-docstring,
+    too-few-public-methods,
+    too-many-arguments,
+    duplicate-code,
 
-[REPORTS]
+[FORMAT]
+# Maximum number of characters on a single line
+max-line-length=100
 
-# Python expression which should return a note less than 10 (10 is the highest
-# note). You have access to the variables errors warning, statement which
-# respectively contain the number of errors / warnings messages and the total
-# number of statements analyzed. This is used by the global evaluation report
-# (RP0004).
-evaluation=max(0, 0 if fatal else 10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10))
+# Number of spaces for indentation
+indent-string='    '
 
-# Set the output format. Available formats are text, parseable, colorized, json
-# and msvs (visual studio). You can also give a reporter class e.g. mypackagemy.reporter.CustomReporter which
-# will be used to write the message to stdout (thus the option
-# of syspath must be enabled. reporters defined in pylint.reporters
-# will be used from now on.
-output-format=text
+# Expected format of line ending, especially useful when checking scripts as they should be executable
+expected-line-ending-type=LF
 
-# Tells whether to display a full report or only the messages.
-reports=no
+[BASIC]
+# Good variable names which should always be accepted, separated by a comma
+good-names=i,j,k,ex,Run,_,a,b,x,y,z
 
-# Tells whether to display a full report or only the messages.
-score=yes
+# Bad variable names which should always be rejected, separated by a comma
+bad-names=foo,bar,baz,toto,tutu,tata
 
-[REFACTORING]
+# Naming style matching correct module names
+module-naming-style=snake_case
 
-# Maximum number of nested blocks for function / method body
-max-nested-blocks=5
+# Naming style matching correct constant names
+const-naming-style=UPPER_CASE
 
-# Complete name of functions that never returns. When checking for
-# inconsistent-return-statements if a never returning function is called then
-# it will be considered as an explicit return statement and no message will be
-# printed.
-never-returning-functions=sys.exit,argparse.parse_error
+# Naming style matching correct class names
+class-naming-style=PascalCase
+
+# Naming style matching correct function names
+function-naming-style=snake_case
+
+# Naming style matching correct method names
+method-naming-style=snake_case
+
+# Naming style matching correct attribute names
+attr-naming-style=snake_case
+
+# Naming style matching correct argument names
+argument-naming-style=snake_case
+
+# Naming style matching correct variable names
+variable-naming-style=snake_case
+
+# Minimum length for variable names
+variable-rgx=[a-z_][a-z0-9_]*$
+
+# Minimum length for argument names
+argument-rgx=[a-z_][a-z0-9_]*$
+
+[DESIGN]
+# Maximum number of arguments for function / method
+max-args=5
+
+# Maximum number of attributes for a class
+max-attributes=7
+
+# Maximum number of boolean expressions in an if statement
+max-bool-expr=5
+
+# Maximum number of branch for function / method body
+max-branches=12
+
+# Maximum number of locals for function / method body
+max-locals=15
+
+# Maximum number of parents for a class
+max-parents=7
+
+# Maximum number of public methods for a class
+max-public-methods=20
+
+# Maximum number of return / yield for function / method body
+max-returns=6
+
+# Maximum number of statements in function / method body
+max-statements=50
+
+[SIMILARITIES]
+# Minimum lines number d a similarity to trigger notice
+min-similarity-lines=4
+
+# Ignore comments and docstrings when computing similarities
+ignore-comments=yes
+
+# Ignore docstrings when computing similarities
+ignore-docstrings=yes
+
+# Ignore imports when computing similarities
+ignore-imports=yes
 
 [LOGGING]
+# Format of logging format string
+logging-format-style=new
 
-# The type of string formatting that logging methods do. `old` for %
-# formatting, `new` for {} formatting and `fstring` for f-strings.
-logging-format-style=old
-
-# Format template used to check logging format string.
+# Expected format of logging function calls
 logging-modules=logging
 
 [VARIABLES]
-
-# List of additional names supposed to be defined in builtins. Remember that
-# you should avoid to define new builtins when possible.
+# List of additional names supposed to be defined in builtins
 additional-builtins=
 
-# Tells whether unused global variables should be treated as a violation.
+# Tells whether unused global variables should be treated as a violation
 allow-global-unused-variables=yes
 
-# List of names allowed to shadow builtins
-allowed-redefined-builtins=
+[CLASSES]
+# List of method names used to declare an abstract method
+defining-attr-methods=__init__,__new__,setUp,__post_init__
 
-# List of strings which can identify a callback function by name. A callback
-# name must start or end with one of those strings.
-callbacks=cb_,_cb
+# List of member names, which should be excluded from the protected access warning
+exclude-protected=_OrderedDict
 
-# A regular expression matching the name of dummy variables (i.e. expected to
-# not be used).
-dummy-variables-rgx=_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|^ignored_|^unused_
+[IMPORTS]
+# Force import order to recognize this module as part of the standard compatibility libraries
+known-standard-library=
 
-# Argument names that match this expression will be ignored. Default to name
-# with leading underscore.
-ignored-argument-names=_.*|^ignored_|^unused_
+# Force import order to recognize this module as part of a third party library
+known-third-party=
 
-# Tells whether we should check for unused import in __init__ files.
-init-import=no
+# Analyse import fallback blocks. This can be used to support both Python 2 and 3 compatible code
+analyse-fallback-blocks=no
 
-# List of qualified module names which can have objects that can change during
-# runtime and shouldn't be considered as constants.
-redefining-builtins-modules=six.moves,past.builtins,future.builtins,builtins,io
+[EXCEPTIONS]
+# Exceptions that will emit a warning when being caught
+overgeneral-exceptions=Exception
 
-[FORMAT]
+[DOCSTRING]
+# Accept different docstring styles
+accept-no-docstring-attribute=yes
 
-# Expected format of line ending, especially useful when checking scripts as
-# they are prone to have the wrong line ending convention. This represents the
-# line ending type to be considered as expected.
-expected-line-ending-type=LF
+# Minimum length for function / method docstring
+docstring-min-length=3
 
-# Regexp for a line that is allowed to be longer than the limit.
-ignore-long-lines=^\s*(# )?<?https?://\S+>?$
-
-# Number of spaces of indent required inside a hanging or continued line.
-indent-after-paren=4
-
-# String used as indentation unit. This is usually "    " (4 spaces) or "\t" (1
-# tab).
-indent-string='    '
-
-# Maximum number of characters on a single line.
-max-line-length=100
-
-# Maximum number of lines in a module.
-max-module-lines=1000
-
-# List of optional constructs whose body length doesn't count towards the
-# length of an outer construct's body
-no-space-check=trailing-comma,before-comment
-
-# Number of spaces required before a trailing comment.
-required-between-trailing-comment-and-closing-paren=2
-
-# Tells whether we should check for single quoted strings or double quoted
-# strings.
-single-line-if-statements=no
-
-[SIMILARITIES]
-
-# Comments are removed from the similarity computation
-ignore-comments=yes
-
-# Docstrings are removed from the similarity computation
-ignore-docstrings=yes
-
-# Imports are removed from the similarity computation
-ignore-imports=yes
-
-# Signatures are removed from the similarity computation
-ignore-signatures=yes
-
-# Minimum lines number d a similarity.
-min-similarity-lines=4
-
-[SPELLING]
-
-# Limits count of emitted suggestions for spelling mistakes.
-max-spelling-suggestions=4
-
-# Path to a file that contains the private dictionary; one word per line.
-spelling-private-word-list=
-
-# Tells whether to store unknown words to indicated private dictionary in
-# --spelling-private-word-list option instead of raising a message.
-spelling-store-unknown-words=no
-
-[MISCELLANEOUS]
-
-# List of note tags to take in consideration, separated by a comma.
-notes=FIXME,XXX,TODO
-
-# Regular expression of note tags to take in consideration.
-notes-rgx=
-
-[TYPECHECK]
-
-# List of decorators that produce context managers, such as
-# contextlib.contextmanager. Add to this list to register other decorators that
-# produce valid context managers.
-contextmanager-decorators=contextlib.contextmanager
-
-# List of members which are set dynamically and missed by pylint inference
-# system, and so shouldn't trigger false positives when accessed as an attribute
-# of a class. Python regular expressions are accepted.
-generate
+# Docstring style to enforce
+docstring-style=google

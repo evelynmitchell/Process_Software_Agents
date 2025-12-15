@@ -2,426 +2,598 @@
   "task_id": "TASK-001",
   "api_contracts": [
     {
-      "endpoint": "/api/auth/register",
+      "endpoint": "/api/v1/auth/register",
       "method": "POST",
-      "description": "Registers a new user account with email and password. Validates email format and password strength requirements (minimum 8 characters, at least one uppercase, one lowercase, one number, one special character). Returns JWT token upon successful registration.",
+      "description": "Registers a new user account with email and password. Validates email uniqueness, password strength requirements (minimum 8 characters, at least one uppercase, one lowercase, one number, one special character), and creates user record with hashed password.",
       "request_schema": {
-        "email": "string (valid email format, max 255 characters, unique)",
-        "password": "string (min 8 chars, max 128 chars, must contain uppercase, lowercase, number, special character)",
-        "name": "string (min 2 chars, max 100 chars, alphanumeric and spaces only)"
+        "email": "string (valid email format per RFC 5322, max 255 characters, required)",
+        "password": "string (min 8 chars, max 128 chars, must contain uppercase, lowercase, number, special character, required)",
+        "name": "string (min 2 chars, max 100 chars, alphanumeric and spaces only, required)"
       },
       "request_params": null,
       "response_schema": {
-        "user": {
-          "id": "string (UUID v4)",
-          "email": "string",
-          "name": "string",
-          "createdAt": "string (ISO 8601 timestamp)"
-        },
-        "token": "string (JWT token, expires in 24 hours)"
+        "user_id": "string (UUID v4 format)",
+        "email": "string (registered email address)",
+        "name": "string (user's display name)",
+        "created_at": "string (ISO 8601 timestamp)"
       },
       "error_responses": [
         {
           "status": 400,
           "code": "INVALID_EMAIL_FORMAT",
-          "message": "Email address format is invalid. Must be valid email format."
+          "message": "Email address format is invalid or exceeds maximum length"
         },
         {
           "status": 400,
           "code": "WEAK_PASSWORD",
-          "message": "Password does not meet security requirements. Must be at least 8 characters with uppercase, lowercase, number, and special character."
+          "message": "Password does not meet strength requirements"
         },
         {
           "status": 400,
           "code": "INVALID_NAME",
-          "message": "Name contains invalid characters or does not meet length requirements."
+          "message": "Name contains invalid characters or does not meet length requirements"
         },
         {
           "status": 409,
           "code": "EMAIL_ALREADY_EXISTS",
-          "message": "An account with this email address already exists."
+          "message": "An account with this email address already exists"
         },
         {
           "status": 500,
           "code": "INTERNAL_SERVER_ERROR",
-          "message": "An unexpected error occurred during registration."
+          "message": "An unexpected error occurred during registration"
         }
       ],
       "authentication_required": false,
-      "rate_limit": null
+      "rate_limit": "5 requests per hour per IP"
     },
     {
-      "endpoint": "/api/auth/login",
+      "endpoint": "/api/v1/auth/login",
       "method": "POST",
-      "description": "Authenticates user with email and password credentials. Returns JWT token valid for 24 hours upon successful authentication. Implements rate limiting to prevent brute force attacks.",
+      "description": "Authenticates user credentials and returns JWT access token valid for 24 hours and refresh token valid for 30 days. Validates email and password against stored bcrypt hash.",
       "request_schema": {
-        "email": "string (valid email format)",
-        "password": "string"
+        "email": "string (valid email format, required)",
+        "password": "string (required)"
       },
       "request_params": null,
       "response_schema": {
+        "access_token": "string (JWT token, expires in 24 hours)",
+        "refresh_token": "string (JWT token, expires in 30 days)",
+        "token_type": "string (value: 'Bearer')",
+        "expires_in": "number (seconds until access token expiration, value: 86400)",
         "user": {
-          "id": "string (UUID v4)",
+          "user_id": "string (UUID v4 format)",
           "email": "string",
           "name": "string"
-        },
-        "token": "string (JWT token, expires in 24 hours)"
+        }
       },
       "error_responses": [
         {
           "status": 400,
           "code": "MISSING_CREDENTIALS",
-          "message": "Email and password are required."
+          "message": "Email or password not provided in request body"
         },
         {
           "status": 401,
           "code": "INVALID_CREDENTIALS",
-          "message": "Email or password is incorrect."
+          "message": "Email or password is incorrect"
+        },
+        {
+          "status": 401,
+          "code": "ACCOUNT_DELETED",
+          "message": "User account has been deleted"
         },
         {
           "status": 429,
           "code": "TOO_MANY_ATTEMPTS",
-          "message": "Too many failed login attempts. Please try again later."
+          "message": "Too many failed login attempts, account temporarily locked"
         },
         {
           "status": 500,
           "code": "INTERNAL_SERVER_ERROR",
-          "message": "An unexpected error occurred during authentication."
+          "message": "An unexpected error occurred during authentication"
+        }
+      ],
+      "authentication_required": false,
+      "rate_limit": "10 requests per 15 minutes per IP"
+    },
+    {
+      "endpoint": "/api/v1/auth/refresh",
+      "method": "POST",
+      "description": "Exchanges a valid refresh token for a new access token and refresh token pair. Invalidates the old refresh token to prevent reuse.",
+      "request_schema": {
+        "refresh_token": "string (valid JWT refresh token, required)"
+      },
+      "request_params": null,
+      "response_schema": {
+        "access_token": "string (new JWT token, expires in 24 hours)",
+        "refresh_token": "string (new JWT token, expires in 30 days)",
+        "token_type": "string (value: 'Bearer')",
+        "expires_in": "number (seconds until access token expiration, value: 86400)"
+      },
+      "error_responses": [
+        {
+          "status": 400,
+          "code": "MISSING_REFRESH_TOKEN",
+          "message": "Refresh token not provided in request body"
+        },
+        {
+          "status": 401,
+          "code": "INVALID_REFRESH_TOKEN",
+          "message": "Refresh token is invalid, expired, or has been revoked"
+        },
+        {
+          "status": 500,
+          "code": "INTERNAL_SERVER_ERROR",
+          "message": "An unexpected error occurred during token refresh"
         }
       ],
       "authentication_required": false,
       "rate_limit": null
     },
     {
-      "endpoint": "/api/tasks",
+      "endpoint": "/api/v1/tasks",
       "method": "GET",
-      "description": "Retrieves a paginated list of tasks for the authenticated user. Supports filtering by status, priority, and due date range. Supports sorting by createdAt, updatedAt, dueDate, and priority fields.",
+      "description": "Retrieves paginated list of tasks for authenticated user with optional filtering by status, assignee, and search query. Results sorted by created_at descending by default. Supports cursor-based pagination for consistent results.",
       "request_schema": null,
       "request_params": {
-        "page": "number (optional, default 1, min 1)",
-        "limit": "number (optional, default 20, min 1, max 100)",
-        "status": "string (optional, enum: TODO, IN_PROGRESS, DONE)",
-        "priority": "string (optional, enum: LOW, MEDIUM, HIGH)",
-        "dueDateFrom": "string (optional, ISO 8601 date)",
-        "dueDateTo": "string (optional, ISO 8601 date)",
-        "sortBy": "string (optional, enum: createdAt, updatedAt, dueDate, priority, default: createdAt)",
-        "sortOrder": "string (optional, enum: asc, desc, default: desc)"
+        "status": "string (optional, values: TODO|IN_PROGRESS|BLOCKED|DONE, filter by task status)",
+        "assigned_to": "string (optional, UUID format, filter by assigned user ID)",
+        "search": "string (optional, max 255 chars, search in title and description)",
+        "limit": "number (optional, default 20, min 1, max 100, number of results per page)",
+        "cursor": "string (optional, base64 encoded cursor for pagination)"
       },
       "response_schema": {
         "tasks": [
           {
-            "id": "string (UUID v4)",
-            "title": "string",
-            "description": "string (nullable)",
-            "status": "string (enum: TODO, IN_PROGRESS, DONE)",
-            "priority": "string (enum: LOW, MEDIUM, HIGH)",
-            "dueDate": "string (ISO 8601 date, nullable)",
-            "createdAt": "string (ISO 8601 timestamp)",
-            "updatedAt": "string (ISO 8601 timestamp)",
-            "version": "number (optimistic locking version)"
+            "task_id": "string (UUID v4 format)",
+            "title": "string (task title)",
+            "description": "string (task description, may be null)",
+            "status": "string (TODO|IN_PROGRESS|BLOCKED|DONE)",
+            "priority": "string (LOW|MEDIUM|HIGH|URGENT)",
+            "assigned_to": "string (UUID of assigned user, may be null)",
+            "assigned_to_name": "string (name of assigned user, may be null)",
+            "created_by": "string (UUID of creator)",
+            "created_by_name": "string (name of creator)",
+            "created_at": "string (ISO 8601 timestamp)",
+            "updated_at": "string (ISO 8601 timestamp)",
+            "due_date": "string (ISO 8601 date, may be null)"
           }
         ],
         "pagination": {
-          "page": "number",
-          "limit": "number",
-          "total": "number (total count of tasks matching filters)",
-          "totalPages": "number"
+          "next_cursor": "string (base64 encoded cursor for next page, null if no more results)",
+          "has_more": "boolean (true if more results available)"
         }
       },
       "error_responses": [
         {
           "status": 400,
-          "code": "INVALID_PAGINATION",
-          "message": "Page or limit parameters are invalid."
+          "code": "INVALID_STATUS_VALUE",
+          "message": "Status parameter contains invalid value"
         },
         {
           "status": 400,
-          "code": "INVALID_FILTER",
-          "message": "Filter parameters contain invalid values."
+          "code": "INVALID_ASSIGNED_TO_UUID",
+          "message": "Assigned_to parameter is not a valid UUID"
         },
         {
           "status": 400,
-          "code": "INVALID_DATE_RANGE",
-          "message": "dueDateFrom must be before dueDateTo."
+          "code": "INVALID_LIMIT_VALUE",
+          "message": "Limit parameter is out of allowed range"
+        },
+        {
+          "status": 400,
+          "code": "INVALID_CURSOR",
+          "message": "Cursor parameter is malformed or invalid"
         },
         {
           "status": 401,
           "code": "UNAUTHORIZED",
-          "message": "Authentication token is missing or invalid."
+          "message": "Access token is missing, invalid, or expired"
         },
         {
           "status": 500,
           "code": "INTERNAL_SERVER_ERROR",
-          "message": "An unexpected error occurred while retrieving tasks."
+          "message": "An unexpected error occurred while retrieving tasks"
         }
       ],
       "authentication_required": true,
       "rate_limit": null
     },
     {
-      "endpoint": "/api/tasks/:id",
+      "endpoint": "/api/v1/tasks/{task_id}",
       "method": "GET",
-      "description": "Retrieves a single task by ID for the authenticated user. Returns 404 if task does not exist or does not belong to the authenticated user.",
+      "description": "Retrieves detailed information for a specific task by ID. User must be either the task creator or assignee to access task details.",
       "request_schema": null,
       "request_params": {
-        "id": "string (UUID v4 format, path parameter)"
+        "task_id": "string (UUID v4 format, path parameter, required)"
       },
       "response_schema": {
-        "id": "string (UUID v4)",
-        "title": "string",
-        "description": "string (nullable)",
-        "status": "string (enum: TODO, IN_PROGRESS, DONE)",
-        "priority": "string (enum: LOW, MEDIUM, HIGH)",
-        "dueDate": "string (ISO 8601 date, nullable)",
-        "createdAt": "string (ISO 8601 timestamp)",
-        "updatedAt": "string (ISO 8601 timestamp)",
-        "version": "number (optimistic locking version)",
-        "userId": "string (UUID v4)"
+        "task_id": "string (UUID v4 format)",
+        "title": "string (task title)",
+        "description": "string (task description, may be null)",
+        "status": "string (TODO|IN_PROGRESS|BLOCKED|DONE)",
+        "priority": "string (LOW|MEDIUM|HIGH|URGENT)",
+        "assigned_to": "string (UUID of assigned user, may be null)",
+        "assigned_to_name": "string (name of assigned user, may be null)",
+        "created_by": "string (UUID of creator)",
+        "created_by_name": "string (name of creator)",
+        "created_at": "string (ISO 8601 timestamp)",
+        "updated_at": "string (ISO 8601 timestamp)",
+        "due_date": "string (ISO 8601 date, may be null)",
+        "blocked_reason": "string (reason for blocked status, may be null)"
       },
       "error_responses": [
         {
           "status": 400,
           "code": "INVALID_TASK_ID",
-          "message": "Task ID format is invalid. Must be valid UUID v4."
+          "message": "Task ID is not a valid UUID format"
         },
         {
           "status": 401,
           "code": "UNAUTHORIZED",
-          "message": "Authentication token is missing or invalid."
+          "message": "Access token is missing, invalid, or expired"
+        },
+        {
+          "status": 403,
+          "code": "FORBIDDEN",
+          "message": "User does not have permission to access this task"
         },
         {
           "status": 404,
           "code": "TASK_NOT_FOUND",
-          "message": "Task with specified ID does not exist or does not belong to user."
+          "message": "Task with specified ID does not exist or has been deleted"
         },
         {
           "status": 500,
           "code": "INTERNAL_SERVER_ERROR",
-          "message": "An unexpected error occurred while retrieving task."
+          "message": "An unexpected error occurred while retrieving task"
         }
       ],
       "authentication_required": true,
       "rate_limit": null
     },
     {
-      "endpoint": "/api/tasks",
+      "endpoint": "/api/v1/tasks",
       "method": "POST",
-      "description": "Creates a new task for the authenticated user. Title is required, all other fields are optional. Status defaults to TODO, priority defaults to MEDIUM if not specified.",
+      "description": "Creates a new task with specified title, description, priority, and optional assignee. Creator is automatically set to authenticated user. Initial status is TODO.",
       "request_schema": {
-        "title": "string (required, min 1 char, max 200 chars)",
-        "description": "string (optional, max 2000 chars)",
-        "status": "string (optional, enum: TODO, IN_PROGRESS, DONE, default: TODO)",
-        "priority": "string (optional, enum: LOW, MEDIUM, HIGH, default: MEDIUM)",
-        "dueDate": "string (optional, ISO 8601 date, must be future date)"
+        "title": "string (min 1 char, max 255 chars, required)",
+        "description": "string (max 5000 chars, optional)",
+        "priority": "string (values: LOW|MEDIUM|HIGH|URGENT, default: MEDIUM, optional)",
+        "assigned_to": "string (UUID v4 format of user to assign, optional)",
+        "due_date": "string (ISO 8601 date format YYYY-MM-DD, must be future date, optional)"
       },
       "request_params": null,
       "response_schema": {
-        "id": "string (UUID v4)",
-        "title": "string",
-        "description": "string (nullable)",
-        "status": "string (enum: TODO, IN_PROGRESS, DONE)",
-        "priority": "string (enum: LOW, MEDIUM, HIGH)",
-        "dueDate": "string (ISO 8601 date, nullable)",
-        "createdAt": "string (ISO 8601 timestamp)",
-        "updatedAt": "string (ISO 8601 timestamp)",
-        "version": "number (initial value: 1)",
-        "userId": "string (UUID v4)"
+        "task_id": "string (UUID v4 format)",
+        "title": "string (task title)",
+        "description": "string (task description, may be null)",
+        "status": "string (value: TODO)",
+        "priority": "string (LOW|MEDIUM|HIGH|URGENT)",
+        "assigned_to": "string (UUID of assigned user, may be null)",
+        "assigned_to_name": "string (name of assigned user, may be null)",
+        "created_by": "string (UUID of creator)",
+        "created_by_name": "string (name of creator)",
+        "created_at": "string (ISO 8601 timestamp)",
+        "updated_at": "string (ISO 8601 timestamp)",
+        "due_date": "string (ISO 8601 date, may be null)"
       },
       "error_responses": [
         {
           "status": 400,
-          "code": "MISSING_TITLE",
-          "message": "Task title is required."
+          "code": "INVALID_TITLE",
+          "message": "Title is missing, empty, or exceeds maximum length"
         },
         {
           "status": 400,
-          "code": "TITLE_TOO_LONG",
-          "message": "Task title exceeds maximum length of 200 characters."
-        },
-        {
-          "status": 400,
-          "code": "DESCRIPTION_TOO_LONG",
-          "message": "Task description exceeds maximum length of 2000 characters."
-        },
-        {
-          "status": 400,
-          "code": "INVALID_STATUS",
-          "message": "Status value is not valid. Must be TODO, IN_PROGRESS, or DONE."
+          "code": "INVALID_DESCRIPTION",
+          "message": "Description exceeds maximum length"
         },
         {
           "status": 400,
           "code": "INVALID_PRIORITY",
-          "message": "Priority value is not valid. Must be LOW, MEDIUM, or HIGH."
+          "message": "Priority value is not one of allowed values"
+        },
+        {
+          "status": 400,
+          "code": "INVALID_ASSIGNED_TO",
+          "message": "Assigned_to is not a valid UUID or user does not exist"
         },
         {
           "status": 400,
           "code": "INVALID_DUE_DATE",
-          "message": "Due date must be a valid ISO 8601 date in the future."
+          "message": "Due date is not valid ISO 8601 format or is in the past"
         },
         {
           "status": 401,
           "code": "UNAUTHORIZED",
-          "message": "Authentication token is missing or invalid."
+          "message": "Access token is missing, invalid, or expired"
         },
         {
           "status": 500,
           "code": "INTERNAL_SERVER_ERROR",
-          "message": "An unexpected error occurred while creating task."
+          "message": "An unexpected error occurred while creating task"
         }
       ],
       "authentication_required": true,
       "rate_limit": null
     },
     {
-      "endpoint": "/api/tasks/:id",
+      "endpoint": "/api/v1/tasks/{task_id}",
       "method": "PUT",
-      "description": "Updates an existing task for the authenticated user. Supports partial updates - only provided fields are updated. Implements optimistic locking using version field to prevent concurrent update conflicts.",
+      "description": "Updates an existing task's title, description, priority, assignee, or due date. User must be either the task creator or current assignee. Status updates must use separate PATCH endpoint for workflow validation.",
       "request_schema": {
-        "title": "string (optional, min 1 char, max 200 chars)",
-        "description": "string (optional, max 2000 chars, null to clear)",
-        "status": "string (optional, enum: TODO, IN_PROGRESS, DONE)",
-        "priority": "string (optional, enum: LOW, MEDIUM, HIGH)",
-        "dueDate": "string (optional, ISO 8601 date, null to clear)",
-        "version": "number (required for optimistic locking)"
+        "title": "string (min 1 char, max 255 chars, optional)",
+        "description": "string (max 5000 chars, optional, null to clear)",
+        "priority": "string (values: LOW|MEDIUM|HIGH|URGENT, optional)",
+        "assigned_to": "string (UUID v4 format of user to assign, optional, null to unassign)",
+        "due_date": "string (ISO 8601 date format YYYY-MM-DD, optional, null to clear)"
       },
       "request_params": {
-        "id": "string (UUID v4 format, path parameter)"
+        "task_id": "string (UUID v4 format, path parameter, required)"
       },
       "response_schema": {
-        "id": "string (UUID v4)",
-        "title": "string",
-        "description": "string (nullable)",
-        "status": "string (enum: TODO, IN_PROGRESS, DONE)",
-        "priority": "string (enum: LOW, MEDIUM, HIGH)",
-        "dueDate": "string (ISO 8601 date, nullable)",
-        "createdAt": "string (ISO 8601 timestamp)",
-        "updatedAt": "string (ISO 8601 timestamp, updated to current time)",
-        "version": "number (incremented by 1)",
-        "userId": "string (UUID v4)"
+        "task_id": "string (UUID v4 format)",
+        "title": "string (task title)",
+        "description": "string (task description, may be null)",
+        "status": "string (TODO|IN_PROGRESS|BLOCKED|DONE)",
+        "priority": "string (LOW|MEDIUM|HIGH|URGENT)",
+        "assigned_to": "string (UUID of assigned user, may be null)",
+        "assigned_to_name": "string (name of assigned user, may be null)",
+        "created_by": "string (UUID of creator)",
+        "created_by_name": "string (name of creator)",
+        "created_at": "string (ISO 8601 timestamp)",
+        "updated_at": "string (ISO 8601 timestamp)",
+        "due_date": "string (ISO 8601 date, may be null)"
       },
       "error_responses": [
         {
           "status": 400,
           "code": "INVALID_TASK_ID",
-          "message": "Task ID format is invalid. Must be valid UUID v4."
+          "message": "Task ID is not a valid UUID format"
         },
         {
           "status": 400,
-          "code": "MISSING_VERSION",
-          "message": "Version field is required for optimistic locking."
+          "code": "INVALID_TITLE",
+          "message": "Title is empty or exceeds maximum length"
         },
         {
           "status": 400,
-          "code": "TITLE_TOO_LONG",
-          "message": "Task title exceeds maximum length of 200 characters."
-        },
-        {
-          "status": 400,
-          "code": "DESCRIPTION_TOO_LONG",
-          "message": "Task description exceeds maximum length of 2000 characters."
-        },
-        {
-          "status": 400,
-          "code": "INVALID_STATUS",
-          "message": "Status value is not valid. Must be TODO, IN_PROGRESS, or DONE."
+          "code": "INVALID_DESCRIPTION",
+          "message": "Description exceeds maximum length"
         },
         {
           "status": 400,
           "code": "INVALID_PRIORITY",
-          "message": "Priority value is not valid. Must be LOW, MEDIUM, or HIGH."
+          "message": "Priority value is not one of allowed values"
+        },
+        {
+          "status": 400,
+          "code": "INVALID_ASSIGNED_TO",
+          "message": "Assigned_to is not a valid UUID or user does not exist"
         },
         {
           "status": 400,
           "code": "INVALID_DUE_DATE",
-          "message": "Due date must be a valid ISO 8601 date."
+          "message": "Due date is not valid ISO 8601 format or is in the past"
+        },
+        {
+          "status": 400,
+          "code": "NO_FIELDS_TO_UPDATE",
+          "message": "Request body contains no valid fields to update"
         },
         {
           "status": 401,
           "code": "UNAUTHORIZED",
-          "message": "Authentication token is missing or invalid."
+          "message": "Access token is missing, invalid, or expired"
+        },
+        {
+          "status": 403,
+          "code": "FORBIDDEN",
+          "message": "User does not have permission to update this task"
         },
         {
           "status": 404,
           "code": "TASK_NOT_FOUND",
-          "message": "Task with specified ID does not exist or does not belong to user."
-        },
-        {
-          "status": 409,
-          "code": "VERSION_CONFLICT",
-          "message": "Task has been modified by another request. Please refresh and try again."
+          "message": "Task with specified ID does not exist or has been deleted"
         },
         {
           "status": 500,
           "code": "INTERNAL_SERVER_ERROR",
-          "message": "An unexpected error occurred while updating task."
+          "message": "An unexpected error occurred while updating task"
         }
       ],
       "authentication_required": true,
       "rate_limit": null
     },
     {
-      "endpoint": "/api/tasks/:id",
-      "method": "DELETE",
-      "description": "Deletes a task by ID for the authenticated user. This is a hard delete operation. Returns 204 No Content on success.",
-      "request_schema": null,
-      "request_params": {
-        "id": "string (UUID v4 format, path parameter)"
+      "endpoint": "/api/v1/tasks/{task_id}/status",
+      "method": "PATCH",
+      "description": "Updates task status with workflow validation. Validates status transitions: TODO can transition to IN_PROGRESS or BLOCKED, IN_PROGRESS can transition to DONE or BLOCKED, BLOCKED can transition to TODO or IN_PROGRESS, DONE is terminal state. Requires blocked_reason when transitioning to BLOCKED status.",
+      "request_schema": {
+        "status": "string (values: TODO|IN_PROGRESS|BLOCKED|DONE, required)",
+        "blocked_reason": "string (max 500 chars, required if status is BLOCKED, optional otherwise)"
       },
-      "response_schema": {},
+      "request_params": {
+        "task_id": "string (UUID v4 format, path parameter, required)"
+      },
+      "response_schema": {
+        "task_id": "string (UUID v4 format)",
+        "status": "string (updated status)",
+        "blocked_reason": "string (reason if blocked, may be null)",
+        "updated_at": "string (ISO 8601 timestamp)"
+      },
       "error_responses": [
         {
           "status": 400,
           "code": "INVALID_TASK_ID",
-          "message": "Task ID format is invalid. Must be valid UUID v4."
+          "message": "Task ID is not a valid UUID format"
+        },
+        {
+          "status": 400,
+          "code": "INVALID_STATUS",
+          "message": "Status value is not one of allowed values"
+        },
+        {
+          "status": 400,
+          "code": "INVALID_STATUS_TRANSITION",
+          "message": "Status transition from current status to requested status is not allowed"
+        },
+        {
+          "status": 400,
+          "code": "BLOCKED_REASON_REQUIRED",
+          "message": "Blocked reason is required when transitioning to BLOCKED status"
+        },
+        {
+          "status": 400,
+          "code": "BLOCKED_REASON_TOO_LONG",
+          "message": "Blocked reason exceeds maximum length"
         },
         {
           "status": 401,
           "code": "UNAUTHORIZED",
-          "message": "Authentication token is missing or invalid."
+          "message": "Access token is missing, invalid, or expired"
+        },
+        {
+          "status": 403,
+          "code": "FORBIDDEN",
+          "message": "User does not have permission to update this task status"
         },
         {
           "status": 404,
           "code": "TASK_NOT_FOUND",
-          "message": "Task with specified ID does not exist or does not belong to user."
+          "message": "Task with specified ID does not exist or has been deleted"
         },
         {
           "status": 500,
           "code": "INTERNAL_SERVER_ERROR",
-          "message": "An unexpected error occurred while deleting task."
+          "message": "An unexpected error occurred while updating task status"
         }
       ],
       "authentication_required": true,
       "rate_limit": null
     },
     {
-      "endpoint": "/api/health",
-      "method": "GET",
-      "description": "Health check endpoint to verify API service is running and database connection is healthy. Does not require authentication. Returns service status and current timestamp.",
+      "endpoint": "/api/v1/tasks/{task_id}",
+      "method": "DELETE",
+      "description": "Soft deletes a task by setting deleted_at timestamp. Only task creator can delete tasks. Deleted tasks are excluded from list queries but can be restored by administrators.",
       "request_schema": null,
-      "request_params": null,
+      "request_params": {
+        "task_id": "string (UUID v4 format, path parameter, required)"
+      },
       "response_schema": {
-        "status": "string (value: healthy)",
-        "timestamp": "string (ISO 8601 timestamp)",
-        "database": "string (value: connected or disconnected)"
+        "task_id": "string (UUID v4 format)",
+        "deleted_at": "string (ISO 8601 timestamp)"
       },
       "error_responses": [
         {
-          "status": 503,
-          "code": "SERVICE_UNAVAILABLE",
-          "message": "Service is unhealthy. Database connection failed."
+          "status": 400,
+          "code": "INVALID_TASK_ID",
+          "message": "Task ID is not a valid UUID format"
+        },
+        {
+          "status": 401,
+          "code": "UNAUTHORIZED",
+          "message": "Access token is missing, invalid, or expired"
+        },
+        {
+          "status": 403,
+          "code": "FORBIDDEN",
+          "message": "User does not have permission to delete this task (not the creator)"
+        },
+        {
+          "status": 404,
+          "code": "TASK_NOT_FOUND",
+          "message": "Task with specified ID does not exist or has already been deleted"
+        },
+        {
+          "status": 500,
+          "code": "INTERNAL_SERVER_ERROR",
+          "message": "An unexpected error occurred while deleting task"
         }
       ],
-      "authentication_required": false,
+      "authentication_required": true,
+      "rate_limit": null
+    },
+    {
+      "endpoint": "/api/v1/users/me",
+      "method": "GET",
+      "description": "Retrieves profile information for the authenticated user including email, name, and account creation date.",
+      "request_schema": null,
+      "request_params": null,
+      "response_schema": {
+        "user_id": "string (UUID v4 format)",
+        "email": "string (user's email address)",
+        "name": "string (user's display name)",
+        "created_at": "string (ISO 8601 timestamp)",
+        "updated_at": "string (ISO 8601 timestamp)"
+      },
+      "error_responses": [
+        {
+          "status": 401,
+          "code": "UNAUTHORIZED",
+          "message": "Access token is missing, invalid, or expired"
+        },
+        {
+          "status": 404,
+          "code": "USER_NOT_FOUND",
+          "message": "User account has been deleted"
+        },
+        {
+          "status": 500,
+          "code": "INTERNAL_SERVER_ERROR",
+          "message": "An unexpected error occurred while retrieving user profile"
+        }
+      ],
+      "authentication_required": true,
+      "rate_limit": null
+    },
+    {
+      "endpoint": "/api/v1/users/search",
+      "method": "GET",
+      "description": "Searches for users by name or email for task assignment purposes. Returns partial matches. Limited to 20 results. Excludes deleted users.",
+      "request_schema": null,
+      "request_params": {
+        "query": "string (min 2 chars, max 100 chars, required, search term for name or email)"
+      },
+      "response_schema": {
+        "users": [
+          {
+            "user_id": "string (UUID v4 format)",
+            "email": "string (user's email address)",
+            "name": "string (user's display name)"
+          }
+        ]
+      },
+      "error_responses": [
+        {
+          "status": 400,
+          "code": "INVALID_QUERY",
+          "message": "Query parameter is missing, too short, or too long"
+        },
+        {
+          "status": 401,
+          "code": "UNAUTHORIZED",
+          "message": "Access token is missing, invalid, or expired"
+        },
+        {
+          "status": 500,
+          "code": "INTERNAL_SERVER_ERROR",
+          "message": "An unexpected error occurred while searching users"
+        }
+      ],
+      "authentication_required": true,
       "rate_limit": null
     }
   ],
   "data_schemas": [
     {
       "table_name": "users",
-      "description": "Stores user account information including authentication credentials and profile data.",
+      "description": "Stores user account information including authentication credentials and profile data",
       "columns": [
         {
-          "name": "id",
+          "name": "user_id",
           "type": "UUID",
           "constraints": "PRIMARY KEY, DEFAULT gen_random_uuid()"
         },
@@ -449,35 +621,36 @@
           "name": "updated_at",
           "type": "TIMESTAMP WITH TIME ZONE",
           "constraints": "NOT NULL, DEFAULT CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "deleted_at",
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "constraints": "NULL"
         }
       ],
       "indexes": [
-        "CREATE UNIQUE INDEX idx_users_email ON users(email);",
-        "CREATE INDEX idx_users_created_at ON users(created_at DESC);"
+        "CREATE UNIQUE INDEX idx_users_email ON users(email) WHERE deleted_at IS NULL;",
+        "CREATE INDEX idx_users_name ON users(name) WHERE deleted_at IS NULL;",
+        "CREATE INDEX idx_users_deleted_at ON users(deleted_at);"
       ],
       "relationships": [],
       "constraints": [
-        "CHECK (char_length(email) >= 3 AND char_length(email) <= 255);",
-        "CHECK (char_length(name) >= 2 AND char_length(name) <= 100);"
+        "CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$');",
+        "CHECK (LENGTH(name) >= 2);"
       ]
     },
     {
       "table_name": "tasks",
-      "description": "Stores task information including title, description, status, priority, and due date. Each task belongs to a single user.",
+      "description": "Stores task information including title, description, status, priority, and assignment details",
       "columns": [
         {
-          "name": "id",
+          "name": "task_id",
           "type": "UUID",
           "constraints": "PRIMARY KEY, DEFAULT gen_random_uuid()"
         },
         {
-          "name": "user_id",
-          "type": "UUID",
-          "constraints": "NOT NULL, FOREIGN KEY REFERENCES users(id)"
-        },
-        {
           "name": "title",
-          "type": "VARCHAR(200)",
+          "type": "VARCHAR(255)",
           "constraints": "NOT NULL"
         },
         {
@@ -492,8 +665,18 @@
         },
         {
           "name": "priority",
-          "type": "VARCHAR(20)",
+          "type": "VARCHAR(10)",
           "constraints": "NOT NULL, DEFAULT 'MEDIUM'"
+        },
+        {
+          "name": "assigned_to",
+          "type": "UUID",
+          "constraints": "NULL"
+        },
+        {
+          "name": "created_by",
+          "type": "UUID",
+          "constraints": "NOT NULL"
         },
         {
           "name": "due_date",
@@ -501,9 +684,9 @@
           "constraints": "NULL"
         },
         {
-          "name": "version",
-          "type": "INTEGER",
-          "constraints": "NOT NULL, DEFAULT 1"
+          "name": "blocked_reason",
+          "type": "VARCHAR(500)",
+          "constraints": "NULL"
         },
         {
           "name": "created_at",
@@ -514,79 +697,80 @@
           "name": "updated_at",
           "type": "TIMESTAMP WITH TIME ZONE",
           "constraints": "NOT NULL, DEFAULT CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "deleted_at",
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "constraints": "NULL"
         }
       ],
       "indexes": [
-        "CREATE INDEX idx_tasks_user_id ON tasks(user_id);",
-        "CREATE INDEX idx_tasks_status ON tasks(status);",
-        "CREATE INDEX idx_tasks_priority ON tasks(priority);",
-        "CREATE INDEX idx_tasks_due_date ON tasks(due_date) WHERE due_date IS NOT NULL;",
-        "CREATE INDEX idx_tasks_created_at ON tasks(created_at DESC);",
-        "CREATE INDEX idx_tasks_updated_at ON tasks(updated_at DESC);",
-        "CREATE INDEX idx_tasks_user_status ON tasks(user_id, status);"
+        "CREATE INDEX idx_tasks_status ON tasks(status) WHERE deleted_at IS NULL;",
+        "CREATE INDEX idx_tasks_assigned_to ON tasks(assigned_to) WHERE deleted_at IS NULL;",
+        "CREATE INDEX idx_tasks_created_by ON tasks(created_by) WHERE deleted_at IS NULL;",
+        "CREATE INDEX idx_tasks_created_at ON tasks(created_at DESC) WHERE deleted_at IS NULL;",
+        "CREATE INDEX idx_tasks_due_date ON tasks(due_date) WHERE deleted_at IS NULL AND due_date IS NOT NULL;",
+        "CREATE INDEX idx_tasks_deleted_at ON tasks(deleted_at);",
+        "CREATE INDEX idx_tasks_title_search ON tasks USING gin(to_tsvector('english', title)) WHERE deleted_at IS NULL;",
+        "CREATE INDEX idx_tasks_description_search ON tasks USING gin(to_tsvector('english', description)) WHERE deleted_at IS NULL;"
       ],
       "relationships": [
-        "ALTER TABLE tasks ADD FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;"
+        "ALTER TABLE tasks ADD FOREIGN KEY (assigned_to) REFERENCES users(user_id) ON DELETE SET NULL;",
+        "ALTER TABLE tasks ADD FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE CASCADE;"
       ],
       "constraints": [
-        "CHECK (char_length(title) >= 1 AND char_length(title) <= 200);",
-        "CHECK (char_length(description) <= 2000);",
-        "CHECK (status IN ('TODO', 'IN_PROGRESS', 'DONE'));",
-        "CHECK (priority IN ('LOW', 'MEDIUM', 'HIGH'));",
-        "CHECK (version >= 1);"
+        "CHECK (status IN ('TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE'));",
+        "CHECK (priority IN ('LOW', 'MEDIUM', 'HIGH', 'URGENT'));",
+        "CHECK (LENGTH(title) >= 1);",
+        "CHECK (due_date IS NULL OR due_date >= CURRENT_DATE);",
+        "CHECK ((status = 'BLOCKED' AND blocked_reason IS NOT NULL) OR (status != 'BLOCKED'));"
       ]
     },
     {
-      "table_name": "audit_logs",
-      "description": "Stores audit trail of task operations for compliance and debugging purposes. Records all create, update, and delete operations.",
+      "table_name": "refresh_tokens",
+      "description": "Stores refresh tokens for JWT authentication with expiration tracking and revocation support",
       "columns": [
         {
-          "name": "id",
+          "name": "token_id",
           "type": "UUID",
           "constraints": "PRIMARY KEY, DEFAULT gen_random_uuid()"
         },
         {
-          "name": "task_id",
-          "type": "UUID",
-          "constraints": "NOT NULL"
-        },
-        {
           "name": "user_id",
           "type": "UUID",
-          "constraints": "NOT NULL, FOREIGN KEY REFERENCES users(id)"
-        },
-        {
-          "name": "operation",
-          "type": "VARCHAR(20)",
           "constraints": "NOT NULL"
         },
         {
-          "name": "old_data",
-          "type": "JSONB",
-          "constraints": "NULL"
+          "name": "token_hash",
+          "type": "VARCHAR(255)",
+          "constraints": "NOT NULL, UNIQUE"
         },
         {
-          "name": "new_data",
-          "type": "JSONB",
-          "constraints": "NULL"
+          "name": "expires_at",
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "constraints": "NOT NULL"
         },
         {
           "name": "created_at",
           "type": "TIMESTAMP WITH TIME ZONE",
           "constraints": "NOT NULL, DEFAULT CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "revoked_at",
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "constraints": "NULL"
         }
       ],
       "indexes": [
-        "CREATE INDEX idx_audit_logs_task_id ON audit_logs(task_id);",
-        "CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);",
-        "CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at DESC);",
-        "CREATE INDEX idx_audit_logs_operation ON audit_logs(operation);"
+        "CREATE UNIQUE INDEX idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);",
+        "CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);",
+        "CREATE INDEX idx_refresh_tokens_expires_at ON refresh_tokens(expires_at);"
       ],
       "relationships": [
-        "ALTER TABLE audit_logs ADD FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;"
+        "ALTER TABLE refresh_tokens ADD FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE;"
       ],
       "constraints": [
-        "CHECK (operation IN ('CREATE', 'UPDATE', 'DELETE'));"
+        "CHECK (expires_at > created_at);"
       ]
     }
   ],
@@ -594,7 +778,7 @@
     {
       "component_name": "AuthenticationService",
       "semantic_unit_id": "SU-001",
-      "responsibility": "Handles user registration, login, password hashing, and JWT token generation/validation. Enforces password strength requirements and email uniqueness.",
+      "responsibility": "Handles user authentication operations including registration, login, token generation, and token refresh with password hashing and JWT management.",
       "interfaces": [
         {
           "method": "register",
@@ -603,8 +787,8 @@
             "password": "string",
             "name": "string"
           },
-          "returns": "Promise<{user: User, token: string}>",
-          "description": "Registers a new user account with email, password, and name. Validates input, hashes password with bcrypt, creates user record, and generates JWT token."
+          "returns": "Promise<UserDTO>",
+          "description": "Registers a new user account with email uniqueness validation and password hashing."
         },
         {
           "method": "login",
@@ -612,65 +796,48 @@
             "email": "string",
             "password": "string"
           },
-          "returns": "Promise<{user: User, token: string}>",
-          "description": "Authenticates user with email and password credentials. Verifies password hash and generates JWT token on success."
+          "returns": "Promise<AuthTokensDTO>",
+          "description": "Authenticates user credentials and generates access and refresh tokens."
         },
         {
-          "method": "hashPassword",
+          "method": "refreshAccessToken",
           "parameters": {
-            "password": "string"
+            "refreshToken": "string"
           },
-          "returns": "Promise<string>",
-          "description": "Hashes password using bcrypt with cost factor 12."
+          "returns": "Promise<AuthTokensDTO>",
+          "description": "Validates refresh token and generates new token pair, revoking old refresh token."
         },
         {
-          "method": "verifyPassword",
-          "parameters": {
-            "password": "string",
-            "hash": "string"
-          },
-          "returns": "Promise<boolean>",
-          "description": "Verifies plain text password against bcrypt hash."
-        },
-        {
-          "method": "generateToken",
-          "parameters": {
-            "userId": "string",
-            "email": "string"
-          },
-          "returns": "string",
-          "description": "Generates JWT token with user ID and email payload. Token expires in 24 hours."
-        },
-        {
-          "method": "verifyToken",
+          "method": "validateAccessToken",
           "parameters": {
             "token": "string"
           },
-          "returns": "{userId: string, email: string}",
-          "description": "Verifies and decodes JWT token. Throws error if token is invalid or expired."
+          "returns": "Promise<UserDTO>",
+          "description": "Validates JWT access token and returns associated user information."
         }
       ],
       "dependencies": [
         "UserRepository",
-        "bcrypt library",
-        "jsonwebtoken library"
+        "RefreshTokenRepository",
+        "JWTService",
+        "PasswordHashingService"
       ],
-      "implementation_notes": "Use bcrypt.hash() with cost factor 12 for password hashing. Never store plain text passwords. Use bcrypt.compare() for password verification with constant-time comparison. Generate JWT tokens using jsonwebtoken.sign() with HS256 algorithm. Include userId and email in token payload. Set token expiration to 24 hours (expiresIn: '24h'). Store JWT secret in environment variable JWT_SECRET (minimum 32 characters). Verify tokens using jsonwebtoken.verify() and handle TokenExpiredError and JsonWebTokenError exceptions. Validate email format using regex: /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/. Validate password strength: minimum 8 characters, at least one uppercase letter, one lowercase letter, one number, one special character (!@#$%^&*). Validate name: 2-100 characters, alphanumeric and spaces only. Check email uniqueness before creating user. Throw appropriate errors with specific error codes for validation failures. Hash passwords asynchronously to avoid blocking event loop.",
+      "implementation_notes": "Use bcrypt.hash() with cost factor 12 for password hashing during registration. Validate email format using regex pattern from RFC 5322 simplified version. Validate password strength: minimum 8 characters, maximum 128 characters, must contain at least one uppercase letter, one lowercase letter, one digit, and one special character from set !@#$%^&*()_+-=[]{}|;:,.<>?. Check email uniqueness by querying UserRepository before creating user. For login, retrieve user by email, compare password using bcrypt.compare() against stored password_hash. Generate JWT access token with payload {user_id, email, name} and expiration 24 hours using JWTService. Generate JWT refresh token with payload {user_id, token_id} and expiration 30 days. Store refresh token hash in refresh_tokens table using SHA-256. For token refresh, verify refresh token signature and expiration, check if token is revoked in database, generate new token pair, revoke old refresh token by setting revoked_at timestamp. Implement rate limiting for login attempts: maximum 10 attempts per 15 minutes per IP address, lock account for 1 hour after 5 failed attempts. Throw specific exceptions: InvalidEmailFormatError, WeakPasswordError, EmailAlreadyExistsError, InvalidCredentialsError, InvalidRefreshTokenError, AccountLockedError.",
       "complexity": 45
     },
     {
       "component_name": "TaskService",
       "semantic_unit_id": "SU-002",
-      "responsibility": "Implements core task management business logic including CRUD operations, filtering, sorting, pagination, and status transition validation. Enforces business rules and data integrity.",
+      "responsibility": "Implements core task management business logic including CRUD operations, status transitions with workflow validation, and task assignment.",
       "interfaces": [
         {
           "method": "createTask",
           "parameters": {
             "userId": "string",
-            "data": "CreateTaskDTO"
+            "taskData": "CreateTaskDTO"
           },
-          "returns": "Promise<Task>",
-          "description": "Creates a new task for the specified user with provided data. Validates input and sets default values for optional fields."
+          "returns": "Promise<TaskDTO>",
+          "description": "Creates a new task with validated data and sets creator as authenticated user."
         },
         {
           "method": "getTaskById",
@@ -678,28 +845,38 @@
             "userId": "string",
             "taskId": "string"
           },
-          "returns": "Promise<Task>",
-          "description": "Retrieves a single task by ID. Verifies task belongs to specified user."
+          "returns": "Promise<TaskDTO>",
+          "description": "Retrieves task by ID with permission validation (user must be creator or assignee)."
         },
         {
-          "method": "getTasks",
+          "method": "listTasks",
           "parameters": {
             "userId": "string",
-            "filters": "TaskFilters",
-            "pagination": "PaginationParams"
+            "filters": "TaskFilterDTO"
           },
-          "returns": "Promise<{tasks: Task[], pagination: PaginationMeta}>",
-          "description": "Retrieves paginated list of tasks for user with optional filtering and sorting."
+          "returns": "Promise<TaskListDTO>",
+          "description": "Retrieves paginated list of tasks with optional filtering and search."
         },
         {
           "method": "updateTask",
           "parameters": {
             "userId": "string",
             "taskId": "string",
-            "data": "UpdateTaskDTO"
+            "updates": "UpdateTaskDTO"
           },
-          "returns": "Promise<Task>",
-          "description": "Updates existing task with provided data. Implements optimistic locking using version field."
+          "returns": "Promise<TaskDTO>",
+          "description": "Updates task fields with permission validation (user must be creator or assignee)."
+        },
+        {
+          "method": "updateTaskStatus",
+          "parameters": {
+            "userId": "string",
+            "taskId": "string",
+            "status": "TaskStatus",
+            "blockedReason?": "string"
+          },
+          "returns": "Promise<TaskStatusDTO>",
+          "description": "Updates task status with workflow validation and transition rules enforcement."
         },
         {
           "method": "deleteTask",
@@ -708,28 +885,337 @@
             "taskId": "string"
           },
           "returns": "Promise<void>",
-          "description": "Deletes task by ID. Verifies task belongs to specified user."
+          "description": "Soft deletes task by setting deleted_at timestamp (only creator can delete)."
         },
         {
-          "method": "validateTaskData",
+          "method": "validateStatusTransition",
           "parameters": {
-            "data": "Partial<Task>"
+            "currentStatus": "TaskStatus",
+            "newStatus": "TaskStatus"
           },
-          "returns": "void",
-          "description": "Validates task data against business rules and constraints."
+          "returns": "boolean",
+          "description": "Validates if status transition is allowed per workflow rules."
         }
       ],
       "dependencies": [
         "TaskRepository",
-        "AuditLogRepository"
+        "UserRepository",
+        "CacheService"
       ],
-      "implementation_notes": "Use Zod schemas for input validation. Define CreateTaskDTO with required title field and optional description, status, priority, dueDate fields. Define UpdateTaskDTO with all optional fields plus required version field. Validate title length: 1-200 characters. Validate description length: max 2000 characters. Validate status enum: TODO, IN_PROGRESS, DONE. Validate priority enum: LOW, MEDIUM, HIGH. Validate dueDate is valid ISO 8601 date and future date for creation. Set default status to TODO if not provided. Set default priority to MEDIUM if not provided. For getTasks, build dynamic WHERE clause based on filters. Support filtering by status (exact match), priority (exact match), dueDateFrom (>=), dueDateTo (<=). Support sorting by createdAt, updatedAt, dueDate, priority with asc/desc order. Implement pagination with offset/limit. Calculate totalPages as Math.ceil(total / limit). For updateTask, implement optimistic locking by checking version field matches database version before update. Increment version by 1 on successful update. Throw VERSION_CONFLICT error if version mismatch. For all operations, verify userId matches task.userId to enforce ownership. Create audit log entries for all create, update, delete operations with old and new data. Use database transactions for update and delete operations to ensure atomicity with audit logs. Throw TASK_NOT_FOUND error if task doesn't exist or doesn't belong to user. Sanitize input to prevent SQL injection (use parameterized queries via Prisma).",
+      "implementation_notes": "Validate title length 1-255 characters, description max 5000 characters, priority must be one of LOW|MEDIUM|HIGH|URGENT. Validate assigned_to UUID exists in users table using UserRepository. Validate due_date is ISO 8601 format and not in the past. For createTask, set status to TODO, created_by to userId, created_at and updated_at to current timestamp. For getTaskById, check user has permission by verifying userId matches created_by or assigned_to, throw ForbiddenError if not. For listTasks, build SQL query with WHERE clauses for filters, use full-text search with to_tsvector for search parameter on title and description columns, implement cursor-based pagination using created_at and task_id for stable ordering, encode cursor as base64 JSON {created_at, task_id}, cache results in Redis with key pattern \"tasks:list:{userId}:{filters_hash}\" for 5 minutes. For updateTask, validate permission same as getTaskById, validate all update fields, update updated_at timestamp, invalidate cache entries. For updateTaskStatus, validate transition using validateStatusTransition method: TODO can go to IN_PROGRESS or BLOCKED, IN_PROGRESS can go to DONE or BLOCKED, BLOCKED can go to TODO or IN_PROGRESS, DONE is terminal (no transitions allowed), throw InvalidStatusTransitionError if invalid. Require blocked_reason when status is BLOCKED, clear blocked_reason when status changes from BLOCKED. For deleteTask, verify userId matches created_by, set deleted_at to current timestamp. Throw specific exceptions: InvalidTaskDataError, TaskNotFoundError, ForbiddenError, InvalidStatusTransitionError, BlockedReasonRequiredError.",
       "complexity": 67
     },
     {
-      "component_name": "AuthenticationMiddleware",
+      "component_name": "UserService",
       "semantic_unit_id": "SU-003",
-      "responsibility": "Express middleware that validates JWT tokens from Authorization header and attaches authenticated user information to request object. Protects routes requiring authentication.",
+      "responsibility": "Manages user profile operations including retrieval and search functionality for task assignment.",
+      "interfaces": [
+        {
+          "method": "getUserProfile",
+          "parameters": {
+            "userId": "string"
+          },
+          "returns": "Promise<UserDTO>",
+          "description": "Retrieves user profile information by user ID."
+        },
+        {
+          "method": "searchUsers",
+          "parameters": {
+            "query": "string"
+          },
+          "returns": "Promise<UserDTO[]>",
+          "description": "Searches users by name or email for task assignment, returns up to 20 results."
+        }
+      ],
+      "dependencies": [
+        "UserRepository",
+        "CacheService"
+      ],
+      "implementation_notes": "For getUserProfile, check if user exists and deleted_at is NULL, throw UserNotFoundError if not found or deleted. Cache user profile in Redis with key pattern \"user:profile:{userId}\" for 15 minutes. For searchUsers, validate query length 2-100 characters, use ILIKE query on name and email columns with pattern \"%{query}%\", exclude users where deleted_at IS NOT NULL, limit results to 20, order by name ASC. Cache search results in Redis with key pattern \"users:search:{query_hash}\" for 5 minutes. Implement cache invalidation when user profile is updated or deleted.",
+      "complexity": 23
+    },
+    {
+      "component_name": "UserRepository",
+      "semantic_unit_id": "SU-004",
+      "responsibility": "Provides data access layer for users table with CRUD operations and query methods.",
+      "interfaces": [
+        {
+          "method": "create",
+          "parameters": {
+            "userData": "CreateUserData"
+          },
+          "returns": "Promise<User>",
+          "description": "Inserts new user record into database."
+        },
+        {
+          "method": "findById",
+          "parameters": {
+            "userId": "string"
+          },
+          "returns": "Promise<User | null>",
+          "description": "Retrieves user by ID, excluding soft-deleted users."
+        },
+        {
+          "method": "findByEmail",
+          "parameters": {
+            "email": "string"
+          },
+          "returns": "Promise<User | null>",
+          "description": "Retrieves user by email address, excluding soft-deleted users."
+        },
+        {
+          "method": "search",
+          "parameters": {
+            "query": "string",
+            "limit": "number"
+          },
+          "returns": "Promise<User[]>",
+          "description": "Searches users by name or email with result limit."
+        },
+        {
+          "method": "update",
+          "parameters": {
+            "userId": "string",
+            "updates": "Partial<User>"
+          },
+          "returns": "Promise<User>",
+          "description": "Updates user record with provided fields."
+        },
+        {
+          "method": "softDelete",
+          "parameters": {
+            "userId": "string"
+          },
+          "returns": "Promise<void>",
+          "description": "Soft deletes user by setting deleted_at timestamp."
+        }
+      ],
+      "dependencies": [
+        "PostgreSQL connection pool"
+      ],
+      "implementation_notes": "Use node-postgres (pg) library with connection pool. All queries must use parameterized statements to prevent SQL injection. For create, use INSERT with RETURNING clause to get generated user_id. For findById and findByEmail, add WHERE deleted_at IS NULL condition. For search, use ILIKE operator with pattern \"%{query}%\" on both name and email columns combined with OR, add WHERE deleted_at IS NULL, use ORDER BY name ASC and LIMIT clause. For update, set updated_at to CURRENT_TIMESTAMP automatically. For softDelete, UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE user_id = $1. Wrap all operations in try-catch blocks, throw DatabaseError with original error message for debugging. Use TypeScript interfaces for User entity matching database schema exactly.",
+      "complexity": 31
+    },
+    {
+      "component_name": "TaskRepository",
+      "semantic_unit_id": "SU-005",
+      "responsibility": "Provides data access layer for tasks table with CRUD operations, filtering, pagination, and full-text search.",
+      "interfaces": [
+        {
+          "method": "create",
+          "parameters": {
+            "taskData": "CreateTaskData"
+          },
+          "returns": "Promise<Task>",
+          "description": "Inserts new task record into database."
+        },
+        {
+          "method": "findById",
+          "parameters": {
+            "taskId": "string"
+          },
+          "returns": "Promise<Task | null>",
+          "description": "Retrieves task by ID with user information joined, excluding soft-deleted tasks."
+        },
+        {
+          "method": "findByFilters",
+          "parameters": {
+            "filters": "TaskFilters",
+            "pagination": "PaginationParams"
+          },
+          "returns": "Promise<{tasks: Task[], nextCursor: string | null}>",
+          "description": "Retrieves tasks matching filters with cursor-based pagination."
+        },
+        {
+          "method": "update",
+          "parameters": {
+            "taskId": "string",
+            "updates": "Partial<Task>"
+          },
+          "returns": "Promise<Task>",
+          "description": "Updates task record with provided fields."
+        },
+        {
+          "method": "softDelete",
+          "parameters": {
+            "taskId": "string"
+          },
+          "returns": "Promise<void>",
+          "description": "Soft deletes task by setting deleted_at timestamp."
+        }
+      ],
+      "dependencies": [
+        "PostgreSQL connection pool"
+      ],
+      "implementation_notes": "Use node-postgres (pg) library with connection pool. All queries must use parameterized statements. For create, use INSERT with RETURNING clause. For findById, use LEFT JOIN with users table twice (once for created_by, once for assigned_to) to get user names, add WHERE deleted_at IS NULL. For findByFilters, build dynamic WHERE clause based on provided filters, use to_tsvector('english', title || ' ' || COALESCE(description, '')) for full-text search with @@ operator and to_tsquery, implement cursor-based pagination by decoding cursor JSON {created_at, task_id} and adding WHERE (created_at, task_id) < ($cursor_created_at, $cursor_task_id) for stable ordering, use ORDER BY created_at DESC, task_id DESC, apply LIMIT + 1 to check if more results exist, encode next cursor as base64 JSON if more results available. For update, automatically set updated_at to CURRENT_TIMESTAMP. For softDelete, UPDATE tasks SET deleted_at = CURRENT_TIMESTAMP WHERE task_id = $1. Handle database constraint violations: foreign key violations throw InvalidAssigneeError, check constraint violations throw InvalidTaskDataError. Use TypeScript interfaces for Task entity matching database schema.",
+      "complexity": 52
+    },
+    {
+      "component_name": "RefreshTokenRepository",
+      "semantic_unit_id": "SU-006",
+      "responsibility": "Provides data access layer for refresh_tokens table with token storage, validation, and revocation.",
+      "interfaces": [
+        {
+          "method": "create",
+          "parameters": {
+            "tokenData": "CreateRefreshTokenData"
+          },
+          "returns": "Promise<RefreshToken>",
+          "description": "Inserts new refresh token record into database."
+        },
+        {
+          "method": "findByTokenHash",
+          "parameters": {
+            "tokenHash": "string"
+          },
+          "returns": "Promise<RefreshToken | null>",
+          "description": "Retrieves refresh token by hash value."
+        },
+        {
+          "method": "revoke",
+          "parameters": {
+            "tokenId": "string"
+          },
+          "returns": "Promise<void>",
+          "description": "Revokes refresh token by setting revoked_at timestamp."
+        },
+        {
+          "method": "deleteExpired",
+          "parameters": {},
+          "returns": "Promise<number>",
+          "description": "Deletes expired refresh tokens (cleanup operation)."
+        }
+      ],
+      "dependencies": [
+        "PostgreSQL connection pool"
+      ],
+      "implementation_notes": "Use node-postgres (pg) library with connection pool. All queries must use parameterized statements. For create, use INSERT with RETURNING clause. For findByTokenHash, use WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > CURRENT_TIMESTAMP to ensure token is valid. For revoke, UPDATE refresh_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE token_id = $1. For deleteExpired, DELETE FROM refresh_tokens WHERE expires_at < CURRENT_TIMESTAMP, return number of affected rows. Schedule deleteExpired to run daily via cron job or scheduled task. Use TypeScript interfaces for RefreshToken entity matching database schema.",
+      "complexity": 19
+    },
+    {
+      "component_name": "JWTService",
+      "semantic_unit_id": "SU-007",
+      "responsibility": "Handles JWT token generation, signing, verification, and payload extraction using jsonwebtoken library.",
+      "interfaces": [
+        {
+          "method": "generateAccessToken",
+          "parameters": {
+            "payload": "AccessTokenPayload"
+          },
+          "returns": "string",
+          "description": "Generates signed JWT access token with 24-hour expiration."
+        },
+        {
+          "method": "generateRefreshToken",
+          "parameters": {
+            "payload": "RefreshTokenPayload"
+          },
+          "returns": "string",
+          "description": "Generates signed JWT refresh token with 30-day expiration."
+        },
+        {
+          "method": "verifyAccessToken",
+          "parameters": {
+            "token": "string"
+          },
+          "returns": "AccessTokenPayload",
+          "description": "Verifies JWT access token signature and expiration, extracts payload."
+        },
+        {
+          "method": "verifyRefreshToken",
+          "parameters": {
+            "token": "string"
+          },
+          "returns": "RefreshTokenPayload",
+          "description": "Verifies JWT refresh token signature and expiration, extracts payload."
+        }
+      ],
+      "dependencies": [
+        "jsonwebtoken library",
+        "Environment configuration for JWT_SECRET"
+      ],
+      "implementation_notes": "Use jsonwebtoken library (jwt.sign and jwt.verify methods). Load JWT_SECRET from environment variable, must be at least 256 bits (32 characters). For generateAccessToken, use jwt.sign with payload, secret, and options {expiresIn: '24h', algorithm: 'HS256'}. For generateRefreshToken, use jwt.sign with payload, secret, and options {expiresIn: '30d', algorithm: 'HS256'}. For verifyAccessToken and verifyRefreshToken, use jwt.verify with token and secret, catch JsonWebTokenError and TokenExpiredError exceptions, throw InvalidTokenError or ExpiredTokenError respectively. Include token type in payload (typ: 'access' or 'refresh') and validate in verify methods. Use TypeScript interfaces for payload types with strict typing.",
+      "complexity": 16
+    },
+    {
+      "component_name": "PasswordHashingService",
+      "semantic_unit_id": "SU-008",
+      "responsibility": "Handles password hashing and verification using bcrypt with configurable cost factor.",
+      "interfaces": [
+        {
+          "method": "hashPassword",
+          "parameters": {
+            "plainPassword": "string"
+          },
+          "returns": "Promise<string>",
+          "description": "Hashes plain text password using bcrypt with cost factor 12."
+        },
+        {
+          "method": "verifyPassword",
+          "parameters": {
+            "plainPassword": "string",
+            "passwordHash": "string"
+          },
+          "returns": "Promise<boolean>",
+          "description": "Verifies plain text password against stored bcrypt hash."
+        }
+      ],
+      "dependencies": [
+        "bcrypt library"
+      ],
+      "implementation_notes": "Use bcrypt library (bcrypt.hash and bcrypt.compare methods). For hashPassword, use bcrypt.hash(plainPassword, 12) where 12 is the cost factor (2^12 iterations). For verifyPassword, use bcrypt.compare(plainPassword, passwordHash) which returns boolean. Both methods are asynchronous and return Promises. Handle bcrypt errors by wrapping in try-catch and throwing PasswordHashingError with original error message. Cost factor 12 provides good security-performance balance (approximately 250ms per hash on modern hardware).",
+      "complexity": 8
+    },
+    {
+      "component_name": "CacheService",
+      "semantic_unit_id": "SU-009",
+      "responsibility": "Provides Redis caching interface for storing and retrieving frequently accessed data with TTL management.",
+      "interfaces": [
+        {
+          "method": "get",
+          "parameters": {
+            "key": "string"
+          },
+          "returns": "Promise<string | null>",
+          "description": "Retrieves value from cache by key."
+        },
+        {
+          "method": "set",
+          "parameters": {
+            "key": "string",
+            "value": "string",
+            "ttlSeconds": "number"
+          },
+          "returns": "Promise<void>",
+          "description": "Stores value in cache with expiration time."
+        },
+        {
+          "method": "delete",
+          "parameters": {
+            "key": "string"
+          },
+          "returns": "Promise<void>",
+          "description": "Deletes value from cache by key."
+        },
+        {
+          "method": "deletePattern",
+          "parameters": {
+            "pattern": "string"
+          },
+          "returns": "Promise<number>",
+          "description": "Deletes all keys matching pattern (for cache invalidation)."
+        }
+      ],
+      "dependencies": [
+        "Redis client (ioredis library)"
+      ],
+      "implementation_notes": "Use ioredis library for Redis client. Initialize Redis client with connection options from environment variables (REDIS_HOST, REDIS_PORT, REDIS_PASSWORD). For get, use redis.get(key), return null if key doesn't exist. For set, use redis.setex(key, ttlSeconds, value) to set value with expiration atomically. For delete, use redis.del(key). For deletePattern, use redis.keys(pattern) to find matching keys (use with caution in production, consider SCAN for large datasets), then redis.del(...keys) to delete all at once. Implement connection error handling with automatic reconnection. Use connection pooling with minimum 5, maximum 20 connections. Serialize objects to JSON before caching, deserialize when retrieving. Handle Redis errors gracefully by logging and continuing without cache (fail-open pattern).",
+      "complexity": 14
+    },
+    {
+      "component_name": "AuthenticationMiddleware",
+      "semantic_unit_id": "SU-010",
+      "responsibility": "Express middleware that validates JWT access tokens and attaches user information to request context for protected routes.",
       "interfaces": [
         {
           "method": "authenticate",
@@ -739,123 +1225,78 @@
             "next": "NextFunction"
           },
           "returns": "Promise<void>",
-          "description": "Middleware function that extracts and validates JWT token from Authorization header. Attaches user information to request object on success."
-        },
-        {
-          "method": "extractToken",
-          "parameters": {
-            "authHeader": "string"
-          },
-          "returns": "string | null",
-          "description": "Extracts JWT token from Authorization header with Bearer scheme."
+          "description": "Middleware function that validates JWT token from Authorization header."
         }
       ],
       "dependencies": [
-        "AuthenticationService"
+        "JWTService",
+        "UserRepository"
       ],
-      "implementation_notes": "Extract Authorization header from request using req.headers.authorization. Validate header format is 'Bearer <token>'. Extract token by splitting on space and taking second element. Call AuthenticationService.verifyToken() to validate and decode token. On success, attach decoded user information to req.user object with userId and email fields. Call next() to proceed to next middleware/route handler. On failure (missing header, invalid format, invalid token, expired token), return 401 UNAUTHORIZED error with appropriate error code. Use try-catch to handle token verification errors. For TokenExpiredError, return error code TOKEN_EXPIRED. For JsonWebTokenError, return error code INVALID_TOKEN. For missing Authorization header, return error code MISSING_TOKEN. Do not expose token verification details in error messages. Log authentication failures with Winston logger for security monitoring.",
-      "complexity": 28
+      "implementation_notes": "Extract token from Authorization header with format \"Bearer {token}\". If header missing or format invalid, return 401 response with error code UNAUTHORIZED and message \"Access token is required\". Use JWTService.verifyAccessToken to validate token signature and expiration. If token invalid or expired, return 401 response with error code INVALID_TOKEN or EXPIRED_TOKEN. Extract user_id from token payload and query UserRepository.findById to verify user still exists and is not deleted. If user not found, return 401 response with error code USER_NOT_FOUND. Attach user object to req.user for downstream handlers to access. Call next() to continue request processing. Wrap all operations in try-catch, return 500 response for unexpected errors. Apply this middleware to all routes except /api/v1/auth/register, /api/v1/auth/login, and /api/v1/auth/refresh.",
+      "complexity": 18
     },
     {
-      "component_name": "TaskController",
-      "semantic_unit_id": "SU-004",
-      "responsibility": "Express route handlers for task-related endpoints. Handles HTTP request/response processing, input validation, and delegates business logic to TaskService.",
+      "component_name": "ValidationMiddleware",
+      "semantic_unit_id": "SU-011",
+      "responsibility": "Express middleware that validates request parameters, query strings, and body data using express-validator with custom validation rules.",
       "interfaces": [
         {
-          "method": "createTask",
-          "parameters": {
-            "req": "Request",
-            "res": "Response",
-            "next": "NextFunction"
-          },
-          "returns": "Promise<void>",
-          "description": "Handles POST /api/tasks endpoint. Validates request body and creates new task."
+          "method": "validateRegistration",
+          "parameters": {},
+          "returns": "ValidationChain[]",
+          "description": "Returns validation chain for user registration endpoint."
         },
         {
-          "method": "getTaskById",
-          "parameters": {
-            "req": "Request",
-            "res": "Response",
-            "next": "NextFunction"
-          },
-          "returns": "Promise<void>",
-          "description": "Handles GET /api/tasks/:id endpoint. Retrieves single task by ID."
+          "method": "validateLogin",
+          "parameters": {},
+          "returns": "ValidationChain[]",
+          "description": "Returns validation chain for user login endpoint."
         },
         {
-          "method": "getTasks",
-          "parameters": {
-            "req": "Request",
-            "res": "Response",
-            "next": "NextFunction"
-          },
-          "returns": "Promise<void>",
-          "description": "Handles GET /api/tasks endpoint. Retrieves paginated list of tasks with filters."
+          "method": "validateCreateTask",
+          "parameters": {},
+          "returns": "ValidationChain[]",
+          "description": "Returns validation chain for create task endpoint."
         },
         {
-          "method": "updateTask",
-          "parameters": {
-            "req": "Request",
-            "res": "Response",
-            "next": "NextFunction"
-          },
-          "returns": "Promise<void>",
-          "description": "Handles PUT /api/tasks/:id endpoint. Updates existing task."
+          "method": "validateUpdateTask",
+          "parameters": {},
+          "returns": "ValidationChain[]",
+          "description": "Returns validation chain for update task endpoint."
         },
         {
-          "method": "deleteTask",
+          "method": "validateUpdateTaskStatus",
+          "parameters": {},
+          "returns": "ValidationChain[]",
+          "description": "Returns validation chain for update task status endpoint."
+        },
+        {
+          "method": "validateTaskFilters",
+          "parameters": {},
+          "returns": "ValidationChain[]",
+          "description": "Returns validation chain for task list query parameters."
+        },
+        {
+          "method": "handleValidationErrors",
           "parameters": {
             "req": "Request",
             "res": "Response",
             "next": "NextFunction"
           },
-          "returns": "Promise<void>",
-          "description": "Handles DELETE /api/tasks/:id endpoint. Deletes task by ID."
+          "returns": "void",
+          "description": "Middleware that checks validation results and returns errors if any."
         }
       ],
       "dependencies": [
-        "TaskService",
-        "Zod validation schemas"
+        "express-validator library"
       ],
-      "implementation_notes": "Use Zod schemas to validate request body and query parameters. Define schemas for CreateTaskDTO, UpdateTaskDTO, TaskFilters, and PaginationParams. Parse and validate request data using schema.parse() which throws ZodError on validation failure. Extract authenticated user ID from req.user.userId (set by AuthenticationMiddleware). Extract task ID from req.params.id and validate UUID format. For createTask, validate request body against CreateTaskDTO schema, call TaskService.createTask(), return 201 Created with task object. For getTaskById, validate task ID format, call TaskService.getTaskById(), return 200 OK with task object. For getTasks, parse and validate query parameters (page, limit, status, priority, dueDateFrom, dueDateTo, sortBy, sortOrder), call TaskService.getTasks(), return 200 OK with tasks array and pagination metadata. For updateTask, validate task ID and request body against UpdateTaskDTO schema, call TaskService.updateTask(), return 200 OK with updated task object. For deleteTask, validate task ID, call TaskService.deleteTask(), return 204 No Content with empty body. Wrap all async operations in try-catch and call next(error) to pass errors to error handling middleware. Do not handle errors directly in controllers - delegate to centralized error handler. Use Winston logger to log all requests with method, path, userId, and response status.",
-      "complexity": 52
+      "implementation_notes": "Use express-validator library (body, param, query, validationResult functions). For validateRegistration, validate email with isEmail() and normalizeEmail(), validate password with isLength({min: 8, max: 128}) and matches() for strength regex, validate name with isLength({min: 2, max: 100}) and matches(/^[a-zA-Z0-9 ]+$/). For validateLogin, validate email with isEmail(), validate password with notEmpty(). For validateCreateTask, validate title with isLength({min: 1, max: 255}), validate description with optional() and isLength({max: 5000}), validate priority with optional() and isIn(['LOW', 'MEDIUM', 'HIGH', 'URGENT']), validate assigned_to with optional() and isUUID(), validate due_date with optional() and isISO8601() and custom validator to check future date. For validateUpdateTask, same as create but all fields optional(). For validateUpdateTaskStatus, validate status with isIn(['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE']), validate blocked_reason with optional() and isLength({max: 500}), add custom validator to require blocked_reason when status is BLOCKED. For validateTaskFilters, validate status with optional() and isIn(), validate assigned_to with optional() and isUUID(), validate search with optional() and isLength({max: 255}), validate limit with optional() and isInt({min: 1, max: 100}), validate cursor with optional() and isBase64(). For handleValidationErrors, use validationResult(req) to get errors, if errors exist return 400 response with error code VALIDATION_ERROR and array of error messages, otherwise call next(). Chain validation middleware before route handlers.",
+      "complexity": 29
     },
     {
-      "component_name": "AuthController",
-      "semantic_unit_id": "SU-005",
-      "responsibility": "Express route handlers for authentication endpoints. Handles user registration and login requests, validates input, and delegates to AuthenticationService.",
-      "interfaces": [
-        {
-          "method": "register",
-          "parameters": {
-            "req": "Request",
-            "res": "Response",
-            "next": "NextFunction"
-          },
-          "returns": "Promise<void>",
-          "description": "Handles POST /api/auth/register endpoint. Validates registration data and creates new user account."
-        },
-        {
-          "method": "login",
-          "parameters": {
-            "req": "Request",
-            "res": "Response",
-            "next": "NextFunction"
-          },
-          "returns": "Promise<void>",
-          "description": "Handles POST /api/auth/login endpoint. Validates credentials and authenticates user."
-        }
-      ],
-      "dependencies": [
-        "AuthenticationService",
-        "Zod validation schemas"
-      ],
-      "implementation_notes": "Use Zod schemas to validate request body. Define RegisterDTO schema with email (string, email format, max 255 chars), password (string, min 8 chars, max 128 chars, regex for strength), name (string, min 2 chars, max 100 chars, alphanumeric and spaces). Define LoginDTO schema with email (string, email format) and password (string). For register endpoint, parse and validate request body against RegisterDTO schema, call AuthenticationService.register(), return 201 Created with user object (excluding password_hash) and JWT token. For login endpoint, parse and validate request body against LoginDTO schema, call AuthenticationService.login(), return 200 OK with user object (excluding password_hash) and JWT token. Wrap all async operations in try-catch and call next(error) to pass errors to error handling middleware. Never include password_hash in response objects - explicitly exclude it when serializing user data. Use Winston logger to log authentication events (registration, login success/failure) with email and timestamp for security auditing. Do not log passwords or tokens.",
-      "complexity": 35
-    },
-    {
-      "component_name": "ErrorHandlingMiddleware",
-      "semantic_unit_id": "SU-006",
-      "responsibility": "Centralized Express error handling middleware that catches all errors, formats error responses consistently, and logs errors appropriately. Handles different error types with appropriate HTTP status codes.",
+      "component_name": "ErrorHandlerMiddleware",
+      "semantic_unit_id": "SU-012",
+      "responsibility": "Global Express error handler that catches all errors, logs them, and returns consistent JSON error responses with appropriate HTTP status codes.",
       "interfaces": [
         {
           "method": "handleError",
@@ -866,260 +1307,138 @@
             "next": "NextFunction"
           },
           "returns": "void",
-          "description": "Express error handling middleware that processes all errors and sends formatted JSON error responses."
-        },
-        {
-          "method": "mapErrorToResponse",
-          "parameters": {
-            "err": "Error"
-          },
-          "returns": "{statusCode: number, errorCode: string, message: string}",
-          "description": "Maps application errors to HTTP status codes and error response format."
+          "description": "Global error handler middleware function."
         }
       ],
       "dependencies": [
-        "Winston logger"
+        "Logger service"
       ],
-      "implementation_notes": "Register as Express error handling middleware using app.use(errorHandler) after all routes. Check error type and map to appropriate HTTP status code and error code. Handle ZodError (from validation) as 400 Bad Request with error code VALIDATION_ERROR and detailed validation messages. Handle custom application errors (AuthenticationError, NotFoundError, ConflictError, VersionConflictError) with appropriate status codes (401, 404, 409, 409). Handle JsonWebTokenError and TokenExpiredError as 401 Unauthorized. Handle Prisma errors (PrismaClientKnownRequestError) and map to appropriate status codes (P2002 unique constraint = 409 Conflict, P2025 record not found = 404 Not Found). For unknown errors, return 500 Internal Server Error with generic message. Never expose stack traces or internal error details in production. Log all errors with Winston logger including error message, stack trace, request method, path, userId (if authenticated), and timestamp. Use logger.error() for 5xx errors and logger.warn() for 4xx errors. Format error response as JSON with structure: {errorCode: string, message: string}. For ZodError, include validation details in message. Set appropriate HTTP status code using res.status(). Send JSON response using res.json(). Ensure error handler is registered last in middleware chain to catch all errors.",
-      "complexity": 38
-    },
-    {
-      "component_name": "HealthCheckController",
-      "semantic_unit_id": "SU-007",
-      "responsibility": "Handles health check endpoint to verify API service and database connectivity status. Provides monitoring and alerting capabilities.",
-      "interfaces": [
-        {
-          "method": "healthCheck",
-          "parameters": {
-            "req": "Request",
-            "res": "Response",
-            "next": "NextFunction"
-          },
-          "returns": "Promise<void>",
-          "description": "Handles GET /api/health endpoint. Checks database connectivity and returns service status."
-        },
-        {
-          "method": "checkDatabaseConnection",
-          "parameters": {},
-          "returns": "Promise<boolean>",
-          "description": "Tests database connectivity by executing simple query."
-        }
-      ],
-      "dependencies": [
-        "Prisma client"
-      ],
-      "implementation_notes": "For healthCheck endpoint, call checkDatabaseConnection() to verify database connectivity. Return 200 OK with JSON response containing status='healthy', timestamp (ISO 8601 format using new Date().toISOString()), and database='connected'. If database check fails, return 503 Service Unavailable with status='unhealthy' and database='disconnected'. For checkDatabaseConnection, use Prisma client to execute simple query like prisma.$queryRaw`SELECT 1`. Wrap in try-catch and return true on success, false on error. Set timeout of 5 seconds for database check to avoid hanging. Use Winston logger to log health check failures. This endpoint does not require authentication - it should be publicly accessible for monitoring tools. Keep health check logic lightweight to avoid impacting performance.",
+      "implementation_notes": "Register as last middleware in Express app using app.use(handleError). Check error type and map to appropriate HTTP status code: InvalidCredentialsError -> 401, ForbiddenError -> 403, NotFoundError -> 404, ValidationError -> 400, DatabaseError -> 500, etc. Create error response object with structure {error_code: string, message: string, request_id: string}. Generate unique request_id using UUID for error tracking. Log error with full stack trace using logger.error() including request_id, user_id if available, request path, and error details. For production environment, sanitize error messages to avoid exposing sensitive information (e.g., database schema, internal paths). For development environment, include stack trace in response. Set appropriate HTTP status code and send JSON response. Never expose raw error objects or stack traces in production responses. Handle async errors by wrapping async route handlers with asyncHandler utility that catches rejected promises and passes to error handler.",
       "complexity": 22
     },
     {
-      "component_name": "UserRepository",
-      "semantic_unit_id": "SU-008",
-      "responsibility": "Data access layer for user-related database operations. Provides abstraction over Prisma ORM for user CRUD operations.",
+      "component_name": "RateLimitMiddleware",
+      "semantic_unit_id": "SU-013",
+      "responsibility": "Express middleware that implements rate limiting using Redis to prevent abuse and ensure fair API usage.",
       "interfaces": [
         {
-          "method": "createUser",
+          "method": "createRateLimiter",
           "parameters": {
-            "data": "{email: string",
-            "passwordHash": "string",
-            "name": "string}"
+            "options": "RateLimitOptions"
           },
-          "returns": "Promise<User>",
-          "description": "Creates new user record in database."
+          "returns": "RequestHandler",
+          "description": "Creates rate limiter middleware with specified options."
         },
         {
-          "method": "findUserByEmail",
-          "parameters": {
-            "email": "string"
-          },
-          "returns": "Promise<User | null>",
-          "description": "Finds user by email address."
+          "method": "authRateLimiter",
+          "parameters": {},
+          "returns": "RequestHandler",
+          "description": "Returns rate limiter for authentication endpoints (stricter limits)."
         },
         {
-          "method": "findUserById",
-          "parameters": {
-            "id": "string"
-          },
-          "returns": "Promise<User | null>",
-          "description": "Finds user by ID."
+          "method": "apiRateLimiter",
+          "parameters": {},
+          "returns": "RequestHandler",
+          "description": "Returns rate limiter for general API endpoints."
         }
       ],
       "dependencies": [
-        "Prisma client"
+        "CacheService",
+        "express-rate-limit library"
       ],
-      "implementation_notes": "Use Prisma client for all database operations. For createUser, use prisma.user.create() with data object containing email, password_hash (map passwordHash to password_hash column), and name. Return created user object. For findUserByEmail, use prisma.user.findUnique() with where clause {email}. Return user or null. For findUserById, use prisma.user.findUnique() with where clause {id}. Return user or null. All methods should use async/await. Handle Prisma errors and let them propagate to error handling middleware. Use Prisma's type safety to ensure correct data types. Do not expose password_hash in return types - define User type without password_hash field for application use.",
-      "complexity": 25
-    },
-    {
-      "component_name": "TaskRepository",
-      "semantic_unit_id": "SU-009",
-      "responsibility": "Data access layer for task-related database operations. Provides abstraction over Prisma ORM for task CRUD operations with filtering, sorting, and pagination.",
-      "interfaces": [
-        {
-          "method": "createTask",
-          "parameters": {
-            "data": "{userId: string",
-            "title": "string",
-            "description?": "string",
-            "status": "string",
-            "priority": "string",
-            "dueDate?": "Date}"
-          },
-          "returns": "Promise<Task>",
-          "description": "Creates new task record in database."
-        },
-        {
-          "method": "findTaskById",
-          "parameters": {
-            "id": "string"
-          },
-          "returns": "Promise<Task | null>",
-          "description": "Finds task by ID."
-        },
-        {
-          "method": "findTasks",
-          "parameters": {
-            "userId": "string",
-            "filters": "TaskFilters",
-            "pagination": "PaginationParams"
-          },
-          "returns": "Promise<{tasks: Task[], total: number}>",
-          "description": "Finds tasks for user with filtering, sorting, and pagination."
-        },
-        {
-          "method": "updateTask",
-          "parameters": {
-            "id": "string",
-            "version": "number",
-            "data": "Partial<Task>"
-          },
-          "returns": "Promise<Task>",
-          "description": "Updates task with optimistic locking. Throws error if version mismatch."
-        },
-        {
-          "method": "deleteTask",
-          "parameters": {
-            "id": "string"
-          },
-          "returns": "Promise<void>",
-          "description": "Deletes task by ID."
-        }
-      ],
-      "dependencies": [
-        "Prisma client"
-      ],
-      "implementation_notes": "Use Prisma client for all database operations. For createTask, use prisma.task.create() with data object. Set version to 1 for new tasks. For findTaskById, use prisma.task.findUnique() with where clause {id}. For findTasks, build dynamic where clause based on filters. Use prisma.task.findMany() with where, orderBy, skip, and take parameters. Calculate skip as (page - 1) * limit. Use prisma.task.count() with same where clause to get total count. For status filter, use exact match {status}. For priority filter, use exact match {priority}. For dueDateFrom, use {dueDate: {gte: dueDateFrom}}. For dueDateTo, use {dueDate: {lte: dueDateTo}}. Combine multiple filters with AND. For sorting, map sortBy to Prisma orderBy object. Support sorting by createdAt, updatedAt, dueDate, priority. Map sortOrder to 'asc' or 'desc'. For updateTask, use prisma.task.updateMany() with where clause {id, version} to implement optimistic locking. Check if update affected 0 rows and throw VERSION_CONFLICT error. Increment version by 1 in update data. Use prisma.task.findUnique() to fetch and return updated task. For deleteTask, use prisma.task.delete() with where clause {id}. Handle Prisma P2025 error (record not found) and throw TASK_NOT_FOUND error. All methods should use async/await. Use Prisma transactions for operations requiring atomicity.",
-      "complexity": 58
-    },
-    {
-      "component_name": "AuditLogRepository",
-      "semantic_unit_id": "SU-010",
-      "responsibility": "Data access layer for audit log operations. Records all task operations for compliance and debugging.",
-      "interfaces": [
-        {
-          "method": "createAuditLog",
-          "parameters": {
-            "data": "{taskId: string",
-            "userId": "string",
-            "operation": "string",
-            "oldData?": "object",
-            "newData?": "object}"
-          },
-          "returns": "Promise<void>",
-          "description": "Creates audit log entry for task operation."
-        }
-      ],
-      "dependencies": [
-        "Prisma client"
-      ],
-      "implementation_notes": "Use Prisma client for database operations. For createAuditLog, use prisma.auditLog.create() with data object containing task_id (map taskId), user_id (map userId), operation, old_data (map oldData as JSONB), new_data (map newData as JSONB). Operation should be one of: CREATE, UPDATE, DELETE. For CREATE operations, oldData is null and newData contains created task. For UPDATE operations, oldData contains task before update and newData contains task after update. For DELETE operations, oldData contains deleted task and newData is null. Serialize task objects to JSON for storage in JSONB columns. Use async/await. This operation should not fail the main operation - wrap in try-catch and log errors but don't throw. Use Winston logger to log audit log creation failures.",
-      "complexity": 20
+      "implementation_notes": "Use express-rate-limit library with Redis store for distributed rate limiting. For createRateLimiter, configure rate-limit-redis store using CacheService Redis client. For authRateLimiter, set windowMs to 15 minutes (900000ms), max to 10 requests, message to \"Too many authentication attempts, please try again later\", keyGenerator to use IP address from req.ip. For apiRateLimiter, set windowMs to 15 minutes, max to 100 requests, keyGenerator to use IP address or user_id if authenticated. Apply authRateLimiter to /api/v1/auth/login and /api/v1/auth/register endpoints. Apply apiRateLimiter to all /api/v1/* endpoints. Return 429 status code with error code RATE_LIMIT_EXCEEDED when limit reached. Include Retry-After header in response indicating seconds until limit resets. Use Redis keys with pattern \"ratelimit:{identifier}:{window}\" for tracking request counts. Implement sliding window algorithm for more accurate rate limiting.",
+      "complexity": 17
     }
   ],
   "design_review_checklist": [
     {
       "category": "Security",
       "description": "Password storage and authentication",
-      "validation_criteria": "Verify all passwords are hashed using bcrypt with cost factor 12 before storage. Verify password_hash is never included in API responses. Verify JWT tokens use strong secret (minimum 32 characters) and have appropriate expiration (24 hours). Verify authentication middleware properly validates tokens and handles expired/invalid tokens.",
+      "validation_criteria": "Verify all passwords are hashed using bcrypt with cost factor 12 before storage. Confirm no plain text passwords are logged or exposed in any error responses. Validate JWT tokens use HS256 algorithm with 256-bit secret key. Check refresh tokens are stored as SHA-256 hashes in database.",
       "severity": "Critical"
     },
     {
       "category": "Security",
       "description": "SQL injection prevention",
-      "validation_criteria": "Verify all database queries use Prisma ORM with parameterized queries. Verify no raw SQL queries with string concatenation. Verify user input is validated before database operations. Verify Zod schemas validate all input data types and formats.",
+      "validation_criteria": "Verify all database queries use parameterized statements with node-postgres. Confirm no string concatenation or template literals are used to build SQL queries. Check all user input is validated before database operations.",
       "severity": "Critical"
     },
     {
-      "category": "Data Integrity",
-      "description": "Optimistic locking implementation",
-      "validation_criteria": "Verify updateTask operations check version field before updating. Verify version is incremented on successful update. Verify VERSION_CONFLICT error is thrown when version mismatch occurs. Verify version field is included in update request body validation.",
+      "category": "Security",
+      "description": "Authorization and access control",
+      "validation_criteria": "Verify task access is restricted to creator and assignee only. Confirm task deletion is restricted to creator only. Check authentication middleware is applied to all protected endpoints. Validate user permissions are checked in service layer before database operations.",
+      "severity": "Critical"
+    },
+    {
+      "category": "Architecture",
+      "description": "Component separation and dependencies",
+      "validation_criteria": "Verify each component has single responsibility. Confirm dependencies flow in one direction (no circular dependencies). Check service layer components do not directly access database (use repository pattern). Validate API endpoints only call service layer, not repositories directly.",
       "severity": "High"
     },
     {
       "category": "Architecture",
-      "description": "Separation of concerns and layering",
-      "validation_criteria": "Verify controllers only handle HTTP request/response and delegate to services. Verify services contain business logic and delegate to repositories. Verify repositories only handle database operations. Verify no business logic in repositories or controllers. Verify no database operations in controllers or services.",
-      "severity": "High"
-    },
-    {
-      "category": "API Design",
-      "description": "Error response consistency",
-      "validation_criteria": "Verify all error responses follow consistent format with errorCode and message fields. Verify appropriate HTTP status codes are used (400 for validation, 401 for auth, 404 for not found, 409 for conflicts, 500 for server errors). Verify error messages are descriptive but don't expose sensitive information. Verify all endpoints document error responses.",
+      "description": "Error handling consistency",
+      "validation_criteria": "Verify all components throw specific error types (not generic Error). Confirm error handler middleware catches all error types and maps to appropriate HTTP status codes. Check all async functions are wrapped with error handling. Validate error responses follow consistent JSON structure with error_code and message fields.",
       "severity": "High"
     },
     {
       "category": "Performance",
       "description": "Database query optimization",
-      "validation_criteria": "Verify appropriate indexes exist on frequently queried columns (user_id, status, priority, due_date, created_at, updated_at). Verify composite index exists for user_id + status combination. Verify pagination uses offset/limit to avoid loading all records. Verify N+1 query problems are avoided.",
+      "validation_criteria": "Verify all frequently queried columns have indexes (status, assigned_to, created_by, created_at). Confirm full-text search uses GIN indexes on tsvector columns. Check pagination uses cursor-based approach for stable results. Validate connection pooling is configured with appropriate min/max connections.",
+      "severity": "High"
+    },
+    {
+      "category": "Performance",
+      "description": "Caching strategy",
+      "validation_criteria": "Verify frequently accessed data is cached in Redis (user profiles, task lists). Confirm cache TTL values are appropriate (5-15 minutes). Check cache invalidation occurs on data updates. Validate cache failures do not break application (fail-open pattern).",
       "severity": "Medium"
     },
     {
       "category": "Data Integrity",
-      "description": "Foreign key constraints and cascading deletes",
-      "validation_criteria": "Verify tasks table has foreign key to users table with ON DELETE CASCADE. Verify audit_logs table has foreign key to users table with ON DELETE CASCADE. Verify deleting a user cascades to delete all their tasks and audit logs. Verify orphaned records cannot exist.",
+      "description": "Database constraints and validation",
+      "validation_criteria": "Verify all required fields have NOT NULL constraints. Confirm foreign keys have appropriate ON DELETE actions (CASCADE or SET NULL). Check CHECK constraints enforce business rules (status values, password length). Validate unique constraints prevent duplicate data (email uniqueness).",
+      "severity": "High"
+    },
+    {
+      "category": "API Design",
+      "description": "Request and response consistency",
+      "validation_criteria": "Verify all API endpoints follow RESTful conventions. Confirm all responses use consistent JSON structure. Check all timestamps use ISO 8601 format. Validate all IDs use UUID v4 format. Verify all error responses include error_code and message fields.",
       "severity": "Medium"
     },
     {
       "category": "Maintainability",
-      "description": "Input validation and type safety",
-      "validation_criteria": "Verify all API endpoints use Zod schemas for request validation. Verify TypeScript types are defined for all data structures. Verify Prisma schema matches database schema. Verify no 'any' types are used. Verify validation errors provide clear messages about what failed.",
+      "description": "Code documentation and type safety",
+      "validation_criteria": "Verify all interfaces have TypeScript type definitions. Confirm all public methods have JSDoc comments. Check all configuration values use environment variables. Validate all magic numbers are defined as named constants.",
       "severity": "Medium"
-    },
-    {
-      "category": "Error Handling",
-      "description": "Comprehensive error handling",
-      "validation_criteria": "Verify all async operations are wrapped in try-catch blocks. Verify errors are passed to error handling middleware using next(error). Verify error handling middleware handles all error types (Zod, Prisma, JWT, custom errors). Verify errors are logged with appropriate severity levels. Verify 5xx errors don't expose internal details.",
-      "severity": "High"
-    },
-    {
-      "category": "Security",
-      "description": "Authorization and ownership verification",
-      "validation_criteria": "Verify all task operations verify userId matches task.userId. Verify users cannot access or modify tasks belonging to other users. Verify authentication middleware properly extracts and validates user from JWT token. Verify req.user is populated before reaching controllers.",
-      "severity": "Critical"
     }
   ],
-  "architecture_overview": "Multi-tier web application architecture implementing a task management system with RESTful API design. The system consists of three primary layers: (1) Presentation Layer - RESTful API endpoints built with Express.js handling HTTP requests/responses, input validation, and authentication middleware, (2) Business Logic Layer - Service components implementing core task management operations including CRUD operations, task filtering, status transitions, and business rule enforcement, (3) Data Persistence Layer - PostgreSQL relational database with normalized schema for tasks, users, and audit logs. Authentication uses JWT tokens with bcrypt password hashing. The application follows MVC pattern with clear separation of concerns. Request flow: Client -> Express Router -> Authentication Middleware -> Controller -> Service Layer -> Repository Layer -> PostgreSQL Database. Response flow reverses this path with appropriate error handling at each layer. All components communicate through well-defined interfaces enabling independent testing and future scalability.",
+  "architecture_overview": "Multi-tier web application architecture implementing a task management system with RESTful API design. The system consists of three primary layers: (1) Presentation Layer - RESTful API endpoints built with Express.js handling HTTP requests/responses, input validation, and authentication middleware, (2) Business Logic Layer - Service components implementing core task management operations including CRUD operations, task assignment, status transitions, and business rule enforcement, (3) Data Access Layer - Repository pattern components interfacing with PostgreSQL database for persistent storage with transaction management. Authentication uses JWT tokens with bcrypt password hashing. The application follows a stateless design where each request contains authentication context. Data flows from API endpoints through service layer validation and business logic to repository layer for database operations. Components communicate through well-defined interfaces with dependency injection for testability. Caching layer using Redis stores frequently accessed task lists and user sessions to reduce database load. All components implement error handling with specific exception types propagated to global error handler for consistent API responses.",
   "technology_stack": {
     "language": "Node.js 20.x with TypeScript 5.3",
     "framework": "Express.js 4.18",
     "database": "PostgreSQL 16.1",
-    "orm": "Prisma 5.7",
+    "cache": "Redis 7.2",
     "authentication": "JWT (jsonwebtoken 9.0) with bcrypt 5.1 for password hashing",
-    "validation": "Zod 3.22 for request validation",
-    "testing": "Jest 29.7 with Supertest 6.3",
-    "logging": "Winston 3.11",
-    "environment": "dotenv 16.3 for configuration management"
+    "orm": "node-postgres (pg 8.11) for direct SQL queries",
+    "validation": "express-validator 7.0",
+    "testing": "Jest 29.7 for unit and integration tests",
+    "process_manager": "PM2 for production deployment"
   },
   "assumptions": [
-    "PostgreSQL database is accessible and properly configured with connection pooling",
-    "JWT secret key is stored securely in environment variables and rotated periodically",
-    "All timestamps are stored in UTC timezone in the database",
-    "API clients can handle JSON request/response format",
-    "Maximum task title length is 200 characters, description is 2000 characters",
-    "Task status transitions follow defined workflow: TODO -> IN_PROGRESS -> DONE",
-    "Users must be authenticated for all task operations except health check",
-    "Concurrent task updates are handled with optimistic locking using version field",
-    "API rate limiting is handled at infrastructure level (reverse proxy/API gateway)",
-    "HTTPS/TLS termination is handled by reverse proxy or load balancer"
+    "PostgreSQL database is accessible with connection pooling configured for minimum 10, maximum 50 connections",
+    "Redis server is available for caching with default configuration on localhost:6379",
+    "JWT secret key is provided via environment variable JWT_SECRET with minimum 256-bit entropy",
+    "Password hashing uses bcrypt with cost factor 12 for security-performance balance",
+    "API runs behind reverse proxy (nginx) handling HTTPS/TLS termination",
+    "Request body size limited to 10MB at reverse proxy level",
+    "Task titles limited to 255 characters, descriptions to 5000 characters",
+    "User emails must be unique and validated against RFC 5322 standard",
+    "Task status transitions follow workflow: TODO -> IN_PROGRESS -> DONE with optional BLOCKED state",
+    "Timestamps stored in UTC timezone in database",
+    "Soft delete pattern used for tasks and users (deleted_at column)",
+    "API versioning uses URL path prefix /api/v1",
+    "CORS configured to allow specific frontend origins only",
+    "Rate limiting implemented at 100 requests per 15 minutes per IP address"
   ],
   "timestamp": "2025-01-20T10:30:00Z"
 }
