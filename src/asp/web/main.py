@@ -15,6 +15,7 @@ from .components import theme_toggle
 from .developer import developer_routes
 from .manager import manager_routes
 from .product import product_routes
+from .kanban import kanban_routes
 
 
 def create_app():
@@ -208,6 +209,17 @@ def create_app():
                         cls="outline",
                         style="text-align: left; text-decoration: none;",
                     ),
+                    A(
+                        Div(
+                            H3("Beads"),
+                            P("Kanban Board"),
+                            Small("Visual task tracking and management"),
+                        ),
+                        href="/kanban",
+                        role="button",
+                        cls="outline",
+                        style="text-align: left; text-decoration: none;",
+                    ),
                     cls="grid",
                 ),
                 style="max-width: 900px; margin: 0 auto; padding-top: 2rem;",
@@ -223,6 +235,7 @@ def create_app():
     developer_routes(app, rt)
     manager_routes(app, rt)
     product_routes(app, rt)
+    kanban_routes(app)
 
     return app
 
