@@ -547,6 +547,259 @@ class BeadsConfig:
 - Modified `PlanningAgent`
 - Configuration in `BeadsConfig`
 
+### Phase 4: GitHub Projects Integration
+
+Sync Beads issues to GitHub Projects for broader visibility and team collaboration.
+
+#### Architecture
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│  .beads/        │────►│  github_sync.py  │────►│  GitHub Issues   │
+│  issues.jsonl   │     │                  │     │  (optional)      │
+└─────────────────┘     └────────┬─────────┘     └────────┬─────────┘
+                                 │                        │
+                                 │ Direct API             │ Auto-added
+                                 ▼                        ▼
+                        ┌──────────────────┐     ┌──────────────────┐
+                        │  GitHub Projects │◄────│  Project Items   │
+                        │  (GraphQL API)   │     │                  │
+                        └──────────────────┘     └──────────────────┘
+```
+
+#### Approach Options
+
+| Approach | Description | Pros | Cons |
+|----------|-------------|------|------|
+| **A: Via GitHub Issues** | Sync Beads → GH Issues → Projects | Simple, native integration | Creates "real" issues |
+| **B: Direct Projects API** | Create project items via GraphQL | Cleaner repo, no issue clutter | Complex auth, GraphQL |
+| **C: GitHub Actions** | Auto-sync on push to `.beads/` | Fully automated | Another moving part |
+
+**Recommended:** Start with Approach A (via GitHub Issues) for simplicity, with option to add Approach C for automation.
+
+#### Implementation: Via GitHub Issues
+
+**New File:** `src/asp/utils/github_sync.py`
+
+```python
+"""Sync Beads issues to GitHub Issues and Projects."""
+
+import logging
+import subprocess
+from pathlib import Path
+from typing import Optional
+
+from asp.utils.beads import read_issues, BeadsIssue, BeadsStatus
+
+logger = logging.getLogger(__name__)
+
+
+def sync_to_github_issues(
+    repo: Optional[str] = None,
+    project: Optional[str] = None,
+    dry_run: bool = False,
+) -> list[str]:
+    """
+    Sync Beads issues to GitHub Issues.
+
+    Args:
+        repo: GitHub repo (owner/name). Auto-detected if None.
+        project: GitHub Project number to add issues to.
+        dry_run: If True, show what would happen without creating.
+
+    Returns:
+        List of created GitHub issue URLs.
+    """
+    issues = read_issues()
+    created_urls = []
+
+    for issue in issues:
+        # Skip closed issues
+        if issue.status == BeadsStatus.CLOSED:
+            continue
+
+        # Check if already synced (via label)
+        if _is_synced(issue):
+            continue
+
+        if dry_run:
+            logger.info("Would create: %s", issue.title)
+            continue
+
+        # Create GitHub issue
+        url = _create_github_issue(issue, repo)
+        if url:
+            created_urls.append(url)
+            _mark_synced(issue)
+
+            # Add to project if specified
+            if project:
+                _add_to_project(url, project)
+
+    return created_urls
+
+
+def _create_github_issue(issue: BeadsIssue, repo: Optional[str]) -> Optional[str]:
+    """Create a GitHub issue using gh CLI."""
+    cmd = ["gh", "issue", "create"]
+
+    if repo:
+        cmd.extend(["--repo", repo])
+
+    cmd.extend([
+        "--title", f"[{issue.id}] {issue.title}",
+        "--body", _format_body(issue),
+        "--label", f"beads,beads-{issue.type.value}",
+    ])
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        logger.error("Failed to create issue: %s", e.stderr)
+        return None
+
+
+def _format_body(issue: BeadsIssue) -> str:
+    """Format issue body with Beads metadata."""
+    return f"""
+{issue.description or "No description"}
+
+---
+**Beads Metadata**
+- ID: `{issue.id}`
+- Type: {issue.type.value}
+- Priority: {issue.priority}
+- Status: {issue.status.value}
+"""
+
+
+def _is_synced(issue: BeadsIssue) -> bool:
+    """Check if issue has been synced to GitHub."""
+    return "gh-synced" in issue.labels
+
+
+def _mark_synced(issue: BeadsIssue) -> None:
+    """Mark issue as synced by adding label."""
+    from asp.utils.beads import read_issues, write_issues
+
+    issues = read_issues()
+    for i in issues:
+        if i.id == issue.id:
+            if "gh-synced" not in i.labels:
+                i.labels.append("gh-synced")
+            break
+    write_issues(issues)
+
+
+def _add_to_project(issue_url: str, project_number: str) -> None:
+    """Add issue to GitHub Project."""
+    # Extract issue number from URL
+    issue_num = issue_url.split("/")[-1]
+
+    cmd = [
+        "gh", "project", "item-add", project_number,
+        "--owner", "@me",
+        "--url", issue_url,
+    ]
+
+    try:
+        subprocess.run(cmd, capture_output=True, text=True, check=True)
+        logger.info("Added issue %s to project %s", issue_num, project_number)
+    except subprocess.CalledProcessError as e:
+        logger.warning("Failed to add to project: %s", e.stderr)
+```
+
+#### CLI Commands
+
+**Modified:** `src/asp/cli/beads_commands.py`
+
+```python
+@beads.command()
+@click.option("--repo", help="GitHub repo (owner/name)")
+@click.option("--project", help="GitHub Project number")
+@click.option("--dry-run", is_flag=True, help="Show what would be synced")
+def sync_github(repo: str, project: str, dry_run: bool):
+    """
+    Sync Beads issues to GitHub Issues.
+
+    Example:
+        asp beads sync-github
+        asp beads sync-github --project 1
+        asp beads sync-github --repo owner/repo --dry-run
+    """
+    from asp.utils.github_sync import sync_to_github_issues
+
+    urls = sync_to_github_issues(repo=repo, project=project, dry_run=dry_run)
+
+    if dry_run:
+        click.echo("Dry run complete.")
+    else:
+        click.echo(f"Created {len(urls)} GitHub issues:")
+        for url in urls:
+            click.echo(f"  {url}")
+```
+
+#### GitHub Actions Automation (Optional)
+
+**New File:** `.github/workflows/beads-sync.yml`
+
+```yaml
+name: Sync Beads to GitHub
+
+on:
+  push:
+    paths:
+      - '.beads/issues.jsonl'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      repository-projects: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+
+      - name: Sync to GitHub Issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          asp beads sync-github --project ${{ vars.BEADS_PROJECT_NUMBER }}
+```
+
+#### Configuration
+
+**Extended:** `src/asp/config.py`
+
+```python
+@dataclass
+class BeadsConfig:
+    # ... existing fields ...
+
+    # GitHub sync
+    github_sync_enabled: bool = False
+    github_repo: Optional[str] = None      # Auto-detect if None
+    github_project: Optional[str] = None   # Project number
+    github_auto_sync: bool = False         # Sync on issue creation
+```
+
+**Deliverables:**
+- `src/asp/utils/github_sync.py`
+- Modified `src/asp/cli/beads_commands.py`
+- `.github/workflows/beads-sync.yml` (optional)
+- Extended `BeadsConfig`
+
 ---
 
 ## File Summary
@@ -557,8 +810,11 @@ class BeadsConfig:
 |------|-------------|-------|
 | `src/asp/cli/beads_commands.py` | CLI commands for Beads integration | 1 |
 | `src/asp/utils/beads_sync.py` | Plan-to-Beads sync utilities | 3 |
+| `src/asp/utils/github_sync.py` | GitHub Issues/Projects sync | 4 |
+| `.github/workflows/beads-sync.yml` | Auto-sync on push (optional) | 4 |
 | `tests/unit/test_beads_cli.py` | CLI command tests | 1 |
 | `tests/unit/test_beads_sync.py` | Sync utility tests | 3 |
+| `tests/unit/test_github_sync.py` | GitHub sync tests | 4 |
 
 ### Modified Files
 
@@ -567,7 +823,8 @@ class BeadsConfig:
 | `src/asp/cli/__init__.py` | Add beads command group | 1 |
 | `src/asp/web/kanban.py` | Add ASP action button and endpoint | 2 |
 | `src/asp/agents/planning_agent.py` | Add sync_to_beads option | 3 |
-| `src/asp/config.py` | Add BeadsConfig | 3 |
+| `src/asp/config.py` | Add BeadsConfig, GitHub sync options | 3, 4 |
+| `src/asp/cli/beads_commands.py` | Add sync-github command | 4 |
 
 ---
 
@@ -766,4 +1023,8 @@ asp status auth-system
 ---
 
 **Status:** Proposed
-**Next Steps:** Implement Phase 1 (Manual CLI Trigger)
+**Next Steps:**
+1. Phase 1: Manual CLI Trigger (`asp beads list`, `asp beads process`)
+2. Phase 2: Kanban UI Action
+3. Phase 3: Auto-Sync Plans to Beads
+4. Phase 4: GitHub Projects Integration
