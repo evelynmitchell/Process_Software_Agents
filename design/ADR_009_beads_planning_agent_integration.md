@@ -547,31 +547,48 @@ class BeadsConfig:
 - Modified `PlanningAgent`
 - Configuration in `BeadsConfig`
 
-### Phase 4: GitHub Projects Integration
+### Phase 4: GitHub Bidirectional Sync
 
-Sync Beads issues to GitHub Projects for broader visibility and team collaboration.
+Bidirectional sync between Beads and GitHub Issues for team collaboration and external issue intake.
 
 #### Architecture
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│  .beads/        │────►│  github_sync.py  │────►│  GitHub Issues   │
-│  issues.jsonl   │     │                  │     │  (optional)      │
-└─────────────────┘     └────────┬─────────┘     └────────┬─────────┘
-                                 │                        │
-                                 │ Direct API             │ Auto-added
-                                 ▼                        ▼
-                        ┌──────────────────┐     ┌──────────────────┐
-                        │  GitHub Projects │◄────│  Project Items   │
-                        │  (GraphQL API)   │     │                  │
-                        └──────────────────┘     └──────────────────┘
+                         ┌──────────────────────────────────────┐
+                         │          github_sync.py              │
+                         │                                      │
+┌─────────────────┐      │  ┌────────────┐    ┌────────────┐   │      ┌──────────────────┐
+│  .beads/        │◄────►│  │  Export    │    │  Import    │   │◄────►│  GitHub Issues   │
+│  issues.jsonl   │      │  │  (push)    │    │  (pull)    │   │      │                  │
+└─────────────────┘      │  └────────────┘    └────────────┘   │      └────────┬─────────┘
+                         │         │                │          │               │
+                         │         └───────┬────────┘          │               │
+                         │                 ▼                   │               │
+                         │        ┌────────────────┐           │               │
+                         │        │ Conflict Res.  │           │               │
+                         │        │ (last-write)   │           │               │
+                         │        └────────────────┘           │               │
+                         └──────────────────────────────────────┘               │
+                                                                               │
+                                          ┌──────────────────┐                 │
+                                          │  GitHub Projects │◄────────────────┘
+                                          │  (optional)      │
+                                          └──────────────────┘
 ```
+
+#### Sync Directions
+
+| Direction | Use Case | Trigger |
+|-----------|----------|---------|
+| **Beads → GitHub** | Share local work with team, external visibility | `asp beads push` or auto on commit |
+| **GitHub → Beads** | Import issues for local ASP processing | `asp beads pull` or manual import |
+| **Bidirectional** | Full sync, team collaboration | `asp beads sync` |
 
 #### Approach Options
 
 | Approach | Description | Pros | Cons |
 |----------|-------------|------|------|
-| **A: Via GitHub Issues** | Sync Beads → GH Issues → Projects | Simple, native integration | Creates "real" issues |
+| **A: Via GitHub Issues** | Sync Beads ↔ GH Issues → Projects | Simple, native integration | Creates "real" issues |
 | **B: Direct Projects API** | Create project items via GraphQL | Cleaner repo, no issue clutter | Complex auth, GraphQL |
 | **C: GitHub Actions** | Auto-sync on push to `.beads/` | Fully automated | Another moving part |
 
@@ -708,6 +725,280 @@ def _add_to_project(issue_url: str, project_number: str) -> None:
         logger.info("Added issue %s to project %s", issue_num, project_number)
     except subprocess.CalledProcessError as e:
         logger.warning("Failed to add to project: %s", e.stderr)
+
+
+# =============================================================================
+# IMPORT: GitHub → Beads
+# =============================================================================
+
+def import_from_github(
+    repo: Optional[str] = None,
+    issue_number: Optional[int] = None,
+    label_filter: Optional[str] = None,
+    state: str = "open",
+    dry_run: bool = False,
+) -> list[BeadsIssue]:
+    """
+    Import GitHub issues into Beads.
+
+    Args:
+        repo: GitHub repo (owner/name). Auto-detected if None.
+        issue_number: Specific issue to import. If None, imports all matching.
+        label_filter: Only import issues with this label.
+        state: Issue state filter: "open", "closed", or "all".
+        dry_run: If True, show what would be imported without creating.
+
+    Returns:
+        List of created BeadsIssues.
+    """
+    if issue_number:
+        gh_issues = [_fetch_github_issue(issue_number, repo)]
+    else:
+        gh_issues = _fetch_github_issues(repo, label_filter, state)
+
+    created = []
+    existing_issues = read_issues()
+    existing_gh_ids = {_get_github_ref(i) for i in existing_issues if _get_github_ref(i)}
+
+    for gh_issue in gh_issues:
+        gh_ref = f"gh-{gh_issue['number']}"
+
+        # Skip if already imported
+        if gh_ref in existing_gh_ids:
+            logger.info("Skipping %s (already imported)", gh_ref)
+            continue
+
+        if dry_run:
+            logger.info("Would import: #%s %s", gh_issue["number"], gh_issue["title"])
+            continue
+
+        beads_issue = _convert_to_beads(gh_issue)
+        existing_issues.append(beads_issue)
+        created.append(beads_issue)
+
+    if not dry_run and created:
+        write_issues(existing_issues)
+        logger.info("Imported %d issues from GitHub", len(created))
+
+    return created
+
+
+def import_single_issue(
+    issue_number: int,
+    repo: Optional[str] = None,
+) -> Optional[BeadsIssue]:
+    """
+    Import a single GitHub issue into Beads.
+
+    Args:
+        issue_number: GitHub issue number to import.
+        repo: GitHub repo (owner/name). Auto-detected if None.
+
+    Returns:
+        Created BeadsIssue, or None if already exists.
+    """
+    result = import_from_github(repo=repo, issue_number=issue_number)
+    return result[0] if result else None
+
+
+def _fetch_github_issue(issue_number: int, repo: Optional[str]) -> dict:
+    """Fetch a single GitHub issue."""
+    cmd = ["gh", "issue", "view", str(issue_number), "--json",
+           "number,title,body,labels,state,assignees,createdAt,updatedAt"]
+
+    if repo:
+        cmd.extend(["--repo", repo])
+
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    return json.loads(result.stdout)
+
+
+def _fetch_github_issues(
+    repo: Optional[str],
+    label_filter: Optional[str],
+    state: str,
+) -> list[dict]:
+    """Fetch multiple GitHub issues."""
+    cmd = ["gh", "issue", "list", "--json",
+           "number,title,body,labels,state,assignees,createdAt,updatedAt",
+           "--state", state, "--limit", "100"]
+
+    if repo:
+        cmd.extend(["--repo", repo])
+
+    if label_filter:
+        cmd.extend(["--label", label_filter])
+
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    return json.loads(result.stdout)
+
+
+def _convert_to_beads(gh_issue: dict) -> BeadsIssue:
+    """Convert a GitHub issue to a BeadsIssue."""
+    from asp.utils.beads import generate_beads_id
+
+    # Map GitHub labels to Beads type
+    labels = [l["name"] for l in gh_issue.get("labels", [])]
+    issue_type = _infer_type_from_labels(labels)
+
+    # Map GitHub state to Beads status
+    status = BeadsStatus.CLOSED if gh_issue["state"] == "CLOSED" else BeadsStatus.OPEN
+
+    return BeadsIssue(
+        id=generate_beads_id(),
+        title=gh_issue["title"],
+        description=gh_issue.get("body") or "",
+        status=status,
+        type=issue_type,
+        priority=2,  # Default, could infer from labels
+        labels=[f"gh-{gh_issue['number']}"] + labels,  # Track origin
+        created_at=gh_issue.get("createdAt"),
+        updated_at=gh_issue.get("updatedAt"),
+        source_repo=gh_issue.get("repository", {}).get("nameWithOwner"),
+    )
+
+
+def _infer_type_from_labels(labels: list[str]) -> BeadsType:
+    """Infer Beads type from GitHub labels."""
+    labels_lower = [l.lower() for l in labels]
+
+    if "bug" in labels_lower:
+        return BeadsType.BUG
+    elif "enhancement" in labels_lower or "feature" in labels_lower:
+        return BeadsType.FEATURE
+    elif "epic" in labels_lower:
+        return BeadsType.EPIC
+    elif "chore" in labels_lower or "maintenance" in labels_lower:
+        return BeadsType.CHORE
+    else:
+        return BeadsType.TASK
+
+
+def _get_github_ref(issue: BeadsIssue) -> Optional[str]:
+    """Extract GitHub reference from Beads issue labels."""
+    for label in issue.labels:
+        if label.startswith("gh-") and label[3:].isdigit():
+            return label
+    return None
+
+
+# =============================================================================
+# BIDIRECTIONAL SYNC
+# =============================================================================
+
+def sync_bidirectional(
+    repo: Optional[str] = None,
+    project: Optional[str] = None,
+    conflict_resolution: str = "local-wins",
+    dry_run: bool = False,
+) -> dict:
+    """
+    Perform bidirectional sync between Beads and GitHub.
+
+    Args:
+        repo: GitHub repo (owner/name). Auto-detected if None.
+        project: GitHub Project number to add new issues to.
+        conflict_resolution: How to handle conflicts:
+            - "local-wins": Beads version takes precedence
+            - "remote-wins": GitHub version takes precedence
+            - "newest-wins": Most recently updated wins
+        dry_run: If True, show what would happen without changes.
+
+    Returns:
+        Dict with sync statistics: {"imported": N, "exported": N, "conflicts": N}
+    """
+    stats = {"imported": 0, "exported": 0, "conflicts": 0, "skipped": 0}
+
+    # Phase 1: Import new GitHub issues (those not in Beads)
+    imported = import_from_github(repo=repo, dry_run=dry_run)
+    stats["imported"] = len(imported)
+
+    # Phase 2: Export new Beads issues (those not in GitHub)
+    exported = sync_to_github_issues(repo=repo, project=project, dry_run=dry_run)
+    stats["exported"] = len(exported)
+
+    # Phase 3: Handle conflicts (issues that exist in both)
+    if not dry_run:
+        conflicts = _resolve_conflicts(repo, conflict_resolution)
+        stats["conflicts"] = conflicts
+
+    return stats
+
+
+def _resolve_conflicts(repo: Optional[str], strategy: str) -> int:
+    """
+    Resolve conflicts between linked Beads and GitHub issues.
+
+    Returns number of conflicts resolved.
+    """
+    conflicts_resolved = 0
+    issues = read_issues()
+
+    for issue in issues:
+        gh_ref = _get_github_ref(issue)
+        if not gh_ref:
+            continue
+
+        gh_number = int(gh_ref.split("-")[1])
+
+        try:
+            gh_issue = _fetch_github_issue(gh_number, repo)
+        except subprocess.CalledProcessError:
+            continue  # GitHub issue may have been deleted
+
+        # Compare timestamps
+        local_updated = issue.updated_at or issue.created_at
+        remote_updated = gh_issue.get("updatedAt")
+
+        if not local_updated or not remote_updated:
+            continue
+
+        # Check if there's a conflict (both modified since last sync)
+        if _has_conflict(issue, gh_issue):
+            if strategy == "local-wins":
+                _push_to_github(issue, gh_number, repo)
+            elif strategy == "remote-wins":
+                _update_from_github(issue, gh_issue)
+            elif strategy == "newest-wins":
+                if remote_updated > local_updated:
+                    _update_from_github(issue, gh_issue)
+                else:
+                    _push_to_github(issue, gh_number, repo)
+
+            conflicts_resolved += 1
+
+    if conflicts_resolved:
+        write_issues(issues)
+
+    return conflicts_resolved
+
+
+def _has_conflict(local: BeadsIssue, remote: dict) -> bool:
+    """Check if local and remote have diverged."""
+    # Simple check: titles differ
+    return local.title != remote["title"]
+
+
+def _push_to_github(issue: BeadsIssue, gh_number: int, repo: Optional[str]) -> None:
+    """Update GitHub issue from Beads."""
+    cmd = ["gh", "issue", "edit", str(gh_number),
+           "--title", issue.title,
+           "--body", issue.description or ""]
+
+    if repo:
+        cmd.extend(["--repo", repo])
+
+    subprocess.run(cmd, capture_output=True, text=True, check=True)
+
+
+def _update_from_github(issue: BeadsIssue, gh_issue: dict) -> None:
+    """Update Beads issue from GitHub."""
+    issue.title = gh_issue["title"]
+    issue.description = gh_issue.get("body") or ""
+    issue.updated_at = gh_issue.get("updatedAt")
+
+    if gh_issue["state"] == "CLOSED":
+        issue.status = BeadsStatus.CLOSED
 ```
 
 #### CLI Commands
@@ -719,14 +1010,14 @@ def _add_to_project(issue_url: str, project_number: str) -> None:
 @click.option("--repo", help="GitHub repo (owner/name)")
 @click.option("--project", help="GitHub Project number")
 @click.option("--dry-run", is_flag=True, help="Show what would be synced")
-def sync_github(repo: str, project: str, dry_run: bool):
+def push(repo: str, project: str, dry_run: bool):
     """
-    Sync Beads issues to GitHub Issues.
+    Push Beads issues to GitHub Issues.
 
     Example:
-        asp beads sync-github
-        asp beads sync-github --project 1
-        asp beads sync-github --repo owner/repo --dry-run
+        asp beads push
+        asp beads push --project 1
+        asp beads push --repo owner/repo --dry-run
     """
     from asp.utils.github_sync import sync_to_github_issues
 
@@ -738,6 +1029,78 @@ def sync_github(repo: str, project: str, dry_run: bool):
         click.echo(f"Created {len(urls)} GitHub issues:")
         for url in urls:
             click.echo(f"  {url}")
+
+
+@beads.command()
+@click.argument("issue_number", required=False, type=int)
+@click.option("--repo", help="GitHub repo (owner/name)")
+@click.option("--label", help="Only import issues with this label")
+@click.option("--state", default="open", type=click.Choice(["open", "closed", "all"]))
+@click.option("--dry-run", is_flag=True, help="Show what would be imported")
+def pull(issue_number: int, repo: str, label: str, state: str, dry_run: bool):
+    """
+    Pull GitHub issues into Beads.
+
+    Import a single issue by number, or all matching issues.
+
+    Example:
+        asp beads pull 42                    # Import issue #42
+        asp beads pull --label "asp"         # Import all issues with "asp" label
+        asp beads pull --state all           # Import all open and closed issues
+        asp beads pull --dry-run             # Preview what would be imported
+    """
+    from asp.utils.github_sync import import_from_github
+
+    issues = import_from_github(
+        repo=repo,
+        issue_number=issue_number,
+        label_filter=label,
+        state=state,
+        dry_run=dry_run,
+    )
+
+    if dry_run:
+        click.echo("Dry run complete.")
+    else:
+        click.echo(f"Imported {len(issues)} issues:")
+        for issue in issues:
+            click.echo(f"  [{issue.id}] {issue.title}")
+
+
+@beads.command()
+@click.option("--repo", help="GitHub repo (owner/name)")
+@click.option("--project", help="GitHub Project number")
+@click.option("--strategy", default="local-wins",
+              type=click.Choice(["local-wins", "remote-wins", "newest-wins"]),
+              help="Conflict resolution strategy")
+@click.option("--dry-run", is_flag=True, help="Show what would be synced")
+def sync(repo: str, project: str, strategy: str, dry_run: bool):
+    """
+    Bidirectional sync between Beads and GitHub.
+
+    Imports new GitHub issues, exports new Beads issues, and resolves conflicts.
+
+    Example:
+        asp beads sync                           # Sync with defaults (local-wins)
+        asp beads sync --strategy newest-wins    # Most recent update wins
+        asp beads sync --dry-run                 # Preview changes
+    """
+    from asp.utils.github_sync import sync_bidirectional
+
+    stats = sync_bidirectional(
+        repo=repo,
+        project=project,
+        conflict_resolution=strategy,
+        dry_run=dry_run,
+    )
+
+    if dry_run:
+        click.echo("Dry run complete.")
+
+    click.echo(f"Sync results:")
+    click.echo(f"  Imported: {stats['imported']}")
+    click.echo(f"  Exported: {stats['exported']}")
+    click.echo(f"  Conflicts resolved: {stats['conflicts']}")
 ```
 
 #### GitHub Actions Automation (Optional)
@@ -787,18 +1150,30 @@ jobs:
 class BeadsConfig:
     # ... existing fields ...
 
-    # GitHub sync
+    # GitHub sync - general
     github_sync_enabled: bool = False
     github_repo: Optional[str] = None      # Auto-detect if None
     github_project: Optional[str] = None   # Project number
-    github_auto_sync: bool = False         # Sync on issue creation
+
+    # GitHub sync - export (Beads → GitHub)
+    github_auto_push: bool = False         # Push on issue creation
+    github_push_labels: list[str] = field(default_factory=lambda: ["beads"])
+
+    # GitHub sync - import (GitHub → Beads)
+    github_import_label: Optional[str] = None  # Only import with this label
+    github_import_state: str = "open"          # open, closed, all
+    github_auto_pull: bool = False             # Pull on sync command
+
+    # GitHub sync - conflict resolution
+    github_conflict_strategy: str = "local-wins"  # local-wins, remote-wins, newest-wins
 ```
 
 **Deliverables:**
-- `src/asp/utils/github_sync.py`
-- Modified `src/asp/cli/beads_commands.py`
+- `src/asp/utils/github_sync.py` (with import, export, and bidirectional sync)
+- Modified `src/asp/cli/beads_commands.py` (push, pull, sync commands)
 - `.github/workflows/beads-sync.yml` (optional)
 - Extended `BeadsConfig`
+- `tests/unit/test_github_sync.py`
 
 ---
 
@@ -810,11 +1185,11 @@ class BeadsConfig:
 |------|-------------|-------|
 | `src/asp/cli/beads_commands.py` | CLI commands for Beads integration | 1 |
 | `src/asp/utils/beads_sync.py` | Plan-to-Beads sync utilities | 3 |
-| `src/asp/utils/github_sync.py` | GitHub Issues/Projects sync | 4 |
+| `src/asp/utils/github_sync.py` | GitHub bidirectional sync (import, export, sync) | 4 |
 | `.github/workflows/beads-sync.yml` | Auto-sync on push (optional) | 4 |
 | `tests/unit/test_beads_cli.py` | CLI command tests | 1 |
 | `tests/unit/test_beads_sync.py` | Sync utility tests | 3 |
-| `tests/unit/test_github_sync.py` | GitHub sync tests | 4 |
+| `tests/unit/test_github_sync.py` | GitHub sync tests (import, export, bidirectional) | 4 |
 
 ### Modified Files
 
@@ -824,7 +1199,8 @@ class BeadsConfig:
 | `src/asp/web/kanban.py` | Add ASP action button and endpoint | 2 |
 | `src/asp/agents/planning_agent.py` | Add sync_to_beads option | 3 |
 | `src/asp/config.py` | Add BeadsConfig, GitHub sync options | 3, 4 |
-| `src/asp/cli/beads_commands.py` | Add sync-github command | 4 |
+| `src/asp/cli/beads_commands.py` | Add push, pull, sync commands | 4 |
+| `src/asp/utils/beads.py` | Add `generate_beads_id()` function | 4 |
 
 ---
 
@@ -1027,4 +1403,4 @@ asp status auth-system
 1. Phase 1: Manual CLI Trigger (`asp beads list`, `asp beads process`)
 2. Phase 2: Kanban UI Action
 3. Phase 3: Auto-Sync Plans to Beads
-4. Phase 4: GitHub Projects Integration
+4. Phase 4: GitHub Bidirectional Sync (`asp beads push`, `asp beads pull`, `asp beads sync`)
