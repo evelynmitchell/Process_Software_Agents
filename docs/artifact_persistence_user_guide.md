@@ -300,7 +300,10 @@ print(markdown)  # Human-readable markdown string
 ### Example 1: Full Pipeline
 
 ```python
-from asp.agents import PlanningAgent, DesignAgent, DesignReviewAgent, CodeAgent
+from asp.agents.planning_agent import PlanningAgent
+from asp.agents.design_agent import DesignAgent
+from asp.agents.design_review_agent import DesignReviewAgent
+from asp.agents.code_agent import CodeAgent
 
 # 1. Planning
 planning_agent = PlanningAgent()

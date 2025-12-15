@@ -429,7 +429,7 @@ print(f"  Suggestions: {len(review_report.improvement_suggestions)}")
 
 ### DesignReviewReport Structure
 
-```python
+```json
 {
     "task_id": "TASK-001",
     "review_id": "REVIEW-TASK001-20251116-143022",
