@@ -18,19 +18,20 @@ def IssueCard(issue):
     """
     Renders a single issue card.
     """
+    # Use actual color values for inline styles (Tailwind dynamic classes don't work)
     priority_colors = {
-        0: "red-500",    # Highest
-        1: "orange-500",
-        2: "yellow-500",
-        3: "blue-500",
-        4: "gray-500",   # Lowest
+        0: "#ef4444",  # red-500 - Highest
+        1: "#f97316",  # orange-500
+        2: "#eab308",  # yellow-500
+        3: "#3b82f6",  # blue-500
+        4: "#6b7280",  # gray-500 - Lowest
     }
-    color = priority_colors.get(issue.priority, "gray-500")
+    border_color = priority_colors.get(issue.priority, "#6b7280")
 
     return Div(
         Div(
             Span(f"#{issue.id}", cls="text-xs font-mono text-gray-500"),
-            Span(issue.type.value, cls=f"text-xs px-1 rounded bg-gray-200 text-gray-700 ml-2"),
+            Span(issue.type.value, cls="text-xs px-1 rounded bg-gray-200 text-gray-700 ml-2"),
             cls="flex justify-between items-center mb-1"
         ),
         H4(issue.title, cls="text-sm font-semibold mb-1"),
@@ -39,7 +40,8 @@ def IssueCard(issue):
             *[Span(label, cls="text-[10px] bg-blue-100 text-blue-800 px-1 rounded mr-1") for label in issue.labels],
             cls="mt-2 flex flex-wrap"
         ),
-        cls=f"bg-white p-3 rounded shadow border-l-4 border-{color} mb-3 hover:shadow-md transition-shadow cursor-move"
+        cls="bg-white p-3 rounded shadow border-l-4 mb-3 hover:shadow-md transition-shadow",
+        style=f"border-left-color: {border_color};"
     )
 
 def KanbanColumn(status, title, issues):

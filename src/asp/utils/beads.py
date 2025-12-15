@@ -8,13 +8,18 @@ for Beads issues.
 See: https://github.com/steveyegge/beads
 """
 
+import hashlib
 import json
-from datetime import datetime
+import logging
+import uuid
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 
 class BeadsStatus(str, Enum):
@@ -96,10 +101,10 @@ def read_issues(root_path: Path = Path(".")) -> List[BeadsIssue]:
                     continue
                 except Exception as e:
                     # Skip malformed lines
-                    print(f"Error parsing beads issue line: {e}")
+                    logger.warning("Error parsing beads issue line: %s", e)
                     continue
     except Exception as e:
-        print(f"Error reading beads file: {e}")
+        logger.warning("Error reading beads file: %s", e)
         return []
 
     return issues
@@ -133,18 +138,15 @@ def create_issue(
     Actually, to be safe and avoid collisions if `bd` is used, we should try to use `bd` CLI if available.
     But for this Python implementation, we'll try to emulate hash-based IDs.
     """
-    import hashlib
-    import uuid
-
     # Generate a short hash ID similar to beads v0.20.1+
     # "bd-" + 4-6 chars of hash
     uid = str(uuid.uuid4())
     hash_object = hashlib.sha256(uid.encode())
     hex_dig = hash_object.hexdigest()
-    short_hash = hex_dig[:5] # 5 chars seems safe enough for small lists
+    short_hash = hex_dig[:5]  # 5 chars seems safe enough for small lists
     issue_id = f"bd-{short_hash}"
 
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
     issue = BeadsIssue(
         id=issue_id,
