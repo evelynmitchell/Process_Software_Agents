@@ -4,94 +4,95 @@
 
 ## Architecture Overview
 
-The Hello World API is a minimal 3-layer FastAPI application. The ApplicationEntryPoint (SU-005) initializes and starts the server using FastAPIApplicationFactory (SU-001). The factory sets up the FastAPI app with global error handling via GlobalErrorHandler (SU-004). Two endpoint handlers process requests: HelloEndpointHandler (SU-002) handles GET /hello with optional name parameter validation and personalized greeting logic, and HealthEndpointHandler (SU-003) handles GET /health with timestamp generation. All errors are caught by GlobalErrorHandler which returns consistent JSON error responses with appropriate HTTP status codes. No database or external dependencies are required.
+FastAPI-based REST API with two public endpoints (/hello and /health) featuring global error handling middleware, input validation, and rate limiting protection. The architecture separates concerns into endpoint handlers, application factory, and error handling components with minimal coupling.
 
 ## Technology Stack
 
-{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104.1', 'asgi_server': 'uvicorn 0.24.0', 'datetime_handling': 'Python standard library datetime module', 'validation': 'Pydantic v2 (included with FastAPI)', 'http_client': 'httpx (for testing, optional)'}
+{'language': 'Python 3.12', 'framework': 'FastAPI 0.104+', 'server': 'Uvicorn 0.24+', 'validation': 'Pydantic 2.0+'}
 
 ## Assumptions
 
-['FastAPI and uvicorn are installed as project dependencies', 'Application runs on localhost:8000 by default', 'All timestamps are in UTC timezone', 'Name parameter accepts only alphanumeric characters and spaces (no special characters)', 'No authentication or authorization is required for either endpoint', 'No database or persistent storage is needed', 'CORS is not required (single-origin API)', 'Request/response logging is handled by uvicorn default logging', 'Application is stateless with no session management', 'ISO 8601 timestamp format includes timezone information']
+['FastAPI 0.104 or higher is available with Pydantic 2.0+ for validation', 'Uvicorn 0.24+ will be used as ASGI server', 'slowapi library will be available for rate limiting implementation', 'System will handle less than 100 concurrent requests initially', 'Rate limiting will be enforced per IP address using X-Forwarded-For header when behind proxy', 'All timestamps will be in UTC timezone for consistency', 'Input validation regex pattern is sufficient for security requirements (no SQL/NoSQL injection risk as no database is used)']
 
 ## API Contracts
 
 ### GET /hello
 
-- **Description:** Returns a greeting message. If a name query parameter is provided, greets that person; otherwise greets the world.
+- **Description:** Greet user with optional name parameter. Returns personalized greeting if name provided, otherwise returns generic greeting to World
 - **Authentication:** False
 - **Response Schema:**
 ```json
-{'message': "string (greeting message in format 'Hello, {name}!' or 'Hello, World!')"}
+{'message': "string (greeting message in format 'Hello, {name}!')"}
 ```
 - **Error Responses:** N/A, N/A, N/A
 
 ### GET /health
 
-- **Description:** Returns the health status of the API with the current server timestamp.
+- **Description:** Health check endpoint returning current system status and server timestamp for monitoring and availability verification
 - **Authentication:** False
 - **Response Schema:**
 ```json
-{'status': "string (always 'ok' for healthy state)", 'timestamp': 'string (ISO 8601 formatted UTC timestamp)'}
+{'status': "string (value: 'ok' indicating healthy state)", 'timestamp': 'string (ISO 8601 UTC datetime format)'}
 ```
-- **Error Responses:** N/A
+- **Error Responses:** N/A, N/A
 
 ## Component Logic
 
 ### FastAPIApplicationFactory
 
-- **Responsibility:** Initializes and configures the FastAPI application with middleware, exception handlers, and core settings.
+- **Responsibility:** Initialize and configure FastAPI application instance with middleware, exception handlers, and startup configuration
 - **Semantic Unit:** SU-001
 - **Dependencies:** None
-- **Implementation Notes:** Use FastAPI 0.104+ for application creation. Set title='Hello World API', version='1.0.0', description='Minimal REST API with hello and health endpoints'. Configure CORS if needed (allow all origins for simplicity). Register exception handlers in setup_exception_handlers method. Use dependency injection for request validation.
+- **Implementation Notes:** Create FastAPI app instance with title 'Hello World API' and version '1.0.0'. Register global exception handler middleware. Do NOT directly depend on endpoint handlers - handlers will be registered via route decorators in separate modules. ADDRESSES ISSUE-005: Removed direct dependencies on endpoint handlers to prevent circular dependencies.
 - **Interfaces:**
   - `create_app`
-  - `setup_exception_handlers`
 
 ### HelloEndpointHandler
 
-- **Responsibility:** Handles GET /hello requests with optional name parameter and returns personalized greeting message.
+- **Responsibility:** Handle GET /hello requests with optional name parameter and return personalized greeting message
 - **Semantic Unit:** SU-002
-- **Dependencies:** FastAPIApplicationFactory
-- **Implementation Notes:** Use FastAPI Query parameter with default=None for optional name. Validate name using regex pattern '^[a-zA-Z0-9 ]*$' to allow only alphanumeric and spaces. Check length <= 255 characters. Raise HTTPException(status_code=400, detail=...) for validation failures. Return dict with 'message' key. Handle None name by returning 'Hello, World!'. Strip whitespace from name input.
+- **Dependencies:** InputValidator
+- **Implementation Notes:** Validate name parameter using InputValidator before processing. Name must be alphanumeric with spaces only, max 100 characters. Return JSON with 'message' key (snake_case per ADDRESSES ISSUE-007). Use @app.get('/hello') decorator to register route. ADDRESSES ISSUE-005: Removed FastAPIApplicationFactory dependency - handler registers itself via decorator. ADDRESSES ISSUE-009: Explicitly document that omitting name parameter returns 'Hello, World!' greeting.
 - **Interfaces:**
-  - `get_hello`
-  - `validate_name`
-  - `format_greeting`
+  - `hello`
 
 ### HealthEndpointHandler
 
-- **Responsibility:** Handles GET /health requests and returns API health status with current UTC timestamp.
+- **Responsibility:** Handle GET /health requests and return system health status with current server timestamp
 - **Semantic Unit:** SU-003
-- **Dependencies:** FastAPIApplicationFactory
-- **Implementation Notes:** Use datetime.datetime.utcnow() or datetime.datetime.now(datetime.timezone.utc) to get current time. Format timestamp using isoformat() method to produce ISO 8601 format (e.g., '2024-01-15T10:30:45.123456+00:00'). Always return status='ok'. Return dict with 'status' and 'timestamp' keys. No validation needed for this endpoint.
+- **Dependencies:** None
+- **Implementation Notes:** Generate current UTC timestamp using datetime.now(datetime.UTC).isoformat() to comply with Python 3.12+ standards (ADDRESSES ISSUE-008: Replaced deprecated utcnow() with datetime.now(datetime.UTC)). Return JSON with 'status' and 'timestamp' keys in snake_case (ADDRESSES ISSUE-007). Use @app.get('/health') decorator to register route. ADDRESSES ISSUE-005: Removed FastAPIApplicationFactory dependency - handler registers itself via decorator.
 - **Interfaces:**
-  - `get_health`
-  - `get_current_timestamp`
+  - `health`
 
 ### GlobalErrorHandler
 
-- **Responsibility:** Manages global exception handling and HTTP status code responses for all API errors.
+- **Responsibility:** Centralized exception handling for all unhandled exceptions with consistent error response formatting
 - **Semantic Unit:** SU-004
 - **Dependencies:** None
-- **Implementation Notes:** Register exception handlers using @app.exception_handler(ExceptionType) decorator. For HTTPException: extract status_code and detail, return JSONResponse with status_code. For RequestValidationError: return 400 with error_code='VALIDATION_ERROR'. For generic Exception: log error, return 500 with error_code='INTERNAL_SERVER_ERROR'. Error response format: {"error": {"code": "ERROR_CODE", "message": "error message"}}. Always include status_code in JSONResponse.
+- **Implementation Notes:** Register as global exception handler using @app.exception_handler(Exception). Format all error responses with 'code' field (not 'error_code') to match api_contracts specification (ADDRESSES ISSUE-003). Handle generic Exception type with 500 status code. Return JSON with consistent structure: {code: string, message: string}. ADDRESSES ISSUE-010: Simplified complexity by using single generic Exception handler rather than multiple specific exception types.
 - **Interfaces:**
-  - `handle_http_exception`
-  - `handle_validation_error`
-  - `handle_generic_exception`
   - `format_error_response`
+  - `handle_exception`
 
-### ApplicationEntryPoint
+### InputValidator
 
-- **Responsibility:** Provides the main entry point for running the FastAPI application with server configuration and startup validation.
+- **Responsibility:** Validate query parameters and request input according to API specifications and constraints
 - **Semantic Unit:** SU-005
-- **Dependencies:** FastAPIApplicationFactory, HelloEndpointHandler, HealthEndpointHandler, GlobalErrorHandler
-- **Implementation Notes:** Use uvicorn.run() to start server with host='0.0.0.0', port=8000, reload=False for production. Create app using FastAPIApplicationFactory.create_app(). Validate that both /hello and /health routes are registered. Log startup message with server URL. Handle KeyboardInterrupt gracefully. Use if __name__ == '__main__': pattern for entry point. Set log_level='info' for uvicorn.
+- **Dependencies:** None
+- **Implementation Notes:** Use regex pattern '^[a-zA-Z0-9 ]{1,100}$' to validate name parameter. Raise ValueError with descriptive message for invalid input. Called by HelloEndpointHandler before processing. ADDRESSES ISSUE-004: Separated validation logic into dedicated component to reduce ApplicationConfiguration coupling. ADDRESSES ISSUE-005: Removed circular dependency risk by eliminating ApplicationConfiguration orchestration of handlers.
 - **Interfaces:**
-  - `main`
-  - `validate_startup`
-  - `run_server`
+  - `validate_name_parameter`
+
+### RateLimitMiddleware
+
+- **Responsibility:** Enforce rate limiting on protected endpoints to prevent abuse and denial of service attacks
+- **Semantic Unit:** SU-005
+- **Dependencies:** None
+- **Implementation Notes:** Use slowapi library for rate limiting implementation. Configure /hello endpoint with 30 requests per minute per IP (ADDRESSES ISSUE-001). Configure /health endpoint with 60 requests per minute per IP (ADDRESSES ISSUE-002). Return 429 status code with 'RATE_LIMIT_EXCEEDED' code when limit exceeded. Register middleware during app initialization in FastAPIApplicationFactory.
+- **Interfaces:**
+  - `configure_rate_limiting`
 
 ---
 
-*Generated by Design Agent on 2025-12-11 18:59:26*
+*Generated by Design Agent on 2025-12-15 15:11:47*

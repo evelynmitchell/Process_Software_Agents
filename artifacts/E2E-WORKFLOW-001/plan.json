@@ -4,7 +4,7 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Design database schema for blog posts and users with PostgreSQL, create migration scripts",
+      "description": "Design database schema for blog posts and users with PostgreSQL migrations",
       "api_interactions": 1,
       "data_transformations": 2,
       "logical_branches": 1,
@@ -15,20 +15,20 @@
     },
     {
       "unit_id": "SU-002",
-      "description": "Implement API key authentication middleware with validation and error handling",
+      "description": "Implement API key authentication middleware and validation logic",
       "api_interactions": 1,
       "data_transformations": 2,
       "logical_branches": 3,
-      "code_entities_modified": 2,
+      "code_entities_modified": 3,
       "novelty_multiplier": 1.0,
-      "est_complexity": 29,
+      "est_complexity": 33,
       "dependencies": [
         "SU-001"
       ]
     },
     {
       "unit_id": "SU-003",
-      "description": "Create POST /posts endpoint with request validation, data persistence, and response serialization",
+      "description": "Create POST /posts endpoint with request validation and database insertion",
       "api_interactions": 2,
       "data_transformations": 3,
       "logical_branches": 3,
@@ -42,7 +42,7 @@
     },
     {
       "unit_id": "SU-004",
-      "description": "Implement GET /posts/:id endpoint with database query, error handling for missing posts",
+      "description": "Implement GET /posts/:id endpoint with error handling for missing posts",
       "api_interactions": 1,
       "data_transformations": 2,
       "logical_branches": 2,
@@ -56,7 +56,7 @@
     },
     {
       "unit_id": "SU-005",
-      "description": "Build GET /posts endpoint with pagination logic (limit/offset), filtering, and response formatting",
+      "description": "Build GET /posts endpoint with pagination logic (10 per page) and query parameter handling",
       "api_interactions": 1,
       "data_transformations": 3,
       "logical_branches": 4,
@@ -70,13 +70,13 @@
     },
     {
       "unit_id": "SU-006",
-      "description": "Implement PUT /posts/:id endpoint with update validation, authorization checks, and data persistence",
+      "description": "Implement PUT /posts/:id endpoint with update validation and conflict handling",
       "api_interactions": 2,
       "data_transformations": 3,
       "logical_branches": 4,
-      "code_entities_modified": 3,
+      "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 43,
+      "est_complexity": 39,
       "dependencies": [
         "SU-001",
         "SU-002"
@@ -84,7 +84,7 @@
     },
     {
       "unit_id": "SU-007",
-      "description": "Create DELETE /posts/:id endpoint with authorization validation and database deletion",
+      "description": "Create DELETE /posts/:id endpoint with authorization checks and cascade handling",
       "api_interactions": 2,
       "data_transformations": 1,
       "logical_branches": 3,
@@ -98,13 +98,13 @@
     },
     {
       "unit_id": "SU-008",
-      "description": "Integrate FastAPI application setup, configure CORS, error handlers, and database connection pooling",
+      "description": "Integrate FastAPI application setup with database connection pooling and error handling",
       "api_interactions": 2,
       "data_transformations": 2,
-      "logical_branches": 2,
+      "logical_branches": 3,
       "code_entities_modified": 4,
       "novelty_multiplier": 1.0,
-      "est_complexity": 36,
+      "est_complexity": 39,
       "dependencies": [
         "SU-001",
         "SU-002",
@@ -116,7 +116,7 @@
       ]
     }
   ],
-  "total_est_complexity": 264,
+  "total_est_complexity": 267,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"

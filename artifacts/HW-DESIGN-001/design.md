@@ -4,15 +4,15 @@
 
 ## Architecture Overview
 
-Minimal three-tier architecture for a simple greeting API. HTTPServerFramework initializes and configures the FastAPI application with routing infrastructure. HelloRouteHandler implements the GET /hello endpoint that returns a JSON response with a greeting message. ResponseFormatter ensures all HTTP responses (success and error) are properly formatted with correct status codes and Content-Type headers. The application uses FastAPI's built-in JSON serialization and automatic OpenAPI documentation generation. No database, authentication, or complex business logic required.
+Minimal three-tier architecture for a simple greeting endpoint. HTTPServerFramework initializes FastAPI application and configures routing infrastructure. HelloRouteHandler processes GET /hello requests by delegating response formatting to ResponseFormatter. ResponseFormatter generates properly formatted JSON responses with correct HTTP status codes. No database, caching, or external dependencies required. Single endpoint serves static greeting message.
 
 ## Technology Stack
 
-{'language': 'Python 3.12', 'framework': 'FastAPI 0.104.1', 'asgi_server': 'uvicorn 0.24.0', 'json_serialization': 'FastAPI built-in (uses pydantic v2 for serialization)', 'http_client_testing': 'httpx 0.25.0 (for testing)'}
+{'language': 'Python 3.12', 'framework': 'FastAPI 0.104.1', 'server': 'Uvicorn 0.24.0', 'json_serialization': 'FastAPI built-in (Pydantic v2)'}
 
 ## Assumptions
 
-['FastAPI is installed and available in the Python environment', 'uvicorn ASGI server is used to run the application', 'No authentication or authorization is required for the /hello endpoint', 'No database or persistent storage is needed', 'The application runs on localhost:8000 by default (standard uvicorn configuration)', 'JSON response format is acceptable (no XML or other formats required)', 'No request body or query parameters are needed for the /hello endpoint', 'HTTP 200 OK is the only success status code needed', "FastAPI's automatic OpenAPI/Swagger documentation generation is acceptable"]
+['FastAPI is installed and available in the Python environment', 'Uvicorn or equivalent ASGI server will be used to run the application', 'No authentication or authorization required for /hello endpoint', 'Response should be plain JSON with no additional headers or metadata', "Endpoint should always return 200 status code with 'Hello World' message for successful requests", 'No request validation or input parameters needed for this endpoint', 'Application runs on default FastAPI configuration (localhost:8000 or as configured by deployment)']
 
 ## API Contracts
 
@@ -30,33 +30,33 @@ Minimal three-tier architecture for a simple greeting API. HTTPServerFramework i
 
 ### HTTPServerFramework
 
-- **Responsibility:** Initialize and configure the FastAPI HTTP server framework with routing infrastructure
+- **Responsibility:** Initializes and configures the FastAPI HTTP server with routing infrastructure
 - **Semantic Unit:** SU-001
 - **Dependencies:** None
-- **Implementation Notes:** Use FastAPI 0.104+ to create the application instance. Configure with title='Hello World API' and version='1.0.0'. Set up CORS if needed for cross-origin requests. Use uvicorn as the ASGI server for local development and production. Initialize app with default settings (no custom middleware required for this minimal implementation).
+- **Implementation Notes:** Use FastAPI 0.104+ to create application instance. Configure with title='Hello World API' and version='1.0.0'. Set up routing infrastructure by calling configure_routes() during initialization. Use standard FastAPI patterns for route registration. No middleware or CORS configuration required for this minimal implementation.
 - **Interfaces:**
   - `create_app`
   - `configure_routes`
 
 ### HelloRouteHandler
 
-- **Responsibility:** Handle GET /hello requests and return a greeting message with proper response serialization
+- **Responsibility:** Handles GET /hello requests and returns formatted greeting response
 - **Semantic Unit:** SU-002
-- **Dependencies:** HTTPServerFramework
-- **Implementation Notes:** Implement as a FastAPI route handler decorated with @app.get('/hello'). Return a dictionary with key 'message' and value 'Hello World'. FastAPI automatically serializes the dictionary to JSON with Content-Type: application/json. No request parameters or query strings required. Handler should be synchronous (no async needed for this simple operation). Response status code defaults to 200 OK.
+- **Dependencies:** ResponseFormatter
+- **Implementation Notes:** Implement as FastAPI route handler using @app.get('/hello') decorator. Call ResponseFormatter.format_greeting() to generate response. Return dictionary with 'message' key containing 'Hello World' string. Handler should be synchronous (no async required). No request parameters or query strings needed.
 - **Interfaces:**
   - `hello`
 
 ### ResponseFormatter
 
-- **Responsibility:** Format HTTP responses with proper status codes and content-type headers for JSON serialization
+- **Responsibility:** Formats HTTP responses with proper status codes and serialization
 - **Semantic Unit:** SU-003
 - **Dependencies:** None
-- **Implementation Notes:** For success responses, return the data dictionary as-is (FastAPI handles JSON serialization automatically with status_code=200). For error responses, use FastAPI's HTTPException with status_code parameter and detail containing error_code and message. Set Content-Type header to application/json (FastAPI default). Handle 500 Internal Server Error by catching unexpected exceptions in route handlers and returning formatted error response. All responses must include proper HTTP status codes (200 for success, 500 for errors).
+- **Implementation Notes:** format_greeting() returns {'message': 'Hello World'} dictionary. format_error() returns {'status_code': int, 'error_code': str, 'message': str} dictionary. FastAPI automatically serializes dictionaries to JSON with 200 status code for successful responses. Error responses use FastAPI HTTPException with appropriate status codes (500 for internal errors). No custom serialization needed beyond dictionary structure.
 - **Interfaces:**
-  - `format_success_response`
-  - `format_error_response`
+  - `format_greeting`
+  - `format_error`
 
 ---
 
-*Generated by Design Agent on 2025-12-11 19:00:19*
+*Generated by Design Agent on 2025-12-15 15:12:42*

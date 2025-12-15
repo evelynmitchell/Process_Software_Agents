@@ -4,15 +4,15 @@
 
 ## Architecture Overview
 
-Simple 3-component architecture for a basic HTTP server. HTTPServerFramework initializes and configures the FastAPI application with routing infrastructure. HelloRouteHandler implements the GET /hello endpoint that returns a JSON response with the message 'Hello World'. ErrorHandler wraps the route handler with exception handling to catch unexpected errors and return appropriate HTTP 500 responses. The server listens on 0.0.0.0:8000 and responds to GET requests at /hello with JSON serialized responses.
+Simple three-tier architecture with HTTPServerFramework providing the foundational HTTP server infrastructure using FastAPI, HelloRouteHandler implementing the GET /hello endpoint with JSON response serialization, and ErrorHandler providing global exception handling and error response formatting. The framework initializes the server, registers routes, and starts listening on port 8000. All requests to /hello return a JSON response with the message 'Hello World'. Any unhandled exceptions are caught by the global error handler and returned as HTTP 500 responses with appropriate error codes and messages.
 
 ## Technology Stack
 
-{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'asgi_server': 'uvicorn 0.24+', 'json_serialization': 'FastAPI built-in (pydantic v2+)', 'logging': 'Python logging module (stdlib)'}
+{'language': 'Python 3.12', 'web_framework': 'FastAPI 0.104+', 'asgi_server': 'uvicorn 0.24+', 'json_serialization': 'FastAPI built-in (uses pydantic)', 'type_hints': 'Python typing module (stdlib)'}
 
 ## Assumptions
 
-['Server runs on localhost with host 0.0.0.0 and port 8000', 'Only GET requests are accepted at /hello endpoint', 'Response is always JSON format with Content-Type: application/json', 'No authentication or authorization required for /hello endpoint', 'No database or external service dependencies needed', 'Unhandled exceptions are logged server-side and return generic 500 error to client', 'FastAPI automatically handles request/response serialization and HTTP status codes']
+['Server runs on localhost:8000 by default (host 0.0.0.0, port 8000)', 'HTTPS/TLS is not required for this simple endpoint (can be added at infrastructure level)', 'No authentication or authorization is required for the /hello endpoint', 'Request body is not expected or processed for GET /hello', 'Response is always JSON format with Content-Type: application/json', 'Server gracefully handles shutdown signals (SIGTERM, SIGINT)', 'Logging is configured to output to stdout/stderr for container environments', 'No database or external service dependencies are required']
 
 ## API Contracts
 
@@ -33,10 +33,10 @@ Simple 3-component architecture for a basic HTTP server. HTTPServerFramework ini
 - **Responsibility:** Initializes and configures the HTTP server framework with routing infrastructure
 - **Semantic Unit:** SU-001
 - **Dependencies:** None
-- **Implementation Notes:** Use FastAPI 0.104+ for HTTP server framework. Initialize with default settings: host='0.0.0.0', port=8000. Configure CORS if needed. Use uvicorn as ASGI server. Set up logging configuration at startup. Create single global FastAPI app instance.
+- **Implementation Notes:** Use FastAPI 0.104+ framework for HTTP server. Initialize with default settings. Configure CORS if needed (allow all origins for development). Use uvicorn as ASGI server with host='0.0.0.0' and port=8000 by default. Implement graceful shutdown handling. Log server startup and shutdown events.
 - **Interfaces:**
-  - `initialize_server`
-  - `register_route`
+  - `initialize_app`
+  - `configure_routes`
   - `start_server`
 
 ### HelloRouteHandler
@@ -44,7 +44,7 @@ Simple 3-component architecture for a basic HTTP server. HTTPServerFramework ini
 - **Responsibility:** Handles GET /hello requests and returns serialized JSON response with greeting message
 - **Semantic Unit:** SU-002
 - **Dependencies:** HTTPServerFramework
-- **Implementation Notes:** Create async route handler function decorated with @app.get('/hello'). Return dictionary with single key 'message' and value 'Hello World'. FastAPI automatically serializes to JSON with Content-Type: application/json. Use type hints for response validation. Handler should be stateless and thread-safe.
+- **Implementation Notes:** Implement as FastAPI route handler decorated with @app.get('/hello'). Return dictionary with key 'message' and value 'Hello World'. FastAPI automatically serializes to JSON with Content-Type: application/json. Use Response model with Pydantic for type safety. No query parameters or request body required. Always return HTTP 200 status code on success.
 - **Interfaces:**
   - `hello`
   - `serialize_response`
@@ -54,12 +54,12 @@ Simple 3-component architecture for a basic HTTP server. HTTPServerFramework ini
 - **Responsibility:** Implements error handling and HTTP status code responses for the hello endpoint
 - **Semantic Unit:** SU-003
 - **Dependencies:** HTTPServerFramework, HelloRouteHandler
-- **Implementation Notes:** Use FastAPI exception handlers with @app.exception_handler(Exception). Catch all unhandled exceptions and return JSONResponse with status_code=500, error_code='INTERNAL_SERVER_ERROR', message='An unexpected error occurred while processing the request'. Log exceptions with full traceback for debugging. Return proper HTTP status codes: 200 for success, 500 for server errors. Do not expose internal error details to client.
+- **Implementation Notes:** Implement global exception handler using FastAPI @app.exception_handler(Exception). Catch all unhandled exceptions and return JSON response with status 500. Log exception details (stack trace, timestamp) for debugging. Return error response with structure: {"error_code": "INTERNAL_SERVER_ERROR", "message": "An unexpected error occurred while processing the request"}. Use try-except blocks in route handler to catch any runtime errors. Validate request method is GET (FastAPI handles this automatically). Return appropriate HTTP status codes: 200 for success, 500 for server errors.
 - **Interfaces:**
   - `handle_exception`
   - `validate_request`
-  - `create_error_response`
+  - `format_error_response`
 
 ---
 
-*Generated by Design Agent on 2025-12-11 19:00:37*
+*Generated by Design Agent on 2025-12-15 15:13:01*

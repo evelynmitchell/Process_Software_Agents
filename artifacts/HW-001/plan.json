@@ -4,7 +4,7 @@
   "semantic_units": [
     {
       "unit_id": "SU-001",
-      "description": "Set up FastAPI project structure with dependencies and application initialization",
+      "description": "Set up FastAPI project structure with dependencies and basic application initialization",
       "api_interactions": 0,
       "data_transformations": 0,
       "logical_branches": 1,
@@ -32,16 +32,16 @@
       "api_interactions": 0,
       "data_transformations": 2,
       "logical_branches": 1,
-      "code_entities_modified": 1,
+      "code_entities_modified": 2,
       "novelty_multiplier": 1.0,
-      "est_complexity": 17,
+      "est_complexity": 21,
       "dependencies": [
         "SU-001"
       ]
     },
     {
       "unit_id": "SU-004",
-      "description": "Add global error handling middleware and HTTP status code management",
+      "description": "Add global error handling middleware and HTTP status code management for all endpoints",
       "api_interactions": 0,
       "data_transformations": 1,
       "logical_branches": 3,
@@ -49,26 +49,26 @@
       "novelty_multiplier": 1.0,
       "est_complexity": 22,
       "dependencies": [
-        "SU-001"
+        "SU-002",
+        "SU-003"
       ]
     },
     {
       "unit_id": "SU-005",
-      "description": "Create application entry point with server configuration and startup validation",
+      "description": "Configure application startup, add input validation for query parameters, and implement REST best practices",
       "api_interactions": 0,
       "data_transformations": 1,
       "logical_branches": 2,
-      "code_entities_modified": 1,
+      "code_entities_modified": 3,
       "novelty_multiplier": 1.0,
-      "est_complexity": 15,
+      "est_complexity": 23,
       "dependencies": [
         "SU-002",
-        "SU-003",
-        "SU-004"
+        "SU-003"
       ]
     }
   ],
-  "total_est_complexity": 89,
+  "total_est_complexity": 101,
   "probe_ai_prediction": null,
   "probe_ai_enabled": false,
   "agent_version": "1.0.0"
