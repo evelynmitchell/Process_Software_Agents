@@ -89,7 +89,7 @@ print(f"Semantic Units: {len(plan.semantic_units)}")
 print(f"Total Complexity: {plan.total_est_complexity}")
 
 for unit in plan.semantic_units:
-    print(f"- {unit.title} (Complexity: {unit.est_complexity})")
+    print(f"- {unit.description} (Complexity: {unit.est_complexity})")
 ```
 
 ---

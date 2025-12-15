@@ -72,10 +72,10 @@ The main client class.
 
 ```python
 from asp.utils.llm_client import LLMClient
-client = LLMClient(provider="anthropic")
-response = client.chat(
-    messages=[{"role": "user", "content": "Hello"}],
-    model="claude-3-5-sonnet-20241022",
+client = LLMClient(api_key="your-api-key")  # or None to use ANTHROPIC_API_KEY env var
+response = client.call_with_retry(
+    prompt="Hello",
+    max_tokens=1000,
     temperature=0.0
 )
 ```
@@ -88,15 +88,15 @@ Robust utilities for extracting JSON from LLM responses, which often contain mar
 
 ### Key Functions
 
-#### `extract_json_from_text(text)`
+#### `extract_json_from_response(response, required_fields=None)`
 Attempts to find and parse JSON within a string.
 1. Looks for ````json ... ``` ` blocks.
 2. Looks for `{ ... }` blocks.
 3. Tries parsing the entire string.
 
 ```python
-from asp.utils.json_extraction import extract_json_from_text
-data = extract_json_from_text(llm_response_string)
+from asp.utils.json_extraction import extract_json_from_response
+data = extract_json_from_response(llm_response_dict, required_fields=['field1'])
 ```
 
 ---
