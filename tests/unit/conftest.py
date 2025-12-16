@@ -40,7 +40,7 @@ def make_semantic_unit():
     """Factory fixture for creating valid SemanticUnit instances."""
 
     def _make(
-        unit_id: str = "SU-001",
+        unit_id: str = "su-a000001",
         description: str = "Implement test functionality for the component module",
         api_interactions: int = 2,
         data_transformations: int = 1,
@@ -114,7 +114,7 @@ def make_api_contract():
         description: str = "Test endpoint for retrieving data from the system",
         request_schema: dict | None = None,
         response_schema: dict | None = None,
-        semantic_unit_id: str = "SU-001",
+        semantic_unit_id: str = "su-a000001",
         authentication_required: bool = False,
     ) -> APIContract:
         return APIContract(
@@ -138,7 +138,7 @@ def make_data_schema():
         table_name: str = "users",
         description: str = "User table for storing user account data",
         columns: list[dict] | None = None,
-        semantic_unit_id: str = "SU-001",
+        semantic_unit_id: str = "su-a000001",
     ) -> DataSchema:
         return DataSchema(
             table_name=table_name,
@@ -160,7 +160,7 @@ def make_component_logic():
 
     def _make(
         component_name: str = "TestComponent",
-        semantic_unit_id: str = "SU-001",
+        semantic_unit_id: str = "su-a000001",
         responsibility: str = "Handle test requests and return appropriate responses",
         interfaces: list[dict] | None = None,
         implementation_notes: str = "Use standard REST patterns for implementation",
@@ -243,7 +243,7 @@ def make_design_issue():
     """Factory fixture for creating valid DesignIssue instances."""
 
     def _make(
-        issue_id: str = "ISSUE-001",
+        issue_id: str = "issue-a000001",
         category: str = "Security",
         severity: str = "Critical",
         description: str = "Security vulnerability found in authentication flow",
@@ -271,7 +271,7 @@ def make_improvement_suggestion():
     """Factory fixture for creating valid ImprovementSuggestion instances."""
 
     def _make(
-        suggestion_id: str = "IMPROVE-001",
+        suggestion_id: str = "improve-a000001",
         category: str = "Performance",
         priority: str = "High",
         description: str = "Optimize database query for better performance",
@@ -301,7 +301,7 @@ def make_checklist_review():
     """Factory fixture for creating valid ChecklistItemReview instances."""
 
     def _make(
-        checklist_item_id: str = "CHECK-001",
+        checklist_item_id: str = "check-a000001",
         category: str = "Security",
         description: str = "Validate security requirements for component",
         status: str = "Pass",
@@ -376,7 +376,7 @@ def make_generated_file():
         file_type: str = "source",
         content: str = "print('Hello, World!')",
         lines_of_code: int = 1,
-        semantic_unit_id: str = "SU-001",
+        semantic_unit_id: str = "su-a000001",
         description: str = "Main entry point for the application",
     ) -> GeneratedFile:
         return GeneratedFile(
@@ -437,7 +437,7 @@ def make_code_issue():
     """Factory fixture for creating valid CodeIssue instances."""
 
     def _make(
-        issue_id: str = "CODE-ISSUE-001",
+        issue_id: str = "code-issue-a000001",
         category: str = "Security",
         severity: str = "Critical",
         description: str = "SQL injection vulnerability in query construction",
@@ -469,7 +469,7 @@ def make_code_improvement_suggestion():
     """Factory fixture for creating valid CodeImprovementSuggestion instances."""
 
     def _make(
-        suggestion_id: str = "CODE-IMPROVE-001",
+        suggestion_id: str = "code-improve-a000001",
         category: str = "Performance",
         priority: str = "High",
         description: str = "Use connection pooling for database connections",
