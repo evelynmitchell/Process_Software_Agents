@@ -1,0 +1,248 @@
+"""
+Beads CLI Commands - Integration with Beads issue tracking.
+
+Provides commands for:
+- beads list: List open Beads issues
+- beads process: Process a Beads issue through ASP planning
+
+Usage:
+    python -m asp.cli beads list
+    python -m asp.cli beads process bd-abc1234
+    python -m asp.cli beads process bd-abc1234 --dry-run
+
+See ADR 009 for architecture details.
+"""
+
+import argparse
+import logging
+import sys
+from pathlib import Path
+
+logger = logging.getLogger("asp.cli.beads")
+
+
+def cmd_beads_list(args):
+    """List all open Beads issues."""
+    from asp.utils.beads import read_issues, BeadsStatus
+
+    root_path = Path(args.root) if args.root else Path(".")
+    issues = read_issues(root_path)
+
+    if args.all:
+        open_issues = issues
+    else:
+        open_issues = [i for i in issues if i.status != BeadsStatus.CLOSED]
+
+    if not open_issues:
+        print("No open issues found.")
+        return
+
+    print(f"{'Open issues' if not args.all else 'All issues'} ({len(open_issues)}):\n")
+    for issue in open_issues:
+        # Priority markers: P0 = !!!, P1 = !!, P2 = !, P3/P4 = none
+        priority_marker = "!" * max(0, 3 - issue.priority) if issue.priority < 3 else ""
+        status_str = f"[{issue.status.value}]" if args.all else ""
+
+        print(f"  [{issue.id}] {priority_marker} {issue.title} {status_str}")
+        if issue.description and args.verbose:
+            desc = issue.description[:60] + "..." if len(issue.description) > 60 else issue.description
+            print(f"           {desc}")
+        print()
+
+
+def cmd_beads_process(args):
+    """
+    Process a Beads issue through ASP planning.
+
+    Converts the issue to TaskRequirements and runs the PlanningAgent.
+    """
+    from asp.utils.beads import read_issues, BeadsStatus
+
+    root_path = Path(args.root) if args.root else Path(".")
+    issues = read_issues(root_path)
+
+    # Find the issue
+    issue = next((i for i in issues if i.id == args.issue_id), None)
+
+    if not issue:
+        logger.error(f"Issue '{args.issue_id}' not found")
+        print(f"Error: Issue '{args.issue_id}' not found", file=sys.stderr)
+        print(f"\nAvailable issues:", file=sys.stderr)
+        for i in issues[:5]:
+            print(f"  [{i.id}] {i.title}", file=sys.stderr)
+        if len(issues) > 5:
+            print(f"  ... and {len(issues) - 5} more", file=sys.stderr)
+        sys.exit(1)
+
+    if issue.status == BeadsStatus.CLOSED:
+        logger.warning(f"Issue '{args.issue_id}' is already closed")
+        print(f"Warning: Issue '{args.issue_id}' is already closed", file=sys.stderr)
+
+    print(f"Processing issue: [{issue.id}] {issue.title}")
+    print(f"Type: {issue.type.value}")
+    print(f"Priority: P{issue.priority}")
+    if issue.description:
+        print(f"Description: {issue.description}")
+    print()
+
+    if args.dry_run:
+        print("[Dry Run] Would create plan for:")
+        print(f"  Task ID: {issue.id}")
+        print(f"  Description: {issue.title}")
+        print(f"  Requirements: {issue.description or issue.title}")
+        return
+
+    # Import planning components
+    try:
+        from asp.models.planning import TaskRequirements
+        from asp.agents.planning_agent import PlanningAgent
+    except ImportError as e:
+        logger.error(f"Failed to import planning components: {e}")
+        print(f"Error: Could not import planning agent: {e}", file=sys.stderr)
+        print("Make sure the asp package is properly installed.", file=sys.stderr)
+        sys.exit(1)
+
+    # Convert to TaskRequirements
+    requirements = TaskRequirements(
+        task_id=issue.id,
+        description=issue.title,
+        requirements=issue.description or issue.title,
+        context_files=[],
+    )
+
+    print("Generating plan...")
+
+    try:
+        agent = PlanningAgent()
+        plan = agent.create_plan(requirements)
+
+        print(f"\nPlan created with {len(plan.semantic_units)} semantic units:")
+        for i, unit in enumerate(plan.semantic_units, 1):
+            print(f"  {i}. [{unit.unit_id}] {unit.description}")
+
+        if args.output:
+            output_path = Path(args.output)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(plan.model_dump_json(indent=2))
+            print(f"\nPlan saved to: {output_path}")
+
+    except Exception as e:
+        logger.error(f"Planning failed: {e}", exc_info=True)
+        print(f"Error: Planning failed: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def cmd_beads_show(args):
+    """Show details of a specific Beads issue."""
+    from asp.utils.beads import read_issues
+
+    root_path = Path(args.root) if args.root else Path(".")
+    issues = read_issues(root_path)
+
+    issue = next((i for i in issues if i.id == args.issue_id), None)
+
+    if not issue:
+        print(f"Error: Issue '{args.issue_id}' not found", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"ID: {issue.id}")
+    print(f"Title: {issue.title}")
+    print(f"Type: {issue.type.value}")
+    print(f"Status: {issue.status.value}")
+    print(f"Priority: P{issue.priority}")
+
+    if issue.description:
+        print(f"\nDescription:\n{issue.description}")
+
+    if issue.labels:
+        print(f"\nLabels: {', '.join(issue.labels)}")
+
+    if issue.parent_id:
+        print(f"Parent: {issue.parent_id}")
+
+    if issue.created_at:
+        print(f"\nCreated: {issue.created_at}")
+    if issue.updated_at:
+        print(f"Updated: {issue.updated_at}")
+
+
+def add_beads_subparser(subparsers):
+    """Add beads subcommand and its sub-subcommands to the parser."""
+    beads_parser = subparsers.add_parser(
+        "beads",
+        help="Beads issue tracking integration (ADR 009)",
+        description="Commands for integrating with the Beads issue tracking system.",
+    )
+
+    beads_subparsers = beads_parser.add_subparsers(
+        dest="beads_command",
+        help="Beads commands",
+    )
+
+    # Common arguments
+    root_arg = {
+        "flags": ["--root", "-r"],
+        "kwargs": {
+            "help": "Root path for .beads directory (default: current directory)",
+        },
+    }
+
+    # beads list
+    list_parser = beads_subparsers.add_parser(
+        "list",
+        help="List Beads issues",
+    )
+    list_parser.add_argument(root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"])
+    list_parser.add_argument(
+        "--all", "-a",
+        action="store_true",
+        help="Show all issues including closed",
+    )
+    list_parser.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Show issue descriptions",
+    )
+    list_parser.set_defaults(func=cmd_beads_list)
+
+    # beads show
+    show_parser = beads_subparsers.add_parser(
+        "show",
+        help="Show details of a Beads issue",
+    )
+    show_parser.add_argument(
+        "issue_id",
+        help="Issue ID (e.g., bd-abc1234)",
+    )
+    show_parser.add_argument(root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"])
+    show_parser.set_defaults(func=cmd_beads_show)
+
+    # beads process
+    process_parser = beads_subparsers.add_parser(
+        "process",
+        help="Process a Beads issue through ASP planning",
+    )
+    process_parser.add_argument(
+        "issue_id",
+        help="Issue ID to process (e.g., bd-abc1234)",
+    )
+    process_parser.add_argument(root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"])
+    process_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be done without executing",
+    )
+    process_parser.add_argument(
+        "--output", "-o",
+        help="Path to save the generated plan JSON",
+    )
+    process_parser.set_defaults(func=cmd_beads_process)
+
+    # Set default handler for just "beads" with no subcommand
+    def beads_help(args):
+        beads_parser.print_help()
+
+    beads_parser.set_defaults(func=beads_help)
+
+    return beads_parser

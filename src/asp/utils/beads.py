@@ -70,6 +70,18 @@ class BeadsIssue(BaseModel):
         extra = "allow"  # Allow extra fields since the schema might evolve
 
 
+def generate_beads_id() -> str:
+    """
+    Generate a unique Beads-style ID (bd-{7-char-hex}).
+
+    Uses SHA256 hash of UUID4 for uniqueness.
+    7-char hex provides 268M unique values, avoiding birthday collisions.
+    """
+    uid = str(uuid.uuid4())
+    hash_digest = hashlib.sha256(uid.encode()).hexdigest()
+    return f"bd-{hash_digest[:7]}"
+
+
 def get_beads_directory(root_path: Path = Path(".")) -> Path:
     return root_path / ".beads"
 
@@ -138,13 +150,8 @@ def create_issue(
     Actually, to be safe and avoid collisions if `bd` is used, we should try to use `bd` CLI if available.
     But for this Python implementation, we'll try to emulate hash-based IDs.
     """
-    # Generate a short hash ID similar to beads v0.20.1+
-    # "bd-" + 4-6 chars of hash
-    uid = str(uuid.uuid4())
-    hash_object = hashlib.sha256(uid.encode())
-    hex_dig = hash_object.hexdigest()
-    short_hash = hex_dig[:5]  # 5 chars seems safe enough for small lists
-    issue_id = f"bd-{short_hash}"
+    # Generate a hash-based ID
+    issue_id = generate_beads_id()
 
     now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
