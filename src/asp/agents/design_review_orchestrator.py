@@ -34,6 +34,7 @@ from asp.models.design_review import (
     ImprovementSuggestion,
 )
 from asp.telemetry.telemetry import track_agent_cost
+from asp.utils.id_generation import generate_improvement_id, generate_issue_id
 
 logger = logging.getLogger(__name__)
 
@@ -452,12 +453,12 @@ class DesignReviewOrchestrator(BaseAgent):
         # Deduplicate issues (simple approach: by evidence similarity)
         deduplicated_issues = self._deduplicate_issues(all_issues)
 
-        # Standardize issue IDs (overwrite specialist-assigned IDs with canonical format)
+        # Standardize issue IDs (overwrite specialist-assigned IDs with hash-based format)
         # Create mapping from old IDs to new IDs
         issue_id_mapping = {}
-        for i, issue in enumerate(deduplicated_issues, 1):
+        for issue in deduplicated_issues:
             old_id = issue.get("issue_id")
-            new_id = f"ISSUE-{i:03d}"
+            new_id = generate_issue_id()  # e.g., 'issue-a3f42bc'
             if old_id:
                 issue_id_mapping[old_id] = new_id
             issue["issue_id"] = new_id
@@ -466,15 +467,15 @@ class DesignReviewOrchestrator(BaseAgent):
         deduplicated_suggestions = self._deduplicate_suggestions(all_suggestions)
 
         # Standardize suggestion IDs and update related_issue_ids
-        for i, suggestion in enumerate(deduplicated_suggestions, 1):
-            suggestion["suggestion_id"] = f"IMPROVE-{i:03d}"
+        for suggestion in deduplicated_suggestions:
+            suggestion["suggestion_id"] = generate_improvement_id()  # e.g., 'improve-b7c91de'
 
-            # Update related_issue_id to use canonical ISSUE-### format
+            # Update related_issue_id to use new hash-based format
             if "related_issue_id" in suggestion and suggestion["related_issue_id"]:
                 old_issue_id = suggestion["related_issue_id"]
                 if old_issue_id in issue_id_mapping:
                     suggestion["related_issue_id"] = issue_id_mapping[old_issue_id]
-                elif not old_issue_id.startswith("ISSUE-"):
+                else:
                     # Try to find matching issue by looking for any with same prefix
                     prefix = old_issue_id.split("-")[0]
                     for old_id, new_id in issue_id_mapping.items():
@@ -488,8 +489,8 @@ class DesignReviewOrchestrator(BaseAgent):
                 for old_id in suggestion["related_issue_ids"]:
                     if old_id:  # Skip None/empty values
                         new_id = issue_id_mapping.get(old_id, old_id)
-                        # Only include if it matches ISSUE-### format and is not None
-                        if new_id and new_id.startswith("ISSUE-"):
+                        # Only include if mapped to new format
+                        if new_id and new_id.startswith("issue-"):
                             updated_ids.append(new_id)
                 suggestion["related_issue_ids"] = updated_ids
 

@@ -10,6 +10,24 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from asp.utils.id_generation import (
+    IMPROVEMENT_ID_PATTERN,
+    ISSUE_ID_PATTERN,
+    LEGACY_IMPROVEMENT_PATTERN,
+    LEGACY_ISSUE_PATTERN,
+    is_legacy_id,
+    is_valid_hash_id,
+)
+
+# Combined patterns accept both legacy (ISSUE-001) and new (issue-a3f42bc) formats
+# Need explicit anchors since Pydantic does search matching, not fullmatch
+_ISSUE_COMBINED_PATTERN = (
+    rf"^({ISSUE_ID_PATTERN[1:-1]}|{LEGACY_ISSUE_PATTERN[1:-1]})$"
+)
+_IMPROVEMENT_COMBINED_PATTERN = (
+    rf"^({IMPROVEMENT_ID_PATTERN[1:-1]}|{LEGACY_IMPROVEMENT_PATTERN[1:-1]})$"
+)
+
 
 class DesignIssue(BaseModel):
     """
@@ -20,8 +38,8 @@ class DesignIssue(BaseModel):
 
     issue_id: str = Field(
         ...,
-        description="Unique identifier for the issue (e.g., 'ISSUE-001')",
-        pattern=r"^ISSUE-\d{3}$",
+        description="Unique identifier for the issue (e.g., 'issue-a3f42bc' or legacy 'ISSUE-001')",
+        pattern=_ISSUE_COMBINED_PATTERN,
     )
     category: Literal[
         "Security",
@@ -74,16 +92,22 @@ class DesignIssue(BaseModel):
     @field_validator("issue_id")
     @classmethod
     def validate_issue_id(cls, v: str) -> str:
-        """Validate issue ID format."""
-        if not v.startswith("ISSUE-"):
-            raise ValueError("Issue ID must start with 'ISSUE-'")
-        try:
-            num = int(v.split("-")[1])
-            if num < 1 or num > 999:
-                raise ValueError("Issue number must be between 001 and 999")
-        except (IndexError, ValueError) as e:
-            raise ValueError(f"Invalid issue ID format: {e}") from e
-        return v
+        """Validate issue ID format (accepts both new hash and legacy formats)."""
+        # Accept new hash-based format
+        if is_valid_hash_id(v, prefix="issue"):
+            return v
+        # Accept legacy format
+        if v.startswith("ISSUE-"):
+            try:
+                num = int(v.split("-")[1])
+                if num < 1 or num > 999:
+                    raise ValueError("Issue number must be between 001 and 999")
+                return v
+            except (IndexError, ValueError) as e:
+                raise ValueError(f"Invalid legacy issue ID format: {e}") from e
+        raise ValueError(
+            "Issue ID must be 'issue-{7-char-hex}' or legacy 'ISSUE-XXX' format"
+        )
 
     class Config:
         json_schema_extra = {
@@ -108,13 +132,13 @@ class ImprovementSuggestion(BaseModel):
 
     suggestion_id: str = Field(
         ...,
-        description="Unique identifier for the suggestion (e.g., 'IMPROVE-001')",
-        pattern=r"^IMPROVE-\d{3}$",
+        description="Unique identifier for the suggestion (e.g., 'improve-a3f42bc' or legacy 'IMPROVE-001')",
+        pattern=_IMPROVEMENT_COMBINED_PATTERN,
     )
     related_issue_id: str | None = Field(
         None,
         description="Issue ID this suggestion addresses (if applicable)",
-        pattern=r"^ISSUE-\d{3}$",
+        pattern=_ISSUE_COMBINED_PATTERN,
     )
     category: Literal[
         "Security",
@@ -150,24 +174,38 @@ class ImprovementSuggestion(BaseModel):
     @field_validator("suggestion_id")
     @classmethod
     def validate_suggestion_id(cls, v: str) -> str:
-        """Validate suggestion ID format."""
-        if not v.startswith("IMPROVE-"):
-            raise ValueError("Suggestion ID must start with 'IMPROVE-'")
-        try:
-            num = int(v.split("-")[1])
-            if num < 1 or num > 999:
-                raise ValueError("Suggestion number must be between 001 and 999")
-        except (IndexError, ValueError) as e:
-            raise ValueError(f"Invalid suggestion ID format: {e}") from e
-        return v
+        """Validate suggestion ID format (accepts both new hash and legacy formats)."""
+        # Accept new hash-based format
+        if is_valid_hash_id(v, prefix="improve"):
+            return v
+        # Accept legacy format
+        if v.startswith("IMPROVE-"):
+            try:
+                num = int(v.split("-")[1])
+                if num < 1 or num > 999:
+                    raise ValueError("Suggestion number must be between 001 and 999")
+                return v
+            except (IndexError, ValueError) as e:
+                raise ValueError(f"Invalid legacy suggestion ID format: {e}") from e
+        raise ValueError(
+            "Suggestion ID must be 'improve-{7-char-hex}' or legacy 'IMPROVE-XXX' format"
+        )
 
     @field_validator("related_issue_id")
     @classmethod
     def validate_related_issue_id(cls, v: str | None) -> str | None:
-        """Validate related issue ID format."""
-        if v is not None and not v.startswith("ISSUE-"):
-            raise ValueError("Related issue ID must start with 'ISSUE-'")
-        return v
+        """Validate related issue ID format (accepts both new hash and legacy formats)."""
+        if v is None:
+            return v
+        # Accept new hash-based format
+        if is_valid_hash_id(v, prefix="issue"):
+            return v
+        # Accept legacy format
+        if v.startswith("ISSUE-"):
+            return v
+        raise ValueError(
+            "Related issue ID must be 'issue-{7-char-hex}' or legacy 'ISSUE-XXX' format"
+        )
 
     class Config:
         json_schema_extra = {
@@ -225,10 +263,16 @@ class ChecklistItemReview(BaseModel):
     @field_validator("related_issues")
     @classmethod
     def validate_related_issues(cls, v: list[str]) -> list[str]:
-        """Validate related issue IDs format."""
+        """Validate related issue IDs format (accepts both new hash and legacy formats)."""
         for issue_id in v:
-            if not issue_id.startswith("ISSUE-"):
-                raise ValueError(f"Invalid issue ID format: {issue_id}")
+            if not (
+                is_valid_hash_id(issue_id, prefix="issue")
+                or issue_id.startswith("ISSUE-")
+            ):
+                raise ValueError(
+                    f"Invalid issue ID format: {issue_id}. "
+                    "Must be 'issue-{{7-char-hex}}' or legacy 'ISSUE-XXX'"
+                )
         return v
 
     class Config:
