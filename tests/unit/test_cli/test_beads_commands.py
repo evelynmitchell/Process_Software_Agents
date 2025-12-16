@@ -210,6 +210,109 @@ class TestBeadsProcess:
             assert "already closed" in captured.err
 
 
+class TestBeadsSync:
+    """Tests for beads sync command."""
+
+    def test_sync_dry_run(self, capsys, tmp_path):
+        """Sync --dry-run shows what would be created."""
+        import json
+        from asp.cli.beads_commands import cmd_beads_sync
+
+        # Create a sample plan file
+        plan_data = {
+            "task_id": "TEST-SYNC",
+            "semantic_units": [
+                {
+                    "unit_id": "su-a000001",
+                    "description": "Test unit for sync",
+                    "api_interactions": 1,
+                    "data_transformations": 1,
+                    "logical_branches": 1,
+                    "code_entities_modified": 1,
+                    "novelty_multiplier": 1.0,
+                    "est_complexity": 10,
+                },
+            ],
+            "total_est_complexity": 10,
+        }
+        plan_file = tmp_path / "plan.json"
+        plan_file.write_text(json.dumps(plan_data))
+
+        args = argparse.Namespace(
+            root=str(tmp_path),
+            plan_file=str(plan_file),
+            dry_run=True,
+            no_epic=False,
+            update=False,
+            list_after=False,
+        )
+        cmd_beads_sync(args)
+
+        captured = capsys.readouterr()
+        assert "Dry Run" in captured.out
+        assert "epic-TEST-SYNC" in captured.out
+        assert "su-a000001" in captured.out
+
+    def test_sync_creates_issues(self, tmp_path):
+        """Sync creates beads issues from plan."""
+        import json
+        from asp.cli.beads_commands import cmd_beads_sync
+        from asp.utils.beads import read_issues
+
+        plan_data = {
+            "task_id": "TEST-SYNC-2",
+            "semantic_units": [
+                {
+                    "unit_id": "su-b000002",
+                    "description": "Another test unit",
+                    "api_interactions": 2,
+                    "data_transformations": 2,
+                    "logical_branches": 2,
+                    "code_entities_modified": 2,
+                    "novelty_multiplier": 1.0,
+                    "est_complexity": 15,
+                },
+            ],
+            "total_est_complexity": 15,
+        }
+        plan_file = tmp_path / "plan.json"
+        plan_file.write_text(json.dumps(plan_data))
+
+        args = argparse.Namespace(
+            root=str(tmp_path),
+            plan_file=str(plan_file),
+            dry_run=False,
+            no_epic=False,
+            update=False,
+            list_after=False,
+        )
+        cmd_beads_sync(args)
+
+        # Verify issues created
+        issues = read_issues(tmp_path)
+        assert len(issues) == 2  # epic + 1 task
+
+    def test_sync_file_not_found(self, capsys, tmp_path):
+        """Sync exits with error for missing file."""
+        from asp.cli.beads_commands import cmd_beads_sync
+
+        args = argparse.Namespace(
+            root=str(tmp_path),
+            plan_file="/nonexistent/plan.json",
+            dry_run=False,
+            no_epic=False,
+            update=False,
+            list_after=False,
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_beads_sync(args)
+
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "not found" in captured.err
+
+
 class TestAddBeadsSubparser:
     """Tests for subparser integration."""
 
@@ -237,3 +340,17 @@ class TestAddBeadsSubparser:
         args = parser.parse_args(["beads", "process", "bd-test123", "--dry-run"])
         assert args.issue_id == "bd-test123"
         assert args.dry_run is True
+
+    def test_beads_sync_has_required_args(self):
+        """beads sync requires plan_file argument."""
+        from asp.cli.beads_commands import add_beads_subparser
+
+        parser = argparse.ArgumentParser()
+        subparsers = parser.add_subparsers()
+        add_beads_subparser(subparsers)
+
+        # Parse beads sync with plan_file
+        args = parser.parse_args(["beads", "sync", "plan.json", "--dry-run", "--no-epic"])
+        assert args.plan_file == "plan.json"
+        assert args.dry_run is True
+        assert args.no_epic is True

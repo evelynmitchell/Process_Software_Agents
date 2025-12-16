@@ -3,12 +3,15 @@ Beads CLI Commands - Integration with Beads issue tracking.
 
 Provides commands for:
 - beads list: List open Beads issues
+- beads show: Show issue details
 - beads process: Process a Beads issue through ASP planning
+- beads sync: Sync an ASP plan to Beads issues
 
 Usage:
     python -m asp.cli beads list
     python -m asp.cli beads process bd-abc1234
     python -m asp.cli beads process bd-abc1234 --dry-run
+    python -m asp.cli beads sync artifacts/TASK-001/plan.json
 
 See ADR 009 for architecture details.
 """
@@ -167,6 +170,72 @@ def cmd_beads_show(args):
         print(f"Updated: {issue.updated_at}")
 
 
+def cmd_beads_sync(args):
+    """
+    Sync an ASP plan to Beads issues.
+
+    Creates Beads issues from semantic units in a ProjectPlan,
+    with an optional epic to group them.
+    """
+    import json
+
+    from asp.models.planning import ProjectPlan
+    from asp.utils.beads_sync import sync_plan_to_beads
+
+    root_path = Path(args.root) if args.root else Path(".")
+    plan_path = Path(args.plan_file)
+
+    if not plan_path.exists():
+        print(f"Error: Plan file not found: {plan_path}", file=sys.stderr)
+        sys.exit(1)
+
+    # Load the plan
+    try:
+        with open(plan_path, "r", encoding="utf-8") as f:
+            plan_data = json.load(f)
+        plan = ProjectPlan.model_validate(plan_data)
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in plan file: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: Failed to parse plan: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Syncing plan: {plan.task_id}")
+    print(f"  Semantic units: {len(plan.semantic_units)}")
+    print(f"  Total complexity: {plan.total_est_complexity}")
+    print()
+
+    if args.dry_run:
+        print("[Dry Run] Would create:")
+        if not args.no_epic:
+            print(f"  Epic: epic-{plan.task_id}")
+        for unit in plan.semantic_units:
+            print(f"  Task: {unit.unit_id} - {unit.description[:50]}...")
+        return
+
+    # Sync to beads
+    created = sync_plan_to_beads(
+        plan,
+        create_epic=not args.no_epic,
+        update_existing=args.update,
+        root_path=root_path,
+    )
+
+    print(f"Synced {len(created)} issues to Beads:")
+    for issue in created:
+        print(f"  [{issue.id}] {issue.title[:50]}...")
+
+    if args.list_after:
+        print("\n--- Current Beads Issues ---")
+        from asp.utils.beads import read_issues
+        all_issues = read_issues(root_path)
+        task_label = f"task-{plan.task_id}"
+        plan_issues = [i for i in all_issues if task_label in i.labels]
+        for issue in plan_issues:
+            print(f"  [{issue.id}] [{issue.status.value}] {issue.title}")
+
+
 def add_beads_subparser(subparsers):
     """Add beads subcommand and its sub-subcommands to the parser."""
     beads_parser = subparsers.add_parser(
@@ -238,6 +307,38 @@ def add_beads_subparser(subparsers):
         help="Path to save the generated plan JSON",
     )
     process_parser.set_defaults(func=cmd_beads_process)
+
+    # beads sync (Phase 3: Auto-sync plans to Beads)
+    sync_parser = beads_subparsers.add_parser(
+        "sync",
+        help="Sync an ASP plan to Beads issues",
+    )
+    sync_parser.add_argument(
+        "plan_file",
+        help="Path to plan JSON file (e.g., artifacts/TASK-001/plan.json)",
+    )
+    sync_parser.add_argument(root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"])
+    sync_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be created without syncing",
+    )
+    sync_parser.add_argument(
+        "--no-epic",
+        action="store_true",
+        help="Don't create an epic issue for the plan",
+    )
+    sync_parser.add_argument(
+        "--update",
+        action="store_true",
+        help="Update existing issues if they exist",
+    )
+    sync_parser.add_argument(
+        "--list-after",
+        action="store_true",
+        help="List plan issues after syncing",
+    )
+    sync_parser.set_defaults(func=cmd_beads_sync)
 
     # Set default handler for just "beads" with no subcommand
     def beads_help(args):
