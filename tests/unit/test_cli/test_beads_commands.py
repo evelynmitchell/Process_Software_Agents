@@ -354,3 +354,210 @@ class TestAddBeadsSubparser:
         assert args.plan_file == "plan.json"
         assert args.dry_run is True
         assert args.no_epic is True
+
+    def test_beads_push_has_options(self):
+        """beads push accepts repo and project options."""
+        from asp.cli.beads_commands import add_beads_subparser
+
+        parser = argparse.ArgumentParser()
+        subparsers = parser.add_subparsers()
+        add_beads_subparser(subparsers)
+
+        args = parser.parse_args([
+            "beads", "push",
+            "--repo", "owner/repo",
+            "--project", "1",
+            "--dry-run",
+        ])
+        assert args.repo == "owner/repo"
+        assert args.project == "1"
+        assert args.dry_run is True
+
+    def test_beads_pull_has_options(self):
+        """beads pull accepts various filter options."""
+        from asp.cli.beads_commands import add_beads_subparser
+
+        parser = argparse.ArgumentParser()
+        subparsers = parser.add_subparsers()
+        add_beads_subparser(subparsers)
+
+        args = parser.parse_args([
+            "beads", "pull",
+            "--issue", "42",
+            "--label", "bug",
+            "--state", "closed",
+            "--dry-run",
+        ])
+        assert args.issue == 42
+        assert args.label == "bug"
+        assert args.state == "closed"
+        assert args.dry_run is True
+
+    def test_beads_gh_sync_has_options(self):
+        """beads gh-sync accepts conflict strategy option."""
+        from asp.cli.beads_commands import add_beads_subparser
+
+        parser = argparse.ArgumentParser()
+        subparsers = parser.add_subparsers()
+        add_beads_subparser(subparsers)
+
+        args = parser.parse_args([
+            "beads", "gh-sync",
+            "--conflict", "remote-wins",
+            "--dry-run",
+        ])
+        assert args.conflict == "remote-wins"
+        assert args.dry_run is True
+
+
+class TestBeadsPush:
+    """Tests for beads push command."""
+
+    @mock.patch("asp.utils.github_sync.verify_gh_cli")
+    @mock.patch("asp.utils.github_sync.push_to_github")
+    def test_push_dry_run(self, mock_push, mock_verify, capsys, tmp_path):
+        """Push --dry-run shows what would be created."""
+        from asp.cli.beads_commands import cmd_beads_push
+
+        mock_verify.return_value = True
+        mock_push.return_value = ["(dry-run) bd-test123"]
+
+        issues = [
+            BeadsIssue(id="bd-test123", title="Test issue"),
+        ]
+        write_issues(issues, tmp_path)
+
+        args = argparse.Namespace(
+            root=str(tmp_path),
+            repo="owner/repo",
+            project=None,
+            dry_run=True,
+        )
+        cmd_beads_push(args)
+
+        captured = capsys.readouterr()
+        assert "Would create" in captured.out
+        mock_push.assert_called_once()
+
+    @mock.patch("asp.utils.github_sync.verify_gh_cli")
+    def test_push_fails_without_gh(self, mock_verify, capsys):
+        """Push exits with error when gh CLI not available."""
+        from asp.cli.beads_commands import cmd_beads_push
+
+        mock_verify.return_value = False
+
+        args = argparse.Namespace(
+            root=".",
+            repo=None,
+            project=None,
+            dry_run=True,
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_beads_push(args)
+
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "GitHub CLI" in captured.err
+
+
+class TestBeadsPull:
+    """Tests for beads pull command."""
+
+    @mock.patch("asp.utils.github_sync.verify_gh_cli")
+    @mock.patch("asp.utils.github_sync.pull_from_github")
+    def test_pull_dry_run(self, mock_pull, mock_verify, capsys, tmp_path):
+        """Pull --dry-run shows what would be imported."""
+        from asp.cli.beads_commands import cmd_beads_pull
+
+        mock_verify.return_value = True
+        mock_pull.return_value = [
+            BeadsIssue(id="(dry-run-42)", title="GitHub issue"),
+        ]
+
+        args = argparse.Namespace(
+            root=str(tmp_path),
+            repo="owner/repo",
+            issue=42,
+            label=None,
+            state="open",
+            dry_run=True,
+        )
+        cmd_beads_pull(args)
+
+        captured = capsys.readouterr()
+        assert "Would import" in captured.out
+        mock_pull.assert_called_once()
+
+    @mock.patch("asp.utils.github_sync.verify_gh_cli")
+    def test_pull_fails_without_gh(self, mock_verify, capsys):
+        """Pull exits with error when gh CLI not available."""
+        from asp.cli.beads_commands import cmd_beads_pull
+
+        mock_verify.return_value = False
+
+        args = argparse.Namespace(
+            root=".",
+            repo=None,
+            issue=None,
+            label=None,
+            state="open",
+            dry_run=True,
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_beads_pull(args)
+
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "GitHub CLI" in captured.err
+
+
+class TestBeadsGhSync:
+    """Tests for beads gh-sync command."""
+
+    @mock.patch("asp.utils.github_sync.verify_gh_cli")
+    @mock.patch("asp.utils.github_sync.sync_github")
+    def test_gh_sync_dry_run(self, mock_sync, mock_verify, capsys, tmp_path):
+        """gh-sync --dry-run shows what would happen."""
+        from asp.cli.beads_commands import cmd_beads_gh_sync
+
+        mock_verify.return_value = True
+        mock_sync.return_value = {"imported": 2, "exported": 1, "conflicts": 0, "skipped": 0}
+
+        args = argparse.Namespace(
+            root=str(tmp_path),
+            repo="owner/repo",
+            project=None,
+            conflict="local-wins",
+            dry_run=True,
+        )
+        cmd_beads_gh_sync(args)
+
+        captured = capsys.readouterr()
+        assert "Sync Summary" in captured.out
+        assert "Imported from GitHub: 2" in captured.out
+        assert "Exported to GitHub: 1" in captured.out
+        mock_sync.assert_called_once()
+
+    @mock.patch("asp.utils.github_sync.verify_gh_cli")
+    def test_gh_sync_fails_without_gh(self, mock_verify, capsys):
+        """gh-sync exits with error when gh CLI not available."""
+        from asp.cli.beads_commands import cmd_beads_gh_sync
+
+        mock_verify.return_value = False
+
+        args = argparse.Namespace(
+            root=".",
+            repo=None,
+            project=None,
+            conflict="local-wins",
+            dry_run=True,
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_beads_gh_sync(args)
+
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "GitHub CLI" in captured.err

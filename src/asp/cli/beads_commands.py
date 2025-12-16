@@ -6,12 +6,18 @@ Provides commands for:
 - beads show: Show issue details
 - beads process: Process a Beads issue through ASP planning
 - beads sync: Sync an ASP plan to Beads issues
+- beads push: Export Beads issues to GitHub Issues
+- beads pull: Import GitHub Issues to Beads
+- beads gh-sync: Bidirectional GitHub sync
 
 Usage:
     python -m asp.cli beads list
     python -m asp.cli beads process bd-abc1234
     python -m asp.cli beads process bd-abc1234 --dry-run
     python -m asp.cli beads sync artifacts/TASK-001/plan.json
+    python -m asp.cli beads push --repo owner/repo
+    python -m asp.cli beads pull --issue 42
+    python -m asp.cli beads gh-sync
 
 See ADR 009 for architecture details.
 """
@@ -236,6 +242,118 @@ def cmd_beads_sync(args):
             print(f"  [{issue.id}] [{issue.status.value}] {issue.title}")
 
 
+def cmd_beads_push(args):
+    """
+    Push Beads issues to GitHub Issues.
+
+    Creates GitHub Issues for Beads issues that haven't been synced yet.
+    """
+    from asp.utils.github_sync import push_to_github, verify_gh_cli
+
+    if not verify_gh_cli():
+        print("Error: GitHub CLI (gh) not found or not authenticated.", file=sys.stderr)
+        print("Install: https://cli.github.com/", file=sys.stderr)
+        print("Then run: gh auth login", file=sys.stderr)
+        sys.exit(1)
+
+    root_path = Path(args.root) if args.root else Path(".")
+
+    print("Pushing Beads issues to GitHub...")
+    if args.dry_run:
+        print("[Dry Run]")
+
+    created = push_to_github(
+        repo=args.repo,
+        project=args.project,
+        dry_run=args.dry_run,
+        root_path=root_path,
+    )
+
+    if not created:
+        print("No new issues to push (all are synced or closed).")
+        return
+
+    print(f"\n{'Would create' if args.dry_run else 'Created'} {len(created)} GitHub issues:")
+    for url in created:
+        print(f"  {url}")
+
+
+def cmd_beads_pull(args):
+    """
+    Pull GitHub Issues into Beads.
+
+    Imports GitHub Issues that haven't been imported yet.
+    """
+    from asp.utils.github_sync import pull_from_github, verify_gh_cli
+
+    if not verify_gh_cli():
+        print("Error: GitHub CLI (gh) not found or not authenticated.", file=sys.stderr)
+        print("Install: https://cli.github.com/", file=sys.stderr)
+        print("Then run: gh auth login", file=sys.stderr)
+        sys.exit(1)
+
+    root_path = Path(args.root) if args.root else Path(".")
+
+    print("Pulling GitHub Issues into Beads...")
+    if args.dry_run:
+        print("[Dry Run]")
+
+    imported = pull_from_github(
+        repo=args.repo,
+        issue_number=args.issue,
+        label_filter=args.label,
+        state=args.state,
+        dry_run=args.dry_run,
+        root_path=root_path,
+    )
+
+    if not imported:
+        print("No new issues to import.")
+        return
+
+    print(f"\n{'Would import' if args.dry_run else 'Imported'} {len(imported)} issues:")
+    for issue in imported:
+        print(f"  [{issue.id}] {issue.title}")
+
+
+def cmd_beads_gh_sync(args):
+    """
+    Bidirectional sync between Beads and GitHub.
+
+    Imports new GitHub issues, exports new Beads issues, and optionally
+    resolves conflicts between linked issues.
+    """
+    from asp.utils.github_sync import sync_github, verify_gh_cli
+
+    if not verify_gh_cli():
+        print("Error: GitHub CLI (gh) not found or not authenticated.", file=sys.stderr)
+        print("Install: https://cli.github.com/", file=sys.stderr)
+        print("Then run: gh auth login", file=sys.stderr)
+        sys.exit(1)
+
+    root_path = Path(args.root) if args.root else Path(".")
+
+    print("Syncing Beads with GitHub...")
+    print(f"Conflict strategy: {args.conflict}")
+    if args.dry_run:
+        print("[Dry Run]")
+    print()
+
+    stats = sync_github(
+        repo=args.repo,
+        project=args.project,
+        conflict_strategy=args.conflict,
+        dry_run=args.dry_run,
+        root_path=root_path,
+    )
+
+    print("\n--- Sync Summary ---")
+    print(f"Imported from GitHub: {stats['imported']}")
+    print(f"Exported to GitHub: {stats['exported']}")
+    if not args.dry_run:
+        print(f"Conflicts resolved: {stats['conflicts']}")
+
+
 def add_beads_subparser(subparsers):
     """Add beads subcommand and its sub-subcommands to the parser."""
     beads_parser = subparsers.add_parser(
@@ -339,6 +457,86 @@ def add_beads_subparser(subparsers):
         help="List plan issues after syncing",
     )
     sync_parser.set_defaults(func=cmd_beads_sync)
+
+    # beads push (Phase 4: GitHub sync)
+    push_parser = beads_subparsers.add_parser(
+        "push",
+        help="Push Beads issues to GitHub Issues",
+    )
+    push_parser.add_argument(root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"])
+    push_parser.add_argument(
+        "--repo",
+        help="GitHub repo (owner/name). Auto-detected if not specified.",
+    )
+    push_parser.add_argument(
+        "--project",
+        help="GitHub Project number to add issues to.",
+    )
+    push_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be created without pushing",
+    )
+    push_parser.set_defaults(func=cmd_beads_push)
+
+    # beads pull (Phase 4: GitHub sync)
+    pull_parser = beads_subparsers.add_parser(
+        "pull",
+        help="Pull GitHub Issues into Beads",
+    )
+    pull_parser.add_argument(root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"])
+    pull_parser.add_argument(
+        "--repo",
+        help="GitHub repo (owner/name). Auto-detected if not specified.",
+    )
+    pull_parser.add_argument(
+        "--issue", "-i",
+        type=int,
+        help="Specific issue number to import.",
+    )
+    pull_parser.add_argument(
+        "--label", "-l",
+        help="Only import issues with this label.",
+    )
+    pull_parser.add_argument(
+        "--state", "-s",
+        choices=["open", "closed", "all"],
+        default="open",
+        help="Issue state filter (default: open).",
+    )
+    pull_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be imported without creating",
+    )
+    pull_parser.set_defaults(func=cmd_beads_pull)
+
+    # beads gh-sync (Phase 4: GitHub sync)
+    gh_sync_parser = beads_subparsers.add_parser(
+        "gh-sync",
+        help="Bidirectional sync between Beads and GitHub",
+    )
+    gh_sync_parser.add_argument(root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"])
+    gh_sync_parser.add_argument(
+        "--repo",
+        help="GitHub repo (owner/name). Auto-detected if not specified.",
+    )
+    gh_sync_parser.add_argument(
+        "--project",
+        help="GitHub Project number to add new issues to.",
+    )
+    gh_sync_parser.add_argument(
+        "--conflict",
+        choices=["local-wins", "remote-wins", "skip"],
+        default="local-wins",
+        help="Conflict resolution strategy (default: local-wins).",
+    )
+    gh_sync_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would happen without making changes",
+    )
+    gh_sync_parser.set_defaults(func=cmd_beads_gh_sync)
 
     # Set default handler for just "beads" with no subcommand
     def beads_help(args):
