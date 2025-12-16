@@ -468,7 +468,9 @@ class DesignReviewOrchestrator(BaseAgent):
 
         # Standardize suggestion IDs and update related_issue_ids
         for suggestion in deduplicated_suggestions:
-            suggestion["suggestion_id"] = generate_improvement_id()  # e.g., 'improve-b7c91de'
+            suggestion["suggestion_id"] = (
+                generate_improvement_id()
+            )  # e.g., 'improve-b7c91de'
 
             # Update related_issue_id to use new hash-based format
             if "related_issue_id" in suggestion and suggestion["related_issue_id"]:

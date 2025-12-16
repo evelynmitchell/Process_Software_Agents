@@ -12,10 +12,9 @@ import hashlib
 import json
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -41,21 +40,22 @@ class BeadsIssue(BaseModel):
     Represents a single issue in the Beads system.
     Matches the schema found in .beads/issues.jsonl
     """
+
     id: str
     title: str
-    description: Optional[str] = ""
+    description: str | None = ""
     status: BeadsStatus = BeadsStatus.OPEN
     priority: int = 2  # 0=Highest, 4=Lowest
     type: BeadsType = BeadsType.TASK
-    assignee: Optional[str] = None
-    labels: List[str] = Field(default_factory=list)
+    assignee: str | None = None
+    labels: list[str] = Field(default_factory=list)
 
     # Timestamps are usually strings in ISO format in JSONL
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
-    closed_at: Optional[str] = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    closed_at: str | None = None
 
-    source_repo: Optional[str] = None
+    source_repo: str | None = None
 
     # Dependencies are stored as a list of strings (IDs) or objects in some versions.
     # The README says "four dependency types".
@@ -63,8 +63,7 @@ class BeadsIssue(BaseModel):
     # Let's assume for now we might see a list of IDs in a simple field or we need to parse relations.
     # Looking at the README, `bd dep add` adds a dependency.
     # Let's keep it flexible for now.
-    parent_id: Optional[str] = None
-
+    parent_id: str | None = None
 
     class Config:
         extra = "allow"  # Allow extra fields since the schema might evolve
@@ -90,7 +89,7 @@ def get_issues_file(root_path: Path = Path(".")) -> Path:
     return get_beads_directory(root_path) / "issues.jsonl"
 
 
-def read_issues(root_path: Path = Path(".")) -> List[BeadsIssue]:
+def read_issues(root_path: Path = Path(".")) -> list[BeadsIssue]:
     """
     Reads all issues from .beads/issues.jsonl
     """
@@ -100,7 +99,7 @@ def read_issues(root_path: Path = Path(".")) -> List[BeadsIssue]:
 
     issues = []
     try:
-        with open(issues_file, "r", encoding="utf-8") as f:
+        with open(issues_file, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line:
@@ -122,7 +121,7 @@ def read_issues(root_path: Path = Path(".")) -> List[BeadsIssue]:
     return issues
 
 
-def write_issues(issues: List[BeadsIssue], root_path: Path = Path(".")) -> None:
+def write_issues(issues: list[BeadsIssue], root_path: Path = Path(".")) -> None:
     """
     Writes a list of issues to .beads/issues.jsonl
     """
@@ -139,7 +138,7 @@ def create_issue(
     description: str = "",
     priority: int = 2,
     issue_type: BeadsType = BeadsType.TASK,
-    root_path: Path = Path(".")
+    root_path: Path = Path("."),
 ) -> BeadsIssue:
     """
     Creates a new issue and appends it to the file.
@@ -153,7 +152,7 @@ def create_issue(
     # Generate a hash-based ID
     issue_id = generate_beads_id()
 
-    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
     issue = BeadsIssue(
         id=issue_id,
@@ -163,7 +162,7 @@ def create_issue(
         type=issue_type,
         created_at=now,
         updated_at=now,
-        status=BeadsStatus.OPEN
+        status=BeadsStatus.OPEN,
     )
 
     # Append to file (read-modify-write is safer to ensure we don't overwrite concurrent writes roughly)

@@ -1,8 +1,6 @@
 """Tests for asp.cli.beads_commands module."""
 
 import argparse
-import io
-import sys
 import tempfile
 from pathlib import Path
 from unittest import mock
@@ -22,8 +20,12 @@ class TestBeadsList:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             issues = [
-                BeadsIssue(id="bd-0000001", title="Open issue", status=BeadsStatus.OPEN),
-                BeadsIssue(id="bd-0000002", title="Closed issue", status=BeadsStatus.CLOSED),
+                BeadsIssue(
+                    id="bd-0000001", title="Open issue", status=BeadsStatus.OPEN
+                ),
+                BeadsIssue(
+                    id="bd-0000002", title="Closed issue", status=BeadsStatus.CLOSED
+                ),
             ]
             write_issues(issues, root)
 
@@ -42,8 +44,12 @@ class TestBeadsList:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             issues = [
-                BeadsIssue(id="bd-0000001", title="Open issue", status=BeadsStatus.OPEN),
-                BeadsIssue(id="bd-0000002", title="Closed issue", status=BeadsStatus.CLOSED),
+                BeadsIssue(
+                    id="bd-0000001", title="Open issue", status=BeadsStatus.OPEN
+                ),
+                BeadsIssue(
+                    id="bd-0000002", title="Closed issue", status=BeadsStatus.CLOSED
+                ),
             ]
             write_issues(issues, root)
 
@@ -216,6 +222,7 @@ class TestBeadsSync:
     def test_sync_dry_run(self, capsys, tmp_path):
         """Sync --dry-run shows what would be created."""
         import json
+
         from asp.cli.beads_commands import cmd_beads_sync
 
         # Create a sample plan file
@@ -256,6 +263,7 @@ class TestBeadsSync:
     def test_sync_creates_issues(self, tmp_path):
         """Sync creates beads issues from plan."""
         import json
+
         from asp.cli.beads_commands import cmd_beads_sync
         from asp.utils.beads import read_issues
 
@@ -350,7 +358,9 @@ class TestAddBeadsSubparser:
         add_beads_subparser(subparsers)
 
         # Parse beads sync with plan_file
-        args = parser.parse_args(["beads", "sync", "plan.json", "--dry-run", "--no-epic"])
+        args = parser.parse_args(
+            ["beads", "sync", "plan.json", "--dry-run", "--no-epic"]
+        )
         assert args.plan_file == "plan.json"
         assert args.dry_run is True
         assert args.no_epic is True
@@ -363,12 +373,17 @@ class TestAddBeadsSubparser:
         subparsers = parser.add_subparsers()
         add_beads_subparser(subparsers)
 
-        args = parser.parse_args([
-            "beads", "push",
-            "--repo", "owner/repo",
-            "--project", "1",
-            "--dry-run",
-        ])
+        args = parser.parse_args(
+            [
+                "beads",
+                "push",
+                "--repo",
+                "owner/repo",
+                "--project",
+                "1",
+                "--dry-run",
+            ]
+        )
         assert args.repo == "owner/repo"
         assert args.project == "1"
         assert args.dry_run is True
@@ -381,13 +396,19 @@ class TestAddBeadsSubparser:
         subparsers = parser.add_subparsers()
         add_beads_subparser(subparsers)
 
-        args = parser.parse_args([
-            "beads", "pull",
-            "--issue", "42",
-            "--label", "bug",
-            "--state", "closed",
-            "--dry-run",
-        ])
+        args = parser.parse_args(
+            [
+                "beads",
+                "pull",
+                "--issue",
+                "42",
+                "--label",
+                "bug",
+                "--state",
+                "closed",
+                "--dry-run",
+            ]
+        )
         assert args.issue == 42
         assert args.label == "bug"
         assert args.state == "closed"
@@ -401,11 +422,15 @@ class TestAddBeadsSubparser:
         subparsers = parser.add_subparsers()
         add_beads_subparser(subparsers)
 
-        args = parser.parse_args([
-            "beads", "gh-sync",
-            "--conflict", "remote-wins",
-            "--dry-run",
-        ])
+        args = parser.parse_args(
+            [
+                "beads",
+                "gh-sync",
+                "--conflict",
+                "remote-wins",
+                "--dry-run",
+            ]
+        )
         assert args.conflict == "remote-wins"
         assert args.dry_run is True
 
@@ -523,7 +548,12 @@ class TestBeadsGhSync:
         from asp.cli.beads_commands import cmd_beads_gh_sync
 
         mock_verify.return_value = True
-        mock_sync.return_value = {"imported": 2, "exported": 1, "conflicts": 0, "skipped": 0}
+        mock_sync.return_value = {
+            "imported": 2,
+            "exported": 1,
+            "conflicts": 0,
+            "skipped": 0,
+        }
 
         args = argparse.Namespace(
             root=str(tmp_path),

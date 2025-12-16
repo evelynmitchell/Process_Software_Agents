@@ -474,8 +474,7 @@ def test_aggregate_results_id_normalization():
         for sug in aggregated_suggestions
     )
     assert all(
-        len(sug["suggestion_id"].split("-")[-1]) == 7
-        for sug in aggregated_suggestions
+        len(sug["suggestion_id"].split("-")[-1]) == 7 for sug in aggregated_suggestions
     )
 
     # Verify related_issue_id is updated to mapped issue ID

@@ -8,16 +8,14 @@ See ADR 009 Phase 3 for architecture details.
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 from asp.models.planning import ProjectPlan, SemanticUnit
 from asp.utils.beads import (
     BeadsIssue,
     BeadsStatus,
     BeadsType,
-    generate_beads_id,
     read_issues,
     write_issues,
 )
@@ -163,7 +161,7 @@ def update_unit_status(
     unit_id: str,
     status: BeadsStatus,
     root_path: Path = Path("."),
-) -> Optional[BeadsIssue]:
+) -> BeadsIssue | None:
     """
     Update the status of a semantic unit's Beads issue.
 
@@ -205,7 +203,7 @@ def update_unit_status(
 
 def _now() -> str:
     """Return current time in ISO format."""
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _unit_to_beads_id(unit: SemanticUnit, task_id: str) -> str:

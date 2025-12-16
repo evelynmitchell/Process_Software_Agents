@@ -9,7 +9,8 @@ Phase 2 of ADR 009: Adds "Plan with ASP" button integration.
 import logging
 
 from fasthtml.common import *
-from asp.utils.beads import read_issues, write_issues, BeadsStatus, BeadsType
+
+from asp.utils.beads import BeadsStatus, read_issues, write_issues
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ COLUMNS = {
     BeadsStatus.IN_PROGRESS: "In Progress",
     BeadsStatus.CLOSED: "Done",
 }
+
 
 def IssueCard(issue, show_plan_button: bool = True):
     """
@@ -42,14 +44,22 @@ def IssueCard(issue, show_plan_button: bool = True):
     card_content = [
         Div(
             Span(f"#{issue.id}", cls="text-xs font-mono text-gray-500"),
-            Span(issue.type.value, cls="text-xs px-1 rounded bg-gray-200 text-gray-700 ml-2"),
-            cls="flex justify-between items-center mb-1"
+            Span(
+                issue.type.value,
+                cls="text-xs px-1 rounded bg-gray-200 text-gray-700 ml-2",
+            ),
+            cls="flex justify-between items-center mb-1",
         ),
         H4(issue.title, cls="text-sm font-semibold mb-1"),
         P(issue.description or "", cls="text-xs text-gray-600 line-clamp-3"),
         Div(
-            *[Span(label, cls="text-[10px] bg-blue-100 text-blue-800 px-1 rounded mr-1") for label in issue.labels],
-            cls="mt-2 flex flex-wrap"
+            *[
+                Span(
+                    label, cls="text-[10px] bg-blue-100 text-blue-800 px-1 rounded mr-1"
+                )
+                for label in issue.labels
+            ],
+            cls="mt-2 flex flex-wrap",
         ),
     ]
 
@@ -65,8 +75,12 @@ def IssueCard(issue, show_plan_button: bool = True):
                     hx_indicator=f"#loading-{issue.id}",
                     cls="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 cursor-pointer",
                 ),
-                Span("Processing...", id=f"loading-{issue.id}", cls="htmx-indicator text-xs text-gray-500 ml-2"),
-                cls="mt-2 pt-2 border-t border-gray-200"
+                Span(
+                    "Processing...",
+                    id=f"loading-{issue.id}",
+                    cls="htmx-indicator text-xs text-gray-500 ml-2",
+                ),
+                cls="mt-2 pt-2 border-t border-gray-200",
             )
         )
 
@@ -74,8 +88,9 @@ def IssueCard(issue, show_plan_button: bool = True):
         *card_content,
         id=f"card-{issue.id}",
         cls="bg-white p-3 rounded shadow border-l-4 mb-3 hover:shadow-md transition-shadow",
-        style=f"border-left-color: {border_color};"
+        style=f"border-left-color: {border_color};",
     )
+
 
 def KanbanColumn(status, title, issues):
     """
@@ -84,12 +99,10 @@ def KanbanColumn(status, title, issues):
     column_issues = [i for i in issues if i.status == status]
     return Div(
         H3(f"{title} ({len(column_issues)})", cls="font-bold text-gray-700 mb-3"),
-        Div(
-            *[IssueCard(i) for i in column_issues],
-            cls="space-y-2 min-h-[200px]"
-        ),
-        cls="bg-gray-100 p-4 rounded-lg w-1/3 min-w-[300px] flex-shrink-0"
+        Div(*[IssueCard(i) for i in column_issues], cls="space-y-2 min-h-[200px]"),
+        cls="bg-gray-100 p-4 rounded-lg w-1/3 min-w-[300px] flex-shrink-0",
     )
+
 
 def KanbanBoard():
     """
@@ -100,16 +113,17 @@ def KanbanBoard():
         Div(
             H1("Beads Kanban", cls="text-2xl font-bold text-gray-800"),
             A("Refresh", href="/kanban", cls="text-sm text-blue-600 hover:underline"),
-            cls="flex justify-between items-center mb-6"
+            cls="flex justify-between items-center mb-6",
         ),
         Div(
             KanbanColumn(BeadsStatus.OPEN, "Todo", issues),
             KanbanColumn(BeadsStatus.IN_PROGRESS, "In Progress", issues),
             KanbanColumn(BeadsStatus.CLOSED, "Done", issues),
-            cls="flex gap-4 overflow-x-auto pb-4"
+            cls="flex gap-4 overflow-x-auto pb-4",
         ),
-        cls="p-6 h-full"
+        cls="p-6 h-full",
     )
+
 
 def PlanSuccessCard(issue, plan):
     """
@@ -120,14 +134,20 @@ def PlanSuccessCard(issue, plan):
         plan: The generated ProjectPlan
     """
     priority_colors = {
-        0: "#ef4444", 1: "#f97316", 2: "#eab308", 3: "#3b82f6", 4: "#6b7280",
+        0: "#ef4444",
+        1: "#f97316",
+        2: "#eab308",
+        3: "#3b82f6",
+        4: "#6b7280",
     }
     border_color = priority_colors.get(issue.priority, "#6b7280")
 
     # Show first 3 semantic units
     unit_items = [
-        Li(f"[{u.unit_id}] {u.description[:60]}{'...' if len(u.description) > 60 else ''}",
-           cls="text-xs text-gray-700")
+        Li(
+            f"[{u.unit_id}] {u.description[:60]}{'...' if len(u.description) > 60 else ''}",
+            cls="text-xs text-gray-700",
+        )
         for u in plan.semantic_units[:3]
     ]
 
@@ -138,25 +158,36 @@ def PlanSuccessCard(issue, plan):
     return Div(
         Div(
             Span(f"#{issue.id}", cls="text-xs font-mono text-gray-500"),
-            Span(issue.type.value, cls="text-xs px-1 rounded bg-gray-200 text-gray-700 ml-2"),
-            Span("IN_PROGRESS", cls="text-xs px-1 rounded bg-yellow-200 text-yellow-800 ml-2"),
-            cls="flex items-center mb-1"
+            Span(
+                issue.type.value,
+                cls="text-xs px-1 rounded bg-gray-200 text-gray-700 ml-2",
+            ),
+            Span(
+                "IN_PROGRESS",
+                cls="text-xs px-1 rounded bg-yellow-200 text-yellow-800 ml-2",
+            ),
+            cls="flex items-center mb-1",
         ),
         H4(issue.title, cls="text-sm font-semibold mb-1"),
         Div(
             Div(
                 Span("✓ Plan created", cls="text-green-600 font-semibold text-sm"),
-                Span(f"{len(plan.semantic_units)} units", cls="text-xs text-gray-500 ml-2"),
-                Span(f"C={plan.total_est_complexity}", cls="text-xs text-gray-500 ml-2"),
-                cls="mb-2"
+                Span(
+                    f"{len(plan.semantic_units)} units",
+                    cls="text-xs text-gray-500 ml-2",
+                ),
+                Span(
+                    f"C={plan.total_est_complexity}", cls="text-xs text-gray-500 ml-2"
+                ),
+                cls="mb-2",
             ),
             Ul(*unit_items, cls="list-disc list-inside"),
             Small(more_text, cls="text-gray-500") if more_text else None,
-            cls="bg-green-50 p-2 rounded text-xs"
+            cls="bg-green-50 p-2 rounded text-xs",
         ),
         id=f"card-{issue.id}",
         cls="bg-white p-3 rounded shadow border-l-4 mb-3",
-        style=f"border-left-color: {border_color};"
+        style=f"border-left-color: {border_color};",
     )
 
 
@@ -169,15 +200,22 @@ def PlanErrorCard(issue, error_message: str):
         error_message: Error description
     """
     priority_colors = {
-        0: "#ef4444", 1: "#f97316", 2: "#eab308", 3: "#3b82f6", 4: "#6b7280",
+        0: "#ef4444",
+        1: "#f97316",
+        2: "#eab308",
+        3: "#3b82f6",
+        4: "#6b7280",
     }
     border_color = priority_colors.get(issue.priority, "#6b7280")
 
     return Div(
         Div(
             Span(f"#{issue.id}", cls="text-xs font-mono text-gray-500"),
-            Span(issue.type.value, cls="text-xs px-1 rounded bg-gray-200 text-gray-700 ml-2"),
-            cls="flex items-center mb-1"
+            Span(
+                issue.type.value,
+                cls="text-xs px-1 rounded bg-gray-200 text-gray-700 ml-2",
+            ),
+            cls="flex items-center mb-1",
         ),
         H4(issue.title, cls="text-sm font-semibold mb-1"),
         Div(
@@ -190,11 +228,11 @@ def PlanErrorCard(issue, error_message: str):
                 hx_target=f"#card-{issue.id}",
                 cls="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 cursor-pointer mt-2",
             ),
-            cls="bg-red-50 p-2 rounded"
+            cls="bg-red-50 p-2 rounded",
         ),
         id=f"card-{issue.id}",
         cls="bg-white p-3 rounded shadow border-l-4 mb-3",
-        style=f"border-left-color: {border_color};"
+        style=f"border-left-color: {border_color};",
     )
 
 
@@ -224,7 +262,7 @@ def kanban_routes(app):
             return Div(
                 Span(f"Issue {issue_id} not found", cls="text-red-500"),
                 id=f"card-{issue_id}",
-                cls="bg-red-50 p-3 rounded"
+                cls="bg-red-50 p-3 rounded",
             )
 
         try:
@@ -245,7 +283,9 @@ def kanban_routes(app):
             agent = PlanningAgent()
             plan = agent.create_plan(requirements)
 
-            logger.info("Plan created for %s: %d units", issue.id, len(plan.semantic_units))
+            logger.info(
+                "Plan created for %s: %d units", issue.id, len(plan.semantic_units)
+            )
 
             # Update issue status
             issue.status = BeadsStatus.IN_PROGRESS

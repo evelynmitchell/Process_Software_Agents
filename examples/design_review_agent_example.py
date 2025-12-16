@@ -42,9 +42,7 @@ from asp.models.design import (
     DesignReviewChecklistItem,
     DesignSpecification,
 )
-from asp.models.planning import (
-    TaskRequirements,
-)
+from asp.models.planning import TaskRequirements
 
 
 def print_header(title: str):

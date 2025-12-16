@@ -7,8 +7,6 @@ unique, hash-based identifiers for ASP entities.
 
 import re
 
-import pytest
-
 from asp.utils.id_generation import (
     CODE_IMPROVEMENT_ID_PATTERN,
     CODE_ISSUE_ID_PATTERN,

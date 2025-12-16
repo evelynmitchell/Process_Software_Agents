@@ -193,8 +193,7 @@ class TestDocImportsValidation:
                             )
                     except ImportError:
                         all_errors.append(
-                            f"{doc_file.name}:~{line_num}: "
-                            f"Cannot import '{module}'"
+                            f"{doc_file.name}:~{line_num}: " f"Cannot import '{module}'"
                         )
 
         assert not all_errors, "Import errors found:\n" + "\n".join(all_errors)
@@ -299,7 +298,6 @@ class TestCriticalExamples:
     def test_code_agent_quick_start(self):
         """Mirror of coding_agent_user_guide.md Quick Start section."""
         from asp.agents.code_agent import CodeAgent
-        from asp.models.code import CodeInput
 
         # Can create agent with multi-stage parameter
         agent = CodeAgent(use_multi_stage=True)
@@ -321,5 +319,5 @@ class TestCriticalExamples:
         )
         score = calculate_semantic_complexity(factors)
 
-        assert isinstance(score, (int, float))
+        assert isinstance(score, int | float)
         assert score > 0

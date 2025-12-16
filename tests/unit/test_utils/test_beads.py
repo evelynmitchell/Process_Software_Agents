@@ -1,11 +1,8 @@
 """Tests for asp.utils.beads module."""
 
-import json
 import re
 import tempfile
 from pathlib import Path
-
-import pytest
 
 from asp.utils.beads import (
     BeadsIssue,

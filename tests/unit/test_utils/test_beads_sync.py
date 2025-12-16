@@ -7,11 +7,7 @@ import pytest
 
 from asp.models.planning import ProjectPlan, SemanticUnit
 from asp.utils.beads import BeadsStatus, read_issues
-from asp.utils.beads_sync import (
-    get_plan_issues,
-    sync_plan_to_beads,
-    update_unit_status,
-)
+from asp.utils.beads_sync import get_plan_issues, sync_plan_to_beads, update_unit_status
 
 
 @pytest.fixture
@@ -102,8 +98,10 @@ class TestSyncPlanToBeads:
             tasks = [i for i in created if i.type.value == "task"]
 
             # Higher complexity should have higher priority (lower number)
-            complexities = {t.id: sample_plan.semantic_units[i].est_complexity
-                          for i, t in enumerate(tasks)}
+            complexities = {
+                t.id: sample_plan.semantic_units[i].est_complexity
+                for i, t in enumerate(tasks)
+            }
 
             # Just verify priorities are set reasonably
             for task in tasks:
@@ -151,7 +149,9 @@ class TestSyncPlanToBeads:
             sample_plan.semantic_units[0].description = "Updated description"
 
             # Second sync with update
-            created = sync_plan_to_beads(sample_plan, update_existing=True, root_path=root)
+            created = sync_plan_to_beads(
+                sample_plan, update_existing=True, root_path=root
+            )
 
             # Should return updated issues
             assert len(created) == 3

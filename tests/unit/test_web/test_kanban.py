@@ -4,7 +4,6 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 from fasthtml.common import to_xml
 
 from asp.utils.beads import BeadsIssue, BeadsStatus, BeadsType, write_issues
@@ -186,8 +185,8 @@ class TestPlanSuccessCard:
 
     def test_shows_plan_summary(self):
         """Success card shows plan summary."""
-        from asp.web.kanban import PlanSuccessCard
         from asp.models.planning import ProjectPlan, SemanticUnit
+        from asp.web.kanban import PlanSuccessCard
 
         issue = BeadsIssue(
             id="bd-success",
@@ -233,8 +232,8 @@ class TestPlanSuccessCard:
 
     def test_shows_more_text_for_many_units(self):
         """Success card shows '... and N more' for many units."""
-        from asp.web.kanban import PlanSuccessCard
         from asp.models.planning import ProjectPlan, SemanticUnit
+        from asp.web.kanban import PlanSuccessCard
 
         issue = BeadsIssue(id="bd-many", title="Many Units")
 
@@ -294,6 +293,7 @@ class TestProcessIssueEndpoint:
     def test_returns_error_for_missing_issue(self, mock_read):
         """Endpoint returns error for non-existent issue."""
         import asyncio
+
         from asp.web.kanban import kanban_routes
 
         mock_read.return_value = []
@@ -306,6 +306,7 @@ class TestProcessIssueEndpoint:
             def decorator(func):
                 routes[path] = func
                 return func
+
             return decorator
 
         mock_app.post = mock_post
@@ -325,9 +326,12 @@ class TestProcessIssueEndpoint:
     @patch("asp.web.kanban.write_issues")
     @patch("asp.web.kanban.read_issues")
     @patch("asp.agents.planning_agent.PlanningAgent")
-    def test_processes_issue_successfully(self, mock_agent_class, mock_read, mock_write):
+    def test_processes_issue_successfully(
+        self, mock_agent_class, mock_read, mock_write
+    ):
         """Endpoint processes issue and returns success card."""
         import asyncio
+
         from asp.models.planning import ProjectPlan, SemanticUnit
         from asp.web.kanban import kanban_routes
 
@@ -367,6 +371,7 @@ class TestProcessIssueEndpoint:
             def decorator(func):
                 routes[path] = func
                 return func
+
             return decorator
 
         mock_app.post = mock_post
@@ -376,9 +381,7 @@ class TestProcessIssueEndpoint:
 
         # Call the endpoint
         process_func = routes["/kanban/process/{issue_id}"]
-        result = asyncio.get_event_loop().run_until_complete(
-            process_func("bd-process")
-        )
+        result = asyncio.get_event_loop().run_until_complete(process_func("bd-process"))
 
         result_html = render_html(result)
         assert "Plan created" in result_html
@@ -393,6 +396,7 @@ class TestProcessIssueEndpoint:
     def test_handles_planning_error(self, mock_agent_class, mock_read):
         """Endpoint returns error card on planning failure."""
         import asyncio
+
         from asp.web.kanban import kanban_routes
 
         issue = BeadsIssue(
@@ -416,6 +420,7 @@ class TestProcessIssueEndpoint:
             def decorator(func):
                 routes[path] = func
                 return func
+
             return decorator
 
         mock_app.post = mock_post
@@ -425,9 +430,7 @@ class TestProcessIssueEndpoint:
 
         # Call the endpoint
         process_func = routes["/kanban/process/{issue_id}"]
-        result = asyncio.get_event_loop().run_until_complete(
-            process_func("bd-fail")
-        )
+        result = asyncio.get_event_loop().run_until_complete(process_func("bd-fail"))
 
         result_html = render_html(result)
         assert "Planning failed" in result_html

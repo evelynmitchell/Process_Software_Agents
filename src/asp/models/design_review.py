@@ -15,15 +15,12 @@ from asp.utils.id_generation import (
     ISSUE_ID_PATTERN,
     LEGACY_IMPROVEMENT_PATTERN,
     LEGACY_ISSUE_PATTERN,
-    is_legacy_id,
     is_valid_hash_id,
 )
 
 # Combined patterns accept both legacy (ISSUE-001) and new (issue-a3f42bc) formats
 # Need explicit anchors since Pydantic does search matching, not fullmatch
-_ISSUE_COMBINED_PATTERN = (
-    rf"^({ISSUE_ID_PATTERN[1:-1]}|{LEGACY_ISSUE_PATTERN[1:-1]})$"
-)
+_ISSUE_COMBINED_PATTERN = rf"^({ISSUE_ID_PATTERN[1:-1]}|{LEGACY_ISSUE_PATTERN[1:-1]})$"
 _IMPROVEMENT_COMBINED_PATTERN = (
     rf"^({IMPROVEMENT_ID_PATTERN[1:-1]}|{LEGACY_IMPROVEMENT_PATTERN[1:-1]})$"
 )

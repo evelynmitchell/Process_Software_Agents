@@ -13,9 +13,9 @@ from fasthtml.common import *
 
 from .components import theme_toggle
 from .developer import developer_routes
+from .kanban import kanban_routes
 from .manager import manager_routes
 from .product import product_routes
-from .kanban import kanban_routes
 
 
 def create_app():

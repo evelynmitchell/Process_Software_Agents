@@ -42,6 +42,6 @@ Home route works (`GET / HTTP/1.1` 200 OK), confirming the app initializes but p
 
 ## Expected Behavior After Fix
 - GET `/developer` → Developer dashboard (Alex persona)
-- GET `/manager` → Manager dashboard (Sarah persona)  
+- GET `/manager` → Manager dashboard (Sarah persona)
 - GET `/product` → Product dashboard (Jordan persona)
 - All HTMX endpoints under each persona route should work

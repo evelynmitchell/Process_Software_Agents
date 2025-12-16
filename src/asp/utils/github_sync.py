@@ -15,9 +15,8 @@ See ADR 009 Phase 4 for architecture details.
 import json
 import logging
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 from asp.utils.beads import (
     BeadsIssue,
@@ -37,8 +36,8 @@ logger = logging.getLogger(__name__)
 
 
 def push_to_github(
-    repo: Optional[str] = None,
-    project: Optional[str] = None,
+    repo: str | None = None,
+    project: str | None = None,
     dry_run: bool = False,
     root_path: Path = Path("."),
 ) -> list[str]:
@@ -93,7 +92,7 @@ def push_to_github(
     return created_urls
 
 
-def _create_github_issue(issue: BeadsIssue, repo: Optional[str]) -> Optional[str]:
+def _create_github_issue(issue: BeadsIssue, repo: str | None) -> str | None:
     """Create a GitHub issue using gh CLI."""
     cmd = ["gh", "issue", "create"]
 
@@ -105,11 +104,16 @@ def _create_github_issue(issue: BeadsIssue, repo: Optional[str]) -> Optional[str
     if issue.priority <= 1:
         labels.append("priority-high")
 
-    cmd.extend([
-        "--title", f"[{issue.id}] {issue.title}",
-        "--body", _format_gh_body(issue),
-        "--label", ",".join(labels),
-    ])
+    cmd.extend(
+        [
+            "--title",
+            f"[{issue.id}] {issue.title}",
+            "--body",
+            _format_gh_body(issue),
+            "--label",
+            ",".join(labels),
+        ]
+    )
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
@@ -153,15 +157,20 @@ def _mark_gh_synced(issue: BeadsIssue, gh_url: str, root_path: Path) -> None:
     write_issues(issues, root_path)
 
 
-def _add_to_project(issue_url: str, project_number: str, repo: Optional[str]) -> None:
+def _add_to_project(issue_url: str, project_number: str, repo: str | None) -> None:
     """Add issue to GitHub Project."""
     # Get owner from repo or use @me
     owner = repo.split("/")[0] if repo else "@me"
 
     cmd = [
-        "gh", "project", "item-add", project_number,
-        "--owner", owner,
-        "--url", issue_url,
+        "gh",
+        "project",
+        "item-add",
+        project_number,
+        "--owner",
+        owner,
+        "--url",
+        issue_url,
     ]
 
     try:
@@ -177,9 +186,9 @@ def _add_to_project(issue_url: str, project_number: str, repo: Optional[str]) ->
 
 
 def pull_from_github(
-    repo: Optional[str] = None,
-    issue_number: Optional[int] = None,
-    label_filter: Optional[str] = None,
+    repo: str | None = None,
+    issue_number: int | None = None,
+    label_filter: str | None = None,
     state: str = "open",
     dry_run: bool = False,
     root_path: Path = Path("."),
@@ -215,7 +224,9 @@ def pull_from_github(
 
     created = []
     existing_issues = read_issues(root_path)
-    existing_gh_refs = {_get_github_ref(i) for i in existing_issues if _get_github_ref(i)}
+    existing_gh_refs = {
+        _get_github_ref(i) for i in existing_issues if _get_github_ref(i)
+    }
 
     for gh_issue in gh_issues:
         if gh_issue is None:
@@ -249,10 +260,16 @@ def pull_from_github(
     return created
 
 
-def _fetch_github_issue(issue_number: int, repo: Optional[str]) -> Optional[dict]:
+def _fetch_github_issue(issue_number: int, repo: str | None) -> dict | None:
     """Fetch a single GitHub issue."""
-    cmd = ["gh", "issue", "view", str(issue_number), "--json",
-           "number,title,body,labels,state,assignees,createdAt,updatedAt"]
+    cmd = [
+        "gh",
+        "issue",
+        "view",
+        str(issue_number),
+        "--json",
+        "number,title,body,labels,state,assignees,createdAt,updatedAt",
+    ]
 
     if repo:
         cmd.extend(["--repo", repo])
@@ -266,14 +283,22 @@ def _fetch_github_issue(issue_number: int, repo: Optional[str]) -> Optional[dict
 
 
 def _fetch_github_issues(
-    repo: Optional[str],
-    label_filter: Optional[str],
+    repo: str | None,
+    label_filter: str | None,
     state: str,
 ) -> list[dict]:
     """Fetch multiple GitHub issues."""
-    cmd = ["gh", "issue", "list", "--json",
-           "number,title,body,labels,state,assignees,createdAt,updatedAt",
-           "--state", state, "--limit", "100"]
+    cmd = [
+        "gh",
+        "issue",
+        "list",
+        "--json",
+        "number,title,body,labels,state,assignees,createdAt,updatedAt",
+        "--state",
+        state,
+        "--limit",
+        "100",
+    ]
 
     if repo:
         cmd.extend(["--repo", repo])
@@ -341,7 +366,7 @@ def _infer_priority_from_labels(labels: list[str]) -> int:
         return 2  # Default medium
 
 
-def _get_github_ref(issue: BeadsIssue) -> Optional[str]:
+def _get_github_ref(issue: BeadsIssue) -> str | None:
     """Extract GitHub reference from Beads issue labels.
 
     Matches labels like:
@@ -364,8 +389,8 @@ def _get_github_ref(issue: BeadsIssue) -> Optional[str]:
 
 
 def sync_github(
-    repo: Optional[str] = None,
-    project: Optional[str] = None,
+    repo: str | None = None,
+    project: str | None = None,
     conflict_strategy: str = "local-wins",
     dry_run: bool = False,
     root_path: Path = Path("."),
@@ -402,7 +427,9 @@ def sync_github(
 
     # Phase 2: Export new Beads issues (those not in GitHub)
     logger.info("Phase 2: Pushing to GitHub...")
-    exported = push_to_github(repo=repo, project=project, dry_run=dry_run, root_path=root_path)
+    exported = push_to_github(
+        repo=repo, project=project, dry_run=dry_run, root_path=root_path
+    )
     stats["exported"] = len(exported)
 
     # Phase 3: Handle conflicts (issues that exist in both)
@@ -415,7 +442,7 @@ def sync_github(
 
 
 def _resolve_conflicts(
-    repo: Optional[str],
+    repo: str | None,
     strategy: str,
     root_path: Path,
 ) -> int:
@@ -477,11 +504,18 @@ def _has_conflict(local: BeadsIssue, remote: dict) -> bool:
     return local.title != remote_title
 
 
-def _push_update_to_github(issue: BeadsIssue, gh_number: int, repo: Optional[str]) -> None:
+def _push_update_to_github(issue: BeadsIssue, gh_number: int, repo: str | None) -> None:
     """Update GitHub issue from Beads."""
-    cmd = ["gh", "issue", "edit", str(gh_number),
-           "--title", f"[{issue.id}] {issue.title}",
-           "--body", _format_gh_body(issue)]
+    cmd = [
+        "gh",
+        "issue",
+        "edit",
+        str(gh_number),
+        "--title",
+        f"[{issue.id}] {issue.title}",
+        "--body",
+        _format_gh_body(issue),
+    ]
 
     if repo:
         cmd.extend(["--repo", repo])
@@ -518,7 +552,7 @@ def _update_from_github(issue: BeadsIssue, gh_issue: dict) -> None:
 
 def _now() -> str:
     """Return current time in ISO format."""
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def verify_gh_cli() -> bool:

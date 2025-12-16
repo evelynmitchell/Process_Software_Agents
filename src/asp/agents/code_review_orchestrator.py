@@ -481,7 +481,9 @@ class CodeReviewOrchestrator(BaseAgent):
 
         # Standardize suggestion IDs and update related_issue_id
         for suggestion in deduplicated_suggestions:
-            suggestion["suggestion_id"] = generate_code_improvement_id()  # e.g., 'code-improve-b7c91de'
+            suggestion["suggestion_id"] = (
+                generate_code_improvement_id()
+            )  # e.g., 'code-improve-b7c91de'
 
             # Update related_issue_id to use new hash-based format
             if "related_issue_id" in suggestion and suggestion["related_issue_id"]:

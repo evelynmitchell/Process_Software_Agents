@@ -22,7 +22,6 @@ Usage:
 See ADR 009 for architecture details.
 """
 
-import argparse
 import logging
 import sys
 from pathlib import Path
@@ -32,7 +31,7 @@ logger = logging.getLogger("asp.cli.beads")
 
 def cmd_beads_list(args):
     """List all open Beads issues."""
-    from asp.utils.beads import read_issues, BeadsStatus
+    from asp.utils.beads import BeadsStatus, read_issues
 
     root_path = Path(args.root) if args.root else Path(".")
     issues = read_issues(root_path)
@@ -54,7 +53,11 @@ def cmd_beads_list(args):
 
         print(f"  [{issue.id}] {priority_marker} {issue.title} {status_str}")
         if issue.description and args.verbose:
-            desc = issue.description[:60] + "..." if len(issue.description) > 60 else issue.description
+            desc = (
+                issue.description[:60] + "..."
+                if len(issue.description) > 60
+                else issue.description
+            )
             print(f"           {desc}")
         print()
 
@@ -65,7 +68,7 @@ def cmd_beads_process(args):
 
     Converts the issue to TaskRequirements and runs the PlanningAgent.
     """
-    from asp.utils.beads import read_issues, BeadsStatus
+    from asp.utils.beads import BeadsStatus, read_issues
 
     root_path = Path(args.root) if args.root else Path(".")
     issues = read_issues(root_path)
@@ -76,7 +79,7 @@ def cmd_beads_process(args):
     if not issue:
         logger.error(f"Issue '{args.issue_id}' not found")
         print(f"Error: Issue '{args.issue_id}' not found", file=sys.stderr)
-        print(f"\nAvailable issues:", file=sys.stderr)
+        print("\nAvailable issues:", file=sys.stderr)
         for i in issues[:5]:
             print(f"  [{i.id}] {i.title}", file=sys.stderr)
         if len(issues) > 5:
@@ -103,8 +106,8 @@ def cmd_beads_process(args):
 
     # Import planning components
     try:
-        from asp.models.planning import TaskRequirements
         from asp.agents.planning_agent import PlanningAgent
+        from asp.models.planning import TaskRequirements
     except ImportError as e:
         logger.error(f"Failed to import planning components: {e}")
         print(f"Error: Could not import planning agent: {e}", file=sys.stderr)
@@ -197,7 +200,7 @@ def cmd_beads_sync(args):
 
     # Load the plan
     try:
-        with open(plan_path, "r", encoding="utf-8") as f:
+        with open(plan_path, encoding="utf-8") as f:
             plan_data = json.load(f)
         plan = ProjectPlan.model_validate(plan_data)
     except json.JSONDecodeError as e:
@@ -235,6 +238,7 @@ def cmd_beads_sync(args):
     if args.list_after:
         print("\n--- Current Beads Issues ---")
         from asp.utils.beads import read_issues
+
         all_issues = read_issues(root_path)
         task_label = f"task-{plan.task_id}"
         plan_issues = [i for i in all_issues if task_label in i.labels]
@@ -273,7 +277,9 @@ def cmd_beads_push(args):
         print("No new issues to push (all are synced or closed).")
         return
 
-    print(f"\n{'Would create' if args.dry_run else 'Created'} {len(created)} GitHub issues:")
+    print(
+        f"\n{'Would create' if args.dry_run else 'Created'} {len(created)} GitHub issues:"
+    )
     for url in created:
         print(f"  {url}")
 
@@ -380,14 +386,18 @@ def add_beads_subparser(subparsers):
         "list",
         help="List Beads issues",
     )
-    list_parser.add_argument(root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"])
     list_parser.add_argument(
-        "--all", "-a",
+        root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"]
+    )
+    list_parser.add_argument(
+        "--all",
+        "-a",
         action="store_true",
         help="Show all issues including closed",
     )
     list_parser.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         action="store_true",
         help="Show issue descriptions",
     )
@@ -402,7 +412,9 @@ def add_beads_subparser(subparsers):
         "issue_id",
         help="Issue ID (e.g., bd-abc1234)",
     )
-    show_parser.add_argument(root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"])
+    show_parser.add_argument(
+        root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"]
+    )
     show_parser.set_defaults(func=cmd_beads_show)
 
     # beads process
@@ -414,14 +426,17 @@ def add_beads_subparser(subparsers):
         "issue_id",
         help="Issue ID to process (e.g., bd-abc1234)",
     )
-    process_parser.add_argument(root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"])
+    process_parser.add_argument(
+        root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"]
+    )
     process_parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Show what would be done without executing",
     )
     process_parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         help="Path to save the generated plan JSON",
     )
     process_parser.set_defaults(func=cmd_beads_process)
@@ -435,7 +450,9 @@ def add_beads_subparser(subparsers):
         "plan_file",
         help="Path to plan JSON file (e.g., artifacts/TASK-001/plan.json)",
     )
-    sync_parser.add_argument(root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"])
+    sync_parser.add_argument(
+        root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"]
+    )
     sync_parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -463,7 +480,9 @@ def add_beads_subparser(subparsers):
         "push",
         help="Push Beads issues to GitHub Issues",
     )
-    push_parser.add_argument(root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"])
+    push_parser.add_argument(
+        root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"]
+    )
     push_parser.add_argument(
         "--repo",
         help="GitHub repo (owner/name). Auto-detected if not specified.",
@@ -484,22 +503,27 @@ def add_beads_subparser(subparsers):
         "pull",
         help="Pull GitHub Issues into Beads",
     )
-    pull_parser.add_argument(root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"])
+    pull_parser.add_argument(
+        root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"]
+    )
     pull_parser.add_argument(
         "--repo",
         help="GitHub repo (owner/name). Auto-detected if not specified.",
     )
     pull_parser.add_argument(
-        "--issue", "-i",
+        "--issue",
+        "-i",
         type=int,
         help="Specific issue number to import.",
     )
     pull_parser.add_argument(
-        "--label", "-l",
+        "--label",
+        "-l",
         help="Only import issues with this label.",
     )
     pull_parser.add_argument(
-        "--state", "-s",
+        "--state",
+        "-s",
         choices=["open", "closed", "all"],
         default="open",
         help="Issue state filter (default: open).",
@@ -516,7 +540,9 @@ def add_beads_subparser(subparsers):
         "gh-sync",
         help="Bidirectional sync between Beads and GitHub",
     )
-    gh_sync_parser.add_argument(root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"])
+    gh_sync_parser.add_argument(
+        root_arg["flags"][0], root_arg["flags"][1], **root_arg["kwargs"]
+    )
     gh_sync_parser.add_argument(
         "--repo",
         help="GitHub repo (owner/name). Auto-detected if not specified.",

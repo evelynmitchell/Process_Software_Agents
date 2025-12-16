@@ -822,6 +822,7 @@ Examples:
 
     # Beads commands (ADR 009)
     from asp.cli.beads_commands import add_beads_subparser
+
     add_beads_subparser(subparsers)
 
     # Init-db command

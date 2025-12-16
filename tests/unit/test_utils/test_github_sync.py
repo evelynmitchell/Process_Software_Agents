@@ -1,6 +1,5 @@
 """Tests for asp.utils.github_sync module."""
 
-import json
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -219,7 +218,9 @@ class TestHasConflict:
 
     def test_strips_beads_prefix(self, sample_beads_issue, sample_gh_issue):
         """Should strip [bd-xxx] prefix when comparing."""
-        sample_gh_issue["title"] = f"[{sample_beads_issue.id}] {sample_beads_issue.title}"
+        sample_gh_issue["title"] = (
+            f"[{sample_beads_issue.id}] {sample_beads_issue.title}"
+        )
         assert _has_conflict(sample_beads_issue, sample_gh_issue) is False
 
 
@@ -341,7 +342,9 @@ class TestSyncGithub:
 
     @patch("asp.utils.github_sync.pull_from_github")
     @patch("asp.utils.github_sync.push_to_github")
-    def test_returns_stats(self, mock_push, mock_pull, sample_beads_issue, sample_gh_issue):
+    def test_returns_stats(
+        self, mock_push, mock_pull, sample_beads_issue, sample_gh_issue
+    ):
         """Should return sync statistics."""
         # Simulate importing 2 and exporting 1
         imported_issue = _convert_to_beads(sample_gh_issue)
