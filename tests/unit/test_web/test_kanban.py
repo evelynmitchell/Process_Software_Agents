@@ -316,9 +316,7 @@ class TestProcessIssueEndpoint:
 
         # Call the endpoint
         process_func = routes["/kanban/process/{issue_id}"]
-        result = asyncio.get_event_loop().run_until_complete(
-            process_func("bd-notfound")
-        )
+        result = asyncio.run(process_func("bd-notfound"))
 
         result_html = render_html(result)
         assert "not found" in result_html
@@ -381,7 +379,7 @@ class TestProcessIssueEndpoint:
 
         # Call the endpoint
         process_func = routes["/kanban/process/{issue_id}"]
-        result = asyncio.get_event_loop().run_until_complete(process_func("bd-process"))
+        result = asyncio.run(process_func("bd-process"))
 
         result_html = render_html(result)
         assert "Plan created" in result_html
@@ -430,7 +428,7 @@ class TestProcessIssueEndpoint:
 
         # Call the endpoint
         process_func = routes["/kanban/process/{issue_id}"]
-        result = asyncio.get_event_loop().run_until_complete(process_func("bd-fail"))
+        result = asyncio.run(process_func("bd-fail"))
 
         result_html = render_html(result)
         assert "Planning failed" in result_html

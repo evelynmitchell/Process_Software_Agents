@@ -134,12 +134,14 @@ warn_unreachable = true
 strict_equality = true
 
 [tool.coverage.run]
-source = ["main"]
+source = ["src/asp", "src/services"]
 omit = [
     "tests/*",
     "venv/*",
     "*/venv/*",
-    "*/site-packages/*"
+    "*/site-packages/*",
+    "examples/*",
+    "scripts/*"
 ]
 
 [tool.coverage.report]
