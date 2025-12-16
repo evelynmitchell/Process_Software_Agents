@@ -606,6 +606,12 @@ Examples:
 
   # Initialize database
   python -m asp.cli init-db --with-sample-data
+
+  # Beads integration (ADR 009)
+  python -m asp.cli beads list                     # List open issues
+  python -m asp.cli beads show bd-abc1234          # Show issue details
+  python -m asp.cli beads process bd-abc1234       # Process issue through ASP
+  python -m asp.cli beads process bd-abc1234 --dry-run  # Preview without executing
 """,
     )
 
@@ -813,6 +819,10 @@ Examples:
         help="Path to SQLite database",
     )
     status_parser.set_defaults(func=cmd_status)
+
+    # Beads commands (ADR 009)
+    from asp.cli.beads_commands import add_beads_subparser
+    add_beads_subparser(subparsers)
 
     # Init-db command
     init_parser = subparsers.add_parser("init-db", help="Initialize the database")
