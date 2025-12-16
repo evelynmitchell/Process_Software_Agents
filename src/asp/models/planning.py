@@ -12,6 +12,17 @@ Date: November 13, 2025
 
 from pydantic import BaseModel, Field
 
+from asp.utils.id_generation import (
+    LEGACY_SEMANTIC_UNIT_PATTERN,
+    SEMANTIC_UNIT_ID_PATTERN,
+)
+
+# Combined pattern accepts both legacy (SU-001) and new (su-a3f42bc) formats
+# Need explicit anchors since Pydantic does search matching, not fullmatch
+_SEMANTIC_UNIT_COMBINED_PATTERN = (
+    rf"^({SEMANTIC_UNIT_ID_PATTERN[1:-1]}|{LEGACY_SEMANTIC_UNIT_PATTERN[1:-1]})$"
+)
+
 
 class TaskRequirements(BaseModel):
     """
@@ -80,8 +91,8 @@ class SemanticUnit(BaseModel):
 
     unit_id: str = Field(
         ...,
-        description="Unique unit identifier (e.g., 'SU-001')",
-        pattern=r"^SU-\d{3}$",
+        description="Unique unit identifier (e.g., 'su-a3f42bc' or legacy 'SU-001')",
+        pattern=_SEMANTIC_UNIT_COMBINED_PATTERN,
     )
 
     description: str = Field(
@@ -137,7 +148,7 @@ class SemanticUnit(BaseModel):
     # Optional dependencies
     dependencies: list[str] = Field(
         default_factory=list,
-        description="List of unit_ids that this unit depends on (e.g., ['SU-001', 'SU-002'])",
+        description="List of unit_ids that this unit depends on (e.g., ['su-a3f42bc', 'su-b7c91de'])",
     )
 
     model_config = {
