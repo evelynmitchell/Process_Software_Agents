@@ -34,6 +34,7 @@ from asp.models.code_review import (
     CodeReviewReport,
 )
 from asp.telemetry.telemetry import track_agent_cost
+from asp.utils.id_generation import generate_code_improvement_id, generate_code_issue_id
 
 logger = logging.getLogger(__name__)
 
@@ -465,12 +466,12 @@ class CodeReviewOrchestrator(BaseAgent):
         # Deduplicate issues (simple approach: by file_path + line_number similarity)
         deduplicated_issues = self._deduplicate_issues(all_issues)
 
-        # Standardize issue IDs (overwrite specialist-assigned IDs with canonical format)
+        # Standardize issue IDs (overwrite specialist-assigned IDs with hash-based format)
         # Create mapping from old IDs to new IDs
         issue_id_mapping = {}
-        for i, issue in enumerate(deduplicated_issues, 1):
+        for issue in deduplicated_issues:
             old_id = issue.get("issue_id")
-            new_id = f"CODE-ISSUE-{i:03d}"
+            new_id = generate_code_issue_id()  # e.g., 'code-issue-a3f42bc'
             if old_id:
                 issue_id_mapping[old_id] = new_id
             issue["issue_id"] = new_id
@@ -479,17 +480,17 @@ class CodeReviewOrchestrator(BaseAgent):
         deduplicated_suggestions = self._deduplicate_suggestions(all_suggestions)
 
         # Standardize suggestion IDs and update related_issue_id
-        for i, suggestion in enumerate(deduplicated_suggestions, 1):
-            suggestion["suggestion_id"] = f"CODE-IMPROVE-{i:03d}"
+        for suggestion in deduplicated_suggestions:
+            suggestion["suggestion_id"] = generate_code_improvement_id()  # e.g., 'code-improve-b7c91de'
 
-            # Update related_issue_id to use canonical CODE-ISSUE-### format
+            # Update related_issue_id to use new hash-based format
             if "related_issue_id" in suggestion and suggestion["related_issue_id"]:
                 old_issue_id = suggestion["related_issue_id"]
                 if old_issue_id in issue_id_mapping:
                     suggestion["related_issue_id"] = issue_id_mapping[old_issue_id]
-                elif not old_issue_id.startswith("CODE-ISSUE-"):
-                    # Try to find matching issue
-                    suggestion["related_issue_id"] = None  # Clear invalid reference
+                elif not old_issue_id.startswith("code-issue-"):
+                    # Clear invalid reference that wasn't mapped
+                    suggestion["related_issue_id"] = None
 
         logger.info(
             f"Aggregation: {len(all_issues)} issues → {len(deduplicated_issues)} unique, "

@@ -408,7 +408,7 @@ def test_aggregate_results_deduplication():
 
 
 def test_aggregate_results_id_normalization():
-    """Test that issue IDs are normalized to CODE-ISSUE-### format."""
+    """Test that issue IDs are normalized to hash-based format."""
     orchestrator = CodeReviewOrchestrator()
 
     specialist_results = {
@@ -459,22 +459,30 @@ def test_aggregate_results_id_normalization():
         specialist_results
     )
 
-    # Verify issue IDs are normalized
+    # Verify issue IDs are normalized to hash-based format (code-issue-{7-char-hex})
     assert all(
-        issue["issue_id"].startswith("CODE-ISSUE-") for issue in aggregated_issues
+        issue["issue_id"].startswith("code-issue-") for issue in aggregated_issues
     )
-    assert aggregated_issues[0]["issue_id"] == "CODE-ISSUE-001"
-    assert aggregated_issues[1]["issue_id"] == "CODE-ISSUE-002"
-
-    # Verify suggestion IDs are normalized
+    # Verify hash portion is 7 hex characters
     assert all(
-        sug["suggestion_id"].startswith("CODE-IMPROVE-")
+        len(issue["issue_id"].split("-")[-1]) == 7 for issue in aggregated_issues
+    )
+
+    # Verify suggestion IDs are normalized to hash-based format (code-improve-{7-char-hex})
+    assert all(
+        sug["suggestion_id"].startswith("code-improve-")
         for sug in aggregated_suggestions
     )
-    assert aggregated_suggestions[0]["suggestion_id"] == "CODE-IMPROVE-001"
+    assert all(
+        len(sug["suggestion_id"].split("-")[-1]) == 7
+        for sug in aggregated_suggestions
+    )
 
-    # Verify related_issue_id is updated
-    assert aggregated_suggestions[0]["related_issue_id"] == "CODE-ISSUE-001"
+    # Verify related_issue_id is updated to mapped issue ID
+    # The suggestion's original related_issue_id "QUAL-001" should be mapped
+    # to the new hash-based ID of the first issue
+    first_issue_id = aggregated_issues[0]["issue_id"]
+    assert aggregated_suggestions[0]["related_issue_id"] == first_issue_id
 
 
 # =============================================================================
