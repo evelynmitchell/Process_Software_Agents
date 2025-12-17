@@ -1,7 +1,8 @@
 # ADR 009: Beads and Planning Agent Integration
 
-**Status:** Proposed
+**Status:** Implemented
 **Date:** 2025-12-15
+**Implemented:** 2025-12-16
 **Session:** 20251215.3
 **Deciders:** User, Claude
 

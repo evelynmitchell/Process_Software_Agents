@@ -1,7 +1,8 @@
 # ADR 008: Async Process Architecture
 
-**Status:** Proposed
+**Status:** Active
 **Date:** 2025-12-11
+**Implementation Started:** 2025-12-17
 **Session:** 20251211.3
 **Deciders:** User, Claude
 
