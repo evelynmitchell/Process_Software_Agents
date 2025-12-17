@@ -404,3 +404,123 @@ class RepairAgent(BaseAgent):
             )
 
         logger.debug("Repair output validation passed")
+
+    # =========================================================================
+    # Async Methods (ADR 008 Phase 2)
+    # =========================================================================
+
+    async def execute_async(self, input_data: RepairInput) -> RepairOutput:
+        """
+        Asynchronous version of execute for parallel agent execution.
+
+        Native async implementation that uses call_llm_async() instead of
+        call_llm(). Use this method when running multiple agents concurrently.
+
+        Args:
+            input_data: RepairInput with diagnostic and history
+
+        Returns:
+            RepairOutput with strategy, changes, and confidence
+
+        Raises:
+            AgentExecutionError: If repair generation fails
+        """
+        logger.info(
+            f"Executing RepairAgent (async) for task_id={input_data.task_id}, "
+            f"previous_attempts={input_data.attempt_count}"
+        )
+
+        try:
+            # Read affected files for context (sync - fast I/O)
+            source_context = self._read_affected_files(input_data)
+
+            # Generate repair (async LLM call)
+            repair_output = await self._generate_repair_async(input_data, source_context)
+
+            # Validate the output (sync - fast validation)
+            self._validate_repair_output(repair_output)
+
+            # Log summary
+            logger.info(
+                f"Repair generated (async): strategy='{repair_output.strategy[:50]}...', "
+                f"changes={len(repair_output.changes)}, "
+                f"confidence={repair_output.confidence:.2f}"
+            )
+
+            return repair_output
+
+        except Exception as e:
+            logger.error(f"RepairAgent async execution failed: {e}")
+            raise AgentExecutionError(f"Repair generation failed: {e}") from e
+
+    async def _generate_repair_async(
+        self, input_data: RepairInput, source_context: dict[str, str]
+    ) -> RepairOutput:
+        """
+        Async version of _generate_repair using async LLM call.
+
+        Args:
+            input_data: RepairInput with diagnostic and history
+            source_context: Dict of file paths to contents
+
+        Returns:
+            RepairOutput parsed from LLM response
+
+        Raises:
+            AgentExecutionError: If LLM call fails or response is invalid
+        """
+        # Load prompt template
+        try:
+            prompt_template = self.load_prompt("repair_agent_v1")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"Prompt template not found: {e}") from e
+
+        # Format previous attempts
+        previous_attempts_json = self._format_previous_attempts(
+            input_data.previous_attempts
+        )
+
+        # Format source files
+        source_files_json = self._format_source_files(source_context)
+
+        # Format prompt
+        formatted_prompt = self.format_prompt(
+            prompt_template,
+            task_id=input_data.task_id,
+            diagnostic_json=input_data.diagnostic.model_dump_json(indent=2),
+            previous_attempts_json=previous_attempts_json,
+            source_files_json=source_files_json,
+        )
+
+        logger.debug(f"Generated repair prompt ({len(formatted_prompt)} chars)")
+
+        # Call LLM to generate repair (async)
+        response = await self.call_llm_async(
+            prompt=formatted_prompt,
+            max_tokens=8000,
+            temperature=0.0,  # Deterministic for repair
+        )
+
+        # Parse response
+        content = response.get("content")
+
+        # Extract JSON from response
+        content = self._extract_json_content(content)
+
+        if not isinstance(content, dict):
+            raise AgentExecutionError(
+                f"LLM returned non-dict response after parsing: {type(content)}\n"
+                f"Expected dict matching RepairOutput schema"
+            )
+
+        # Validate against RepairOutput schema
+        try:
+            output = self.validate_output(content, RepairOutput)
+            logger.debug(
+                f"Successfully validated RepairOutput for task {input_data.task_id}"
+            )
+            return output
+        except Exception as e:
+            raise AgentExecutionError(
+                f"Failed to validate RepairOutput: {e}\n" f"Response content: {content}"
+            ) from e

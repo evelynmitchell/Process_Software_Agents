@@ -841,3 +841,352 @@ class CodeAgent(BaseAgent):
         )
 
         return generated_code
+
+    # =========================================================================
+    # Async Methods (ADR 008 Phase 2)
+    # =========================================================================
+
+    async def execute_async(self, input_data: CodeInput) -> GeneratedCode:
+        """
+        Asynchronous version of execute for parallel agent execution.
+
+        Native async implementation that uses call_llm_async() instead of
+        call_llm(). Uses parallel file generation for improved performance
+        in multi-stage mode.
+
+        Args:
+            input_data: CodeInput with design specification and standards
+
+        Returns:
+            GeneratedCode with complete implementation
+
+        Raises:
+            AgentExecutionError: If code generation fails or output is invalid
+        """
+        logger.info(
+            f"Executing CodeAgent (async) for task_id={input_data.task_id}, "
+            f"use_multi_stage={self.use_multi_stage}"
+        )
+
+        try:
+            # Use multi-stage async approach (supports parallel file generation)
+            if self.use_multi_stage:
+                generated_code = await self._generate_code_multi_stage_async(input_data)
+            else:
+                # Single-stage: run sync version in thread pool (legacy)
+                import asyncio
+
+                loop = asyncio.get_running_loop()
+                generated_code = await loop.run_in_executor(
+                    None, self._generate_code_single_stage, input_data
+                )
+
+            # Log summary
+            logger.info(
+                f"Code generation complete (async): {generated_code.total_files} files, "
+                f"{generated_code.total_lines_of_code} LOC, "
+                f"{len(generated_code.semantic_units_implemented)} semantic units"
+            )
+
+            return generated_code
+
+        except Exception as e:
+            logger.error(f"CodeAgent async execution failed: {e}")
+            raise AgentExecutionError(f"Code generation failed: {e}") from e
+
+    async def _generate_code_multi_stage_async(
+        self, input_data: CodeInput
+    ) -> GeneratedCode:
+        """
+        Async multi-stage code generation with parallel file generation.
+
+        Phase 1: Generate file manifest (async LLM call)
+        Phase 2: Generate file contents in parallel (concurrent async LLM calls)
+
+        Args:
+            input_data: CodeInput with design specification and standards
+
+        Returns:
+            GeneratedCode assembled from manifest and parallel file generation
+
+        Raises:
+            AgentExecutionError: If generation fails
+        """
+        logger.info(
+            f"Starting async multi-stage code generation for task_id={input_data.task_id}"
+        )
+
+        # Phase 1: Generate file manifest (async)
+        logger.info("Phase 1: Generating file manifest (async)...")
+        manifest = await self._generate_file_manifest_async(input_data)
+
+        logger.info(
+            f"Manifest generated: {manifest.total_files} files, "
+            f"{manifest.total_estimated_lines} estimated LOC"
+        )
+
+        # Phase 2: Generate content for each file IN PARALLEL
+        logger.info(
+            f"Phase 2: Generating content for {manifest.total_files} files in parallel..."
+        )
+
+        # Create async tasks for all files
+        from asp.orchestrators.parallel import gather_with_concurrency
+
+        async def generate_file_task(file_meta: FileMetadata) -> GeneratedFile:
+            """Generate a single file and wrap in GeneratedFile."""
+            content = await self._generate_file_content_async(file_meta, input_data)
+            return GeneratedFile(
+                file_path=file_meta.file_path,
+                content=content,
+                file_type=file_meta.file_type,
+                semantic_unit_id=file_meta.semantic_unit_id,
+                component_id=file_meta.component_id,
+                description=file_meta.description,
+            )
+
+        # Run file generation with limited concurrency (respect API rate limits)
+        max_concurrent = 3  # Match AsyncConfig.max_concurrent_codegen
+        tasks = [generate_file_task(fm) for fm in manifest.files]
+        generated_files = await gather_with_concurrency(max_concurrent, *tasks)
+
+        # Check for any errors in results
+        errors = [r for r in generated_files if isinstance(r, Exception)]
+        if errors:
+            raise AgentExecutionError(
+                f"Failed to generate {len(errors)} files: {errors[0]}"
+            )
+
+        # Build file_structure from generated files
+        file_structure: dict[str, list[str]] = {}
+        for file in generated_files:
+            path_parts = file.file_path.split("/")
+            if len(path_parts) == 1:
+                directory = "."
+                filename = path_parts[0]
+            else:
+                directory = "/".join(path_parts[:-1])
+                filename = path_parts[-1]
+
+            if directory not in file_structure:
+                file_structure[directory] = []
+            file_structure[directory].append(filename)
+
+        # Calculate total lines of code
+        total_loc = sum(
+            len([line for line in file.content.split("\n") if line.strip()])
+            for file in generated_files
+        )
+
+        # Extract semantic units and components implemented
+        semantic_units = list(
+            {file.semantic_unit_id for file in generated_files if file.semantic_unit_id}
+        )
+        components = list(
+            {file.component_id for file in generated_files if file.component_id}
+        )
+
+        # Assemble GeneratedCode
+        generated_code = GeneratedCode(
+            task_id=input_data.task_id,
+            project_id=manifest.project_id,
+            files=generated_files,
+            file_structure=file_structure,
+            implementation_notes=(
+                f"Generated using async multi-stage approach with {manifest.total_files} files. "
+                f"Manifest estimated {manifest.total_estimated_lines} LOC, "
+                f"actual {total_loc} LOC. "
+                f"Uses {len(manifest.dependencies)} external dependencies."
+            ),
+            dependencies=manifest.dependencies,
+            setup_instructions=manifest.setup_instructions,
+            total_lines_of_code=total_loc,
+            total_files=len(generated_files),
+            test_coverage_target=80.0,
+            semantic_units_implemented=semantic_units,
+            components_implemented=components,
+            agent_version=self.agent_version,
+            generation_timestamp=datetime.now().isoformat(),
+        )
+
+        logger.info(
+            f"Async multi-stage code generation complete: {generated_code.total_files} files, "
+            f"{generated_code.total_lines_of_code} LOC"
+        )
+
+        return generated_code
+
+    async def _generate_file_manifest_async(
+        self, input_data: CodeInput
+    ) -> FileManifest:
+        """
+        Async version of _generate_file_manifest using async LLM call.
+
+        Args:
+            input_data: CodeInput with design specification
+
+        Returns:
+            FileManifest with file metadata
+
+        Raises:
+            AgentExecutionError: If LLM call fails or response is invalid
+        """
+        # Load prompt template
+        try:
+            prompt_template = self.load_prompt("code_agent_v2_manifest")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"Prompt template not found: {e}") from e
+
+        # Format prompt
+        formatted_prompt = self.format_prompt(
+            prompt_template,
+            design_specification=input_data.design_specification.model_dump_json(
+                indent=2
+            ),
+            coding_standards=input_data.coding_standards
+            or "Follow industry best practices",
+        )
+
+        logger.debug(f"Generated manifest prompt ({len(formatted_prompt)} chars)")
+
+        # Call LLM to generate manifest (async)
+        response = await self.call_llm_async(
+            prompt=formatted_prompt,
+            max_tokens=4096,
+            temperature=0.0,
+        )
+
+        # Parse response
+        content = response.get("content")
+        if not isinstance(content, dict):
+            raise AgentExecutionError(
+                f"LLM returned non-dict response: {type(content)}\n"
+                f"Expected JSON matching FileManifest schema"
+            )
+
+        # Validate against FileManifest schema
+        try:
+            manifest = self.validate_output(content, FileManifest)
+            logger.debug(
+                f"Successfully validated FileManifest: {manifest.total_files} files"
+            )
+            return manifest
+        except Exception as e:
+            raise AgentExecutionError(
+                f"Failed to validate FileManifest: {e}\n" f"Response content: {content}"
+            ) from e
+
+    async def _generate_file_content_async(
+        self, file_meta: FileMetadata, input_data: CodeInput, max_retries: int = 3
+    ) -> str:
+        """
+        Async version of _generate_file_content using async LLM call.
+
+        Args:
+            file_meta: FileMetadata with file path, type, description
+            input_data: CodeInput with design specification
+            max_retries: Maximum retry attempts
+
+        Returns:
+            Generated file content as string
+
+        Raises:
+            AgentExecutionError: If generation fails after all retries
+        """
+        # Load prompt template
+        try:
+            prompt_template = self.load_prompt("code_agent_v2_file_content")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"Prompt template not found: {e}") from e
+
+        # Escape design specification for inclusion in prompt
+        design_spec_json = input_data.design_specification.model_dump_json(indent=2)
+        design_spec_escaped = (
+            design_spec_json.replace("\\", "\\\\")
+            .replace("{", "{{")
+            .replace("}", "}}")
+        )
+
+        # Format prompt
+        formatted_prompt = self.format_prompt(
+            prompt_template,
+            file_path=file_meta.file_path,
+            file_type=file_meta.file_type,
+            description=file_meta.description,
+            semantic_unit_id=file_meta.semantic_unit_id or "N/A",
+            component_id=file_meta.component_id or "N/A",
+            estimated_lines=file_meta.estimated_lines,
+            dependencies=(
+                ", ".join(file_meta.dependencies) if file_meta.dependencies else "None"
+            ),
+            design_specification=design_spec_escaped,
+            coding_standards=input_data.coding_standards
+            or "Follow industry best practices",
+        )
+
+        logger.debug(
+            f"Generating content (async) for {file_meta.file_path} "
+            f"({file_meta.estimated_lines} estimated lines)"
+        )
+
+        # Retry loop for robustness
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                # Token limit based on estimated file size
+                max_tokens = min(8000, max(2000, file_meta.estimated_lines * 2))
+
+                # Call LLM (async)
+                response = await self.call_llm_async(
+                    prompt=formatted_prompt,
+                    max_tokens=max_tokens,
+                    temperature=0.0,
+                )
+
+                # Extract content
+                content = response.get("raw_content") or response.get("content")
+
+                if not isinstance(content, str):
+                    raise AgentExecutionError(
+                        f"LLM returned non-string content for {file_meta.file_path}: {type(content)}"
+                    )
+
+                # Strip markdown fences if present
+                content = content.strip()
+                if content.startswith("```"):
+                    first_newline = content.find("\n")
+                    if first_newline > 0:
+                        content = content[first_newline + 1 :]
+                    if content.endswith("```"):
+                        content = content[:-3].rstrip()
+
+                # Validate content is not empty
+                if not content or len(content.strip()) < 10:
+                    raise AgentExecutionError(
+                        f"Generated content for {file_meta.file_path} is too short or empty"
+                    )
+
+                logger.info(
+                    f"File content generated (async): {file_meta.file_path} "
+                    f"({len(content)} chars, {len(content.split(chr(10)))} lines)"
+                )
+
+                return content
+
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    logger.warning(
+                        f"File generation attempt {attempt + 1}/{max_retries} failed "
+                        f"for {file_meta.file_path}: {e}. Retrying..."
+                    )
+                else:
+                    logger.error(
+                        f"File generation failed after {max_retries} attempts "
+                        f"for {file_meta.file_path}: {e}"
+                    )
+
+        raise AgentExecutionError(
+            f"Failed to generate content for {file_meta.file_path} after {max_retries} attempts: "
+            f"{last_error}"
+        ) from last_error

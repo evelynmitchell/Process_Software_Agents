@@ -419,3 +419,265 @@ class PlanningAgent(BaseAgent):
             lines.append("")  # Blank line between issues
 
         return "\n".join(lines)
+
+    # =========================================================================
+    # Async Methods (ADR 008 Phase 2)
+    # =========================================================================
+
+    async def execute_async(
+        self, input_data: TaskRequirements, feedback: list | None = None
+    ) -> ProjectPlan:
+        """
+        Asynchronous version of execute for parallel agent execution.
+
+        Native async implementation that uses call_llm_async() instead of
+        call_llm(). Use this method when running multiple agents concurrently.
+
+        Args:
+            input_data: TaskRequirements with task details
+            feedback: Optional list of DesignIssue objects from Design Review
+
+        Returns:
+            ProjectPlan with decomposed semantic units and complexity scores
+
+        Raises:
+            AgentExecutionError: If decomposition fails
+        """
+        logger.info(
+            f"Planning Agent (async) executing for task_id={input_data.task_id}, "
+            f"description='{input_data.description[:50]}...', "
+            f"feedback_items={len(feedback) if feedback else 0}"
+        )
+
+        try:
+            # Step 1: Decompose task into semantic units (async LLM call)
+            if feedback:
+                semantic_units = await self._decompose_task_with_feedback_async(
+                    input_data, feedback
+                )
+            else:
+                semantic_units = await self._decompose_task_async(input_data)
+
+            # Step 2: Calculate total complexity (sync - fast computation)
+            total_complexity = sum(unit.est_complexity for unit in semantic_units)
+
+            # Step 3: (Phase 2) PROBE-AI estimation - currently returns None
+            probe_ai_prediction = None  # TODO: Implement in Phase 2
+
+            # Step 4: Build and return project plan
+            plan = ProjectPlan(
+                project_id=input_data.project_id,
+                task_id=input_data.task_id,
+                semantic_units=semantic_units,
+                total_est_complexity=total_complexity,
+                probe_ai_prediction=probe_ai_prediction,
+                probe_ai_enabled=False,
+                agent_version=self.agent_version,
+            )
+
+            logger.info(
+                f"Planning complete (async): {len(semantic_units)} units, "
+                f"total_complexity={total_complexity}"
+            )
+
+            return plan
+
+        except Exception as e:
+            logger.error(f"Planning Agent async execution failed: {e}")
+            raise AgentExecutionError(
+                f"Planning Agent failed for task {input_data.task_id}: {e}"
+            ) from e
+
+    async def _decompose_task_async(
+        self, requirements: TaskRequirements
+    ) -> list[SemanticUnit]:
+        """
+        Async version of decompose_task using async LLM call.
+
+        Args:
+            requirements: TaskRequirements to decompose
+
+        Returns:
+            List of validated SemanticUnit objects
+
+        Raises:
+            AgentExecutionError: If decomposition fails or output is invalid
+        """
+        logger.debug(f"Decomposing task {requirements.task_id} (async)")
+
+        # Load prompt template
+        try:
+            prompt_template = self.load_prompt("planning_agent_v1_decomposition")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"Prompt template not found: {e}") from e
+
+        # Format prompt with requirements
+        formatted_prompt = self.format_prompt(
+            prompt_template,
+            task_id=requirements.task_id,
+            description=requirements.description,
+            requirements=requirements.requirements,
+            context_files="\n".join(requirements.context_files or []),
+        )
+
+        # Call LLM (async)
+        response = await self.call_llm_async(
+            prompt=formatted_prompt,
+            max_tokens=4096,
+            temperature=0.0,  # Deterministic for consistency
+        )
+
+        # Parse response
+        content = response.get("content")
+        if not isinstance(content, dict):
+            raise AgentExecutionError(
+                f"LLM returned non-JSON response: {content}\n"
+                f"Expected JSON with 'semantic_units' array"
+            )
+
+        # Extract semantic units
+        if "semantic_units" not in content:
+            raise AgentExecutionError(
+                f"LLM response missing 'semantic_units' key: {content.keys()}"
+            )
+
+        units_data = content["semantic_units"]
+        if not isinstance(units_data, list):
+            raise AgentExecutionError(
+                f"'semantic_units' must be an array, got {type(units_data)}"
+            )
+
+        # Validate and create SemanticUnit objects
+        semantic_units = []
+        for i, unit_data in enumerate(units_data):
+            try:
+                unit = SemanticUnit.model_validate(unit_data)
+
+                # Verify complexity calculation
+                factors = ComplexityFactors(
+                    api_interactions=unit.api_interactions,
+                    data_transformations=unit.data_transformations,
+                    logical_branches=unit.logical_branches,
+                    code_entities_modified=unit.code_entities_modified,
+                    novelty_multiplier=unit.novelty_multiplier,
+                )
+                calculated_complexity = calculate_semantic_complexity(factors)
+
+                if abs(unit.est_complexity - calculated_complexity) > 1:
+                    logger.warning(
+                        f"Unit {unit.unit_id}: Complexity mismatch. "
+                        f"LLM reported {unit.est_complexity}, "
+                        f"calculated {calculated_complexity}. "
+                        f"Using calculated value."
+                    )
+                    unit.est_complexity = calculated_complexity
+
+                semantic_units.append(unit)
+
+            except Exception as e:
+                raise AgentExecutionError(
+                    f"Failed to validate semantic unit {i}: {e}\n" f"Data: {unit_data}"
+                ) from e
+
+        logger.info(
+            f"Successfully decomposed into {len(semantic_units)} semantic units (async)"
+        )
+        return semantic_units
+
+    async def _decompose_task_with_feedback_async(
+        self, requirements: TaskRequirements, feedback: list
+    ) -> list[SemanticUnit]:
+        """
+        Async version of decompose_task_with_feedback using async LLM call.
+
+        Args:
+            requirements: Original TaskRequirements
+            feedback: List of DesignIssue objects
+
+        Returns:
+            List of revised SemanticUnit objects
+
+        Raises:
+            AgentExecutionError: If decomposition fails or output is invalid
+        """
+        logger.debug(
+            f"Re-decomposing task {requirements.task_id} (async) "
+            f"with {len(feedback)} feedback issues"
+        )
+
+        # Format feedback issues
+        feedback_text = self._format_feedback_issues(feedback)
+
+        # Load feedback-aware prompt template
+        try:
+            prompt_template = self.load_prompt("planning_agent_v1_with_feedback")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"Feedback prompt template not found: {e}") from e
+
+        # Format prompt
+        formatted_prompt = self.format_prompt(
+            prompt_template,
+            description=requirements.description,
+            requirements=requirements.requirements,
+            feedback=feedback_text,
+        )
+
+        # Call LLM (async)
+        response = await self.call_llm_async(
+            prompt=formatted_prompt,
+            max_tokens=4096,
+            temperature=0.0,
+        )
+
+        # Parse response
+        content = response.get("content")
+        if not isinstance(content, dict):
+            raise AgentExecutionError(
+                f"LLM returned non-JSON response: {content}\n"
+                f"Expected JSON with 'semantic_units' array"
+            )
+
+        # Extract and validate semantic units
+        if "semantic_units" not in content:
+            raise AgentExecutionError(
+                f"LLM response missing 'semantic_units' key: {content.keys()}"
+            )
+
+        units_data = content["semantic_units"]
+        if not isinstance(units_data, list):
+            raise AgentExecutionError(
+                f"'semantic_units' must be an array, got {type(units_data)}"
+            )
+
+        semantic_units = []
+        for i, unit_data in enumerate(units_data):
+            try:
+                unit = SemanticUnit.model_validate(unit_data)
+
+                factors = ComplexityFactors(
+                    api_interactions=unit.api_interactions,
+                    data_transformations=unit.data_transformations,
+                    logical_branches=unit.logical_branches,
+                    code_entities_modified=unit.code_entities_modified,
+                    novelty_multiplier=unit.novelty_multiplier,
+                )
+                calculated_complexity = calculate_semantic_complexity(factors)
+
+                if abs(unit.est_complexity - calculated_complexity) > 1:
+                    logger.warning(
+                        f"Unit {unit.unit_id}: Complexity mismatch. Using calculated value."
+                    )
+                    unit.est_complexity = calculated_complexity
+
+                semantic_units.append(unit)
+
+            except Exception as e:
+                raise AgentExecutionError(
+                    f"Failed to validate semantic unit {i}: {e}\n" f"Data: {unit_data}"
+                ) from e
+
+        logger.info(
+            f"Successfully re-decomposed into {len(semantic_units)} semantic units (async) "
+            f"addressing {len(feedback)} feedback issues"
+        )
+        return semantic_units

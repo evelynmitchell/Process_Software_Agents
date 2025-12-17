@@ -410,3 +410,180 @@ class DesignReviewAgent(BaseAgent):
         time_str = timestamp.strftime("%H%M%S")
 
         return f"REVIEW-{clean_task_id}-{date_str}-{time_str}"
+
+    # =========================================================================
+    # Async Methods (ADR 008 Phase 2)
+    # =========================================================================
+
+    async def execute_async(
+        self,
+        design_spec: DesignSpecification,
+        quality_standards: str | None = None,
+    ) -> DesignReviewReport:
+        """
+        Asynchronous version of execute for parallel agent execution.
+
+        Native async implementation that uses call_llm_async() instead of
+        call_llm(). Use this method when running multiple agents concurrently.
+
+        Args:
+            design_spec: DesignSpecification to review
+            quality_standards: Optional additional quality standards to apply
+
+        Returns:
+            DesignReviewReport with assessment, issues, and suggestions
+
+        Raises:
+            AgentExecutionError: If review fails
+        """
+        logger.info(f"Starting design review (async) for task {design_spec.task_id}")
+        start_time = datetime.now()
+
+        try:
+            # Step 1: Automated validation checks (sync - fast computation)
+            logger.debug("Running automated validation checks")
+            automated_checks = self._run_automated_checks(design_spec)
+
+            # Step 2: LLM-based deep review (async LLM call)
+            logger.debug("Running LLM-based deep review (async)")
+            llm_review_results = await self._run_llm_review_async(
+                design_spec, quality_standards
+            )
+
+            # Step 3: Parse LLM results (sync - fast processing)
+            issues = llm_review_results.get("issues_found", [])
+            suggestions = llm_review_results.get("improvement_suggestions", [])
+            checklist_review = llm_review_results.get("checklist_review", [])
+
+            # Convert to Pydantic models
+            issues_list = [DesignIssue(**issue) for issue in issues]
+            suggestions_list = [
+                ImprovementSuggestion(**suggestion) for suggestion in suggestions
+            ]
+            checklist_review_list = [
+                ChecklistItemReview(**item) for item in checklist_review
+            ]
+
+            # Step 4: Calculate issue counts
+            critical_count = sum(
+                1 for issue in issues_list if issue.severity == "Critical"
+            )
+            high_count = sum(1 for issue in issues_list if issue.severity == "High")
+            medium_count = sum(1 for issue in issues_list if issue.severity == "Medium")
+            low_count = sum(1 for issue in issues_list if issue.severity == "Low")
+
+            # Step 5: Determine overall assessment
+            if critical_count > 0 or high_count > 0:
+                overall_assessment = "FAIL"
+            elif medium_count > 0 or low_count > 0:
+                overall_assessment = "NEEDS_IMPROVEMENT"
+            else:
+                overall_assessment = "PASS"
+
+            # Step 6: Calculate review duration
+            end_time = datetime.now()
+            duration_ms = (end_time - start_time).total_seconds() * 1000
+
+            # Step 7: Generate review ID
+            review_id = self._generate_review_id(design_spec.task_id, start_time)
+
+            # Step 8: Create review report
+            report = DesignReviewReport(
+                task_id=design_spec.task_id,
+                review_id=review_id,
+                timestamp=start_time,
+                overall_assessment=overall_assessment,
+                automated_checks=automated_checks,
+                issues_found=issues_list,
+                improvement_suggestions=suggestions_list,
+                checklist_review=checklist_review_list,
+                critical_issue_count=critical_count,
+                high_issue_count=high_count,
+                medium_issue_count=medium_count,
+                low_issue_count=low_count,
+                reviewer_agent="DesignReviewAgent",
+                agent_version="1.0.0",
+                review_duration_ms=duration_ms,
+            )
+
+            logger.info(
+                f"Design review completed (async): {overall_assessment} "
+                f"({critical_count}C/{high_count}H/{medium_count}M/{low_count}L issues)"
+            )
+
+            return report
+
+        except Exception as e:
+            logger.error(f"Design review (async) failed: {e}", exc_info=True)
+            raise AgentExecutionError(f"Design review failed: {e}") from e
+
+    async def _run_llm_review_async(
+        self,
+        design_spec: DesignSpecification,
+        quality_standards: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Async version of _run_llm_review using async LLM call.
+
+        Args:
+            design_spec: DesignSpecification to review
+            quality_standards: Optional additional quality standards
+
+        Returns:
+            Dictionary with issues, suggestions, and checklist review
+        """
+        import json as json_module
+        import re
+
+        # Load prompt template
+        try:
+            prompt_template = self.load_prompt("design_review_agent_v1_review")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"Prompt template not found: {e}") from e
+
+        # Format prompt
+        prompt = self.format_prompt(
+            prompt_template,
+            design_specification=design_spec.model_dump_json(indent=2),
+            quality_standards=quality_standards or "Use standard best practices",
+        )
+
+        # Call LLM (async)
+        logger.debug("Calling LLM for design review (async)")
+        response = await self.call_llm_async(prompt)
+
+        # Parse JSON response
+        try:
+            content = response.get("content", {})
+            if isinstance(content, str):
+                # Try to extract JSON from markdown code blocks
+                json_match = re.search(r"```json\s*(.*?)\s*```", content, re.DOTALL)
+                if json_match:
+                    try:
+                        json_str = json_match.group(1).strip()
+                        content = json_module.loads(json_str)
+                        logger.debug(
+                            "Successfully extracted JSON from markdown code fence"
+                        )
+                    except json_module.JSONDecodeError as e:
+                        json_preview = json_match.group(1).strip()[:500]
+                        raise AgentExecutionError(
+                            f"Failed to parse review JSON from markdown fence: {e}\n"
+                            f"JSON content preview: {json_preview}..."
+                        )
+                else:
+                    try:
+                        content = json_module.loads(content)
+                        logger.debug("Successfully parsed string content as JSON")
+                    except json_module.JSONDecodeError:
+                        raise AgentExecutionError(
+                            f"LLM returned non-JSON response: {content[:500]}...\n"
+                            f"Expected JSON matching DesignReview schema"
+                        )
+
+            return content
+        except (json_module.JSONDecodeError, KeyError) as e:
+            logger.error(f"Failed to parse LLM response: {e}")
+            raise AgentExecutionError(
+                f"Failed to parse LLM review response: {e}"
+            ) from e
