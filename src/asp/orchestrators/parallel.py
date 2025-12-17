@@ -14,12 +14,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 if TYPE_CHECKING:
-    from asp.agents.base_agent import BaseAgent
     from pydantic import BaseModel
+
+    from asp.agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +152,10 @@ async def run_agents_parallel(
         f"(max_concurrent={max_concurrent})"
     )
 
-    tasks = [agent.execute_async(input_data) for agent, input_data in zip(agents, inputs)]
+    tasks = [
+        agent.execute_async(input_data)
+        for agent, input_data in zip(agents, inputs, strict=False)
+    ]
 
     if timeout:
         results = await asyncio.wait_for(
@@ -238,7 +243,7 @@ async def run_with_timeout(
     """
     try:
         return await asyncio.wait_for(coro, timeout=timeout)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error(f"{error_message} (timeout={timeout}s)")
         raise
 
@@ -280,7 +285,9 @@ class ParallelExecutionResult:
 
     def get_successful_results(self) -> list[Any]:
         """Return only successful results."""
-        return [r for r, e in zip(self.results, self.exceptions) if e is None]
+        return [
+            r for r, e in zip(self.results, self.exceptions, strict=False) if e is None
+        ]
 
     def get_failed_indices(self) -> list[int]:
         """Return indices of failed tasks."""
@@ -374,7 +381,7 @@ class RateLimiter:
         await asyncio.sleep(self._refill_rate)
         self._semaphore.release()
 
-    async def __aenter__(self) -> "RateLimiter":
+    async def __aenter__(self) -> RateLimiter:
         """Context manager entry."""
         await self.acquire()
         return self

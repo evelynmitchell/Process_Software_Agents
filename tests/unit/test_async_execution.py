@@ -12,7 +12,6 @@ from pydantic import BaseModel
 
 from asp.agents.base_agent import AgentExecutionError, BaseAgent
 
-
 # =============================================================================
 # Test Models
 # =============================================================================
@@ -198,10 +197,7 @@ class TestAsyncAgentExecution:
         """Test running multiple agents in parallel."""
         from asp.orchestrators.parallel import run_agents_parallel
 
-        agents = [
-            ConcreteTestAgent(llm_client=mock_llm_client)
-            for _ in range(3)
-        ]
+        agents = [ConcreteTestAgent(llm_client=mock_llm_client) for _ in range(3)]
         inputs = [TestInput(value=f"input_{i}") for i in range(3)]
 
         results = await run_agents_parallel(agents, inputs, max_concurrent=3)
@@ -234,9 +230,7 @@ class TestAsyncIntegration:
         from asp.orchestrators.parallel import gather_with_concurrency
 
         start = asyncio.get_event_loop().time()
-        await gather_with_concurrency(
-            5, timed_task(1), timed_task(2), timed_task(3)
-        )
+        await gather_with_concurrency(5, timed_task(1), timed_task(2), timed_task(3))
         total_time = asyncio.get_event_loop().time() - start
 
         # If sequential: 3 * 100ms = 300ms
