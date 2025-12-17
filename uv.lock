@@ -781,6 +781,7 @@ dev = [
 dev = [
     { name = "lxml" },
     { name = "pre-commit" },
+    { name = "pytest-asyncio" },
     { name = "pytest-cov" },
 ]
 
@@ -836,6 +837,7 @@ provides-extras = ["dev"]
 dev = [
     { name = "lxml", specifier = ">=6.0.2" },
     { name = "pre-commit", specifier = ">=4.5.0" },
+    { name = "pytest-asyncio", specifier = ">=1.3.0" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
 ]
 

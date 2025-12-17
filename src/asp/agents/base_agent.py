@@ -5,10 +5,14 @@ This module provides the abstract base class that all ASP agents inherit from.
 It provides common functionality for prompt loading, LLM calls, telemetry integration,
 and error handling.
 
+Supports both synchronous and asynchronous execution patterns for parallel agent
+orchestration (ADR 008).
+
 Author: ASP Development Team
 Date: November 13, 2025
 """
 
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -195,6 +199,67 @@ class BaseAgent(ABC):
                 f"{self.agent_name} failed during LLM call: {e}"
             ) from e
 
+    async def call_llm_async(
+        self,
+        prompt: str,
+        model: str | None = None,
+        max_tokens: int = 4096,
+        temperature: float = 0.0,
+        **kwargs,
+    ) -> dict[str, Any]:
+        """
+        Asynchronous LLM call with retry logic and telemetry.
+
+        This method wraps the LLM client's async call method and provides
+        consistent error handling and logging. Use this for concurrent agent
+        execution patterns.
+
+        Args:
+            prompt: Formatted prompt string
+            model: Optional model name (overrides default)
+            max_tokens: Maximum tokens in response
+            temperature: Sampling temperature (0.0 = deterministic)
+            **kwargs: Additional arguments passed to LLM client
+
+        Returns:
+            Dict containing LLM response (format depends on client)
+
+        Raises:
+            AgentExecutionError: If LLM call fails after retries
+        """
+        try:
+            logger.info(
+                f"{self.agent_name}: Async calling LLM "
+                f"(model={model or 'default'}, max_tokens={max_tokens}, temp={temperature})"
+            )
+
+            response = await self.llm_client.call_with_retry_async(
+                prompt=prompt,
+                model=model,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                **kwargs,
+            )
+
+            # Store usage data for telemetry
+            self._last_llm_usage = {
+                "input_tokens": response.get("usage", {}).get("input_tokens", 0),
+                "output_tokens": response.get("usage", {}).get("output_tokens", 0),
+                "total_tokens": response.get("usage", {}).get("input_tokens", 0)
+                + response.get("usage", {}).get("output_tokens", 0),
+                "cost": response.get("cost", 0.0),
+                "model": response.get("model", model or "unknown"),
+            }
+
+            logger.info(f"{self.agent_name}: Async LLM call successful")
+            return response
+
+        except Exception as e:
+            logger.error(f"{self.agent_name}: Async LLM call failed: {e}")
+            raise AgentExecutionError(
+                f"{self.agent_name} failed during async LLM call: {e}"
+            ) from e
+
     def validate_output(
         self,
         data: dict[str, Any],
@@ -258,6 +323,36 @@ class BaseAgent(ABC):
             AgentExecutionError: If execution fails
         """
         pass
+
+    async def execute_async(self, input_data: BaseModel) -> BaseModel:
+        """
+        Asynchronous version of execute.
+
+        Default implementation runs the sync execute() in a thread pool
+        for backward compatibility. Subclasses can override this for
+        native async execution using call_llm_async().
+
+        For native async implementation in subclasses:
+
+        Example:
+            class CodeAgent(BaseAgent):
+                async def execute_async(self, input_data: CodeInput) -> GeneratedCode:
+                    prompt = self._build_prompt(input_data)
+                    response = await self.call_llm_async(prompt)
+                    return self._parse_response(response)
+
+        Args:
+            input_data: Pydantic model with agent-specific input
+
+        Returns:
+            Pydantic model with agent-specific output
+
+        Raises:
+            AgentExecutionError: If execution fails
+        """
+        # Default: run sync version in thread pool (backward compatible)
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, self.execute, input_data)
 
 
 class AgentExecutionError(Exception):
