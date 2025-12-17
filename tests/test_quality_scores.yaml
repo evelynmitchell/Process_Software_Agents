@@ -1,0 +1,181 @@
+# Unit Test Quality Scores
+# Evaluated against the formal rubric in docs/unit_test_evaluation_rubric.md
+#
+# Scoring: 1-5 per dimension
+#   1 = Poor, 2 = Below Average, 3 = Acceptable, 4 = Good, 5 = Excellent
+#
+# Last evaluated: 2025-12-16
+# Rubric version: 1.0
+# Evaluator: Claude (Session 9)
+
+version: "1.0"
+last_evaluated: "2025-12-16"
+rubric_version: "1.0"
+
+# Aggregate scores across all evaluated files
+aggregate:
+  isolation: 4.8
+  assertion_focus: 4.2
+  behavior_vs_implementation: 4.2
+  coverage_quality: 4.8
+  naming_readability: 4.5
+  speed_performance: 4.7
+  overall_average: 4.5
+  rating: "Excellent"
+
+# Individual file scores
+scores:
+  tests/unit/test_agents/test_base_agent.py:
+    isolation: 5
+    assertion_focus: 4
+    behavior_vs_implementation: 4
+    coverage_quality: 5
+    naming_readability: 5
+    speed_performance: 5
+    average: 4.7
+    issues:
+      - dimension: behavior_vs_implementation
+        description: "Accesses _llm_client private attribute in test_llm_client_lazy_load"
+        line_numbers: [74, 84]
+        severity: low
+    strengths:
+      - "Comprehensive test coverage including error paths"
+      - "Clean class organization by functionality"
+      - "Integration tests at end showing realistic workflows"
+
+  tests/unit/test_services/test_test_executor.py:
+    isolation: 5
+    assertion_focus: 4
+    behavior_vs_implementation: 4
+    coverage_quality: 5
+    naming_readability: 4
+    speed_performance: 5
+    average: 4.5
+    issues:
+      - dimension: behavior_vs_implementation
+        description: "Tests private methods _detect_framework and _build_command directly"
+        line_numbers: [340, 347, 356, 363, 370, 377, 384, 388, 395, 403, 411, 418, 424, 433, 440, 448]
+        severity: medium
+    strengths:
+      - "Excellent test data with realistic pytest output strings"
+      - "Framework detection tests cover pytest, jest, go, cargo"
+      - "Clear separation between parser tests and executor tests"
+
+  tests/unit/test_utils/test_git_utils.py:
+    isolation: 4
+    assertion_focus: 4
+    behavior_vs_implementation: 5
+    coverage_quality: 5
+    naming_readability: 5
+    speed_performance: 3
+    average: 4.3
+    issues:
+      - dimension: isolation
+        description: "Uses os.chdir() which affects global state"
+        line_numbers: [91, 102, 116, 132, 149, 160, 176, 191, 206, 224, 240, 255, 282, 309, 326, 359, 392, 419, 459, 486, 505, 519, 540, 555, 571, 594]
+        severity: high
+        recommendation: "Use git -C <path> or subprocess cwd parameter instead"
+      - dimension: speed_performance
+        description: "Real git subprocess calls; creates real repos on disk"
+        severity: medium
+        recommendation: "Consider mocking for pure unit tests, keep integration tests separate"
+    strengths:
+      - "Very thorough coverage of git operations"
+      - "Proper cleanup with try/finally for directory changes"
+      - "Tests real git behavior appropriately for integration testing"
+
+  tests/unit/test_models/test_design_models.py:
+    isolation: 5
+    assertion_focus: 5
+    behavior_vs_implementation: 5
+    coverage_quality: 5
+    naming_readability: 5
+    speed_performance: 5
+    average: 5.0
+    issues: []
+    strengths:
+      - "Exemplary model testing - use as reference"
+      - "Tests both valid and invalid inputs systematically"
+      - "JSON serialization round-trip tests"
+      - "Edge case class at the end for boundary conditions"
+    exemplary: true
+    exemplary_tests:
+      - name: "test_api_contract_method_validation"
+        line: 191
+        reason: "Parameterized-style testing of all valid values plus invalid case"
+      - name: "test_design_specification_with_many_components"
+        line: 849
+        reason: "Edge case testing with many elements"
+
+  tests/unit/test_orchestrators/test_orchestrator.py:
+    isolation: 5
+    assertion_focus: 4
+    behavior_vs_implementation: 3
+    coverage_quality: 4
+    naming_readability: 4
+    speed_performance: 5
+    average: 4.2
+    issues:
+      - dimension: behavior_vs_implementation
+        description: "Accesses _planning_agent, _design_agent, _design_review_agent private attributes for mocking"
+        line_numbers: [119, 120, 121, 215, 216, 217]
+        severity: medium
+        recommendation: "Consider dependency injection for better testability"
+    strengths:
+      - "Excellent helper functions for creating test data"
+      - "Tests complex orchestration logic with feedback loops"
+      - "Verifies call counts to ensure correct flow"
+
+  tests/unit/test_utils/test_llm_client.py:
+    isolation: 5
+    assertion_focus: 4
+    behavior_vs_implementation: 4
+    coverage_quality: 5
+    naming_readability: 4
+    speed_performance: 5
+    average: 4.5
+    issues:
+      - dimension: behavior_vs_implementation
+        description: "Tests private _try_parse_json method directly"
+        line_numbers: [503, 506, 514, 522, 531, 539]
+        severity: medium
+        recommendation: "Test JSON parsing through call_with_retry public interface"
+    strengths:
+      - "Comprehensive retry logic testing"
+      - "Helper functions for creating properly formatted exceptions"
+      - "Tests formula correctness, not hardcoded values"
+
+# Files not yet evaluated (for tracking)
+not_evaluated:
+  - tests/unit/test_agents/reviews/*.py
+  - tests/unit/test_web/*.py
+  - tests/unit/test_approval/*.py
+  - tests/unit/test_telemetry/*.py
+  - tests/unit/test_parsers/*.py
+  - tests/unit/test_advanced/*.py
+  - tests/unit/test_cli/*.py
+  - tests/unit/test_docs/*.py
+
+# Anti-patterns detected across codebase
+anti_patterns_summary:
+  testing_private_methods:
+    occurrences: 4
+    files:
+      - tests/unit/test_services/test_test_executor.py
+      - tests/unit/test_utils/test_llm_client.py
+      - tests/unit/test_orchestrators/test_orchestrator.py
+      - tests/unit/test_agents/test_base_agent.py
+    severity: medium
+
+  global_state_mutation:
+    occurrences: 1
+    files:
+      - tests/unit/test_utils/test_git_utils.py
+    severity: high
+    pattern: "os.chdir() usage"
+
+# Exemplary files to use as references
+exemplary_files:
+  - path: tests/unit/test_models/test_design_models.py
+    score: 5.0
+    reason: "Perfect scores across all dimensions, use as template for new tests"
