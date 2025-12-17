@@ -21,11 +21,13 @@ The current ASP implementation is primarily **single-threaded and synchronous**,
 | `RepairOrchestrator.repair()` | ✅ Yes | Already async |
 | `CodeReviewOrchestrator._dispatch_specialists()` | ✅ Yes | Parallel specialist dispatch |
 | `DesignReviewOrchestrator._dispatch_specialists()` | ✅ Yes | Parallel specialist dispatch |
-| All agents (`execute()`) | ❌ No | Synchronous LLM calls |
-| `TSPOrchestrator.execute()` | ❌ No | Sequential pipeline |
-| `PlanningDesignOrchestrator.execute()` | ❌ No | Sequential |
-| `SandboxExecutor.execute()` | ❌ No | Blocking subprocess |
-| `TestExecutor.run_tests()` | ❌ No | Blocking |
+| All agents (`execute_async()`) | ✅ Yes | Native async LLM calls (Phase 2 complete) |
+| `LLMClient.call_with_retry_async()` | ✅ Yes | Async Anthropic client (Phase 1 complete) |
+| `parallel.py` utilities | ✅ Yes | gather_with_concurrency, RateLimiter |
+| `TSPOrchestrator.execute()` | ❌ No | Sequential pipeline (Phase 4) |
+| `PlanningDesignOrchestrator.execute()` | ❌ No | Sequential (Phase 4) |
+| `SandboxExecutor.execute()` | ❌ No | Blocking subprocess (Phase 3) |
+| `TestExecutor.run_tests()` | ❌ No | Blocking (Phase 3) |
 
 ### Pain Points
 

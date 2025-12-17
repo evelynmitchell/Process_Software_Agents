@@ -626,3 +626,300 @@ class DesignAgent(BaseAgent):
             lines.append("")  # Blank line between issues
 
         return "\n".join(lines)
+
+    # =========================================================================
+    # Async Methods (ADR 008 Phase 2)
+    # =========================================================================
+
+    async def execute_async(
+        self, input_data: DesignInput, feedback: list | None = None
+    ) -> DesignSpecification:
+        """
+        Asynchronous version of execute for parallel agent execution.
+
+        Native async implementation that uses call_llm_async() instead of
+        call_llm(). Use this method when running multiple agents concurrently.
+
+        Args:
+            input_data: DesignInput containing requirements, project_plan, etc.
+            feedback: Optional list of DesignIssue objects from Design Review
+
+        Returns:
+            DesignSpecification with complete technical design
+
+        Raises:
+            AgentExecutionError: If design generation fails or output is invalid
+        """
+        logger.info(
+            f"Executing DesignAgent (async) for task_id={input_data.task_id}, "
+            f"feedback_items={len(feedback) if feedback else 0}"
+        )
+
+        try:
+            # Generate the design (async LLM call)
+            if feedback:
+                design_spec = await self._generate_design_with_feedback_async(
+                    input_data, feedback
+                )
+            else:
+                design_spec = await self._generate_design_async(input_data)
+
+            # Validate semantic unit coverage (sync - fast validation)
+            self._validate_semantic_unit_coverage(design_spec, input_data.project_plan)
+
+            # Validate component dependencies (sync - fast validation)
+            self._validate_component_dependencies(design_spec)
+
+            logger.info(
+                f"Design generation successful (async): "
+                f"{len(design_spec.api_contracts)} APIs, "
+                f"{len(design_spec.data_schemas)} tables, "
+                f"{len(design_spec.component_logic)} components"
+            )
+
+            return design_spec
+
+        except Exception as e:
+            logger.error(f"DesignAgent async execution failed: {e}")
+            raise AgentExecutionError(f"Design generation failed: {e}") from e
+
+    async def _generate_design_async(
+        self, input_data: DesignInput
+    ) -> DesignSpecification:
+        """
+        Async version of _generate_design using async LLM call.
+
+        Args:
+            input_data: DesignInput with requirements and project plan
+
+        Returns:
+            DesignSpecification parsed from LLM response
+
+        Raises:
+            AgentExecutionError: If LLM call fails or response is invalid
+        """
+        if self.use_markdown:
+            return await self._generate_design_markdown_async(input_data)
+        else:
+            return await self._generate_design_json_async(input_data)
+
+    async def _generate_design_json_async(
+        self, input_data: DesignInput
+    ) -> DesignSpecification:
+        """
+        Async version of _generate_design_json using async LLM call.
+
+        Args:
+            input_data: DesignInput with requirements and project plan
+
+        Returns:
+            DesignSpecification parsed from JSON response
+
+        Raises:
+            AgentExecutionError: If LLM call fails or response is invalid
+        """
+        # Load prompt template
+        try:
+            prompt_template = self.load_prompt("design_agent_v1_specification")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"Prompt template not found: {e}") from e
+
+        # Format prompt
+        formatted_prompt = self.format_prompt(
+            prompt_template,
+            requirements=input_data.requirements,
+            project_plan=input_data.project_plan.model_dump_json(indent=2),
+            context_files=(
+                "\n".join(input_data.context_files)
+                if input_data.context_files
+                else "None"
+            ),
+            design_constraints=input_data.design_constraints or "None",
+        )
+
+        logger.debug(f"Generated design prompt ({len(formatted_prompt)} chars)")
+
+        # Call LLM (async)
+        response = await self.call_llm_async(
+            prompt=formatted_prompt,
+            model=self.model,
+            max_tokens=16000,
+            temperature=0.1,
+        )
+
+        # Parse response with robust JSON extraction
+        try:
+            content = extract_json_from_response(response)
+        except JSONExtractionError as e:
+            raise AgentExecutionError(f"Design generation failed: {e}") from e
+
+        logger.debug(f"Received LLM response with {len(content)} top-level keys")
+
+        # Fix: Coerce technology_stack boolean values to strings
+        if "technology_stack" in content and isinstance(
+            content["technology_stack"], dict
+        ):
+            for key, value in content["technology_stack"].items():
+                if isinstance(value, bool):
+                    content["technology_stack"][key] = "yes" if value else "no"
+                elif not isinstance(value, str):
+                    content["technology_stack"][key] = str(value)
+
+        # Validate and create DesignSpecification
+        try:
+            design_spec = DesignSpecification(**content)
+            return design_spec
+        except Exception as e:
+            logger.error(f"Failed to validate design specification: {e}")
+            raise AgentExecutionError(f"Design validation failed: {e}") from e
+
+    async def _generate_design_markdown_async(
+        self, input_data: DesignInput
+    ) -> DesignSpecification:
+        """
+        Async version of _generate_design_markdown using async LLM call.
+
+        Args:
+            input_data: DesignInput with requirements and project plan
+
+        Returns:
+            DesignSpecification parsed from Markdown response
+
+        Raises:
+            AgentExecutionError: If LLM call fails or response is invalid
+        """
+        # Load markdown prompt template
+        try:
+            prompt_template = self.load_prompt("design_agent_v2_markdown")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"Markdown prompt template not found: {e}") from e
+
+        # Format prompt
+        project_plan_text = self._format_project_plan_for_markdown(
+            input_data.project_plan
+        )
+
+        formatted_prompt = self.format_prompt(
+            prompt_template,
+            task_id=input_data.task_id,
+            requirements=input_data.requirements,
+            project_plan=project_plan_text,
+            context_files=(
+                "\n".join(input_data.context_files)
+                if input_data.context_files
+                else "None"
+            ),
+            design_constraints=input_data.design_constraints or "None",
+        )
+
+        logger.debug(
+            f"Generated markdown design prompt ({len(formatted_prompt)} chars)"
+        )
+
+        # Call LLM (async)
+        response = await self.call_llm_async(
+            prompt=formatted_prompt,
+            model=self.model,
+            max_tokens=16000,
+            temperature=0.1,
+        )
+
+        # Parse response
+        content = response.get("raw_content") or response.get("content")
+        if not isinstance(content, str):
+            raise AgentExecutionError(
+                f"LLM returned non-string response in markdown mode: {type(content)}"
+            )
+
+        logger.debug(f"Received markdown response ({len(content)} chars)")
+
+        # Parse markdown to dict
+        try:
+            design_dict = self.markdown_parser.parse(content)
+            logger.debug(
+                f"Parsed markdown into dict with {len(design_dict)} top-level keys"
+            )
+        except Exception as e:
+            logger.error(f"Failed to parse markdown: {e}")
+            raise AgentExecutionError(f"Markdown parsing failed: {e}") from e
+
+        # Validate and create DesignSpecification
+        try:
+            design_spec = DesignSpecification(**design_dict)
+            return design_spec
+        except Exception as e:
+            logger.error(f"Failed to validate design specification from markdown: {e}")
+            raise AgentExecutionError(
+                f"Design validation failed after markdown parsing: {e}"
+            ) from e
+
+    async def _generate_design_with_feedback_async(
+        self, input_data: DesignInput, feedback: list
+    ) -> DesignSpecification:
+        """
+        Async version of _generate_design_with_feedback using async LLM call.
+
+        Args:
+            input_data: Original DesignInput with requirements and project plan
+            feedback: List of DesignIssue objects
+
+        Returns:
+            Revised DesignSpecification
+
+        Raises:
+            AgentExecutionError: If design generation fails or output is invalid
+        """
+        logger.debug(
+            f"Re-generating design (async) for {input_data.task_id} "
+            f"with {len(feedback)} feedback issues"
+        )
+
+        # Format feedback issues
+        feedback_text = self._format_feedback_issues(feedback)
+
+        # Load feedback-aware prompt template
+        try:
+            prompt_template = self.load_prompt("design_agent_v1_with_feedback")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"Feedback prompt template not found: {e}") from e
+
+        # Format prompt
+        formatted_prompt = self.format_prompt(
+            prompt_template,
+            description=input_data.requirements,
+            project_plan=input_data.project_plan.model_dump_json(indent=2),
+            feedback=feedback_text,
+        )
+
+        logger.debug(
+            f"Generated feedback-aware design prompt ({len(formatted_prompt)} chars)"
+        )
+
+        # Call LLM (async)
+        response = await self.call_llm_async(
+            prompt=formatted_prompt,
+            max_tokens=16000,
+            temperature=0.1,
+        )
+
+        # Parse response
+        content = response.get("content")
+        if not isinstance(content, dict):
+            raise AgentExecutionError(
+                f"LLM returned non-JSON response: {content}\n"
+                f"Expected JSON matching DesignSpecification schema"
+            )
+
+        logger.debug(f"Received LLM response with {len(content)} top-level keys")
+
+        # Validate and create DesignSpecification
+        try:
+            design_spec = DesignSpecification(**content)
+            logger.info(
+                f"Successfully revised design (async) "
+                f"addressing {len(feedback)} feedback issues"
+            )
+            return design_spec
+        except Exception as e:
+            logger.error(f"Failed to validate revised design specification: {e}")
+            raise AgentExecutionError(f"Revised design validation failed: {e}") from e

@@ -577,3 +577,104 @@ class PostmortemAgent(BaseAgent):
         except Exception as e:
             logger.error(f"PIP generation failed: {e}", exc_info=True)
             raise AgentExecutionError(f"Failed to generate PIP: {e}") from e
+
+    # =========================================================================
+    # Async Methods (ADR 008 Phase 2)
+    # =========================================================================
+
+    async def execute_async(self, input_data: PostmortemInput) -> PostmortemReport:
+        """
+        Asynchronous version of execute for parallel agent execution.
+
+        Note: The execute method doesn't make LLM calls, so this implementation
+        is synchronous but wrapped in async for API consistency. The real async
+        benefit comes from generate_pip_async().
+
+        Args:
+            input_data: PostmortemInput with project plan and performance logs
+
+        Returns:
+            PostmortemReport with complete analysis
+
+        Raises:
+            AgentExecutionError: If analysis fails
+        """
+        # PostmortemAgent.execute() doesn't use LLM calls - it's all computation
+        # We can run it directly since there's no blocking I/O
+        return self.execute(input_data)
+
+    async def generate_pip_async(
+        self,
+        postmortem_report: PostmortemReport,
+        input_data: PostmortemInput,
+        pip_id: str | None = None,
+    ) -> ProcessImprovementProposal:
+        """
+        Async version of generate_pip using async LLM call.
+
+        This method uses LLM to analyze the postmortem report and generate
+        specific, actionable changes to process artifacts (prompts, checklists).
+
+        Args:
+            postmortem_report: PostmortemReport from execute()
+            input_data: Original PostmortemInput
+            pip_id: Optional custom PIP ID (auto-generated if not provided)
+
+        Returns:
+            ProcessImprovementProposal with specific changes for HITL approval
+
+        Raises:
+            AgentExecutionError: If PIP generation fails
+        """
+        logger.info(
+            f"Generating PIP (async) for task_id={postmortem_report.task_id}"
+        )
+
+        try:
+            # Auto-generate PIP ID if not provided
+            if pip_id is None:
+                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                pip_id = f"PIP-{timestamp}"
+
+            # Load and format PIP generation prompt
+            prompt_template = self.load_prompt("postmortem_agent_v1_pip_generation")
+
+            # Prepare context for LLM
+            prompt = self.format_prompt(
+                prompt_template,
+                postmortem_report_json=postmortem_report.model_dump_json(indent=2),
+                defect_log_json=json.dumps(
+                    [d.model_dump() for d in input_data.defect_log], indent=2
+                ),
+                root_cause_analysis="\n".join(
+                    f"- {item.defect_type}: {item.occurrence_count} occurrences, "
+                    f"${item.total_effort_to_fix:.4f} total fix cost"
+                    for item in postmortem_report.root_cause_analysis
+                ),
+            )
+
+            # Call LLM to generate PIP (async)
+            response = await self.call_llm_async(
+                prompt=prompt,
+                max_tokens=4096,
+                temperature=0.1,
+            )
+
+            # Parse and validate response
+            pip_data = json.loads(response["content"])
+            pip_data["proposal_id"] = pip_id
+            pip_data["task_id"] = postmortem_report.task_id
+
+            pip = self.validate_output(pip_data, ProcessImprovementProposal)
+
+            logger.info(
+                f"PIP generated (async): {pip.proposal_id}, "
+                f"changes={len(pip.proposed_changes)}, "
+                f"status={pip.hitl_status}"
+            )
+
+            return pip
+
+        except Exception as e:
+            logger.error(f"PIP generation (async) failed: {e}", exc_info=True)
+            raise AgentExecutionError(f"Failed to generate PIP: {e}") from e

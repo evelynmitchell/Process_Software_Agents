@@ -348,3 +348,145 @@ class TestAgent(BaseAgent):
             )
 
         logger.debug("Test report validation passed")
+
+    # =========================================================================
+    # Async Methods (ADR 008 Phase 2)
+    # =========================================================================
+
+    async def execute_async(self, input_data: TestInput) -> TestReport:
+        """
+        Asynchronous version of execute for parallel agent execution.
+
+        Native async implementation that uses call_llm_async() instead of
+        call_llm(). Use this method when running multiple agents concurrently.
+
+        Args:
+            input_data: TestInput with generated code and design specification
+
+        Returns:
+            TestReport with build status, test results, and defect list
+
+        Raises:
+            AgentExecutionError: If test execution fails or output is invalid
+        """
+        logger.info(
+            f"Executing TestAgent (async) for task_id={input_data.task_id}, "
+            f"framework={input_data.test_framework}, "
+            f"coverage_target={input_data.coverage_target}%"
+        )
+
+        try:
+            # Generate tests and execute (async LLM call)
+            test_report = await self._generate_and_execute_tests_async(input_data)
+
+            # Validate test report consistency (sync - fast validation)
+            self._validate_test_report(test_report)
+
+            # Log summary
+            logger.info(
+                f"Test execution complete (async): status={test_report.test_status}, "
+                f"tests={test_report.test_summary.get('passed', 0)}/"
+                f"{test_report.test_summary.get('total_tests', 0)}, "
+                f"defects={len(test_report.defects_found)}, "
+                f"coverage={test_report.coverage_percentage}%"
+            )
+
+            return test_report
+
+        except Exception as e:
+            logger.error(f"TestAgent async execution failed: {e}")
+            raise AgentExecutionError(f"Test execution failed: {e}") from e
+
+    async def _generate_and_execute_tests_async(
+        self, input_data: TestInput
+    ) -> TestReport:
+        """
+        Async version of _generate_and_execute_tests using async LLM call.
+
+        Args:
+            input_data: TestInput with generated code and design specification
+
+        Returns:
+            TestReport parsed from LLM response
+
+        Raises:
+            AgentExecutionError: If LLM call fails or response is invalid
+        """
+        # Load prompt template
+        try:
+            prompt_template = self.load_prompt("test_agent_v1_generation")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"Prompt template not found: {e}") from e
+
+        # Format prompt with generated code and design specification
+        formatted_prompt = self.format_prompt(
+            prompt_template,
+            task_id=input_data.task_id,
+            generated_code_json=input_data.generated_code.model_dump_json(indent=2),
+            design_specification_json=input_data.design_specification.model_dump_json(
+                indent=2
+            ),
+            test_framework=input_data.test_framework,
+            coverage_target=input_data.coverage_target,
+        )
+
+        logger.debug(f"Generated test prompt ({len(formatted_prompt)} chars)")
+
+        # Call LLM to generate and execute tests (async)
+        response = await self.call_llm_async(
+            prompt=formatted_prompt,
+            max_tokens=16000,  # Large limit for comprehensive test reports
+            temperature=0.0,  # Deterministic for testing
+        )
+
+        # Parse response
+        content = response.get("content")
+
+        # If content is a string, try to extract JSON from markdown fences
+        if isinstance(content, str):
+            json_match = re.search(r"```json\s*\n(.*?)\n```", content, re.DOTALL)
+            if json_match:
+                try:
+                    content = json.loads(json_match.group(1))
+                    logger.debug("Successfully extracted JSON from markdown code fence")
+                except json.JSONDecodeError as e:
+                    raise AgentExecutionError(
+                        f"Failed to parse JSON from markdown fence: {e}\n"
+                        f"Content preview: {content[:500]}..."
+                    ) from e
+            else:
+                try:
+                    content = json.loads(content)
+                    logger.debug("Successfully parsed string content as JSON")
+                except json.JSONDecodeError as e:
+                    raise AgentExecutionError(
+                        f"LLM returned non-JSON response: {content[:500]}...\n"
+                        f"Expected JSON matching TestReport schema"
+                    ) from e
+
+        if not isinstance(content, dict):
+            raise AgentExecutionError(
+                f"LLM returned non-dict response after parsing: {type(content)}\n"
+                f"Expected dict matching TestReport schema"
+            )
+
+        # Fix: Auto-correct test_status if build failed
+        if not content.get("build_successful", True):
+            if content.get("test_status") != "BUILD_FAILED":
+                logger.debug(
+                    f"Auto-correcting test_status from '{content.get('test_status')}' "
+                    f"to 'BUILD_FAILED' because build_successful=False"
+                )
+                content["test_status"] = "BUILD_FAILED"
+
+        # Validate against TestReport schema
+        try:
+            test_report = self.validate_output(content, TestReport)
+            logger.debug(
+                f"Successfully validated TestReport for task {input_data.task_id}"
+            )
+            return test_report
+        except Exception as e:
+            raise AgentExecutionError(
+                f"Failed to validate TestReport: {e}\n" f"Response content: {content}"
+            ) from e

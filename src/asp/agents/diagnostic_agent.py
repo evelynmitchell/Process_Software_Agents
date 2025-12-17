@@ -455,3 +455,124 @@ class DiagnosticAgent(BaseAgent):
             raise AgentExecutionError(f"Duplicate fix IDs found: {set(duplicates)}")
 
         logger.debug("Diagnostic report validation passed")
+
+    # =========================================================================
+    # Async Methods (ADR 008 Phase 2)
+    # =========================================================================
+
+    async def execute_async(self, input_data: DiagnosticInput) -> DiagnosticReport:
+        """
+        Asynchronous version of execute for parallel agent execution.
+
+        Native async implementation that uses call_llm_async() instead of
+        call_llm(). Use this method when running multiple agents concurrently.
+
+        Args:
+            input_data: DiagnosticInput with test results and error information
+
+        Returns:
+            DiagnosticReport with root cause analysis and suggested fixes
+
+        Raises:
+            AgentExecutionError: If diagnosis fails or output is invalid
+        """
+        logger.info(
+            f"Executing DiagnosticAgent (async) for task_id={input_data.task_id}, "
+            f"error_type={input_data.error_type}"
+        )
+
+        try:
+            # Gather additional context from workspace (sync - fast I/O)
+            source_context = self._gather_context(input_data)
+
+            # Diagnose the issue (async LLM call)
+            diagnostic_report = await self._diagnose_issue_async(
+                input_data, source_context
+            )
+
+            # Validate the report (sync - fast validation)
+            self._validate_diagnostic_report(diagnostic_report)
+
+            # Log summary
+            logger.info(
+                f"Diagnosis complete (async): issue_type={diagnostic_report.issue_type.value}, "
+                f"severity={diagnostic_report.severity.value}, "
+                f"confidence={diagnostic_report.confidence:.2f}, "
+                f"fixes_suggested={len(diagnostic_report.suggested_fixes)}"
+            )
+
+            return diagnostic_report
+
+        except Exception as e:
+            logger.error(f"DiagnosticAgent async execution failed: {e}")
+            raise AgentExecutionError(f"Diagnostic failed: {e}") from e
+
+    async def _diagnose_issue_async(
+        self, input_data: DiagnosticInput, source_context: dict[str, str]
+    ) -> DiagnosticReport:
+        """
+        Async version of _diagnose_issue using async LLM call.
+
+        Args:
+            input_data: DiagnosticInput with error information
+            source_context: Dict of file paths to contents
+
+        Returns:
+            DiagnosticReport parsed from LLM response
+
+        Raises:
+            AgentExecutionError: If LLM call fails or response is invalid
+        """
+        # Load prompt template
+        try:
+            prompt_template = self.load_prompt("diagnostic_agent_v1")
+        except FileNotFoundError as e:
+            raise AgentExecutionError(f"Prompt template not found: {e}") from e
+
+        # Format source files for prompt
+        source_files_text = self._format_source_files(source_context)
+
+        # Format prompt
+        formatted_prompt = self.format_prompt(
+            prompt_template,
+            task_id=input_data.task_id,
+            test_result_json=input_data.test_result.model_dump_json(indent=2),
+            error_type=input_data.error_type,
+            error_message=input_data.error_message,
+            stack_trace=input_data.stack_trace or "No stack trace available",
+            source_files_json=source_files_text,
+        )
+
+        logger.debug(f"Generated diagnostic prompt ({len(formatted_prompt)} chars)")
+
+        # Call LLM to diagnose (async)
+        response = await self.call_llm_async(
+            prompt=formatted_prompt,
+            max_tokens=8000,
+            temperature=0.0,  # Deterministic for diagnosis
+        )
+
+        # Parse response
+        content = response.get("content")
+
+        # Extract JSON from response
+        content = self._extract_json_content(content)
+
+        if not isinstance(content, dict):
+            raise AgentExecutionError(
+                f"LLM returned non-dict response after parsing: {type(content)}\n"
+                f"Expected dict matching DiagnosticReport schema"
+            )
+
+        # Validate against DiagnosticReport schema
+        try:
+            report = self.validate_output(content, DiagnosticReport)
+            logger.debug(
+                f"Successfully validated DiagnosticReport for task {input_data.task_id}"
+            )
+            return report
+        except Exception as e:
+            raise AgentExecutionError(
+                f"Failed to validate DiagnosticReport: {e}\n"
+                f"Response content: {content}"
+            ) from e
