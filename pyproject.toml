@@ -210,10 +210,21 @@ ignore = [
 "src/asp/web/*.py" = ["F403", "F405"]  # star imports are standard for FastHTML
 "examples/*.py" = ["ARG001", "F841", "B007"]  # examples may have unused vars for demonstration
 
+[tool.ty]
+# ty is Astral's Python type checker (extremely fast, written in Rust)
+# Exclude directories that contain external/generated code
+
+[tool.ty.src]
+exclude = [
+    "contrib/**",
+    "artifacts/**",
+]
+
 [dependency-groups]
 dev = [
     "lxml>=6.0.2",
     "pre-commit>=4.5.0",
     "pytest-asyncio>=1.3.0",
     "pytest-cov>=7.0.0",
+    "ty>=0.0.2",
 ]

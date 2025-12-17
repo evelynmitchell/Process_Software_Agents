@@ -369,12 +369,15 @@ class RateLimiter:
         self.burst_size = burst_size or requests_per_minute
         self._semaphore = asyncio.Semaphore(self.burst_size)
         self._refill_rate = 60.0 / requests_per_minute  # seconds per token
+        self._tasks: set[asyncio.Task[Any]] = set()  # Track background tasks
 
     async def acquire(self) -> None:
         """Acquire a rate limit token."""
         await self._semaphore.acquire()
-        # Schedule token release
-        asyncio.create_task(self._release_after_delay())
+        # Schedule token release and track the task
+        task = asyncio.create_task(self._release_after_delay())
+        self._tasks.add(task)
+        task.add_done_callback(self._tasks.discard)
 
     async def _release_after_delay(self) -> None:
         """Release token after delay."""
@@ -389,3 +392,26 @@ class RateLimiter:
     async def __aexit__(self, *args) -> None:
         """Context manager exit (token already scheduled for release)."""
         pass
+
+    async def close(self) -> None:
+        """
+        Cancel pending tasks and clean up resources.
+
+        Call this method during graceful shutdown to ensure all background
+        tasks are properly cancelled and awaited.
+
+        Example:
+            >>> limiter = RateLimiter(requests_per_minute=60)
+            >>> # ... use limiter ...
+            >>> await limiter.close()  # Clean shutdown
+        """
+        if not self._tasks:
+            return
+
+        # Cancel all pending tasks
+        for task in self._tasks:
+            task.cancel()
+
+        # Wait for all tasks to complete (with cancellation)
+        await asyncio.gather(*self._tasks, return_exceptions=True)
+        self._tasks.clear()

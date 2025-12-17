@@ -58,6 +58,20 @@ repos:
     hooks:
       - id: zizmor
 
+  # ty - Astral's Python type checker (extremely fast, written in Rust)
+  # No official pre-commit repo yet (https://github.com/astral-sh/ty/issues/269)
+  # Using local hook until official release
+  # Non-blocking (informational) during alpha - remove "|| true" when ready to enforce
+  - repo: local
+    hooks:
+      - id: ty
+        name: ty (type checker - informational)
+        entry: bash -c 'uv run ty check || true'
+        language: system
+        types: [python]
+        pass_filenames: false
+        verbose: true
+
   # Additional useful hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0

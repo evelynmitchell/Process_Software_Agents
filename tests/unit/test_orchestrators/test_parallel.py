@@ -394,3 +394,45 @@ class TestRateLimiter:
         async with limiter:
             async with limiter:
                 pass  # Both should succeed quickly
+
+    @pytest.mark.asyncio
+    async def test_task_tracking(self):
+        """Test that background tasks are tracked."""
+        limiter = RateLimiter(requests_per_minute=1000, burst_size=10)
+
+        # Initially no tasks
+        assert len(limiter._tasks) == 0
+
+        # After acquire, task is tracked
+        await limiter.acquire()
+        assert len(limiter._tasks) == 1
+
+        # After delay, task should be removed (auto-cleanup via callback)
+        await asyncio.sleep(limiter._refill_rate + 0.1)
+        assert len(limiter._tasks) == 0
+
+    @pytest.mark.asyncio
+    async def test_close_cancels_pending_tasks(self):
+        """Test that close() cancels pending tasks."""
+        # Slow refill rate so tasks are still pending when we close
+        limiter = RateLimiter(requests_per_minute=1, burst_size=10)
+
+        # Acquire several tokens
+        for _ in range(3):
+            await limiter.acquire()
+
+        # Tasks should be pending
+        assert len(limiter._tasks) == 3
+
+        # Close should cancel and clear
+        await limiter.close()
+        assert len(limiter._tasks) == 0
+
+    @pytest.mark.asyncio
+    async def test_close_on_empty(self):
+        """Test that close() works when no tasks are pending."""
+        limiter = RateLimiter(requests_per_minute=1000)
+
+        # Close without any acquires should not raise
+        await limiter.close()
+        assert len(limiter._tasks) == 0
