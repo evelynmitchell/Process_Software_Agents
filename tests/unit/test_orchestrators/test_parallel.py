@@ -5,13 +5,13 @@ Tests the async execution helpers from ADR 008: Async Process Architecture.
 """
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from asp.orchestrators.parallel import (
-    AsyncConfig,
     DEFAULT_ASYNC_CONFIG,
+    AsyncConfig,
     ParallelExecutionResult,
     RateLimiter,
     gather_with_concurrency,
@@ -20,7 +20,6 @@ from asp.orchestrators.parallel import (
     run_with_retry,
     run_with_timeout,
 )
-
 
 # =============================================================================
 # AsyncConfig Tests
@@ -78,15 +77,14 @@ class TestGatherWithConcurrency:
             results.append(n)
             return n * 2
 
-        output = await gather_with_concurrency(
-            3, task(1), task(2), task(3)
-        )
+        output = await gather_with_concurrency(3, task(1), task(2), task(3))
         assert output == [2, 4, 6]
         assert set(results) == {1, 2, 3}
 
     @pytest.mark.asyncio
     async def test_unlimited_concurrency(self):
         """Test unlimited concurrency (limit=0)."""
+
         async def task(n):
             return n
 
@@ -113,6 +111,7 @@ class TestGatherWithConcurrency:
     @pytest.mark.asyncio
     async def test_return_exceptions(self):
         """Test returning exceptions instead of raising."""
+
         async def failing_task():
             raise ValueError("test error")
 
@@ -152,9 +151,7 @@ class TestRunAgentsParallel:
 
         inputs = [MagicMock(), MagicMock()]
 
-        results = await run_agents_parallel(
-            [agent1, agent2], inputs, max_concurrent=2
-        )
+        results = await run_agents_parallel([agent1, agent2], inputs, max_concurrent=2)
 
         assert results == ["result1", "result2"]
         agent1.execute_async.assert_called_once_with(inputs[0])
@@ -181,15 +178,14 @@ class TestRunAgentsParallel:
         agent = MagicMock()
         agent.execute_async = AsyncMock(return_value="result")
 
-        results = await run_agents_parallel(
-            [agent], [MagicMock()], timeout=5.0
-        )
+        results = await run_agents_parallel([agent], [MagicMock()], timeout=5.0)
 
         assert results == ["result"]
 
     @pytest.mark.asyncio
     async def test_timeout_exceeded(self):
         """Test that timeout is enforced."""
+
         async def slow_execute(_):
             await asyncio.sleep(10)  # Very slow
             return "result"
@@ -198,9 +194,7 @@ class TestRunAgentsParallel:
         agent.execute_async = slow_execute
 
         with pytest.raises(asyncio.TimeoutError):
-            await run_agents_parallel(
-                [agent], [MagicMock()], timeout=0.01
-            )
+            await run_agents_parallel([agent], [MagicMock()], timeout=0.01)
 
 
 # =============================================================================
@@ -214,6 +208,7 @@ class TestRunWithRetry:
     @pytest.mark.asyncio
     async def test_success_on_first_try(self):
         """Test successful execution on first attempt."""
+
         async def success():
             return "success"
 
@@ -238,6 +233,7 @@ class TestRunWithRetry:
     @pytest.mark.asyncio
     async def test_max_retries_exceeded(self):
         """Test that exception is raised after max retries."""
+
         async def always_fail():
             raise ValueError("persistent error")
 
@@ -256,6 +252,7 @@ class TestRunWithTimeout:
     @pytest.mark.asyncio
     async def test_success_within_timeout(self):
         """Test successful execution within timeout."""
+
         async def fast():
             return "result"
 
@@ -265,6 +262,7 @@ class TestRunWithTimeout:
     @pytest.mark.asyncio
     async def test_timeout_exceeded(self):
         """Test that timeout is enforced."""
+
         async def slow():
             await asyncio.sleep(10)
             return "result"
@@ -329,6 +327,7 @@ class TestGatherWithResults:
     @pytest.mark.asyncio
     async def test_successful_tasks(self):
         """Test with all successful tasks."""
+
         async def task(n):
             return n
 
@@ -340,6 +339,7 @@ class TestGatherWithResults:
     @pytest.mark.asyncio
     async def test_mixed_success_failure(self):
         """Test with mixed success and failure."""
+
         async def success():
             return "ok"
 
