@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Awaitable, TypeVar
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, TypeVar
 
 if TYPE_CHECKING:
     from asp.agents.base_agent import BaseAgent
@@ -172,7 +172,7 @@ async def run_agents_parallel(
 
 
 async def run_with_retry(
-    coro_factory: callable[[], Awaitable[T]],
+    coro_factory: Callable[[], Awaitable[T]],
     max_retries: int = 3,
     base_delay: float = 1.0,
     max_delay: float = 30.0,
