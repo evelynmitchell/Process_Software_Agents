@@ -7,15 +7,22 @@ This module provides a wrapper around the Anthropic SDK with:
 - Structured output parsing
 - Token counting
 - Error handling and logging
+- Automatic telemetry instrumentation (Logfire/Langfuse)
 
 Author: ASP Development Team
-Date: November 13, 2025
+Date: November 13, 2025 (updated December 2025)
 """
 
 import json
 import logging
 import os
 from typing import Any
+
+# Initialize LLM instrumentation BEFORE importing Anthropic
+# This allows Logfire to patch the Anthropic SDK for auto-tracing
+import asp.telemetry.config
+
+asp.telemetry.config.ensure_llm_instrumentation()
 
 from anthropic import (
     Anthropic,

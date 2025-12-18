@@ -35,7 +35,7 @@ from typing import Any
 
 from langfuse import Langfuse
 
-from .config import configure_logfire, get_telemetry_provider
+import asp.telemetry.config as telemetry_config
 
 # ============================================================================
 # Configuration
@@ -77,9 +77,9 @@ def _ensure_telemetry_initialized() -> None:
     if _telemetry_initialized:
         return
 
-    provider = get_telemetry_provider()
+    provider = telemetry_config.get_telemetry_provider()
     if provider == "logfire":
-        configure_logfire()
+        telemetry_config.configure_logfire()
     # Langfuse initializes lazily via get_langfuse_client()
 
     _telemetry_initialized = True
@@ -622,7 +622,7 @@ def track_agent_cost(
                 )
 
             user_id = get_user_id()
-            provider = get_telemetry_provider()
+            provider = telemetry_config.get_telemetry_provider()
             start_time = time.time()
             error = None
 
@@ -698,7 +698,7 @@ def track_agent_cost(
                 )
 
             user_id = get_user_id()
-            provider = get_telemetry_provider()
+            provider = telemetry_config.get_telemetry_provider()
             start_time = time.time()
             error = None
 

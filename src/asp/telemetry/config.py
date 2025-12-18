@@ -33,6 +33,7 @@ TelemetryProvider = Literal["logfire", "langfuse", "none"]
 # Lazy initialization flags
 _logfire_initialized = False
 _langfuse_initialized = False
+_llm_instrumentation_done = False
 
 
 def get_telemetry_provider() -> TelemetryProvider:
@@ -220,6 +221,93 @@ def instrument_all_llm_providers() -> dict[str, bool]:
         "openai": configure_openai_instrumentation(),
         "httpx": configure_httpx_instrumentation(),
     }
+
+
+def initialize_telemetry(
+    service_name: str = "asp-platform",
+    instrument_llm: bool = True,
+) -> dict[str, any]:
+    """
+    Initialize telemetry for the ASP platform.
+
+    This is the main entry point for telemetry setup. Call this early in your
+    application startup, BEFORE creating any LLM clients (Anthropic, OpenAI).
+
+    Args:
+        service_name: Name of the service for tracing
+        instrument_llm: Whether to instrument LLM providers (default True)
+
+    Returns:
+        dict: Status of initialization
+            {
+                "provider": "logfire" | "langfuse" | "none",
+                "logfire_configured": bool,
+                "llm_instrumentation": {"anthropic": bool, "openai": bool, ...}
+            }
+
+    Example:
+        # At application startup (before creating LLM clients)
+        from asp.telemetry import initialize_telemetry
+        status = initialize_telemetry()
+        print(f"Telemetry provider: {status['provider']}")
+
+        # Now safe to create LLM clients
+        from asp.utils.llm_client import LLMClient
+        client = LLMClient()  # Will be automatically instrumented
+    """
+    global _llm_instrumentation_done
+
+    provider = get_telemetry_provider()
+    result = {
+        "provider": provider,
+        "logfire_configured": False,
+        "llm_instrumentation": {},
+    }
+
+    if provider == "logfire":
+        # Configure Logfire first
+        result["logfire_configured"] = configure_logfire(service_name=service_name)
+
+        # Then instrument LLM providers (must be done BEFORE creating clients)
+        if instrument_llm and not _llm_instrumentation_done:
+            result["llm_instrumentation"] = instrument_all_llm_providers()
+            _llm_instrumentation_done = True
+
+    elif provider == "langfuse":
+        # Langfuse doesn't require pre-initialization
+        result["logfire_configured"] = False
+        result["llm_instrumentation"] = {}
+
+    return result
+
+
+def ensure_llm_instrumentation() -> bool:
+    """
+    Ensure LLM instrumentation is set up.
+
+    Call this before creating LLM clients if you're not using initialize_telemetry().
+    Safe to call multiple times - only instruments once.
+
+    Returns:
+        bool: True if instrumentation was set up (or already done), False otherwise
+    """
+    global _llm_instrumentation_done
+
+    if _llm_instrumentation_done:
+        return True
+
+    provider = get_telemetry_provider()
+    if provider != "logfire":
+        return False
+
+    # Configure logfire if not done
+    configure_logfire()
+
+    # Instrument LLM providers
+    results = instrument_all_llm_providers()
+    _llm_instrumentation_done = True
+
+    return any(results.values())
 
 
 def is_logfire_available() -> bool:

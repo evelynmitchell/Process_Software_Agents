@@ -1,6 +1,6 @@
 # ADR 013: Migrate from Langfuse to Pydantic Logfire
 
-**Status:** In Progress (Phase 1 Complete)
+**Status:** In Progress (Phase 2 Complete)
 **Date:** 2025-12-18
 **Session:** 20251218.2
 **Deciders:** User, Claude
@@ -739,15 +739,20 @@ if __name__ == "__main__":
 
 **Commit:** a193af3
 
-### Phase 2: LLM Auto-Instrumentation (1 session)
+### Phase 2: LLM Auto-Instrumentation (1 session) ✅ COMPLETE
 
-| Task | Description | Effort |
+| Task | Description | Status |
 |------|-------------|--------|
-| 2.1 | Add Anthropic auto-instrumentation | Low |
-| 2.2 | Add OpenAI auto-instrumentation | Low |
-| 2.3 | Configure Pydantic plugin | Low |
-| 2.4 | Update LLMClient to leverage instrumentation | Medium |
-| 2.5 | Test token/cost tracking | Medium |
+| 2.1 | Add Anthropic auto-instrumentation | ✅ Done |
+| 2.2 | Add OpenAI auto-instrumentation | ✅ Done |
+| 2.3 | Configure Pydantic plugin | ✅ Done |
+| 2.4 | Update LLMClient to leverage instrumentation | ✅ Done |
+| 2.5 | Test token/cost tracking | ✅ Done (41 tests pass) |
+
+**Key additions:**
+- `initialize_telemetry()` - main entry point for app startup
+- `ensure_llm_instrumentation()` - called by LLMClient before Anthropic import
+- LLMClient now auto-instruments when using Logfire provider
 
 ### Phase 3: Dashboard & Queries (1 session)
 
