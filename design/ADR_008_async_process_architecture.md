@@ -26,8 +26,8 @@ The current ASP implementation is primarily **single-threaded and synchronous**,
 | `parallel.py` utilities | ✅ Yes | gather_with_concurrency, RateLimiter |
 | `SandboxExecutor.execute_async()` | ✅ Yes | Async subprocess (Phase 3 complete) |
 | `TestExecutor.run_tests_async()` | ✅ Yes | Async test execution (Phase 3 complete) |
-| `TSPOrchestrator.execute()` | ❌ No | Sequential pipeline (Phase 4) |
-| `PlanningDesignOrchestrator.execute()` | ❌ No | Sequential (Phase 4) |
+| `TSPOrchestrator.execute_async()` | ✅ Yes | Async pipeline (Phase 4 complete) |
+| `PlanningDesignOrchestrator.execute_async()` | ✅ Yes | Async orchestration (Phase 4 complete) |
 
 ### Pain Points
 

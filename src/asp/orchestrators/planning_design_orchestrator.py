@@ -390,3 +390,294 @@ class PlanningDesignOrchestrator:
             raise AgentExecutionError(
                 f"Design Review Agent execution failed: {e}"
             ) from e
+
+    # =========================================================================
+    # Async execution methods (ADR 008 Phase 4)
+    # =========================================================================
+
+    async def execute_async(
+        self,
+        requirements: TaskRequirements,
+        design_constraints: str | None = None,
+    ) -> PlanningDesignResult:
+        """
+        Execute Planning → Design → Design Review asynchronously with feedback loops.
+
+        Async version of execute() using agent execute_async() methods.
+        Part of ADR 008 Phase 4: Async Orchestrators.
+
+        This method:
+        1. Generates initial plan (Planning Agent)
+        2. Generates design from plan (Design Agent)
+        3. Reviews design (Design Review Agent)
+        4. If issues found:
+           - Routes planning-phase issues → Planning Agent
+           - Routes design-phase issues → Design Agent
+           - Regenerates affected artifacts
+           - Re-reviews design
+        5. Repeats until PASS or max iterations exceeded
+
+        Args:
+            requirements: TaskRequirements with task description
+            design_constraints: Optional design constraints/standards
+
+        Returns:
+            PlanningDesignResult containing:
+            - project_plan: ProjectPlan from Planning Agent
+            - design_specification: DesignSpecification from Design Agent
+            - design_review: DesignReviewReport with overall_assessment
+
+        Raises:
+            MaxIterationsExceeded: If cannot resolve issues within iteration limits
+            AgentExecutionError: If agent execution fails
+        """
+        logger.info(
+            f"Starting async orchestrated Planning→Design→Review for task {requirements.task_id}"
+        )
+
+        # Iteration tracking
+        planning_iterations = 0
+        design_iterations = 0
+        total_iterations = 0
+
+        # Initial planning (no feedback)
+        project_plan = await self._execute_planning_async(requirements, feedback=None)
+        planning_iterations += 1
+        total_iterations += 1
+
+        # Feedback loop: Design → Review → Corrections
+        while total_iterations < self.MAX_TOTAL_ITERATIONS:
+            # Generate design from current plan
+            design_spec = await self._execute_design_async(
+                requirements, project_plan, design_constraints, feedback=None
+            )
+            design_iterations += 1
+            total_iterations += 1
+
+            # Review design
+            review_report = await self._execute_design_review_async(design_spec)
+            total_iterations += 1
+
+            # Check if design passes
+            if review_report.overall_assessment == "PASS":
+                logger.info(
+                    f"Design passed review after {total_iterations} total iterations "
+                    f"(planning={planning_iterations}, design={design_iterations})"
+                )
+                return PlanningDesignResult(
+                    project_plan=project_plan,
+                    design_specification=design_spec,
+                    design_review=review_report,
+                )
+
+            # Check if only NEEDS_IMPROVEMENT (Medium/Low issues)
+            if review_report.overall_assessment == "NEEDS_IMPROVEMENT":
+                logger.info(
+                    f"Design has minor improvements suggested, but acceptable "
+                    f"(planning={planning_iterations}, design={design_iterations})"
+                )
+                return PlanningDesignResult(
+                    project_plan=project_plan,
+                    design_specification=design_spec,
+                    design_review=review_report,
+                )
+
+            # Design FAILED - analyze issues and route feedback
+            logger.warning(
+                f"Design review FAILED: "
+                f"{review_report.critical_issue_count} critical, "
+                f"{review_report.high_issue_count} high severity issues"
+            )
+
+            # Route issues to appropriate phase
+            needs_replanning = len(review_report.planning_phase_issues) > 0
+            needs_redesign = len(review_report.design_phase_issues) > 0
+            has_multi_phase = len(review_report.multi_phase_issues) > 0
+
+            # Check iteration limits before attempting corrections
+            if needs_replanning and planning_iterations >= self.MAX_PLANNING_ITERATIONS:
+                raise MaxIterationsExceeded(
+                    f"Exceeded max planning iterations ({self.MAX_PLANNING_ITERATIONS}). "
+                    f"Planning phase issues: {len(review_report.planning_phase_issues)}"
+                )
+
+            if needs_redesign and design_iterations >= self.MAX_DESIGN_ITERATIONS:
+                raise MaxIterationsExceeded(
+                    f"Exceeded max design iterations ({self.MAX_DESIGN_ITERATIONS}). "
+                    f"Design phase issues: {len(review_report.design_phase_issues)}"
+                )
+
+            # Execute corrections based on phase attribution
+            if needs_replanning or has_multi_phase:
+                # Planning issues require replanning
+                feedback_issues = (
+                    review_report.planning_phase_issues
+                    + review_report.multi_phase_issues
+                )
+                logger.info(
+                    f"Routing {len(feedback_issues)} issues back to Planning Agent"
+                )
+                project_plan = await self._execute_planning_async(
+                    requirements, feedback=feedback_issues
+                )
+                planning_iterations += 1
+                total_iterations += 1
+
+                # After replanning, must regenerate design
+                logger.info("Regenerating design with updated plan")
+                design_iterations = 0  # Reset design iteration count
+
+            elif needs_redesign:
+                # Design-only issues can be fixed without replanning
+                feedback_issues = review_report.design_phase_issues
+                logger.info(
+                    f"Routing {len(feedback_issues)} issues back to Design Agent"
+                )
+                design_spec = await self._execute_design_async(
+                    requirements,
+                    project_plan,
+                    design_constraints,
+                    feedback=feedback_issues,
+                )
+                design_iterations += 1
+                total_iterations += 1
+
+                # Re-review the updated design
+                review_report = await self._execute_design_review_async(design_spec)
+                total_iterations += 1
+
+                if review_report.overall_assessment in ["PASS", "NEEDS_IMPROVEMENT"]:
+                    logger.info("Design passed review after redesign")
+                    return PlanningDesignResult(
+                        project_plan=project_plan,
+                        design_specification=design_spec,
+                        design_review=review_report,
+                    )
+
+            else:
+                # No phase-specific issues identified - treat as design issue by default
+                logger.warning(
+                    "No phase attribution found for issues, defaulting to Design phase"
+                )
+                feedback_issues = review_report.issues_found
+                design_spec = await self._execute_design_async(
+                    requirements,
+                    project_plan,
+                    design_constraints,
+                    feedback=feedback_issues,
+                )
+                design_iterations += 1
+                total_iterations += 1
+
+        # Exceeded max total iterations
+        raise MaxIterationsExceeded(
+            f"Exceeded max total iterations ({self.MAX_TOTAL_ITERATIONS}). "
+            f"Final review status: {review_report.overall_assessment}, "
+            f"Critical issues: {review_report.critical_issue_count}, "
+            f"High issues: {review_report.high_issue_count}"
+        )
+
+    async def _execute_planning_async(
+        self,
+        requirements: TaskRequirements,
+        feedback: list | None = None,
+    ) -> ProjectPlan:
+        """Execute Planning Agent asynchronously with optional feedback."""
+        try:
+            if feedback:
+                logger.info(
+                    f"Planning Agent (async): executing with {len(feedback)} feedback items"
+                )
+            else:
+                logger.info("Planning Agent (async): executing initial planning")
+
+            project_plan = await self.planning_agent.execute_async(
+                requirements, feedback=feedback
+            )
+
+            logger.info(
+                f"Planning complete: {len(project_plan.semantic_units)} units, "
+                f"complexity {project_plan.total_est_complexity}"
+            )
+            return project_plan
+
+        except Exception as e:
+            logger.error(f"Planning Agent failed: {e}")
+            raise AgentExecutionError(f"Planning Agent execution failed: {e}") from e
+
+    async def _execute_design_async(
+        self,
+        requirements: TaskRequirements,
+        project_plan: ProjectPlan,
+        design_constraints: str | None,
+        feedback: list | None = None,
+    ) -> DesignSpecification:
+        """Execute Design Agent asynchronously with optional feedback."""
+        try:
+            if feedback:
+                logger.info(
+                    f"Design Agent (async): executing with {len(feedback)} feedback items"
+                )
+            else:
+                logger.info("Design Agent (async): executing initial design")
+
+            design_input = DesignInput(
+                task_id=requirements.task_id,
+                requirements=requirements.requirements,
+                project_plan=project_plan,
+                design_constraints=design_constraints or "",
+            )
+
+            design_spec = await self.design_agent.execute_async(
+                design_input, feedback=feedback
+            )
+
+            logger.info(
+                f"Design complete: {len(design_spec.api_contracts)} APIs, "
+                f"{len(design_spec.component_logic)} components"
+            )
+            return design_spec
+
+        except Exception as e:
+            logger.error(f"Design Agent failed: {e}")
+            raise AgentExecutionError(f"Design Agent execution failed: {e}") from e
+
+    async def _execute_design_review_async(
+        self,
+        design_spec: DesignSpecification,
+    ) -> DesignReviewReport:
+        """Execute Design Review Agent asynchronously."""
+        try:
+            logger.info(
+                f"Design Review Agent (async): reviewing design for {design_spec.task_id}"
+            )
+
+            review_report = await self.design_review_agent.execute_async(design_spec)
+
+            logger.info(
+                f"Design review complete: {review_report.overall_assessment}, "
+                f"issues: {len(review_report.issues_found)} total, "
+                f"{review_report.critical_issue_count} critical, "
+                f"{review_report.high_issue_count} high"
+            )
+
+            if review_report.planning_phase_issues:
+                logger.info(
+                    f"  → {len(review_report.planning_phase_issues)} planning-phase issues"
+                )
+            if review_report.design_phase_issues:
+                logger.info(
+                    f"  → {len(review_report.design_phase_issues)} design-phase issues"
+                )
+            if review_report.multi_phase_issues:
+                logger.info(
+                    f"  → {len(review_report.multi_phase_issues)} multi-phase issues"
+                )
+
+            return review_report
+
+        except Exception as e:
+            logger.error(f"Design Review Agent failed: {e}")
+            raise AgentExecutionError(
+                f"Design Review Agent execution failed: {e}"
+            ) from e
