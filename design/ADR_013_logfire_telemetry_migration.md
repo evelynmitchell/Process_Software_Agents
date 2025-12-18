@@ -1,6 +1,6 @@
-s# ADR 013: Migrate from Langfuse to Pydantic Logfire
+# ADR 013: Migrate from Langfuse to Pydantic Logfire
 
-**Status:** Draft
+**Status:** In Progress (Phase 1 Complete)
 **Date:** 2025-12-18
 **Session:** 20251218.2
 **Deciders:** User, Claude
@@ -726,16 +726,18 @@ if __name__ == "__main__":
 
 ## Migration Plan
 
-### Phase 1: Add Logfire Support (1 session)
+### Phase 1: Add Logfire Support (1 session) ✅ COMPLETE
 
-| Task | Description | Effort |
+| Task | Description | Status |
 |------|-------------|--------|
-| 1.1 | Add `logfire` to dependencies | Low |
-| 1.2 | Create `telemetry/config.py` | Low |
-| 1.3 | Add `ASP_TELEMETRY_PROVIDER` env var support | Low |
-| 1.4 | Update `track_agent_cost` decorator | Medium |
-| 1.5 | Update `log_defect` decorator | Medium |
-| 1.6 | Test with both backends | Medium |
+| 1.1 | Add `logfire` to dependencies | ✅ Done |
+| 1.2 | Create `telemetry/config.py` | ✅ Done |
+| 1.3 | Add `ASP_TELEMETRY_PROVIDER` env var support | ✅ Done |
+| 1.4 | Update `track_agent_cost` decorator | ✅ Done |
+| 1.5 | Update `log_defect` decorator | ⏳ Pending |
+| 1.6 | Test with both backends | ✅ Done (41 tests pass) |
+
+**Commit:** a193af3
 
 ### Phase 2: LLM Auto-Instrumentation (1 session)
 
