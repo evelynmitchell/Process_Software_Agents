@@ -549,7 +549,9 @@ class TestAsyncTestExecutor:
         mock_sandbox.execute_async.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_run_tests_async_with_failures(self, executor, mock_sandbox, workspace):
+    async def test_run_tests_async_with_failures(
+        self, executor, mock_sandbox, workspace
+    ):
         """Test running async tests with failures."""
         mock_sandbox.execute_async.return_value = ExecutionResult(
             exit_code=1,

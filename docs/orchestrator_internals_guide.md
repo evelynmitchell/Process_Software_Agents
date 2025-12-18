@@ -85,3 +85,57 @@ To add a "Security Audit" phase after Testing:
 ### Customizing Feedback
 
 The logic for how feedback is formatted and passed back is currently embedded in the loops. Future refactoring aims to move this to a `FeedbackStrategy` class.
+
+## Async Execution (ADR 008)
+
+As of ADR 008 implementation, all orchestrators support async execution.
+
+### Async Methods
+
+```python
+# TSPOrchestrator
+result = await orchestrator.execute_async(requirements)
+
+# PlanningDesignOrchestrator
+result = await orchestrator.execute_async(requirements)
+```
+
+### CLI Integration
+
+```bash
+# Sync (default)
+uv run python -m asp.cli run --task-id TASK-001 --description "Add feature"
+
+# Async
+uv run python -m asp.cli run --task-id TASK-001 --description "Add feature" --async
+```
+
+### Implementation Details
+
+The async orchestrator methods:
+1. Call agent `execute_async()` methods instead of `execute()`
+2. Use `asyncio.run()` wrapper in CLI for event loop management
+3. Maintain same quality gate logic and iteration limits
+4. Support HITL approval (currently sync, future async WebSocket support)
+
+### Async Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ CLI: --async flag                                           │
+│   → asyncio.run(orchestrator.execute_async(...))           │
+├─────────────────────────────────────────────────────────────┤
+│ TSPOrchestrator.execute_async()                            │
+│   → _execute_planning_async()                              │
+│   → _execute_design_with_review_async()                    │
+│   → _execute_code_with_review_async()                      │
+│   → _execute_testing_with_retry_async()                    │
+│   → _execute_postmortem_async()                            │
+├─────────────────────────────────────────────────────────────┤
+│ Each agent.execute_async()                                  │
+│   → AsyncAnthropic client                                  │
+│   → Non-blocking I/O                                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+See [ADR 008](../design/ADR_008_async_process_architecture.md) for full details.

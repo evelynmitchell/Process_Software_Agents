@@ -1324,6 +1324,40 @@ print(f"Tests: {result.test_report.test_summary['passed']}/
   - `MaxIterationsExceeded`: If correction loops exceed limits
   - `AgentExecutionError`: If agent execution fails
 
+**execute_async(requirements: TaskRequirements, ...) -> TSPExecutionResult** *(ADR 008)*
+
+Async version of execute() for non-blocking I/O.
+
+```python
+import asyncio
+
+async def run_async():
+    orchestrator = TSPOrchestrator()
+    requirements = TaskRequirements(
+        task_id="ASYNC-001",
+        description="Build async feature",
+        requirements="Implement async processing"
+    )
+
+    # Use execute_async() instead of execute()
+    result = await orchestrator.execute_async(requirements)
+    return result
+
+# Run from sync context
+result = asyncio.run(run_async())
+```
+
+- **Args:** Same as `execute()`
+- **Returns:** `TSPExecutionResult`
+- **Raises:** Same as `execute()`
+- **Note:** Uses AsyncAnthropic client internally for non-blocking LLM calls
+
+**CLI Usage:**
+```bash
+# Async mode via CLI
+uv run python -m asp.cli run --task-id TASK-001 --description "..." --async
+```
+
 **TSPExecutionResult:**
 
 ```python

@@ -545,7 +545,10 @@ class TestAsyncPlanningDesignOrchestrator:
             agent_version="1.0.0",
         )
 
-        mock_review_agent.execute_async.side_effect = [mock_review_fail, mock_review_pass]
+        mock_review_agent.execute_async.side_effect = [
+            mock_review_fail,
+            mock_review_pass,
+        ]
 
         # Execute async orchestrator
         result = await orchestrator.execute_async(requirements)

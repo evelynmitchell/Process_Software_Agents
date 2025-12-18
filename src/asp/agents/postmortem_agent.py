@@ -626,9 +626,7 @@ class PostmortemAgent(BaseAgent):
         Raises:
             AgentExecutionError: If PIP generation fails
         """
-        logger.info(
-            f"Generating PIP (async) for task_id={postmortem_report.task_id}"
-        )
+        logger.info(f"Generating PIP (async) for task_id={postmortem_report.task_id}")
 
         try:
             # Auto-generate PIP ID if not provided

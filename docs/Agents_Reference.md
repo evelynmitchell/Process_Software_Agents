@@ -3056,6 +3056,23 @@ class BaseAgent:
 
         Returns:
             Output Pydantic model
+        """
+
+    async def execute_async(self, input_data: BaseModel) -> BaseModel:
+        """
+        Async execution method (ADR 008).
+
+        All agents support async execution for non-blocking I/O.
+        Uses AsyncAnthropic client internally.
+
+        Args:
+            input_data: Input Pydantic model
+
+        Returns:
+            Output Pydantic model
+
+        Example:
+            result = await agent.execute_async(requirements)
 
         Raises:
             AgentExecutionError: If execution fails

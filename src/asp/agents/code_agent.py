@@ -1102,9 +1102,7 @@ class CodeAgent(BaseAgent):
         # Escape design specification for inclusion in prompt
         design_spec_json = input_data.design_specification.model_dump_json(indent=2)
         design_spec_escaped = (
-            design_spec_json.replace("\\", "\\\\")
-            .replace("{", "{{")
-            .replace("}", "}}")
+            design_spec_json.replace("\\", "\\\\").replace("{", "{{").replace("}", "}}")
         )
 
         # Format prompt

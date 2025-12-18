@@ -435,7 +435,9 @@ class RepairAgent(BaseAgent):
             source_context = self._read_affected_files(input_data)
 
             # Generate repair (async LLM call)
-            repair_output = await self._generate_repair_async(input_data, source_context)
+            repair_output = await self._generate_repair_async(
+                input_data, source_context
+            )
 
             # Validate the output (sync - fast validation)
             self._validate_repair_output(repair_output)

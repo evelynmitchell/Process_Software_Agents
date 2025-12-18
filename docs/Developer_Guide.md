@@ -20,6 +20,7 @@ This guide is for developers who want to extend the ASP Platform, create custom 
 - [Contributing Guidelines](#contributing-guidelines)
 - [Architecture Patterns](#architecture-patterns)
 - [Performance Optimization](#performance-optimization)
+- [Async Execution](#async-execution)
 
 ---
 
@@ -1151,6 +1152,118 @@ else:
 
 ---
 
+## Async Execution
+
+ASP supports full async execution for non-blocking I/O and better resource utilization (ADR 008).
+
+### CLI Async Mode
+
+```bash
+# Sync execution (default, backward compatible)
+uv run python -m asp.cli run --task-id TASK-001 --description "Add feature"
+
+# Async execution
+uv run python -m asp.cli run --task-id TASK-001 --description "Add feature" --async
+```
+
+### Programmatic Async Usage
+
+All orchestrators and agents support async execution:
+
+```python
+import asyncio
+from asp.orchestrators import TSPOrchestrator
+from asp.models.planning import TaskRequirements
+
+async def run_task_async():
+    orchestrator = TSPOrchestrator()
+
+    requirements = TaskRequirements(
+        task_id="ASYNC-001",
+        description="Build async feature",
+        requirements="Implement async processing"
+    )
+
+    # Use execute_async() instead of execute()
+    result = await orchestrator.execute_async(requirements)
+    return result
+
+# Run from sync context
+result = asyncio.run(run_task_async())
+```
+
+### Async Agent Methods
+
+All agents provide both sync and async interfaces:
+
+```python
+from asp.agents import PlanningAgent
+
+agent = PlanningAgent()
+
+# Sync execution
+result = agent.execute(requirements)
+
+# Async execution
+result = await agent.execute_async(requirements)
+```
+
+### Async Services
+
+Services also support async execution:
+
+```python
+from services.sandbox_executor import SubprocessSandboxExecutor
+from services.test_executor import TestExecutor
+
+# Async subprocess execution
+sandbox = SubprocessSandboxExecutor()
+result = await sandbox.execute_async(workspace, ["pytest", "-v"])
+
+# Async test execution
+test_executor = TestExecutor(sandbox)
+test_result = await test_executor.run_tests_async(workspace)
+```
+
+### When to Use Async
+
+| Scenario | Recommendation |
+|----------|----------------|
+| Production workloads | ✅ Use `--async` or `execute_async()` |
+| Multiple concurrent tasks | ✅ Use async with `asyncio.gather()` |
+| Integration with FastAPI/async frameworks | ✅ Use `execute_async()` |
+| Simple scripts / prototyping | Sync is fine |
+| Debugging complex issues | Sync (easier stack traces) |
+
+### Async Architecture (ADR 008)
+
+The async implementation follows a layered approach:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ CLI Layer: --async flag → asyncio.run()                     │
+├─────────────────────────────────────────────────────────────┤
+│ Orchestrator Layer: execute_async()                         │
+│   - TSPOrchestrator.execute_async()                        │
+│   - PlanningDesignOrchestrator.execute_async()             │
+├─────────────────────────────────────────────────────────────┤
+│ Agent Layer: execute_async()                                │
+│   - All 7 core agents + specialists                        │
+│   - Uses AsyncAnthropic client                             │
+├─────────────────────────────────────────────────────────────┤
+│ Service Layer: *_async() methods                            │
+│   - SandboxExecutor.execute_async()                        │
+│   - TestExecutor.run_tests_async()                         │
+├─────────────────────────────────────────────────────────────┤
+│ LLM Layer: call_with_retry_async()                          │
+│   - Non-blocking I/O during API calls                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+For full details, see [ADR 008: Async Process Architecture](../design/ADR_008_async_process_architecture.md).
+
+---
+
 ## Summary
 
 **Key Takeaways:**
@@ -1162,6 +1275,7 @@ else:
 - ✅ **Testing:** Comprehensive pyramid (unit, integration, e2e)
 - ✅ **Telemetry:** Built-in observability for all agents
 - ✅ **Contributing:** Clear guidelines and quality standards
+- ✅ **Async Execution:** Full async support via `execute_async()` (ADR 008)
 
 **Next Steps:**
 

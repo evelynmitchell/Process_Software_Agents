@@ -757,13 +757,37 @@ uv run python -m asp.web.main
 - `/developer` - Task details, code diffs, traceability
 - `/product` - Feature wizard, What-If timeline simulator
 
-### 5. Explore API
+### 5. Use Async Execution (ADR 008)
+
+ASP supports async execution for non-blocking I/O and better resource utilization:
+
+```bash
+# Sync execution (default)
+uv run python -m asp.cli run --task-id TASK-001 --description "Add feature"
+
+# Async execution (recommended for production)
+uv run python -m asp.cli run --task-id TASK-001 --description "Add feature" --async
+```
+
+**When to use `--async`:**
+- Production workloads with multiple concurrent tasks
+- Integration with async web frameworks (FastAPI, etc.)
+- Better resource utilization during I/O waits
+
+**When to use sync (default):**
+- Simple scripts and prototyping
+- Debugging (easier stack traces)
+- Compatibility with sync-only code
+
+See [Developer Guide](Developer_Guide.md#async-execution) for programmatic async usage.
+
+### 6. Explore API
 
 Work with ASP programmatically using the Python API:
 
 → **[API Reference](API_Reference.md)**
 
-### 6. Run Example Projects
+### 7. Run Example Projects
 
 Try more complex examples to see ASP's full capabilities:
 
