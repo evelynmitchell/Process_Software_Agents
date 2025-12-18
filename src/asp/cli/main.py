@@ -117,6 +117,8 @@ def _save_result(result, output_path):
 
 def cmd_run(args):
     """Execute a task through the TSP pipeline."""
+    import asyncio
+
     from asp.orchestrators import TSPOrchestrator
 
     logger.info("=" * 60)
@@ -126,6 +128,13 @@ def cmd_run(args):
     task_requirements = _build_task_requirements(args)
     logger.info(f"Task ID: {task_requirements.task_id}")
     logger.info(f"Description: {task_requirements.description}")
+
+    # Check for async mode (ADR 008 Phase 5)
+    use_async = getattr(args, "use_async", False)
+    if use_async:
+        logger.info("Mode: ASYNC (using execute_async)")
+    else:
+        logger.info("Mode: SYNC (using execute)")
     logger.info("-" * 60)
 
     db_path = Path(args.db_path) if args.db_path else Path("data/asp_telemetry.db")
@@ -133,9 +142,17 @@ def cmd_run(args):
     orchestrator = TSPOrchestrator(db_path=db_path, approval_service=approval_service)
 
     try:
-        result = orchestrator.execute(
-            requirements=task_requirements, hitl_approver=hitl_approver
-        )
+        # Use async or sync execution based on flag (ADR 008 Phase 5)
+        if use_async:
+            result = asyncio.run(
+                orchestrator.execute_async(
+                    requirements=task_requirements, hitl_approver=hitl_approver
+                )
+            )
+        else:
+            result = orchestrator.execute(
+                requirements=task_requirements, hitl_approver=hitl_approver
+            )
 
         logger.info("=" * 60)
         logger.info("EXECUTION COMPLETE")
@@ -583,6 +600,9 @@ Examples:
   # Run a task through the pipeline
   python -m asp.cli run --task-id TASK-001 --description "Add user auth"
 
+  # Run with async execution (ADR 008 - non-blocking I/O)
+  python -m asp.cli run --task-id TASK-001 --description "Add user auth" --async
+
   # Run with auto-approve for testing
   python -m asp.cli run --task-id TEST-001 --description "Test task" --auto-approve
 
@@ -669,6 +689,12 @@ Examples:
         type=float,
         default=5.0,
         help="HITL poll interval in seconds (default: 5)",
+    )
+    run_parser.add_argument(
+        "--async",
+        dest="use_async",
+        action="store_true",
+        help="Use async execution (ADR 008 - non-blocking I/O)",
     )
     run_parser.set_defaults(func=cmd_run)
 

@@ -28,6 +28,7 @@ The current ASP implementation is primarily **single-threaded and synchronous**,
 | `TestExecutor.run_tests_async()` | ✅ Yes | Async test execution (Phase 3 complete) |
 | `TSPOrchestrator.execute_async()` | ✅ Yes | Async pipeline (Phase 4 complete) |
 | `PlanningDesignOrchestrator.execute_async()` | ✅ Yes | Async orchestration (Phase 4 complete) |
+| CLI `--async` flag | ✅ Yes | `asyncio.run()` wrapper (Phase 5 complete) |
 
 ### Pain Points
 
