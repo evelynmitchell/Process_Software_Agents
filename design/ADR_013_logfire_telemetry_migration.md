@@ -1,4 +1,4 @@
-# ADR 013: Migrate from Langfuse to Pydantic Logfire
+s# ADR 013: Migrate from Langfuse to Pydantic Logfire
 
 **Status:** Draft
 **Date:** 2025-12-18

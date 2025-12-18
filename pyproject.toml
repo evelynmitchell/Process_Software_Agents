@@ -38,12 +38,18 @@ dependencies = [
     "structlog==23.2.0",
     "rich==13.9.4",
     "langfuse",
+    "logfire>=2.0.0",
     "anthropic",
     "tenacity",
     "python-fasthtml"
 ]
 
 [project.optional-dependencies]
+telemetry = [
+    "logfire>=2.0.0",
+    "opentelemetry-instrumentation-anthropic>=0.1.0",
+    "opentelemetry-instrumentation-openai>=0.1.0",
+]
 dev = [
     "pytest>=7.4.3",
     "pytest-asyncio>=0.21.1",
