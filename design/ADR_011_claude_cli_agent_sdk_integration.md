@@ -505,6 +505,319 @@ claude-sdk = [
 - Node.js 18+ (SDK uses Node.js internally)
 - Claude CLI installed (for subscription auth)
 
+## Containerized Deployment (Recommended)
+
+To isolate the Node.js dependency and maintain a clean ASP environment, the Claude SDK can be deployed as a **containerized sidecar service**.
+
+### Architecture: Containerized SDK Service
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         ASP Host Environment                            │
+│                         (Python only, no Node.js)                       │
+│                                                                         │
+│  ┌─────────────────┐         HTTP/gRPC          ┌────────────────────┐ │
+│  │   ASP Agent     │ ◄─────────────────────────► │  Claude SDK        │ │
+│  │                 │         localhost:8080      │  Container         │ │
+│  │  LLMClient      │                             │                    │ │
+│  │       │         │                             │  - Node.js 18+     │ │
+│  │       ▼         │                             │  - Claude SDK      │ │
+│  │  ClaudeSDK      │                             │  - REST API        │ │
+│  │  Provider       │                             │                    │ │
+│  └─────────────────┘                             └────────────────────┘ │
+│                                                          │              │
+└──────────────────────────────────────────────────────────┼──────────────┘
+                                                           │
+                                                           ▼
+                                                  ┌────────────────────┐
+                                                  │   Anthropic API    │
+                                                  │   (or subscription)│
+                                                  └────────────────────┘
+```
+
+### Benefits of Containerization
+
+| Benefit | Description |
+|---------|-------------|
+| **Dependency Isolation** | Node.js stays in container, ASP host remains Python-only |
+| **Version Control** | Pin exact Node.js and SDK versions in Dockerfile |
+| **Reproducibility** | Same container works across dev, CI, production |
+| **Resource Limits** | Constrain memory/CPU for SDK operations |
+| **Security** | SDK runs in isolated namespace |
+| **Easy Updates** | Update SDK by pulling new container image |
+
+### Container Implementation
+
+#### Dockerfile for Claude SDK Service
+
+```dockerfile
+# docker/claude-sdk-service/Dockerfile
+FROM node:18-slim
+
+# Install Claude CLI and SDK
+RUN npm install -g @anthropic-ai/claude-code
+
+# Install Python for SDK Python bindings (optional)
+RUN apt-get update && apt-get install -y python3 python3-pip
+RUN pip3 install claude-agent-sdk fastapi uvicorn
+
+# Copy service code
+WORKDIR /app
+COPY sdk_service.py .
+
+# Expose REST API port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+CMD ["uvicorn", "sdk_service:app", "--host", "0.0.0.0", "--port", "8080"]
+```
+
+#### SDK Service (FastAPI wrapper)
+
+```python
+# docker/claude-sdk-service/sdk_service.py
+"""
+REST API wrapper for Claude Agent SDK.
+
+Runs inside container, exposes HTTP endpoints for ASP to call.
+"""
+
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from claude_agent_sdk import ClaudeSDKClient, ClaudeAgentOptions
+import os
+
+app = FastAPI(title="Claude SDK Service")
+
+
+class LLMRequest(BaseModel):
+    prompt: str
+    model: str | None = None
+    max_tokens: int = 4096
+    temperature: float = 0.0
+    system: str | None = None
+
+
+class LLMResponse(BaseModel):
+    content: str
+    usage: dict
+    model: str
+    stop_reason: str | None
+
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy", "sdk_version": "0.1.0"}
+
+
+@app.post("/v1/complete", response_model=LLMResponse)
+async def complete(request: LLMRequest):
+    """
+    Simple completion endpoint (no tools).
+    """
+    try:
+        options = ClaudeAgentOptions(allowed_tools=[])
+
+        async with ClaudeSDKClient(options=options) as client:
+            full_prompt = request.prompt
+            if request.system:
+                full_prompt = f"{request.system}\n\n{request.prompt}"
+
+            await client.query(full_prompt)
+
+            content_parts = []
+            usage = {}
+
+            async for message in client.receive_response():
+                if message.type == "text":
+                    content_parts.append(message.content)
+                elif hasattr(message, "usage"):
+                    usage = message.usage
+
+            return LLMResponse(
+                content="".join(content_parts),
+                usage=usage,
+                model=request.model or "claude-sonnet-4-5",
+                stop_reason="end_turn",
+            )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/v1/agentic")
+async def agentic_task(request: dict):
+    """
+    Full agentic execution with tools (Phase 2+).
+    """
+    # Implementation for tool-enabled execution
+    pass
+```
+
+#### Docker Compose Configuration
+
+```yaml
+# docker-compose.claude-sdk.yaml
+version: '3.8'
+
+services:
+  claude-sdk:
+    build:
+      context: ./docker/claude-sdk-service
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      # Pass through API key (or mount subscription credentials)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      # For subscription auth, mount Claude config
+      - ~/.claude:/root/.claude:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+```
+
+#### ASP Provider (calls containerized service)
+
+```python
+# src/asp/providers/claude_sdk_container_provider.py
+"""
+Claude SDK provider that calls containerized service.
+
+No Node.js dependency on the host - all SDK operations happen in container.
+"""
+
+import httpx
+from asp.providers.base import LLMProvider, LLMResponse, ProviderConfig
+
+
+class ClaudeSDKContainerProvider(LLMProvider):
+    """
+    Claude SDK provider using containerized service.
+
+    Benefits:
+    - No Node.js on host
+    - Isolated SDK environment
+    - Easy version management
+    """
+
+    name = "claude_sdk_container"
+
+    def __init__(self, config: ProviderConfig | None = None):
+        self.config = config or ProviderConfig()
+        self.base_url = self.config.extra.get(
+            "service_url", "http://localhost:8080"
+        )
+        self._client: httpx.AsyncClient | None = None
+
+    @property
+    def client(self) -> httpx.AsyncClient:
+        if self._client is None:
+            self._client = httpx.AsyncClient(
+                base_url=self.base_url,
+                timeout=120.0,  # LLM calls can be slow
+            )
+        return self._client
+
+    async def call_async(
+        self,
+        prompt: str,
+        model: str | None = None,
+        max_tokens: int = 4096,
+        temperature: float = 0.0,
+        system: str | None = None,
+        **kwargs,
+    ) -> LLMResponse:
+        """Call containerized SDK service."""
+        response = await self.client.post(
+            "/v1/complete",
+            json={
+                "prompt": prompt,
+                "model": model,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "system": system,
+            },
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        return LLMResponse(
+            content=data["content"],
+            raw_content=data["content"],
+            usage=data["usage"],
+            cost=None,  # Container service can calculate
+            model=data["model"],
+            provider="claude_sdk_container",
+            stop_reason=data.get("stop_reason"),
+        )
+
+    def call(self, prompt: str, **kwargs) -> LLMResponse:
+        """Sync wrapper."""
+        import asyncio
+        return asyncio.run(self.call_async(prompt, **kwargs))
+
+    async def health_check(self) -> bool:
+        """Check if container service is running."""
+        try:
+            response = await self.client.get("/health")
+            return response.status_code == 200
+        except httpx.RequestError:
+            return False
+```
+
+### Deployment Options
+
+| Option | Complexity | Best For |
+|--------|------------|----------|
+| **Docker Compose** | Low | Local development, single-machine |
+| **Kubernetes Sidecar** | Medium | Production, cloud deployments |
+| **AWS ECS/Fargate** | Medium | AWS-native deployments |
+| **Podman** | Low | Rootless containers, security-focused |
+
+### Updated Implementation Plan with Containerization
+
+| Phase | Task | Description |
+|-------|------|-------------|
+| 1a | Create Dockerfile | SDK service container |
+| 1b | Create FastAPI wrapper | REST API for SDK |
+| 1c | Create `ClaudeSDKContainerProvider` | HTTP client provider |
+| 1d | Docker Compose config | Local development setup |
+| 1e | Health checks and retry logic | Robust container communication |
+
+### Configuration for Containerized Mode
+
+```yaml
+# .asp/config.yaml
+llm:
+  provider: claude_sdk_container
+
+  claude_sdk_container:
+    service_url: http://localhost:8080
+    # OR for Kubernetes:
+    # service_url: http://claude-sdk-service:8080
+
+    timeout: 120  # seconds
+    retries: 3
+
+    # Container management (if ASP should start/stop container)
+    auto_start: true
+    container_name: asp-claude-sdk
+    image: asp/claude-sdk-service:latest
+```
+
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |
