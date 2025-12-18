@@ -1015,6 +1015,493 @@ llm:
     image: asp/claude-sdk-service:latest
 ```
 
+## Option E: ASP Agents as Claude Skills with Unified Telemetry
+
+A powerful integration approach: package ASP agents as **Claude Skills** and wrap *all* tool execution (Claude's built-in + ASP agents) in unified telemetry.
+
+### Skills vs MCP Tools
+
+| Aspect | Skills | MCP Tools |
+|--------|--------|-----------|
+| **Architecture** | Prompt-based (instruction injection) | Protocol-based (network) |
+| **Deployment** | Filesystem (`.claude/skills/`) | Servers (stdio, SSE, HTTP) |
+| **Network Access** | No (local only) | Yes (APIs, databases) |
+| **Use Case** | Methodology, workflows | External integrations |
+| **Latency** | Immediate (context injection) | Network latency |
+
+**Key Insight:** Skills package *methodology* (how to plan, code, review), MCP provides *connectivity* (APIs, telemetry backends). They're complementary.
+
+### Architecture: ASP Skills + MCP Telemetry
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         Claude Agent SDK Runtime                             │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                    ASP Skills (Methodology Layer)                    │   │
+│  │                                                                      │   │
+│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌────────────┐ │   │
+│  │  │ asp-planning │ │ asp-design   │ │ asp-code     │ │ asp-review │ │   │
+│  │  │ SKILL.md     │ │ SKILL.md     │ │ SKILL.md     │ │ SKILL.md   │ │   │
+│  │  └──────┬───────┘ └──────┬───────┘ └──────┬───────┘ └─────┬──────┘ │   │
+│  │         │                │                │               │         │   │
+│  └─────────┼────────────────┼────────────────┼───────────────┼─────────┘   │
+│            │                │                │               │              │
+│            ▼                ▼                ▼               ▼              │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │              Telemetry MCP Server (Wraps Everything)                │   │
+│  │                                                                      │   │
+│  │  • Intercepts all tool calls (Claude built-in + ASP)                │   │
+│  │  • Logs: latency, tokens, cost, defects                             │   │
+│  │  • Routes to Langfuse + SQLite                                      │   │
+│  │  • Provides bootstrap data for PROBE-AI                             │   │
+│  └──────────────────────────────┬──────────────────────────────────────┘   │
+│                                 │                                           │
+└─────────────────────────────────┼───────────────────────────────────────────┘
+                                  │
+          ┌───────────────────────┼───────────────────────┐
+          ▼                       ▼                       ▼
+┌──────────────────┐   ┌──────────────────┐   ┌──────────────────┐
+│    Langfuse      │   │     SQLite       │   │   Anthropic API  │
+│  (Real-time UI)  │   │  (Persistence)   │   │   (LLM Calls)    │
+└──────────────────┘   └──────────────────┘   └──────────────────┘
+```
+
+### ASP Skills Directory Structure
+
+```
+.claude/skills/
+├── asp-planning/
+│   ├── SKILL.md                    # Planning methodology + telemetry hooks
+│   ├── prompts/
+│   │   └── decomposition-checklist.md
+│   └── templates/
+│       └── project-plan-template.json
+│
+├── asp-design/
+│   ├── SKILL.md                    # Design patterns + architecture guidelines
+│   ├── prompts/
+│   │   └── design-principles.md
+│   └── templates/
+│       └── design-spec-template.json
+│
+├── asp-code-generation/
+│   ├── SKILL.md                    # Code generation standards
+│   ├── prompts/
+│   │   ├── coding-standards.md
+│   │   └── security-guidelines.md
+│   └── scripts/
+│       └── inject-telemetry.py
+│
+├── asp-code-review/
+│   ├── SKILL.md                    # Review checklist + severity definitions
+│   └── prompts/
+│       ├── owasp-top-10.md
+│       └── performance-checklist.md
+│
+├── asp-testing/
+│   ├── SKILL.md                    # Test generation methodology
+│   └── prompts/
+│       └── coverage-requirements.md
+│
+└── asp-postmortem/
+    ├── SKILL.md                    # Defect analysis methodology
+    └── prompts/
+        └── root-cause-template.md
+```
+
+### Example Skill: asp-planning
+
+```yaml
+# .claude/skills/asp-planning/SKILL.md
+---
+name: asp-planning
+description: |
+  Decomposes complex tasks into structured project plans using TSP methodology.
+  Use when starting a new feature, fixing a complex bug, or planning refactoring.
+  Outputs: ProjectPlan with phases, estimates, and risk assessment.
+---
+
+# ASP Planning Skill
+
+## When to Use
+- New feature requests requiring multiple files
+- Bug fixes spanning multiple components
+- Refactoring with architectural implications
+- Any task with unclear scope
+
+## Methodology
+
+Follow the Team Software Process (TSP) decomposition:
+
+1. **Requirements Analysis**
+   - Extract functional requirements
+   - Identify non-functional constraints
+   - List acceptance criteria
+
+2. **Task Decomposition**
+   - Break into phases: Design → Code → Test → Review
+   - Estimate complexity (1-10 scale)
+   - Identify dependencies
+
+3. **Risk Assessment**
+   - Technical risks (new technology, complexity)
+   - Schedule risks (dependencies, unknowns)
+   - Quality risks (test coverage gaps)
+
+## Telemetry Requirements
+
+Every planning execution must track:
+- `latency_ms`: Total planning time
+- `input_tokens`: Tokens consumed reading context
+- `output_tokens`: Tokens in generated plan
+- `complexity_score`: Semantic complexity (1-10)
+- `subtask_count`: Number of decomposed tasks
+
+Call the telemetry MCP tool:
+```
+mcp__telemetry__log_agent_execution(
+  agent_role="Planning",
+  task_id=current_task_id,
+  metrics={...}
+)
+```
+
+## Output Format
+
+```json
+{
+  "task_id": "TASK-001",
+  "phases": [
+    {
+      "name": "Design",
+      "subtasks": [...],
+      "estimated_hours": 2,
+      "complexity": 4
+    }
+  ],
+  "risks": [...],
+  "acceptance_criteria": [...]
+}
+```
+```
+
+### Telemetry MCP Server
+
+The key to unified telemetry: an MCP server that wraps all tool calls.
+
+```python
+# src/asp/mcp/telemetry_server.py
+"""
+Telemetry MCP Server for unified observability.
+
+Intercepts and logs all tool executions with cost/quality metrics.
+Routes to Langfuse (real-time) and SQLite (persistence).
+"""
+
+from claude_agent_sdk import tool, create_sdk_mcp_server
+from asp.telemetry.langfuse_client import langfuse
+from asp.telemetry.sqlite_store import TelemetryStore
+import time
+from typing import Any
+from contextlib import contextmanager
+
+
+class TelemetryContext:
+    """Thread-local telemetry context for nested tool calls."""
+    _current_span = None
+    _task_id = None
+
+
+@contextmanager
+def telemetry_span(tool_name: str, task_id: str, metadata: dict):
+    """Create a telemetry span for tool execution."""
+    start_time = time.time()
+    span = langfuse.trace(
+        name=f"Tool.{tool_name}",
+        metadata={
+            "task_id": task_id,
+            "tool_name": tool_name,
+            **metadata
+        }
+    )
+
+    try:
+        yield span
+    finally:
+        duration_ms = (time.time() - start_time) * 1000
+        span.end(metadata={"duration_ms": duration_ms})
+
+
+@tool(
+    name="log_agent_execution",
+    description="Log agent/skill execution metrics for telemetry",
+    schema={
+        "agent_role": {"type": "string", "description": "Planning|Design|Code|Review|Test|Postmortem"},
+        "task_id": {"type": "string"},
+        "metrics": {
+            "type": "object",
+            "properties": {
+                "latency_ms": {"type": "number"},
+                "input_tokens": {"type": "number"},
+                "output_tokens": {"type": "number"},
+                "cost_usd": {"type": "number"},
+                "complexity_score": {"type": "number"},
+            }
+        }
+    }
+)
+async def log_agent_execution(args: dict) -> dict:
+    """Log agent execution to Langfuse + SQLite."""
+    store = TelemetryStore()
+
+    # Log to Langfuse (real-time visualization)
+    langfuse.trace(
+        name=f"Agent.{args['agent_role']}",
+        metadata={
+            "task_id": args["task_id"],
+            **args["metrics"]
+        }
+    )
+
+    # Log to SQLite (persistence for PROBE-AI)
+    store.log_cost_vector(
+        task_id=args["task_id"],
+        agent_role=args["agent_role"],
+        latency_ms=args["metrics"].get("latency_ms", 0),
+        input_tokens=args["metrics"].get("input_tokens", 0),
+        output_tokens=args["metrics"].get("output_tokens", 0),
+        cost_usd=args["metrics"].get("cost_usd", 0),
+    )
+
+    return {
+        "content": [{
+            "type": "text",
+            "text": f"Logged metrics for {args['agent_role']} on {args['task_id']}"
+        }]
+    }
+
+
+@tool(
+    name="log_defect",
+    description="Log a defect discovered during execution",
+    schema={
+        "task_id": {"type": "string"},
+        "defect_type": {"type": "string", "description": "bug|security|performance|design"},
+        "severity": {"type": "string", "description": "low|medium|high|critical"},
+        "phase_injected": {"type": "string", "description": "Which phase introduced the defect"},
+        "phase_detected": {"type": "string", "description": "Which phase found the defect"},
+        "description": {"type": "string"},
+    }
+)
+async def log_defect(args: dict) -> dict:
+    """Log defect to telemetry for quality tracking."""
+    store = TelemetryStore()
+
+    store.log_defect(
+        task_id=args["task_id"],
+        defect_type=args["defect_type"],
+        severity=args["severity"],
+        phase_injected=args["phase_injected"],
+        phase_detected=args["phase_detected"],
+        description=args["description"],
+    )
+
+    langfuse.trace(
+        name="Defect",
+        metadata=args,
+        level="warning" if args["severity"] in ["low", "medium"] else "error"
+    )
+
+    return {
+        "content": [{
+            "type": "text",
+            "text": f"Logged {args['severity']} defect: {args['defect_type']}"
+        }]
+    }
+
+
+@tool(
+    name="wrap_tool_call",
+    description="Wrap any tool call with telemetry tracking",
+    schema={
+        "tool_name": {"type": "string"},
+        "task_id": {"type": "string"},
+        "input_summary": {"type": "string"},
+    }
+)
+async def wrap_tool_call(args: dict) -> dict:
+    """
+    Start telemetry tracking for a tool call.
+    Call this BEFORE executing any Claude built-in tool.
+    """
+    TelemetryContext._current_span = langfuse.trace(
+        name=f"Tool.{args['tool_name']}",
+        metadata={
+            "task_id": args["task_id"],
+            "input_summary": args["input_summary"][:200],
+        }
+    )
+    TelemetryContext._task_id = args["task_id"]
+
+    return {
+        "content": [{
+            "type": "text",
+            "text": f"Started telemetry for {args['tool_name']}"
+        }]
+    }
+
+
+@tool(
+    name="end_tool_call",
+    description="End telemetry tracking for a tool call",
+    schema={
+        "tool_name": {"type": "string"},
+        "success": {"type": "boolean"},
+        "output_summary": {"type": "string"},
+    }
+)
+async def end_tool_call(args: dict) -> dict:
+    """
+    End telemetry tracking for a tool call.
+    Call this AFTER executing any Claude built-in tool.
+    """
+    if TelemetryContext._current_span:
+        TelemetryContext._current_span.end(
+            metadata={
+                "success": args["success"],
+                "output_summary": args["output_summary"][:200],
+            }
+        )
+        TelemetryContext._current_span = None
+
+    return {
+        "content": [{
+            "type": "text",
+            "text": f"Ended telemetry for {args['tool_name']}"
+        }]
+    }
+
+
+# Create the MCP server
+asp_telemetry_server = create_sdk_mcp_server(
+    name="asp-telemetry",
+    version="1.0.0",
+    tools=[
+        log_agent_execution,
+        log_defect,
+        wrap_tool_call,
+        end_tool_call,
+    ],
+)
+```
+
+### Skills Configuration with Telemetry
+
+```yaml
+# .claude/settings.yaml
+skills:
+  enabled: true
+  auto_discover: true  # Find skills in .claude/skills/
+
+mcp_servers:
+  # Telemetry server wraps all tool calls
+  asp-telemetry:
+    type: in_process
+    module: asp.mcp.telemetry_server
+    server: asp_telemetry_server
+
+  # ASP agents exposed as MCP tools (for complex logic)
+  asp-agents:
+    type: in_process
+    module: asp.mcp.agents_server
+    server: asp_agents_server
+
+# Hook telemetry into all tool calls
+hooks:
+  pre_tool_call:
+    - mcp__asp-telemetry__wrap_tool_call
+  post_tool_call:
+    - mcp__asp-telemetry__end_tool_call
+```
+
+### Unified Telemetry Flow
+
+```
+User Request: "Implement user authentication"
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  [asp-planning Skill]                                           │
+│   ├─ Skill instructions injected into context                  │
+│   ├─ Claude generates plan                                      │
+│   ├─ Calls: mcp__asp-telemetry__log_agent_execution            │
+│   │         {agent_role: "Planning", latency_ms: 2340, ...}    │
+│   └─ Output: ProjectPlan.json                                   │
+└─────────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  [asp-design Skill]                                             │
+│   ├─ Design methodology injected                               │
+│   ├─ Claude generates design spec                              │
+│   ├─ Calls: mcp__asp-telemetry__log_agent_execution            │
+│   └─ Output: DesignSpec.json                                    │
+└─────────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  [asp-code-generation Skill]                                    │
+│   ├─ Code standards injected                                   │
+│   ├─ Claude uses Edit tool (wrapped by telemetry hook)         │
+│   │   └─ pre_tool_call: wrap_tool_call("Edit", ...)           │
+│   │   └─ post_tool_call: end_tool_call("Edit", success=true)  │
+│   ├─ Calls: mcp__asp-telemetry__log_agent_execution            │
+│   └─ Output: Generated code files                               │
+└─────────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  [asp-code-review Skill]                                        │
+│   ├─ Review checklist injected                                 │
+│   ├─ Claude reviews generated code                             │
+│   ├─ Found issue → Calls: mcp__asp-telemetry__log_defect       │
+│   │               {defect_type: "security", severity: "high"}  │
+│   ├─ Calls: mcp__asp-telemetry__log_agent_execution            │
+│   └─ Output: ReviewReport.json                                  │
+└─────────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Telemetry Backends                                             │
+│   ├─ Langfuse: Real-time trace visualization                   │
+│   ├─ SQLite: asp_telemetry.db for PROBE-AI training           │
+│   └─ Metrics: Cost vectors, defect logs, bootstrap data        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Benefits of Skills + Telemetry Approach
+
+| Benefit | Description |
+|---------|-------------|
+| **Unified Observability** | All tools (Claude built-in + ASP) tracked in one place |
+| **Progressive Disclosure** | Skills load only when needed (~100 tokens metadata) |
+| **Methodology Preservation** | ASP's TSP methodology encoded in skill instructions |
+| **Bootstrap Data** | Telemetry feeds PROBE-AI estimation model |
+| **Defect Tracking** | Phase-aware defect logging (injected vs detected) |
+| **Cost Transparency** | Every LLM call and tool execution has cost metrics |
+
+### Implementation Plan: Skills + Telemetry
+
+| Phase | Task | Effort |
+|-------|------|--------|
+| E1 | Create telemetry MCP server | Medium |
+| E2 | Convert Planning agent to Skill | Medium |
+| E3 | Convert remaining agents to Skills | High |
+| E4 | Add pre/post tool hooks for telemetry | Medium |
+| E5 | Integrate with existing Langfuse/SQLite | Low |
+| E6 | Test unified telemetry flow | High |
+
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |
