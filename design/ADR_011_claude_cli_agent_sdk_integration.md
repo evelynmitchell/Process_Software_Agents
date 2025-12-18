@@ -786,6 +786,203 @@ class ClaudeSDKContainerProvider(LLMProvider):
 | **Kubernetes Sidecar** | Medium | Production, cloud deployments |
 | **AWS ECS/Fargate** | Medium | AWS-native deployments |
 | **Podman** | Low | Rootless containers, security-focused |
+| **Cloudflare Containers** | Low-Medium | Global edge deployment, low latency |
+
+### Cloudflare Containers Deployment
+
+[Cloudflare Containers](https://blog.cloudflare.com/cloudflare-containers-coming-2025/) (open beta June 2025) provides an excellent deployment option with global edge distribution.
+
+#### Why Cloudflare Containers?
+
+| Benefit | Description |
+|---------|-------------|
+| **Global Distribution** | Containers run on Cloudflare's edge network (300+ cities) |
+| **Low Latency** | Requests routed to nearest edge location |
+| **Simple Scaling** | Automatic scaling with high limits (400 GiB RAM, 100 vCPUs) |
+| **Workers Integration** | Use Workers as API gateway/orchestrator |
+| **No Cold Starts** | Durable Objects keep containers warm |
+| **Cost Effective** | Pay only for actual compute time |
+
+#### Architecture: Cloudflare Edge Deployment
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        Cloudflare Edge Network                               │
+│                                                                              │
+│   User Request                                                               │
+│        │                                                                     │
+│        ▼                                                                     │
+│   ┌─────────────────┐         ┌────────────────────────────────────────┐   │
+│   │ Cloudflare      │         │  Cloudflare Container                   │   │
+│   │ Worker          │ ──────► │                                         │   │
+│   │ (API Gateway)   │         │  - Node.js 18 + Claude SDK              │   │
+│   │                 │         │  - FastAPI REST service                 │   │
+│   │ - Auth          │         │  - Handles LLM calls                    │   │
+│   │ - Rate limiting │         │                                         │   │
+│   │ - Routing       │         └────────────────────────────────────────┘   │
+│   └─────────────────┘                          │                            │
+│                                                ▼                            │
+└────────────────────────────────────────────────┼────────────────────────────┘
+                                                 │
+                                                 ▼
+                                        ┌────────────────────┐
+                                        │   Anthropic API    │
+                                        └────────────────────┘
+```
+
+#### Cloudflare Worker (API Gateway)
+
+```typescript
+// cloudflare/worker/src/index.ts
+import { Hono } from 'hono'
+import { cors } from 'hono/cors'
+import { bearerAuth } from 'hono/bearer-auth'
+
+type Bindings = {
+  CLAUDE_SDK_CONTAINER: Fetcher  // Binding to container
+  ASP_API_KEY: string
+}
+
+const app = new Hono<{ Bindings: Bindings }>()
+
+// CORS for ASP clients
+app.use('/*', cors())
+
+// API key authentication
+app.use('/v1/*', async (c, next) => {
+  const auth = bearerAuth({ token: c.env.ASP_API_KEY })
+  return auth(c, next)
+})
+
+// Proxy to Claude SDK container
+app.post('/v1/complete', async (c) => {
+  const body = await c.req.json()
+
+  // Forward to container
+  const response = await c.env.CLAUDE_SDK_CONTAINER.fetch(
+    new Request('http://container/v1/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  )
+
+  return response
+})
+
+// Health check
+app.get('/health', (c) => {
+  return c.json({ status: 'healthy', edge: c.req.cf?.colo })
+})
+
+export default app
+```
+
+#### Cloudflare Container Configuration
+
+```toml
+# cloudflare/container/wrangler.toml
+name = "claude-sdk-service"
+compatibility_date = "2025-06-01"
+
+[containers]
+  name = "claude-sdk"
+  image = "asp/claude-sdk-service:latest"
+
+  # Resource allocation
+  memory_mb = 1024
+  vcpus = 1
+
+  # Environment variables
+  [containers.env]
+    NODE_ENV = "production"
+
+  # Secrets (set via wrangler secret)
+  # ANTHROPIC_API_KEY = <from secrets>
+
+[containers.ports]
+  http = 8080
+
+# Durable Object for session state (optional)
+[[durable_objects.bindings]]
+  name = "SESSIONS"
+  class_name = "SessionState"
+```
+
+#### Deployment Commands
+
+```bash
+# Login to Cloudflare
+wrangler login
+
+# Deploy container
+cd cloudflare/container
+wrangler deploy
+
+# Set secrets
+wrangler secret put ANTHROPIC_API_KEY
+
+# Deploy worker (API gateway)
+cd ../worker
+wrangler deploy
+
+# Check status
+wrangler containers list
+```
+
+#### ASP Configuration for Cloudflare
+
+```yaml
+# .asp/config.yaml
+llm:
+  provider: claude_sdk_container
+
+  claude_sdk_container:
+    # Cloudflare Worker URL (your custom domain or workers.dev)
+    service_url: https://claude-sdk.your-domain.com
+    # OR: https://claude-sdk-gateway.your-account.workers.dev
+
+    # Authentication
+    api_key: ${ASP_CLOUDFLARE_API_KEY}
+
+    timeout: 120
+    retries: 3
+```
+
+#### Cost Estimate (Cloudflare Containers)
+
+| Usage Level | Containers | Estimated Cost* |
+|-------------|------------|-----------------|
+| Development | 1 basic instance | ~$5-10/month |
+| Light Production | 2-5 instances | ~$20-50/month |
+| Heavy Production | 10+ instances | ~$100+/month |
+
+*Plus Anthropic API costs. Cloudflare pricing still evolving in beta.
+
+#### Alternative: Workers-Only (No Container)
+
+For simpler deployments, Cloudflare Workers now has [improved Node.js compatibility](https://blog.cloudflare.com/nodejs-workers-2025/). However, the Claude Agent SDK may require full Node.js runtime features not yet available in Workers. Test carefully:
+
+```typescript
+// Experimental: Direct SDK in Worker (may have limitations)
+// cloudflare/worker-only/src/index.ts
+import { ClaudeSDKClient } from 'claude-agent-sdk'  // If compatible
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    // May work with nodejs_compat flag
+    const client = new ClaudeSDKClient()
+    // ...
+  }
+}
+```
+
+```toml
+# wrangler.toml for Workers-only approach
+compatibility_flags = ["nodejs_compat"]
+```
+
+**Recommendation:** Start with Cloudflare Containers for full SDK compatibility, then evaluate Workers-only if SDK adds Workers support.
 
 ### Updated Implementation Plan with Containerization
 
