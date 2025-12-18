@@ -24,10 +24,10 @@ The current ASP implementation is primarily **single-threaded and synchronous**,
 | All agents (`execute_async()`) | ✅ Yes | Native async LLM calls (Phase 2 complete) |
 | `LLMClient.call_with_retry_async()` | ✅ Yes | Async Anthropic client (Phase 1 complete) |
 | `parallel.py` utilities | ✅ Yes | gather_with_concurrency, RateLimiter |
+| `SandboxExecutor.execute_async()` | ✅ Yes | Async subprocess (Phase 3 complete) |
+| `TestExecutor.run_tests_async()` | ✅ Yes | Async test execution (Phase 3 complete) |
 | `TSPOrchestrator.execute()` | ❌ No | Sequential pipeline (Phase 4) |
 | `PlanningDesignOrchestrator.execute()` | ❌ No | Sequential (Phase 4) |
-| `SandboxExecutor.execute()` | ❌ No | Blocking subprocess (Phase 3) |
-| `TestExecutor.run_tests()` | ❌ No | Blocking (Phase 3) |
 
 ### Pain Points
 

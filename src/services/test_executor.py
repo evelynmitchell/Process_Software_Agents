@@ -558,3 +558,57 @@ class TestExecutor:
         # Unknown framework - try running it directly
         logger.warning(f"Unknown framework '{framework}', attempting direct execution")
         return [framework, test_path or "."]
+
+    async def run_tests_async(
+        self,
+        workspace: Workspace,
+        framework: str | None = None,
+        test_path: str | None = None,
+        coverage: bool = True,
+    ) -> TestResult:
+        """
+        Run tests asynchronously and return parsed results.
+
+        Async version of run_tests() using SandboxExecutor.execute_async().
+        Part of ADR 008 Phase 3: Async Services.
+
+        Args:
+            workspace: Workspace containing code and tests
+            framework: Test framework (auto-detected if None)
+            test_path: Specific test file/directory (all tests if None)
+            coverage: Whether to collect coverage data
+
+        Returns:
+            TestResult with parsed pass/fail/error details
+        """
+        # Detect framework if not specified
+        framework = framework or self._detect_framework(workspace)
+        logger.info(f"Running tests async with framework: {framework}")
+
+        # Build command
+        command = self._build_command(framework, test_path, coverage)
+        logger.debug(f"Test command: {' '.join(command)}")
+
+        # Execute tests asynchronously
+        result = await self.sandbox.execute_async(workspace, command)
+
+        # Parse results (same parsing logic as sync version)
+        parser = self.parsers.get(framework)
+
+        if parser is None:
+            logger.warning(f"No parser for framework '{framework}', using fallback")
+            return create_fallback_result(result, framework)
+
+        try:
+            return parser.parse(
+                result.stdout,
+                result.stderr,
+                result.exit_code,
+                result.duration_ms,
+            )
+        except ParserError as e:
+            logger.warning(f"Parser failed for {framework}: {e}, using fallback")
+            return create_fallback_result(result, framework)
+        except Exception as e:
+            logger.error(f"Unexpected parser error: {e}, using fallback")
+            return create_fallback_result(result, framework)

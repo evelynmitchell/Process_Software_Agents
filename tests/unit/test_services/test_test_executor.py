@@ -502,3 +502,191 @@ def test_subtract():
         assert result.passed == 2
         assert result.failed == 0
         assert result.success is True
+
+
+class TestAsyncTestExecutor:
+    """
+    Tests for async TestExecutor methods.
+
+    Part of ADR 008 Phase 3: Async Services.
+    """
+
+    @pytest.fixture
+    def mock_sandbox(self):
+        """Create a mock sandbox executor with async support."""
+        mock = MagicMock()
+        # Configure async mock
+        from unittest.mock import AsyncMock
+
+        mock.execute_async = AsyncMock()
+        return mock
+
+    @pytest.fixture
+    def executor(self, mock_sandbox):
+        """Create a test executor with mock sandbox."""
+        return TestExecutor(mock_sandbox)
+
+    @pytest.fixture
+    def workspace(self, tmp_path):
+        """Create a mock workspace."""
+        return MockWorkspace(tmp_path)
+
+    @pytest.mark.asyncio
+    async def test_run_tests_async_success(self, executor, mock_sandbox, workspace):
+        """Test running tests asynchronously successfully."""
+        mock_sandbox.execute_async.return_value = ExecutionResult(
+            exit_code=0,
+            stdout="===== 5 passed in 1.00s =====",
+            stderr="",
+            duration_ms=1000,
+            timed_out=False,
+        )
+
+        result = await executor.run_tests_async(workspace)
+
+        assert result.success is True
+        assert result.passed == 5
+        mock_sandbox.execute_async.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_run_tests_async_with_failures(self, executor, mock_sandbox, workspace):
+        """Test running async tests with failures."""
+        mock_sandbox.execute_async.return_value = ExecutionResult(
+            exit_code=1,
+            stdout="FAILED test.py::test_one\n=== 1 failed, 2 passed in 0.50s ===",
+            stderr="",
+            duration_ms=500,
+            timed_out=False,
+        )
+
+        result = await executor.run_tests_async(workspace)
+
+        assert result.success is False
+        assert result.failed == 1
+        assert result.passed == 2
+
+    @pytest.mark.asyncio
+    async def test_run_tests_async_fallback_on_parse_error(
+        self, executor, mock_sandbox, workspace
+    ):
+        """Test async fallback when parsing fails."""
+        mock_sandbox.execute_async.return_value = ExecutionResult(
+            exit_code=1,
+            stdout="Unparseable garbage output",
+            stderr="Some error",
+            duration_ms=100,
+            timed_out=False,
+        )
+
+        result = await executor.run_tests_async(workspace)
+
+        assert result.parsing_failed is True
+        assert result.raw_output is not None
+        assert result.success is False
+
+    @pytest.mark.asyncio
+    async def test_run_tests_async_with_specific_framework(
+        self, executor, mock_sandbox, workspace
+    ):
+        """Test running async tests with specific framework."""
+        mock_sandbox.execute_async.return_value = ExecutionResult(
+            exit_code=0,
+            stdout="3 passed in 0.50s",
+            stderr="",
+            duration_ms=500,
+        )
+
+        await executor.run_tests_async(workspace, framework="pytest")
+
+        # Verify pytest command was used
+        call_args = mock_sandbox.execute_async.call_args
+        command = call_args[0][1]
+        assert "pytest" in command
+
+    @pytest.mark.asyncio
+    async def test_run_tests_async_with_specific_path(
+        self, executor, mock_sandbox, workspace
+    ):
+        """Test running async tests with specific test path."""
+        mock_sandbox.execute_async.return_value = ExecutionResult(
+            exit_code=0,
+            stdout="1 passed in 0.10s",
+            stderr="",
+            duration_ms=100,
+        )
+
+        await executor.run_tests_async(workspace, test_path="tests/specific_test.py")
+
+        call_args = mock_sandbox.execute_async.call_args
+        command = call_args[0][1]
+        assert "tests/specific_test.py" in command
+
+    @pytest.mark.asyncio
+    async def test_run_tests_async_with_coverage(
+        self, executor, mock_sandbox, workspace
+    ):
+        """Test running async tests with coverage enabled."""
+        mock_sandbox.execute_async.return_value = ExecutionResult(
+            exit_code=0,
+            stdout="1 passed in 0.10s",
+            stderr="",
+            duration_ms=100,
+        )
+
+        await executor.run_tests_async(workspace, coverage=True)
+
+        call_args = mock_sandbox.execute_async.call_args
+        command = call_args[0][1]
+        assert "--cov" in " ".join(command)
+
+
+class TestAsyncTestExecutorIntegration:
+    """Integration tests for async TestExecutor."""
+
+    @pytest.fixture
+    def workspace(self, tmp_path):
+        """Create a workspace with test files."""
+        workspace = MockWorkspace(tmp_path)
+
+        # Create a simple Python file to test
+        (tmp_path / "calculator.py").write_text(
+            """
+def add(a, b):
+    return a + b
+
+def subtract(a, b):
+    return a - b
+"""
+        )
+
+        # Create test file
+        (tmp_path / "test_calculator.py").write_text(
+            """
+from calculator import add, subtract
+
+def test_add():
+    assert add(2, 3) == 5
+
+def test_subtract():
+    assert subtract(5, 3) == 2
+"""
+        )
+
+        return workspace
+
+    @pytest.mark.slow
+    @pytest.mark.asyncio
+    async def test_run_real_pytest_async(self, workspace):
+        """Test running real pytest asynchronously (requires pytest installed)."""
+        from asp.models.execution import SandboxConfig
+        from services.sandbox_executor import SubprocessSandboxExecutor
+
+        sandbox = SubprocessSandboxExecutor(SandboxConfig(timeout_seconds=30))
+        executor = TestExecutor(sandbox)
+
+        result = await executor.run_tests_async(workspace, coverage=False)
+
+        assert result.total_tests == 2
+        assert result.passed == 2
+        assert result.failed == 0
+        assert result.success is True

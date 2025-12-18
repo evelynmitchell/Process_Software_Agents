@@ -210,3 +210,111 @@ class TestSandboxExecutorIntegration:
         result = executor.execute(workspace, ["python", "error_script.py"])
         assert result.exit_code != 0
         assert "ValueError" in result.stderr or "ValueError" in result.stdout
+
+
+class TestAsyncSandboxExecutor:
+    """
+    Tests for async SandboxExecutor methods.
+
+    Part of ADR 008 Phase 3: Async Services.
+    """
+
+    @pytest.fixture
+    def executor(self):
+        """Create executor with default config."""
+        return SubprocessSandboxExecutor()
+
+    @pytest.fixture
+    def workspace(self, tmp_path):
+        """Create a mock workspace."""
+        return MockWorkspace(tmp_path)
+
+    @pytest.mark.asyncio
+    async def test_execute_async_simple_command(self, executor, workspace):
+        """Test executing a simple command asynchronously."""
+        result = await executor.execute_async(workspace, ["echo", "hello async"])
+        assert result.exit_code == 0
+        assert "hello async" in result.stdout
+        assert result.timed_out is False
+
+    @pytest.mark.asyncio
+    async def test_execute_async_with_exit_code(self, executor, workspace):
+        """Test executing an async command that fails."""
+        result = await executor.execute_async(workspace, ["sh", "-c", "exit 42"])
+        assert result.exit_code == 42
+        assert result.timed_out is False
+
+    @pytest.mark.asyncio
+    async def test_execute_async_captures_stderr(self, executor, workspace):
+        """Test that stderr is captured asynchronously."""
+        result = await executor.execute_async(
+            workspace,
+            ["sh", "-c", "echo async error >&2"],
+        )
+        assert "async error" in result.stderr
+
+    @pytest.mark.asyncio
+    async def test_execute_async_captures_stdout(self, executor, workspace):
+        """Test that stdout is captured asynchronously."""
+        result = await executor.execute_async(
+            workspace,
+            ["sh", "-c", "echo async output"],
+        )
+        assert "async output" in result.stdout
+
+    @pytest.mark.asyncio
+    async def test_execute_async_nonexistent_command(self, executor, workspace):
+        """Test executing an async command that doesn't exist."""
+        with pytest.raises(SandboxExecutionError, match="Command not found"):
+            await executor.execute_async(workspace, ["nonexistent_command_12345"])
+
+    @pytest.mark.asyncio
+    async def test_execute_async_nonexistent_directory(self, executor, workspace):
+        """Test executing async in a directory that doesn't exist."""
+        with pytest.raises(SandboxExecutionError, match="does not exist"):
+            await executor.execute_async(
+                workspace, ["echo", "hi"], working_dir="/nonexistent/path"
+            )
+
+    @pytest.mark.asyncio
+    async def test_execute_async_with_env_vars(self, executor, workspace):
+        """Test executing async with extra environment variables."""
+        result = await executor.execute_async(
+            workspace,
+            ["sh", "-c", "echo $MY_ASYNC_VAR"],
+            env_vars={"MY_ASYNC_VAR": "async_value"},
+        )
+        assert "async_value" in result.stdout
+
+    @pytest.mark.asyncio
+    async def test_execute_async_duration_recorded(self, executor, workspace):
+        """Test that async execution duration is recorded."""
+        result = await executor.execute_async(workspace, ["sleep", "0.1"])
+        assert result.duration_ms >= 100
+
+    @pytest.mark.asyncio
+    async def test_execute_async_timeout(self, workspace):
+        """Test that async timeout kills the process."""
+        config = SandboxConfig(timeout_seconds=1)
+        executor = SubprocessSandboxExecutor(config)
+
+        result = await executor.execute_async(workspace, ["sleep", "10"])
+        assert result.timed_out is True
+        assert result.exit_code == -9  # SIGKILL
+
+    @pytest.mark.asyncio
+    async def test_execute_simple_async_interface(self, executor, tmp_path):
+        """Test the execute_simple_async interface."""
+        result = await executor.execute_simple_async(["echo", "hello async"], tmp_path)
+        assert result.exit_code == 0
+        assert "hello async" in result.stdout
+
+    @pytest.mark.asyncio
+    async def test_execute_async_python_script(self, executor, workspace):
+        """Test running a Python script asynchronously."""
+        script = workspace.target_repo_path / "async_test.py"
+        script.write_text("print('hello from async python')")
+
+        result = await executor.execute_async(workspace, ["python", "async_test.py"])
+        assert result.exit_code == 0
+        assert "hello from async python" in result.stdout

@@ -17,6 +17,7 @@ Date: December 10, 2025
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import logging
 import os
@@ -175,6 +176,113 @@ class SubprocessSandboxExecutor:
 
         return result
 
+    async def execute_async(
+        self,
+        workspace: Workspace,
+        command: list[str],
+        working_dir: str | None = None,
+        env_vars: dict[str, str] | None = None,
+    ) -> ExecutionResult:
+        """
+        Execute command asynchronously in sandboxed subprocess.
+
+        Async version of execute() using asyncio.create_subprocess_exec.
+        Part of ADR 008 Phase 3: Async Services.
+
+        Args:
+            workspace: Workspace containing code to execute
+            command: Command and arguments (e.g., ["pytest", "-v"])
+            working_dir: Working directory relative to workspace (or absolute)
+            env_vars: Additional environment variables
+
+        Returns:
+            ExecutionResult with stdout, stderr, exit code, timing
+
+        Raises:
+            SandboxExecutionError: If execution setup fails
+        """
+        # Determine working directory
+        if working_dir:
+            if os.path.isabs(working_dir):
+                cwd = Path(working_dir)
+            else:
+                cwd = workspace.target_repo_path / working_dir
+        else:
+            cwd = workspace.target_repo_path
+
+        if not cwd.exists():
+            raise SandboxExecutionError(f"Working directory does not exist: {cwd}")
+
+        # Build environment
+        env = self._build_environment(workspace, env_vars)
+
+        # Log execution
+        logger.info(f"Executing async in sandbox: {' '.join(command)}")
+        logger.debug(f"Working directory: {cwd}")
+
+        start_time = time.time()
+        timed_out = False
+
+        try:
+            # Create async subprocess
+            # Note: preexec_fn not supported with asyncio subprocess,
+            # resource limits would need to be set via other means (cgroups, etc.)
+            process = await asyncio.create_subprocess_exec(
+                *command,
+                cwd=str(cwd),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=env,
+            )
+
+            try:
+                stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                    process.communicate(),
+                    timeout=self.config.timeout_seconds,
+                )
+                stdout = stdout_bytes.decode() if stdout_bytes else ""
+                stderr = stderr_bytes.decode() if stderr_bytes else ""
+                exit_code = process.returncode or 0
+            except asyncio.TimeoutError:
+                logger.warning(
+                    f"Async process timed out after {self.config.timeout_seconds}s, killing"
+                )
+                timed_out = True
+                process.kill()
+                # Wait briefly for process to terminate
+                try:
+                    await asyncio.wait_for(process.wait(), timeout=5.0)
+                except asyncio.TimeoutError:
+                    pass
+                stdout, stderr = "", ""
+                exit_code = -9  # SIGKILL
+
+        except FileNotFoundError as e:
+            raise SandboxExecutionError(f"Command not found: {command[0]}") from e
+        except PermissionError as e:
+            raise SandboxExecutionError(
+                f"Permission denied executing: {command[0]}"
+            ) from e
+        except OSError as e:
+            raise SandboxExecutionError(f"OS error executing command: {e}") from e
+
+        duration_ms = int((time.time() - start_time) * 1000)
+
+        result = ExecutionResult(
+            exit_code=exit_code,
+            stdout=stdout,
+            stderr=stderr,
+            duration_ms=duration_ms,
+            timed_out=timed_out,
+        )
+
+        logger.info(
+            f"Async execution complete: exit_code={exit_code}, "
+            f"duration={duration_ms}ms, timed_out={timed_out}"
+        )
+
+        return result
+
     def _build_environment(
         self,
         workspace: Workspace,
@@ -305,3 +413,33 @@ class SubprocessSandboxExecutor:
 
         workspace = MinimalWorkspace(Path(cwd))
         return self.execute(workspace, command, env_vars=env_vars)
+
+    async def execute_simple_async(
+        self,
+        command: list[str],
+        cwd: Path | str,
+        env_vars: dict[str, str] | None = None,
+    ) -> ExecutionResult:
+        """
+        Execute command asynchronously without workspace context.
+
+        Async version of execute_simple() for cases where a full Workspace
+        isn't needed. Part of ADR 008 Phase 3: Async Services.
+
+        Args:
+            command: Command and arguments
+            cwd: Working directory
+            env_vars: Environment variables
+
+        Returns:
+            ExecutionResult
+        """
+
+        # Create a minimal workspace-like object
+        class MinimalWorkspace:
+            def __init__(self, path: Path):
+                self.path = path
+                self.target_repo_path = path
+
+        workspace = MinimalWorkspace(Path(cwd))
+        return await self.execute_async(workspace, command, env_vars=env_vars)
