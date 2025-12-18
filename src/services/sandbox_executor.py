@@ -243,17 +243,15 @@ class SubprocessSandboxExecutor:
                 stdout = stdout_bytes.decode() if stdout_bytes else ""
                 stderr = stderr_bytes.decode() if stderr_bytes else ""
                 exit_code = process.returncode or 0
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.warning(
                     f"Async process timed out after {self.config.timeout_seconds}s, killing"
                 )
                 timed_out = True
                 process.kill()
                 # Wait briefly for process to terminate
-                try:
+                with contextlib.suppress(TimeoutError):
                     await asyncio.wait_for(process.wait(), timeout=5.0)
-                except asyncio.TimeoutError:
-                    pass
                 stdout, stderr = "", ""
                 exit_code = -9  # SIGKILL
 
