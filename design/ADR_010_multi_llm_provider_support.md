@@ -1,7 +1,8 @@
 # ADR 010: Multi-LLM Provider Support
 
-**Status:** Draft
+**Status:** In Progress (Phase 1-2 Complete)
 **Date:** 2025-12-17
+**Updated:** 2025-12-19
 **Session:** 20251217.8
 **Deciders:** User, Claude
 
@@ -734,8 +735,8 @@ python -m asp.cli run --task-id TASK-001 --description "..." --provider ollama -
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| Phase 1 | Provider abstraction layer (`LLMProvider`, `LLMResponse`) | Pending |
-| Phase 2 | Refactor `AnthropicProvider` from existing `LLMClient` | Pending |
+| Phase 1 | Provider abstraction layer (`LLMProvider`, `LLMResponse`) | **Complete** |
+| Phase 2 | Refactor `AnthropicProvider` from existing `LLMClient` | **Complete** |
 | Phase 3 | Add `OpenRouterProvider` (OpenAI-compatible) | Pending |
 | Phase 4 | Add `GeminiProvider` | Pending |
 | Phase 5 | Add `GroqProvider` (OpenAI-compatible, ultra-fast) | Pending |
