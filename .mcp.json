@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "asp-agents": {
+      "command": "uv",
+      "args": ["run", "--extra", "mcp", "python", "-m", "asp.mcp.server"],
+      "env": {
+        "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}",
+        "ASP_LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}

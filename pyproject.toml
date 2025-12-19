@@ -45,6 +45,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+mcp = [
+    "mcp>=1.0.0",
+]
 telemetry = [
     "logfire>=2.0.0",
     "opentelemetry-instrumentation-anthropic>=0.1.0",
@@ -87,6 +90,7 @@ Documentation = "https://github.com/evelynmitchell/Process_Software_Agents#readm
 
 [project.scripts]
 asp-cli = "asp.cli:main"
+asp-mcp = "asp.mcp.server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
