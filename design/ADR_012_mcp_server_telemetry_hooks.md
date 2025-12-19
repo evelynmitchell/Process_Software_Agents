@@ -1,8 +1,8 @@
 # ADR 012: MCP Server for ASP Agents + Universal Telemetry Hooks
 
-**Status:** Draft
+**Status:** Implemented (Phase 1-2 Complete)
 **Date:** 2025-12-18
-**Session:** 20251218.2
+**Session:** 20251218.3
 **Deciders:** User, Claude
 **Related:** ADR 010 (Multi-LLM Provider), ADR 011 (Claude CLI/Agent SDK Integration)
 
@@ -916,9 +916,16 @@ telemetry = [
 
 ---
 
-**Status:** Draft
-**Next Steps:**
-1. Review and approve architecture
-2. Implement Phase 1 (MCP Server)
-3. Implement Phase 2 (Telemetry Hooks)
-4. Test end-to-end with Claude Code CLI
+**Status:** Implemented (Phase 1-2 Complete)
+
+**Implementation Notes (2025-12-18):**
+- Phase 1 (MCP Server): `src/asp/mcp/server.py` - 4 tools implemented
+- Phase 2 (Telemetry Hooks): `src/asp/hooks/telemetry.py` - universal capture
+- Configuration: `.mcp.json` and `.claude/settings.json`
+- Tested with actual `asp_plan` tool call
+
+**Next Steps (Phase 3 - Optional):**
+1. OpenTelemetry export option
+2. Telemetry dashboard queries
+3. Cost tracking per tool
+4. Performance metrics (latency, throughput)
