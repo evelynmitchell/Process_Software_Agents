@@ -108,6 +108,7 @@ class AnthropicProvider(LLMProvider):
         Raises:
             AuthenticationError: If no API key is available
         """
+        super().__init__(config)
         self.config = config or ProviderConfig()
 
         # Get API key from config or environment
@@ -122,29 +123,29 @@ class AnthropicProvider(LLMProvider):
         self._api_key = api_key
         self._default_model = self.config.default_model or self.DEFAULT_MODEL
 
-        # Lazy-load clients
-        self._client = None
-        self._async_client = None
+        # Lazy-load clients (backing fields)
+        self._sync_client_impl = None
+        self._async_client_impl = None
 
         logger.info("AnthropicProvider initialized")
 
     @property
     def _sync_client(self):
         """Lazy-load synchronous Anthropic client."""
-        if self._client is None:
+        if self._sync_client_impl is None:
             from anthropic import Anthropic
 
-            self._client = Anthropic(api_key=self._api_key)
-        return self._client
+            self._sync_client_impl = Anthropic(api_key=self._api_key)
+        return self._sync_client_impl
 
     @property
-    def _async_client_instance(self):
+    def _async_client(self):
         """Lazy-load asynchronous Anthropic client."""
-        if self._async_client is None:
+        if self._async_client_impl is None:
             from anthropic import AsyncAnthropic
 
-            self._async_client = AsyncAnthropic(api_key=self._api_key)
-        return self._async_client
+            self._async_client_impl = AsyncAnthropic(api_key=self._api_key)
+        return self._async_client_impl
 
     @property
     def available_models(self) -> list[str]:
@@ -317,7 +318,7 @@ class AnthropicProvider(LLMProvider):
                         api_params["system"] = system
 
                     # Make async API call
-                    response = await self._async_client_instance.messages.create(
+                    response = await self._async_client.messages.create(
                         **api_params
                     )
 

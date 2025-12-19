@@ -17,7 +17,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from asp.providers import (
-    LLMProvider,
     LLMResponse,
     ProviderConfig,
     ProviderRegistry,
@@ -375,7 +374,7 @@ class TestAnthropicProvider:
 
         mock_client = AsyncMock()
         mock_client.messages.create = AsyncMock(return_value=mock_response)
-        provider._async_client = mock_client
+        provider._async_client_impl = mock_client
 
         response = await provider.call_async(
             prompt="Test prompt",
