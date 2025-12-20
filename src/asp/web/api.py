@@ -12,7 +12,7 @@ import json
 import logging
 import sqlite3
 import subprocess
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -149,7 +149,7 @@ def get_cost_summary(days: int = 7) -> dict[str, Any]:
 
     try:
         cursor = conn.cursor()
-        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
         # Total cost
         cursor.execute(

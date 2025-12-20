@@ -3,7 +3,7 @@
 import shutil
 import subprocess
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -63,7 +63,7 @@ def approval_metadata():
     return ApprovalResponse(
         decision=ReviewDecision.APPROVED,
         reviewer="test@example.com",
-        timestamp=datetime.utcnow().isoformat() + "Z",
+        timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         justification="Test approval",
     )
 

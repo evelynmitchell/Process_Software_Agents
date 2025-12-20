@@ -3,7 +3,7 @@ Approval decision collection from user input.
 """
 
 import getpass
-from datetime import datetime
+from datetime import datetime, timezone
 
 from rich.console import Console
 
@@ -48,7 +48,7 @@ class ApprovalCollector:
 
         # Get reviewer info
         reviewer = self._get_reviewer()
-        timestamp = datetime.utcnow().isoformat() + "Z"
+        timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
         return ApprovalResponse(
             decision=decision,

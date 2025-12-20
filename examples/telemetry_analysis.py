@@ -13,7 +13,7 @@ Time: < 1 second
 """
 
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -40,7 +40,7 @@ def main():
     print("📊 Analysis 1: Total Cost by Agent (Last 7 Days)")
     print("-" * 70)
 
-    seven_days_ago = (datetime.utcnow() - timedelta(days=7)).isoformat()
+    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
 
     query = """
         SELECT

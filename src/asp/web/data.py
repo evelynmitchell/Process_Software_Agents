@@ -11,7 +11,7 @@ Integrates data from:
 import contextlib
 import json
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -553,7 +553,7 @@ def get_agent_health() -> list[dict[str, Any]]:
 
     try:
         cursor = conn.cursor()
-        cutoff = (datetime.utcnow() - timedelta(hours=24)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
 
         results = []
         for agent in agents:
@@ -577,7 +577,7 @@ def get_agent_health() -> list[dict[str, Any]]:
                         row["last_active"].replace("Z", "+00:00")
                     )
                     # Determine status based on recency
-                    age = datetime.utcnow() - last_ts.replace(tzinfo=None)
+                    age = datetime.now(timezone.utc) - last_ts
                     if age < timedelta(hours=1):
                         status = "Operational"
                     elif age < timedelta(days=1):
@@ -635,7 +635,7 @@ def get_cost_breakdown(days: int = 7) -> dict[str, Any]:
 
     try:
         cursor = conn.cursor()
-        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
         # Total cost
         cursor.execute(
@@ -710,7 +710,7 @@ def get_daily_metrics(days: int = 7) -> dict[str, list[float]]:
 
     try:
         cursor = conn.cursor()
-        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
         # Get daily cost totals
         cursor.execute(

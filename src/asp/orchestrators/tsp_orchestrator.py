@@ -586,7 +586,11 @@ class TSPOrchestrator:  # pylint: disable=too-many-instance-attributes
         Unlike review quality gates, test failures trigger automatic code regeneration
         (up to MAX_TEST_ITERATIONS) rather than requiring HITL approval.
         """
+        if self.MAX_TEST_ITERATIONS < 1:
+            raise ValueError("MAX_TEST_ITERATIONS must be at least 1")
+
         test_iterations = 0
+        test_report: TestReport  # Will be assigned in first iteration
 
         while test_iterations < self.MAX_TEST_ITERATIONS:
             logger.info(
@@ -636,7 +640,8 @@ class TSPOrchestrator:  # pylint: disable=too-many-instance-attributes
             logger.error(f"✗ Tests still failing after {test_iterations} iterations")
             return test_report
 
-        return test_report
+        # This is unreachable: loop always runs at least once and all paths return
+        raise RuntimeError("Unreachable: test loop should always return")
 
     def _execute_postmortem(
         self,
@@ -1253,7 +1258,11 @@ class TSPOrchestrator:  # pylint: disable=too-many-instance-attributes
         Unlike review quality gates, test failures trigger automatic code regeneration
         (up to MAX_TEST_ITERATIONS) rather than requiring HITL approval.
         """
+        if self.MAX_TEST_ITERATIONS < 1:
+            raise ValueError("MAX_TEST_ITERATIONS must be at least 1")
+
         test_iterations = 0
+        test_report: TestReport  # Will be assigned in first iteration
 
         while test_iterations < self.MAX_TEST_ITERATIONS:
             logger.info(
@@ -1302,7 +1311,8 @@ class TSPOrchestrator:  # pylint: disable=too-many-instance-attributes
             logger.error(f"✗ Tests still failing after {test_iterations} iterations")
             return test_report
 
-        return test_report
+        # This is unreachable: loop always runs at least once and all paths return
+        raise RuntimeError("Unreachable: test loop should always return")
 
     async def _execute_postmortem_async(
         self,

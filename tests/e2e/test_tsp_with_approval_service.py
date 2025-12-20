@@ -19,7 +19,7 @@ Run with:
     pytest tests/e2e/test_tsp_with_approval_service.py -m e2e -v -s
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -90,7 +90,7 @@ class MockApprovalService(ApprovalService):
         return ApprovalResponse(
             decision=self.decision,
             reviewer="MockReviewer",
-            timestamp=datetime.utcnow().isoformat() + "Z",
+            timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             justification=f"Mock {self.decision.value} for testing purposes",
             review_branch=f"mock/{request.task_id}",
             merge_commit="mock_commit_sha",
