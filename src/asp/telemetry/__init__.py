@@ -12,6 +12,7 @@ Configure via ASP_TELEMETRY_PROVIDER environment variable:
 """
 
 import asp.telemetry.config as config
+import asp.telemetry.telemetry as telemetry_module
 
 configure_anthropic_instrumentation = config.configure_anthropic_instrumentation
 configure_httpx_instrumentation = config.configure_httpx_instrumentation
@@ -24,8 +25,6 @@ initialize_telemetry = config.initialize_telemetry
 instrument_all_llm_providers = config.instrument_all_llm_providers
 is_langfuse_available = config.is_langfuse_available
 is_logfire_available = config.is_logfire_available
-
-import asp.telemetry.telemetry as telemetry_module
 
 get_db_connection = telemetry_module.get_db_connection
 get_langfuse_client = telemetry_module.get_langfuse_client

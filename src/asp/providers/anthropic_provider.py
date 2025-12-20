@@ -318,9 +318,7 @@ class AnthropicProvider(LLMProvider):
                         api_params["system"] = system
 
                     # Make async API call
-                    response = await self._async_client.messages.create(
-                        **api_params
-                    )
+                    response = await self._async_client.messages.create(**api_params)
 
                     return self._process_response(response, model)
 
