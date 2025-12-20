@@ -185,17 +185,31 @@ class ProviderRegistry:
         except ImportError:
             logger.debug("AnthropicProvider not available (missing anthropic SDK)")
 
+        # Register OpenRouter provider (100+ models)
+        try:
+            from asp.providers.openrouter_provider import OpenRouterProvider
+
+            cls.register("openrouter", OpenRouterProvider)
+        except ImportError:
+            logger.debug("OpenRouterProvider not available (missing openai SDK)")
+
+        # Register Groq provider (ultra-fast LPU inference)
+        try:
+            from asp.providers.groq_provider import GroqProvider
+
+            cls.register("groq", GroqProvider)
+        except ImportError:
+            logger.debug("GroqProvider not available (missing openai SDK)")
+
         # Future providers will be registered here as they are implemented:
-        # - openrouter
-        # - gemini
-        # - groq
-        # - together
-        # - fireworks
-        # - deepinfra
-        # - cloudflare
-        # - ollama
-        # - vllm
-        # - claude_cli
+        # - gemini (uses google-generativeai SDK)
+        # - together (OpenAI-compatible)
+        # - fireworks (OpenAI-compatible)
+        # - deepinfra (OpenAI-compatible)
+        # - cloudflare (REST API)
+        # - ollama (OpenAI-compatible, local)
+        # - vllm (OpenAI-compatible, local)
+        # - claude_cli (subprocess)
 
 
 # Alias for convenience
