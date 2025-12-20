@@ -16,7 +16,7 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
@@ -24,8 +24,6 @@ if TYPE_CHECKING:
     from asp.agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
-
-T = TypeVar("T")
 
 
 # =============================================================================
@@ -68,7 +66,7 @@ DEFAULT_ASYNC_CONFIG = AsyncConfig()
 # =============================================================================
 
 
-async def gather_with_concurrency(
+async def gather_with_concurrency[T](
     limit: int,
     *tasks: Awaitable[T],
     return_exceptions: bool = False,
@@ -176,7 +174,7 @@ async def run_agents_parallel(
     return results
 
 
-async def run_with_retry(
+async def run_with_retry[T](
     coro_factory: Callable[[], Awaitable[T]],
     max_retries: int = 3,
     base_delay: float = 1.0,
@@ -222,7 +220,7 @@ async def run_with_retry(
     raise last_exception
 
 
-async def run_with_timeout(
+async def run_with_timeout[T](
     coro: Awaitable[T],
     timeout: float,
     error_message: str = "Operation timed out",
@@ -294,7 +292,7 @@ class ParallelExecutionResult:
         return [i for i, e in enumerate(self.exceptions) if e is not None]
 
 
-async def gather_with_results(
+async def gather_with_results[T](
     *tasks: Awaitable[T],
     max_concurrent: int = 0,
 ) -> ParallelExecutionResult:

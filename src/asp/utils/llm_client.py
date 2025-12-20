@@ -24,14 +24,14 @@ import asp.telemetry.config
 
 asp.telemetry.config.ensure_llm_instrumentation()
 
-from anthropic import (
+from anthropic import (  # noqa: E402
     Anthropic,
     APIConnectionError,
     APIStatusError,
     AsyncAnthropic,
     RateLimitError,
 )
-from tenacity import (
+from tenacity import (  # noqa: E402
     AsyncRetrying,
     retry,
     retry_if_exception,
