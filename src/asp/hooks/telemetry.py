@@ -39,25 +39,27 @@ Date: December 2025
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 # Sensitive keys to redact
-SENSITIVE_KEYS = frozenset({
-    "password",
-    "secret",
-    "token",
-    "api_key",
-    "apikey",
-    "credential",
-    "auth",
-    "bearer",
-    "private_key",
-    "secret_key",
-    "access_token",
-    "refresh_token",
-})
+SENSITIVE_KEYS = frozenset(
+    {
+        "password",
+        "secret",
+        "token",
+        "api_key",
+        "apikey",
+        "credential",
+        "auth",
+        "bearer",
+        "private_key",
+        "secret_key",
+        "access_token",
+        "refresh_token",
+    }
+)
 
 # Maximum lengths for truncation
 MAX_INPUT_LENGTH = 10000
@@ -104,7 +106,9 @@ def sanitize_value(value: Any, key: str = "") -> Any:
     if isinstance(value, str):
         # Truncate very long strings
         if len(value) > MAX_INPUT_LENGTH:
-            return value[:MAX_INPUT_LENGTH] + f"... [truncated, {len(value)} chars total]"
+            return (
+                value[:MAX_INPUT_LENGTH] + f"... [truncated, {len(value)} chars total]"
+            )
         return value
 
     if isinstance(value, dict):
@@ -263,7 +267,7 @@ def handle_pre_tool_use(input_data: dict) -> None:
 
     # Build event
     event = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(datetime.UTC).isoformat(),
         "event": "tool_start",
         "tool": tool_name,
         "tool_use_id": tool_use_id,
@@ -311,7 +315,7 @@ def handle_post_tool_use(input_data: dict) -> None:
 
     # Build event
     event = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(datetime.UTC).isoformat(),
         "event": "tool_end",
         "tool": tool_name,
         "tool_use_id": tool_use_id,
