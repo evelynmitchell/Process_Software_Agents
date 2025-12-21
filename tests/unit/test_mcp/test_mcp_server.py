@@ -7,9 +7,9 @@ Tests the MCP server tool registration and handler functions.
 import json
 import os
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -255,22 +255,31 @@ class TestRepairIssueHandler:
     """Tests for asp_repair_issue handler."""
 
     @pytest.mark.asyncio
-    async def test_repair_issue_import_error(self):
-        """Should handle missing dependencies gracefully."""
+    async def test_repair_issue_returns_cli_suggestion(self):
+        """Should return CLI suggestion since orchestrator requires complex setup."""
         from asp.mcp.server import _handle_repair_issue
 
-        # Simulate import error by removing the module from sys.modules
-        with patch.dict("sys.modules", {
-            "asp.orchestrators.repair_orchestrator": None,
-            "asp.services.github_service": None,
-        }):
-            result = await _handle_repair_issue({
-                "issue_url": "https://github.com/test/repo/issues/1"
-            })
+        result = await _handle_repair_issue({
+            "issue_url": "https://github.com/test/repo/issues/1"
+        })
 
         data = json.loads(result[0].text)
-        assert data["error"] is True
-        assert "Required module not available" in data["message"]
+        assert data["status"] == "not_yet_implemented"
+        assert "cli_command" in data
+        assert "uv run asp repair-issue" in data["cli_command"]
+
+    @pytest.mark.asyncio
+    async def test_repair_issue_includes_dry_run_flag(self):
+        """Should include dry-run flag in CLI suggestion when specified."""
+        from asp.mcp.server import _handle_repair_issue
+
+        result = await _handle_repair_issue({
+            "issue_url": "https://github.com/test/repo/issues/1",
+            "dry_run": True
+        })
+
+        data = json.loads(result[0].text)
+        assert "--dry-run" in data["cli_command"]
 
 
 class TestBeadsSyncHandler:

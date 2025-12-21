@@ -54,7 +54,7 @@ The **Autonomous Software Process (ASP)** platform implements PSP/TSP (Personal/
 - **8 Specialized Agents:** Planning, Design, DesignReview, Code, CodeReview, Test, Postmortem, Repair
 - **TSP Orchestrator:** 7-phase pipeline with quality gates and HITL (Human-in-the-Loop) integration
 - **Web UI:** Three personas - Manager (Overwatch), Developer (Flow State Canvas), Product Manager (Feature Wizard)
-- **MCP Server:** 4 tools for Claude CLI integration (`asp_plan`, `asp_code_review`, `asp_diagnose`, `asp_test`)
+- **MCP Server:** 8 tools for Claude CLI integration (4 core + 4 extended)
 - **GitHub Integration:** Issue-to-PR automation via `asp repair-issue` command
 - **Multi-LLM Support:** Provider abstraction layer (Anthropic, OpenRouter, Gemini, etc.)
 
@@ -128,14 +128,23 @@ For features requiring 3+ phases or architectural decisions, use ADR-driven deve
 
 ## MCP Server (Claude CLI Integration)
 
-ASP exposes 4 tools via MCP for Claude CLI integration:
+ASP exposes 8 tools via MCP for Claude CLI integration:
 
+**Core Tools:**
 | Tool | Description |
 |------|-------------|
 | `asp_plan` | Task decomposition with PROBE estimation |
 | `asp_code_review` | 6-specialist code review (security, performance, quality, tests, docs, best practices) |
 | `asp_diagnose` | Bug diagnosis with root cause analysis and fix suggestions |
 | `asp_test` | Test generation and execution with defect classification |
+
+**Extended Tools:**
+| Tool | Description |
+|------|-------------|
+| `asp_repair_issue` | Full GitHub issue-to-PR automation workflow |
+| `asp_beads_sync` | Synchronize beads planning with GitHub issues |
+| `asp_provider_status` | Check LLM provider configuration and availability |
+| `asp_session_context` | Load tiered session context from project history |
 
 **Configuration Files:**
 - `.mcp.json` - MCP server configuration for Claude CLI
@@ -316,7 +325,7 @@ Patterns learned from 136+ development sessions:
 
 ### Session Summaries
 
-Create `Summary/summaryYYYYMMDD.N.md` for each development session using the template in `design/SESSION_TEMPLATE.md`.
+Create `Summary/summaryYYYYMMDD.N.md` for each development session using the template in `Summary/session_template.md`.
 
 Key sections to complete:
 - **Objective:** Single clear sentence

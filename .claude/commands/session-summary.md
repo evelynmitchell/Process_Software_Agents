@@ -20,7 +20,7 @@ Start a new development session by loading context and creating a session summar
 
 4. **Create the new session summary:**
    - File: `Summary/summary{YYYYMMDD}.{N}.md` where N is the session number
-   - Use the template from `design/SESSION_TEMPLATE.md` if it exists
+   - Use the template from `Summary/session_template.md`
    - Pre-populate:
      - Date and session number
      - Start commit hash (from `git rev-parse --short HEAD`)

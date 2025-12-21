@@ -26,7 +26,6 @@ Date: December 2025
 """
 
 import asyncio
-import glob
 import json
 import logging
 import os
@@ -514,65 +513,36 @@ async def _handle_test(args: dict) -> list[TextContent]:
 
 async def _handle_repair_issue(args: dict) -> list[TextContent]:
     """Handle asp_repair_issue tool call."""
-    try:
-        from asp.orchestrators.repair_orchestrator import RepairOrchestrator
-        from asp.services.github_service import GitHubService
-    except ImportError as e:
-        return [
-            TextContent(
-                type="text",
-                text=json.dumps(
-                    {
-                        "error": True,
-                        "message": f"Required module not available: {e}",
-                        "hint": "Ensure asp.services.github_service is installed",
-                    },
-                    indent=2,
-                ),
-            )
-        ]
-
     issue_url = args["issue_url"]
     dry_run = args.get("dry_run", False)
     workspace_path = args.get("workspace_path")
 
-    # Initialize services
-    github_service = GitHubService()
-    repair_orchestrator = RepairOrchestrator()
-
-    try:
-        # Execute repair workflow
-        loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(
-            None,
-            lambda: repair_orchestrator.repair_from_issue(
-                issue_url=issue_url,
-                workspace_path=workspace_path,
-                dry_run=dry_run,
+    # RepairOrchestrator requires complex initialization with:
+    # - SubprocessSandboxExecutor
+    # - TestExecutor
+    # - SurgicalEditor
+    # For now, recommend using the CLI which handles this setup
+    return [
+        TextContent(
+            type="text",
+            text=json.dumps(
+                {
+                    "status": "not_yet_implemented",
+                    "issue_url": issue_url,
+                    "dry_run": dry_run,
+                    "workspace_path": workspace_path,
+                    "message": (
+                        "The asp_repair_issue MCP tool requires complex orchestrator "
+                        "initialization. Please use the CLI instead: "
+                        "`uv run asp repair-issue <issue_url>`"
+                    ),
+                    "cli_command": f"uv run asp repair-issue {issue_url}"
+                    + (" --dry-run" if dry_run else ""),
+                },
+                indent=2,
             ),
         )
-
-        return [
-            TextContent(
-                type="text",
-                text=json.dumps(result if isinstance(result, dict) else result.model_dump(), indent=2),
-            )
-        ]
-    except Exception as e:
-        return [
-            TextContent(
-                type="text",
-                text=json.dumps(
-                    {
-                        "error": True,
-                        "issue_url": issue_url,
-                        "message": str(e),
-                        "type": type(e).__name__,
-                    },
-                    indent=2,
-                ),
-            )
-        ]
+    ]
 
 
 async def _handle_beads_sync(args: dict) -> list[TextContent]:
@@ -737,66 +707,71 @@ async def _handle_session_context(args: dict) -> list[TextContent]:
 
     try:
         # Find session summaries sorted by modification time (newest first)
-        summary_files = sorted(
-            glob.glob(str(summary_dir / "summary*.md")),
-            key=os.path.getmtime,
-            reverse=True,
-        )
+        # Use Path.glob() for more Pythonic and maintainable code
+        if summary_dir.exists():
+            summary_files = sorted(
+                summary_dir.glob("summary*.md"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+        else:
+            summary_files = []
 
         # Determine how many sessions to load based on depth
         session_count = {"minimal": 1, "standard": 3, "full": 5}.get(depth, 3)
 
         for summary_file in summary_files[:session_count]:
             try:
-                with open(summary_file) as f:
-                    content = f.read()
-                    # Extract just the first 2000 chars to avoid context explosion
-                    context["sessions"].append({
-                        "file": os.path.basename(summary_file),
-                        "content": content[:2000] + ("..." if len(content) > 2000 else ""),
-                    })
+                content = summary_file.read_text()
+                # Extract just the first 2000 chars to avoid context explosion
+                context["sessions"].append({
+                    "file": summary_file.name,
+                    "content": content[:2000] + ("..." if len(content) > 2000 else ""),
+                })
             except Exception as e:
                 logger.warning(f"Failed to read {summary_file}: {e}")
 
         # Find latest weekly reflection
-        weekly_files = sorted(
-            glob.glob(str(summary_dir / "weekly_reflection_*.md")),
-            key=os.path.getmtime,
-            reverse=True,
-        )
+        if summary_dir.exists():
+            weekly_files = sorted(
+                summary_dir.glob("weekly_reflection_*.md"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+        else:
+            weekly_files = []
+
         if weekly_files:
             try:
-                with open(weekly_files[0]) as f:
-                    content = f.read()
-                    context["weekly_reflection"] = {
-                        "file": os.path.basename(weekly_files[0]),
-                        "content": content[:3000] + ("..." if len(content) > 3000 else ""),
-                    }
+                content = weekly_files[0].read_text()
+                context["weekly_reflection"] = {
+                    "file": weekly_files[0].name,
+                    "content": content[:3000] + ("..." if len(content) > 3000 else ""),
+                }
             except Exception as e:
                 logger.warning(f"Failed to read weekly reflection: {e}")
 
         # Parse ADR status from design directory
-        adr_files = glob.glob(str(design_dir / "ADR_*.md"))
+        adr_files = list(design_dir.glob("ADR_*.md")) if design_dir.exists() else []
         for adr_file in adr_files:
             try:
-                with open(adr_file) as f:
-                    content = f.read()
-                    # Extract title and status
-                    lines = content.split("\n")
-                    title = next((ln for ln in lines if ln.startswith("# ")), "Unknown")
-                    status = "draft"
-                    for line in lines:
-                        if "complete" in line.lower():
-                            status = "complete"
-                            break
-                        elif "in progress" in line.lower():
-                            status = "in_progress"
-                            break
+                content = adr_file.read_text()
+                # Extract title and status
+                lines = content.split("\n")
+                title = next((ln for ln in lines if ln.startswith("# ")), "Unknown")
+                status = "draft"
+                for line in lines:
+                    if "complete" in line.lower():
+                        status = "complete"
+                        break
+                    elif "in progress" in line.lower():
+                        status = "in_progress"
+                        break
 
-                    context["adrs"][os.path.basename(adr_file)] = {
-                        "title": title.replace("# ", ""),
-                        "status": status,
-                    }
+                context["adrs"][adr_file.name] = {
+                    "title": title.replace("# ", ""),
+                    "status": status,
+                }
             except Exception as e:
                 logger.warning(f"Failed to parse ADR {adr_file}: {e}")
 
