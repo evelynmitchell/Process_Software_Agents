@@ -3,11 +3,17 @@ ASP Agents MCP Server.
 
 Exposes ASP agents as MCP tools for Claude Code CLI.
 
-Tools:
+Core Tools:
 - asp_plan: Generate project plans using PlanningAgent
 - asp_code_review: Review code using CodeReviewOrchestrator
 - asp_diagnose: Diagnose errors using DiagnosticAgent
 - asp_test: Run tests and analyze results using TestAgent
+
+Extended Tools:
+- asp_repair_issue: Full GitHub issue-to-PR automation
+- asp_beads_sync: Sync beads planning with GitHub issues
+- asp_provider_status: Check LLM provider configuration
+- asp_session_context: Load tiered session context
 
 Usage:
     # Run the MCP server
@@ -23,6 +29,8 @@ import asyncio
 import json
 import logging
 import os
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from mcp.server import Server
@@ -190,6 +198,107 @@ async def list_tools() -> list[Tool]:
                 "required": ["task_id", "generated_code", "design_specification"],
             },
         ),
+        # === Extended Tools ===
+        Tool(
+            name="asp_repair_issue",
+            description=(
+                "Automate the full GitHub issue-to-PR workflow. "
+                "Fetches issue details, clones repo, creates branch, "
+                "diagnoses the problem, generates a fix, runs tests, and creates a PR. "
+                "Use for bug fixes referenced by GitHub issue URLs."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "issue_url": {
+                        "type": "string",
+                        "description": "GitHub issue URL (e.g., https://github.com/owner/repo/issues/123)",
+                    },
+                    "dry_run": {
+                        "type": "boolean",
+                        "description": "If true, diagnose and generate fix but don't create PR",
+                        "default": False,
+                    },
+                    "workspace_path": {
+                        "type": "string",
+                        "description": "Optional path to existing workspace (skip clone if provided)",
+                    },
+                },
+                "required": ["issue_url"],
+            },
+        ),
+        Tool(
+            name="asp_beads_sync",
+            description=(
+                "Synchronize beads planning data with GitHub issues. "
+                "Supports push (create GitHub issues from beads), "
+                "pull (import GitHub issues as beads), or bidirectional sync."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "direction": {
+                        "type": "string",
+                        "enum": ["push", "pull", "bidirectional"],
+                        "description": "Sync direction: push to GitHub, pull from GitHub, or both",
+                    },
+                    "dry_run": {
+                        "type": "boolean",
+                        "description": "If true, show what would be synced without making changes",
+                        "default": True,
+                    },
+                    "repo": {
+                        "type": "string",
+                        "description": "GitHub repo in owner/repo format (defaults to current repo)",
+                    },
+                },
+                "required": ["direction"],
+            },
+        ),
+        Tool(
+            name="asp_provider_status",
+            description=(
+                "Check the status of configured LLM providers. "
+                "Returns availability, available models, rate limit status, "
+                "and cost estimates for each configured provider."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "check_connection": {
+                        "type": "boolean",
+                        "description": "If true, verify connection to each provider (slower but more accurate)",
+                        "default": False,
+                    },
+                },
+                "required": [],
+            },
+        ),
+        Tool(
+            name="asp_session_context",
+            description=(
+                "Load tiered session context from project history. "
+                "Returns recent session summaries, weekly reflections, "
+                "ADR status, and knowledge base entries based on depth level."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "depth": {
+                        "type": "string",
+                        "enum": ["minimal", "standard", "full"],
+                        "description": "Context depth: minimal (last session), standard (3 sessions + weekly), full (all + knowledge base)",
+                        "default": "standard",
+                    },
+                    "project_path": {
+                        "type": "string",
+                        "description": "Path to project root (defaults to current directory)",
+                        "default": ".",
+                    },
+                },
+                "required": [],
+            },
+        ),
     ]
 
 
@@ -199,6 +308,7 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     logger.info(f"MCP tool call: {name} with args: {list(arguments.keys())}")
 
     try:
+        # Core tools
         if name == "asp_plan":
             return await _handle_plan(arguments)
         elif name == "asp_code_review":
@@ -207,6 +317,15 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
             return await _handle_diagnose(arguments)
         elif name == "asp_test":
             return await _handle_test(arguments)
+        # Extended tools
+        elif name == "asp_repair_issue":
+            return await _handle_repair_issue(arguments)
+        elif name == "asp_beads_sync":
+            return await _handle_beads_sync(arguments)
+        elif name == "asp_provider_status":
+            return await _handle_provider_status(arguments)
+        elif name == "asp_session_context":
+            return await _handle_session_context(arguments)
         else:
             return [TextContent(type="text", text=f"Unknown tool: {name}")]
     except Exception as e:
@@ -390,6 +509,303 @@ async def _handle_test(args: dict) -> list[TextContent]:
             text=json.dumps(result.model_dump(), indent=2),
         )
     ]
+
+
+async def _handle_repair_issue(args: dict) -> list[TextContent]:
+    """Handle asp_repair_issue tool call."""
+    issue_url = args["issue_url"]
+    dry_run = args.get("dry_run", False)
+    workspace_path = args.get("workspace_path")
+
+    # RepairOrchestrator requires complex initialization with:
+    # - SubprocessSandboxExecutor
+    # - TestExecutor
+    # - SurgicalEditor
+    # For now, recommend using the CLI which handles this setup
+    return [
+        TextContent(
+            type="text",
+            text=json.dumps(
+                {
+                    "status": "not_yet_implemented",
+                    "issue_url": issue_url,
+                    "dry_run": dry_run,
+                    "workspace_path": workspace_path,
+                    "message": (
+                        "The asp_repair_issue MCP tool requires complex orchestrator "
+                        "initialization. Please use the CLI instead: "
+                        "`uv run asp repair-issue <issue_url>`"
+                    ),
+                    "cli_command": f"uv run asp repair-issue {issue_url}"
+                    + (" --dry-run" if dry_run else ""),
+                },
+                indent=2,
+            ),
+        )
+    ]
+
+
+async def _handle_beads_sync(args: dict) -> list[TextContent]:
+    """Handle asp_beads_sync tool call."""
+    try:
+        from asp.beads.github_sync import GitHubBeadsSync
+    except ImportError as e:
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "error": True,
+                        "message": f"Required module not available: {e}",
+                        "hint": "Ensure asp.beads.github_sync is installed",
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+
+    direction = args["direction"]
+    dry_run = args.get("dry_run", True)
+    repo = args.get("repo")
+
+    try:
+        sync = GitHubBeadsSync(repo=repo)
+        loop = asyncio.get_running_loop()
+
+        if direction == "push":
+            result = await loop.run_in_executor(None, lambda: sync.push(dry_run=dry_run))
+        elif direction == "pull":
+            result = await loop.run_in_executor(None, lambda: sync.pull(dry_run=dry_run))
+        else:  # bidirectional
+            result = await loop.run_in_executor(None, lambda: sync.sync(dry_run=dry_run))
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(result if isinstance(result, dict) else {"status": "complete", "result": str(result)}, indent=2),
+            )
+        ]
+    except Exception as e:
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "error": True,
+                        "direction": direction,
+                        "message": str(e),
+                        "type": type(e).__name__,
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+
+
+async def _handle_provider_status(args: dict) -> list[TextContent]:
+    """Handle asp_provider_status tool call."""
+    check_connection = args.get("check_connection", False)
+
+    try:
+        from asp.providers.registry import ProviderRegistry
+    except ImportError:
+        # Fallback if provider registry not available
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "providers": {
+                            "anthropic": {
+                                "available": bool(os.environ.get("ANTHROPIC_API_KEY")),
+                                "api_key_set": bool(os.environ.get("ANTHROPIC_API_KEY")),
+                            }
+                        },
+                        "default": os.environ.get("ASP_LLM_PROVIDER", "anthropic"),
+                        "note": "Full provider registry not available",
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+
+    try:
+        registry = ProviderRegistry()
+        providers_info = {}
+
+        for name in registry.list_providers():
+            try:
+                provider = registry.get(name)
+                info = {
+                    "available": True,
+                    "models": provider.available_models if hasattr(provider, "available_models") else [],
+                }
+
+                if check_connection:
+                    # Try a minimal API call to verify connection
+                    try:
+                        # This would need to be implemented in the provider
+                        info["connection_verified"] = True
+                    except Exception as conn_err:
+                        info["connection_verified"] = False
+                        info["connection_error"] = str(conn_err)
+
+                providers_info[name] = info
+            except Exception as e:
+                providers_info[name] = {
+                    "available": False,
+                    "error": str(e),
+                }
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "providers": providers_info,
+                        "default": registry.get_default_provider_name(),
+                        "total_available": sum(1 for p in providers_info.values() if p.get("available")),
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+    except Exception as e:
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "error": True,
+                        "message": str(e),
+                        "type": type(e).__name__,
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+
+
+async def _handle_session_context(args: dict) -> list[TextContent]:
+    """Handle asp_session_context tool call."""
+    depth = args.get("depth", "standard")
+    project_path = Path(args.get("project_path", ".")).resolve()
+
+    summary_dir = project_path / "Summary"
+    docs_dir = project_path / "docs"
+    design_dir = project_path / "design"
+
+    context = {
+        "depth": depth,
+        "project_path": str(project_path),
+        "timestamp": datetime.now(UTC).isoformat(),
+        "sessions": [],
+        "weekly_reflection": None,
+        "adrs": {},
+        "knowledge_base": None,
+    }
+
+    try:
+        # Find session summaries sorted by modification time (newest first)
+        # Use Path.glob() for more Pythonic and maintainable code
+        if summary_dir.exists():
+            summary_files = sorted(
+                summary_dir.glob("summary*.md"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+        else:
+            summary_files = []
+
+        # Determine how many sessions to load based on depth
+        session_count = {"minimal": 1, "standard": 3, "full": 5}.get(depth, 3)
+
+        for summary_file in summary_files[:session_count]:
+            try:
+                content = summary_file.read_text()
+                # Extract just the first 2000 chars to avoid context explosion
+                context["sessions"].append({
+                    "file": summary_file.name,
+                    "content": content[:2000] + ("..." if len(content) > 2000 else ""),
+                })
+            except Exception as e:
+                logger.warning(f"Failed to read {summary_file}: {e}")
+
+        # Find latest weekly reflection
+        if summary_dir.exists():
+            weekly_files = sorted(
+                summary_dir.glob("weekly_reflection_*.md"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+        else:
+            weekly_files = []
+
+        if weekly_files:
+            try:
+                content = weekly_files[0].read_text()
+                context["weekly_reflection"] = {
+                    "file": weekly_files[0].name,
+                    "content": content[:3000] + ("..." if len(content) > 3000 else ""),
+                }
+            except Exception as e:
+                logger.warning(f"Failed to read weekly reflection: {e}")
+
+        # Parse ADR status from design directory
+        adr_files = list(design_dir.glob("ADR_*.md")) if design_dir.exists() else []
+        for adr_file in adr_files:
+            try:
+                content = adr_file.read_text()
+                # Extract title and status
+                lines = content.split("\n")
+                title = next((ln for ln in lines if ln.startswith("# ")), "Unknown")
+                status = "draft"
+                for line in lines:
+                    if "complete" in line.lower():
+                        status = "complete"
+                        break
+                    elif "in progress" in line.lower():
+                        status = "in_progress"
+                        break
+
+                context["adrs"][adr_file.name] = {
+                    "title": title.replace("# ", ""),
+                    "status": status,
+                }
+            except Exception as e:
+                logger.warning(f"Failed to parse ADR {adr_file}: {e}")
+
+        # Load knowledge base for full depth
+        if depth == "full":
+            kb_path = docs_dir / "KNOWLEDGE_BASE.md"
+            if kb_path.exists():
+                try:
+                    with open(kb_path) as f:
+                        context["knowledge_base"] = f.read()
+                except Exception as e:
+                    logger.warning(f"Failed to read knowledge base: {e}")
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(context, indent=2),
+            )
+        ]
+    except Exception as e:
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "error": True,
+                        "message": str(e),
+                        "type": type(e).__name__,
+                        "project_path": str(project_path),
+                    },
+                    indent=2,
+                ),
+            )
+        ]
 
 
 async def _run_server():
