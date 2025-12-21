@@ -98,6 +98,15 @@ Before closing the session, verify:
 
 **Intervention Count:** N
 
+### LLM Code Reviews
+[Track corrections proposed by other LLMs reviewing this session's work]
+
+| Model | Comments | Issues Fixed |
+|-------|----------|--------------|
+| | | |
+
+**Total LLM Reviews:** 0
+
 ---
 
 ### What Worked
