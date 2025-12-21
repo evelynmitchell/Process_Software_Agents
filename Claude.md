@@ -35,13 +35,68 @@ The setup script will:
 - Verifies the setup works by running tests
 - Saves time by automating the setup process
 
-After running the setup script, create or update the daily summary file (`Summary/summaryYYYYMMDD.md`) to track the day's work.
+After running the setup script:
+
+**THEN: Load context using tiered memory (CRITICAL):**
+1. Read `docs/KNOWLEDGE_BASE.md` (Long-term Memory - evergreen patterns)
+2. Read this `Claude.md` (Behavioral Instructions)
+3. Read latest `Summary/weekly_reflection_*.md` (Recent Context - last week's progress)
+4. Read last 3 `Summary/summaryYYYYMMDD.*.md` files (Immediate Context - recent sessions)
+
+**AVOID:** Reading all 136+ session summaries - this exhausts the context window.
+
+**FINALLY:** Create a new session summary file (`Summary/summaryYYYYMMDD.N.md`) to track the session's work.
 
 ## Repository Overview
 
+The **Autonomous Software Process (ASP)** platform implements PSP/TSP (Personal/Team Software Process) principles for AI agents. It provides:
 
+- **8 Specialized Agents:** Planning, Design, DesignReview, Code, CodeReview, Test, Postmortem, Repair
+- **TSP Orchestrator:** 7-phase pipeline with quality gates and HITL (Human-in-the-Loop) integration
+- **Web UI:** Three personas - Manager (Overwatch), Developer (Flow State Canvas), Product Manager (Feature Wizard)
+- **MCP Server:** 4 tools for Claude CLI integration (`asp_plan`, `asp_code_review`, `asp_diagnose`, `asp_test`)
+- **GitHub Integration:** Issue-to-PR automation via `asp repair-issue` command
+- **Multi-LLM Support:** Provider abstraction layer (Anthropic, OpenRouter, Gemini, etc.)
+
+**Key Metrics (as of Dec 2025):**
+- 60,000+ LOC across source and tests
+- 75-76% test coverage
+- 13 ADRs (Architectural Decision Records)
+- 136+ documented development sessions
 
 ## Repository Structure
+
+```
+src/asp/
+├── agents/           # Agent implementations
+│   ├── planning_agent.py
+│   ├── design_agent.py
+│   ├── code_agent.py
+│   ├── test_agent.py
+│   ├── diagnostic_agent.py
+│   ├── repair_agent.py
+│   └── *_review_*.py  # Review specialists
+├── orchestrators/    # Pipeline orchestrators
+│   ├── tsp_orchestrator.py
+│   └── repair_orchestrator.py
+├── providers/        # Multi-LLM provider abstraction
+│   ├── base.py
+│   ├── anthropic_provider.py
+│   └── registry.py
+├── mcp/              # MCP server for Claude CLI
+│   └── server.py
+├── web/              # FastHTML web UI
+│   └── routes/
+├── models/           # Pydantic data models
+├── services/         # External service integrations
+│   └── github_service.py
+└── telemetry/        # Observability (Langfuse, Logfire)
+
+design/               # ADRs and design documents
+Summary/              # Session summaries and weekly reflections
+docs/                 # User guides and API reference
+tests/                # Unit, integration, and E2E tests
+```
 
 
 
@@ -57,6 +112,39 @@ This repository follows a structured 6-stage programming workflow inspired by de
 6. **Testing**: Run tests to verify correctness
 
 Time tracking: The workflow uses git commit timestamps to track time spent at each stage.
+
+### ADR-Driven Development
+
+For features requiring 3+ phases or architectural decisions, use ADR-driven development:
+
+1. **Create ADR:** Write `design/ADR_XXX_<feature_name>.md` with context, decision, and phases
+2. **Define Phases:** Break implementation into independent, testable phases with clear deliverables
+3. **Implement Phase-by-Phase:** Complete and commit each phase before starting the next
+4. **Update Status:** Mark phase completion in the ADR after each merge
+
+**Current ADR Status:** See `Summary/weekly_reflection_*.md` for the latest ADR progress summary.
+
+**Template:** Reference existing ADRs in `design/` directory (e.g., `ADR_006_repair_workflow.md`).
+
+## MCP Server (Claude CLI Integration)
+
+ASP exposes 4 tools via MCP for Claude CLI integration:
+
+| Tool | Description |
+|------|-------------|
+| `asp_plan` | Task decomposition with PROBE estimation |
+| `asp_code_review` | 6-specialist code review (security, performance, quality, tests, docs, best practices) |
+| `asp_diagnose` | Bug diagnosis with root cause analysis and fix suggestions |
+| `asp_test` | Test generation and execution with defect classification |
+
+**Configuration Files:**
+- `.mcp.json` - MCP server configuration for Claude CLI
+- `.claude/settings.json` - Universal telemetry hooks
+
+**Starting the MCP Server:**
+```bash
+uv run python -m asp.mcp.server
+```
 
 ## Python Development
 
@@ -182,11 +270,32 @@ To manage context window limits, do not read all files in `Summary/`.
 - **Synthesize:** In weekly reflections, review these candidates.
 - **Promote:** Move verified lessons to `docs/KNOWLEDGE_BASE.md` (for system facts) or `Claude.md` (for behavioral instructions).
 
+### Running Tests
+
+**ALWAYS use `uv run` for test execution:**
+```bash
+uv run pytest                           # Run all tests
+uv run pytest -x                        # Stop on first failure
+uv run pytest tests/unit/               # Unit tests only
+uv run pytest tests/integration/        # Integration tests only
+uv run pytest -m "not slow"             # Skip slow tests
+uv run pytest --cov --cov-report=term   # With coverage report
+```
+
+**Never run `pytest` directly** - this bypasses uv's environment management and may use wrong dependencies.
+
+**Coverage Requirements:**
+- Target: 80% minimum (configured in `pyproject.toml`)
+- Check coverage: `uv run pytest --cov --cov-report=term-missing`
+- Identify gaps: Sort by lowest coverage modules and prioritize
+
 ### Testing Philosophy
 
 - Write comprehensive tests covering edge cases (empty arrays, zeros, boundary conditions)
 - Test naming: `test_<feature>_<case><expected_result>` (e.g., `test_array_oneT` for True result)
 - Use combinatorial testing: test sign combinations (+/+, +/-, -/-, -/+) and value ranges (low/low, low/high, high/low, high/high)
+- **Mocking:** E2E mock responses must align strictly with Pydantic models - schema mismatches are the #1 cause of E2E test failures
+- **Isolation:** Tests that modify state (files, DB) must use fixtures to prevent leakage
 
 ### Code Quality Standards
 
@@ -194,6 +303,38 @@ Common errors to avoid:
 - Use `False/True` not `FALSE/TRUE` (Python booleans)
 - Watch for edge case "thinkos" - assumptions about cases that aren't needed
 - Always use version control with meaningful commits
+
+### Common LLM Integration Errors
+
+Patterns learned from 136+ development sessions:
+
+1. **JSON Parsing:** LLMs wrap JSON in markdown fences - use `extract_json_from_response()` utility
+2. **Token Limits:** Use 8192+ for structured output (4096 causes truncation and parse failures)
+3. **Schema Validation:** Pydantic `pattern` uses `re.search()` not `re.fullmatch()` - always add `^...$` anchors
+4. **Hash IDs:** Use 7+ characters to avoid birthday collisions (5-char hits 50% collision at ~1,170 items)
+5. **Retry Logic:** Essential for production reliability - use exponential backoff
+
+### Session Summaries
+
+Create `Summary/summaryYYYYMMDD.N.md` for each development session using the template in `design/SESSION_TEMPLATE.md`.
+
+Key sections to complete:
+- **Objective:** Single clear sentence
+- **Previous Session Outcome:** Track if work "stuck" (fully used, partially used, not used)
+- **Interventions:** Log any course corrections during the session
+- **Completeness Checklist:** Verify before closing
+
+**North Star Metric:** Effective Work Rate = (work that stuck) / (total work done)
+
+### Weekly Reflections
+
+Create `Summary/weekly_reflection_YYYYMMDD.md` every Friday:
+
+1. Review all daily summaries from the week
+2. Identify candidates for `KNOWLEDGE_BASE.md` promotion
+3. Update ADR status summary table
+4. List improvement actions for next week
+5. Calculate weekly metrics (PRs merged, tests added, coverage delta)
 
 ### CI/CD with GitHub Actions
 
@@ -293,3 +434,29 @@ git commit --amend --no-edit
 - Maintains high code quality standards
 
 **For Claude**: Always follow this workflow when creating commits. If a commit fails due to pre-commit hooks, immediately add the modified files and amend the commit.
+
+## Telemetry & Observability
+
+ASP supports dual-backend telemetry for comprehensive observability:
+
+| Backend | Purpose |
+|---------|---------|
+| **Langfuse** | Agent traces, cost tracking, prompt versioning |
+| **Logfire** | LLM auto-instrumentation, Pydantic validation insights |
+
+**Configuration:**
+```bash
+# Choose telemetry backend
+export ASP_TELEMETRY_PROVIDER=both    # or "langfuse" or "logfire"
+
+# Required API keys
+export LANGFUSE_PUBLIC_KEY=...
+export LANGFUSE_SECRET_KEY=...
+export LOGFIRE_TOKEN=...
+```
+
+**Key Features:**
+- Automatic LLM call tracing (Anthropic, OpenAI)
+- Cost tracking per agent invocation
+- Sensitive data redaction in hooks
+- Non-blocking telemetry (no performance impact)
