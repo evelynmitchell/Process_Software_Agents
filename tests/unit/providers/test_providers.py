@@ -385,3 +385,266 @@ class TestAnthropicProvider:
         assert response.provider == "anthropic"
         assert response.usage["input_tokens"] == 100
         assert response.usage["output_tokens"] == 50
+
+
+class TestOpenRouterProvider:
+    """Tests for OpenRouterProvider."""
+
+    def test_init_without_api_key(self):
+        """Test initialization fails without API key."""
+        with patch.dict("os.environ", {}, clear=True):
+            import os
+
+            os.environ.pop("OPENROUTER_API_KEY", None)
+
+            with pytest.raises(AuthenticationError) as exc_info:
+                from asp.providers.openrouter_provider import OpenRouterProvider
+
+                OpenRouterProvider()
+
+            assert "API key not found" in str(exc_info.value)
+
+    def test_init_with_config_api_key(self):
+        """Test initialization with API key in config."""
+        from asp.providers.openrouter_provider import OpenRouterProvider
+
+        config = ProviderConfig(api_key="test-api-key")
+        provider = OpenRouterProvider(config)
+
+        assert provider._api_key == "test-api-key"
+        assert provider.name == "openrouter"
+        assert provider._base_url == "https://openrouter.ai/api/v1"
+
+    def test_available_models(self):
+        """Test listing available models."""
+        from asp.providers.openrouter_provider import OpenRouterProvider
+
+        config = ProviderConfig(api_key="test-key")
+        provider = OpenRouterProvider(config)
+
+        models = provider.available_models
+
+        assert isinstance(models, list)
+        assert "anthropic/claude-3.5-sonnet" in models
+        assert "openai/gpt-4o" in models
+        assert "meta-llama/llama-3.3-70b-instruct" in models
+
+    def test_estimate_cost(self):
+        """Test cost estimation for OpenRouter models."""
+        from asp.providers.openrouter_provider import OpenRouterProvider
+
+        config = ProviderConfig(api_key="test-key")
+        provider = OpenRouterProvider(config)
+
+        # Claude 3.5 Sonnet: $3 input, $15 output per million tokens
+        cost = provider.estimate_cost(
+            model="anthropic/claude-3.5-sonnet",
+            input_tokens=1_000_000,
+            output_tokens=1_000_000,
+        )
+
+        assert cost == 3.0 + 15.0  # $18 total
+
+    def test_estimate_cost_unknown_model(self):
+        """Test cost estimation returns 0 for unknown models."""
+        from asp.providers.openrouter_provider import OpenRouterProvider
+
+        config = ProviderConfig(api_key="test-key")
+        provider = OpenRouterProvider(config)
+
+        cost = provider.estimate_cost(
+            model="unknown/model",
+            input_tokens=1_000_000,
+            output_tokens=1_000_000,
+        )
+
+        assert cost == 0.0
+
+    def test_default_model(self):
+        """Test default model configuration."""
+        from asp.providers.openrouter_provider import OpenRouterProvider
+
+        # Default
+        config = ProviderConfig(api_key="test-key")
+        provider = OpenRouterProvider(config)
+        assert provider.default_model == "anthropic/claude-3.5-sonnet"
+
+        # Custom default
+        config = ProviderConfig(api_key="test-key", default_model="openai/gpt-4o")
+        provider = OpenRouterProvider(config)
+        assert provider.default_model == "openai/gpt-4o"
+
+    def test_headers_include_referer(self):
+        """Test that headers include HTTP-Referer for OpenRouter."""
+        from asp.providers.openrouter_provider import OpenRouterProvider
+
+        config = ProviderConfig(api_key="test-key")
+        provider = OpenRouterProvider(config)
+
+        headers = provider._get_headers()
+
+        assert "HTTP-Referer" in headers
+        assert "X-Title" in headers
+        assert "ASP" in headers["X-Title"]
+
+
+class TestGroqProvider:
+    """Tests for GroqProvider."""
+
+    def test_init_without_api_key(self):
+        """Test initialization fails without API key."""
+        with patch.dict("os.environ", {}, clear=True):
+            import os
+
+            os.environ.pop("GROQ_API_KEY", None)
+
+            with pytest.raises(AuthenticationError) as exc_info:
+                from asp.providers.groq_provider import GroqProvider
+
+                GroqProvider()
+
+            assert "API key not found" in str(exc_info.value)
+
+    def test_init_with_config_api_key(self):
+        """Test initialization with API key in config."""
+        from asp.providers.groq_provider import GroqProvider
+
+        config = ProviderConfig(api_key="test-api-key")
+        provider = GroqProvider(config)
+
+        assert provider._api_key == "test-api-key"
+        assert provider.name == "groq"
+        assert provider._base_url == "https://api.groq.com/openai/v1"
+
+    def test_available_models(self):
+        """Test listing available models."""
+        from asp.providers.groq_provider import GroqProvider
+
+        config = ProviderConfig(api_key="test-key")
+        provider = GroqProvider(config)
+
+        models = provider.available_models
+
+        assert isinstance(models, list)
+        assert "llama-3.3-70b-versatile" in models
+        assert "mixtral-8x7b-32768" in models
+
+    def test_estimate_cost(self):
+        """Test cost estimation for Groq models."""
+        from asp.providers.groq_provider import GroqProvider
+
+        config = ProviderConfig(api_key="test-key")
+        provider = GroqProvider(config)
+
+        # Llama 3.3 70B: $0.59 input, $0.79 output per million tokens
+        cost = provider.estimate_cost(
+            model="llama-3.3-70b-versatile",
+            input_tokens=1_000_000,
+            output_tokens=1_000_000,
+        )
+
+        assert cost == 0.59 + 0.79  # $1.38 total
+
+    def test_default_model(self):
+        """Test default model configuration."""
+        from asp.providers.groq_provider import GroqProvider
+
+        # Default
+        config = ProviderConfig(api_key="test-key")
+        provider = GroqProvider(config)
+        assert provider.default_model == "llama-3.3-70b-versatile"
+
+
+class TestOpenAICompatibleProvider:
+    """Tests for OpenAICompatibleProvider base class."""
+
+    def test_try_parse_json_valid(self):
+        """Test JSON parsing with valid JSON."""
+        from asp.providers.openrouter_provider import OpenRouterProvider
+
+        config = ProviderConfig(api_key="test-key")
+        provider = OpenRouterProvider(config)
+
+        result = provider._try_parse_json('{"key": "value"}')
+
+        assert result == {"key": "value"}
+
+    def test_try_parse_json_markdown_block(self):
+        """Test JSON parsing with markdown code block."""
+        from asp.providers.groq_provider import GroqProvider
+
+        config = ProviderConfig(api_key="test-key")
+        provider = GroqProvider(config)
+
+        result = provider._try_parse_json('```json\n{"key": "value"}\n```')
+
+        assert result == {"key": "value"}
+
+    def test_try_parse_json_invalid(self):
+        """Test JSON parsing with non-JSON text."""
+        from asp.providers.openrouter_provider import OpenRouterProvider
+
+        config = ProviderConfig(api_key="test-key")
+        provider = OpenRouterProvider(config)
+
+        result = provider._try_parse_json("Just plain text")
+
+        assert result == "Just plain text"
+
+    @pytest.mark.asyncio
+    async def test_call_async_mocked(self):
+        """Test async call with mocked OpenAI client."""
+        from asp.providers.openrouter_provider import OpenRouterProvider
+
+        config = ProviderConfig(api_key="test-key")
+        provider = OpenRouterProvider(config)
+
+        # Mock the async client
+        mock_choice = MagicMock()
+        mock_choice.message.content = '{"result": "success"}'
+        mock_choice.finish_reason = "stop"
+
+        mock_response = MagicMock()
+        mock_response.choices = [mock_choice]
+        mock_response.usage.prompt_tokens = 100
+        mock_response.usage.completion_tokens = 50
+        mock_response.model = "anthropic/claude-3.5-sonnet"
+
+        mock_client = AsyncMock()
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+        provider._async_client_impl = mock_client
+
+        response = await provider.call_async(
+            prompt="Test prompt",
+            model="anthropic/claude-3.5-sonnet",
+        )
+
+        assert response.content == {"result": "success"}
+        assert response.provider == "openrouter"
+        assert response.usage["input_tokens"] == 100
+        assert response.usage["output_tokens"] == 50
+
+
+class TestProviderRegistryWithNewProviders:
+    """Tests for ProviderRegistry with new providers."""
+
+    def setup_method(self):
+        """Clear registry before each test."""
+        ProviderRegistry._providers.clear()
+        ProviderRegistry._instances.clear()
+
+    def test_list_providers_includes_new_providers(self):
+        """Test that new providers are registered."""
+        providers = ProviderRegistry.list_providers()
+
+        assert "anthropic" in providers
+        assert "openrouter" in providers
+        assert "groq" in providers
+
+    def test_is_registered_openrouter(self):
+        """Test OpenRouter is registered."""
+        assert ProviderRegistry.is_registered("openrouter")
+
+    def test_is_registered_groq(self):
+        """Test Groq is registered."""
+        assert ProviderRegistry.is_registered("groq")
