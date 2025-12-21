@@ -30,9 +30,9 @@ import glob
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -728,7 +728,7 @@ async def _handle_session_context(args: dict) -> list[TextContent]:
     context = {
         "depth": depth,
         "project_path": str(project_path),
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "sessions": [],
         "weekly_reflection": None,
         "adrs": {},
@@ -783,7 +783,7 @@ async def _handle_session_context(args: dict) -> list[TextContent]:
                     content = f.read()
                     # Extract title and status
                     lines = content.split("\n")
-                    title = next((l for l in lines if l.startswith("# ")), "Unknown")
+                    title = next((ln for ln in lines if ln.startswith("# ")), "Unknown")
                     status = "draft"
                     for line in lines:
                         if "complete" in line.lower():
