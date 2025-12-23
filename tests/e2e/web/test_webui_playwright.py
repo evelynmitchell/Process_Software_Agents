@@ -11,7 +11,13 @@ Tests the FastHTML-based web interface including:
 
 import re
 
+import pytest
+
+pytest.importorskip("playwright", reason="playwright not installed - skipping browser tests")
 from playwright.sync_api import Page, expect
+
+# Mark all tests in this module as e2e (excluded by default)
+pytestmark = pytest.mark.e2e
 
 
 class TestHomePage:

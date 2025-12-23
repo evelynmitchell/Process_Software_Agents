@@ -17,6 +17,8 @@ Example:
 from unittest.mock import Mock
 
 import pytest
+
+pytest.importorskip("allpairspy", reason="allpairspy not installed - skipping pairwise tests")
 from allpairspy import AllPairs
 
 from asp.models.planning import SemanticUnit, TaskRequirements

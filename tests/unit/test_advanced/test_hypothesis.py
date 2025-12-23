@@ -19,6 +19,8 @@ Example:
 """
 
 import pytest
+
+pytest.importorskip("hypothesis", reason="hypothesis not installed - skipping property-based tests")
 from hypothesis import assume, given
 from hypothesis import strategies as st
 

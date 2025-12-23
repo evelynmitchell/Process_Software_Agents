@@ -4,12 +4,14 @@ Pytest fixtures for Web UI E2E tests with Playwright.
 Provides server startup/shutdown and browser page fixtures.
 """
 
+import pytest
+
+pytest.importorskip("playwright", reason="playwright not installed - skipping browser tests")
+
 import socket
 import threading
 import time
 from collections.abc import Generator
-
-import pytest
 
 
 def find_free_port() -> int:

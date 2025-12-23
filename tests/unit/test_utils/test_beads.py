@@ -147,6 +147,81 @@ class TestCreateIssue:
             assert all_issues[1].id == issue2.id
 
 
+class TestReadIssuesErrorHandling:
+    """Tests for read_issues error handling."""
+
+    def test_read_issues_skips_empty_lines(self):
+        """Empty lines in issues file are skipped."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            beads_dir = root / ".beads"
+            beads_dir.mkdir()
+            issues_file = beads_dir / "issues.jsonl"
+
+            # Write file with empty lines
+            issues_file.write_text(
+                '{"id": "bd-1234567", "title": "Issue 1"}\n'
+                "\n"
+                '{"id": "bd-2345678", "title": "Issue 2"}\n'
+                "   \n"
+            )
+
+            issues = read_issues(root)
+            assert len(issues) == 2
+            assert issues[0].title == "Issue 1"
+            assert issues[1].title == "Issue 2"
+
+    def test_read_issues_skips_invalid_json(self):
+        """Invalid JSON lines are skipped."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            beads_dir = root / ".beads"
+            beads_dir.mkdir()
+            issues_file = beads_dir / "issues.jsonl"
+
+            # Write file with invalid JSON
+            issues_file.write_text(
+                '{"id": "bd-1234567", "title": "Valid Issue"}\n'
+                "not valid json\n"
+                '{"id": "bd-2345678", "title": "Another Valid"}\n'
+            )
+
+            issues = read_issues(root)
+            assert len(issues) == 2
+
+    def test_read_issues_skips_malformed_data(self):
+        """Malformed data (valid JSON but wrong schema) is skipped."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            beads_dir = root / ".beads"
+            beads_dir.mkdir()
+            issues_file = beads_dir / "issues.jsonl"
+
+            # Write file with wrong schema (missing required 'id' field)
+            issues_file.write_text(
+                '{"id": "bd-1234567", "title": "Valid"}\n'
+                '{"title": "Missing ID field"}\n'
+                '{"id": "bd-2345678", "title": "Also Valid"}\n'
+            )
+
+            issues = read_issues(root)
+            assert len(issues) == 2
+
+    def test_read_issues_handles_file_read_error(self):
+        """File read errors return empty list."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            beads_dir = root / ".beads"
+            beads_dir.mkdir()
+            issues_file = beads_dir / "issues.jsonl"
+
+            # Create a directory instead of a file to cause read error
+            issues_file.mkdir()
+
+            issues = read_issues(root)
+            assert issues == []
+
+
 class TestHelperFunctions:
     """Tests for helper functions."""
 
