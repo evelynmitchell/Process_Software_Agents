@@ -10,7 +10,7 @@
 The ASP project includes a **FastHTML-based web UI** that provides dashboards for monitoring agent execution, task tracking, and telemetry visualization. However, maintaining this UI adds complexity and the functionality can be better served by:
 
 1. **GitHub Issues + Beads** - Already integrated for task/issue tracking
-2. **Prometheus + Grafana** - Industry-standard telemetry stack with superior visualization
+2. **Pydantic Logfire** - Already migrating (ADR 013) with built-in dashboards and SQL explorer
 
 ### Current Web UI Inventory
 
@@ -43,12 +43,12 @@ Current Web UI Features
 └─────────────────────────────────────────────────────────────┘
                               ↓ Migration ↓
 ┌─────────────────────────────────────────────────────────────┐
-│  GitHub Issues + Beads  │  Prometheus/Grafana   │  CLI/API  │
-│  ──────────────────────  │  ─────────────────    │  ───────  │
-│  • Native kanban        │  • Time-series DB     │  • gh CLI │
-│  • Issue tracking       │  • Custom dashboards  │  • MCP    │
-│  • Labels/milestones    │  • Alerting           │  • Script │
-│  • Project boards       │  • Long-term storage  │           │
+│  GitHub Issues + Beads  │  Pydantic Logfire     │  CLI/API  │
+│  ──────────────────────  │  ────────────────     │  ───────  │
+│  • Native kanban        │  • SQL explorer       │  • gh CLI │
+│  • Issue tracking       │  • Auto dashboards    │  • MCP    │
+│  • Labels/milestones    │  • LLM tracing        │  • Script │
+│  • Project boards       │  • OpenTelemetry      │           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -56,7 +56,7 @@ Current Web UI Features
 
 1. **Maintenance Burden** - Web UI requires separate Docker service, tests, CI/CD
 2. **Duplicate Functionality** - GitHub Issues already provides task tracking
-3. **Superior Tooling** - Prometheus/Grafana offer better telemetry than custom SQLite
+3. **Superior Tooling** - Logfire (ADR 013) offers better telemetry than custom SQLite dashboards
 4. **CLI-First Philosophy** - ASP is designed for CLI/agent workflows
 5. **Code Cleanliness** - Removing ~10,600 lines reduces complexity
 6. **Dependency Reduction** - Only `python-fasthtml` is unique to web UI
@@ -99,7 +99,7 @@ Keep web UI as-is.
 **Cons:**
 - Ongoing maintenance burden
 - Duplicates GitHub functionality
-- Inferior telemetry compared to Prometheus/Grafana
+- Inferior telemetry compared to Logfire (already adopting per ADR 013)
 
 ## Decision
 
@@ -107,25 +107,32 @@ Keep web UI as-is.
 
 ## Migration Plan
 
-### Phase 1: Telemetry Migration (Prometheus/Grafana)
+### Phase 1: Telemetry Migration (Pydantic Logfire)
 
-**Current:** SQLite-based telemetry in `data.py`
-**Target:** Prometheus metrics + Grafana dashboards
+**Current:** SQLite-based telemetry in `data.py` + custom web dashboards
+**Target:** Logfire dashboards (already in progress via ADR 013)
+
+**Note:** ADR 013 is already migrating from Langfuse to Pydantic Logfire, which provides:
+- Built-in dashboard at logfire.pydantic.dev
+- SQL explorer for ad-hoc queries
+- Automatic LLM call tracing (Anthropic, OpenAI)
+- OpenTelemetry-based, can export to Prometheus if needed
 
 Tasks:
-- [ ] Add Prometheus client to core agents
-- [ ] Export metrics: task counts, durations, costs, success rates
-- [ ] Create Grafana dashboard templates for each persona view
-- [ ] Add docker-compose service for Prometheus/Grafana (optional local dev)
+- [ ] Complete ADR 013 Phase 3 (dashboards) and Phase 4 (Langfuse deprecation)
+- [ ] Create Logfire saved queries for persona-specific views
+- [ ] Verify all metrics from `data.py` are captured by Logfire spans
+- [ ] Document Logfire dashboard access for team
 
-Metrics to export:
+Existing Logfire metrics (auto-captured):
 ```
-asp_task_total{status, agent_type}
-asp_task_duration_seconds{agent_type}
-asp_cost_dollars{agent_type, model}
-asp_phase_yield{phase}
-asp_agent_health{agent_id}
+- LLM call duration, tokens, cost
+- Agent execution spans with task_id
+- Success/failure rates
+- Model selection per agent
 ```
+
+**Optional:** If self-hosted metrics needed, Logfire supports OpenTelemetry export to Prometheus.
 
 ### Phase 2: Task Tracking Migration (GitHub Issues + Beads)
 
@@ -193,8 +200,8 @@ If needed, web UI can be restored from archive branch.
 
 ## Success Criteria
 
-- [ ] All telemetry metrics available in Prometheus
-- [ ] Grafana dashboards replicate persona views
+- [ ] All telemetry metrics available in Logfire dashboards (ADR 013 complete)
+- [ ] Logfire saved queries replicate persona views
 - [ ] HITL approvals work via CLI/MCP
 - [ ] Beads sync handles all task tracking needs
 - [ ] ~10,600 lines removed from codebase
@@ -205,7 +212,7 @@ If needed, web UI can be restored from archive branch.
 
 ### Positive
 - Cleaner codebase (~10,600 lines removed)
-- Better telemetry (Prometheus > SQLite)
+- Better telemetry (Logfire > SQLite, auto-tracing, SQL explorer)
 - Native GitHub integration for task tracking
 - Reduced Docker complexity
 - Fewer dependencies to maintain
@@ -214,12 +221,12 @@ If needed, web UI can be restored from archive branch.
 ### Negative
 - Migration effort required
 - Loss of single integrated view
-- Prometheus/Grafana setup required for telemetry
+- Logfire account required for team telemetry access
 - Non-technical stakeholders may prefer web UI
 
 ### Neutral
 - HITL workflow changes (web form → CLI/PR)
-- Learning curve for Grafana dashboard creation
+- Team needs access to Logfire dashboard
 
 ## Related ADRs
 
@@ -229,13 +236,13 @@ If needed, web UI can be restored from archive branch.
 
 ## Open Questions
 
-1. **Prometheus hosting:** Local docker-compose vs cloud service?
-2. **Grafana dashboards:** Pre-built templates or user-created?
+1. **Logfire team access:** How to share Logfire dashboard access with non-developers?
+2. **Saved queries:** Pre-built templates for each persona or user-created?
 3. **HITL urgency:** Blocking CLI prompt vs async notification?
 4. **Timeline:** Deprecation warning period before removal?
 
 ## References
 
-- [Prometheus Python Client](https://github.com/prometheus/client_python)
-- [Grafana Dashboard Provisioning](https://grafana.com/docs/grafana/latest/administration/provisioning/)
-- [GitHub Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects)
+- [Pydantic Logfire](https://logfire.pydantic.dev/) - Telemetry platform
+- [ADR 013: Logfire Migration](./ADR_013_logfire_telemetry_migration.md) - Telemetry backend
+- [GitHub Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects) - Task tracking
