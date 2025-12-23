@@ -573,16 +573,29 @@ async def _handle_beads_sync(args: dict) -> list[TextContent]:
         loop = asyncio.get_running_loop()
 
         if direction == "push":
-            result = await loop.run_in_executor(None, lambda: sync.push(dry_run=dry_run))
+            result = await loop.run_in_executor(
+                None, lambda: sync.push(dry_run=dry_run)
+            )
         elif direction == "pull":
-            result = await loop.run_in_executor(None, lambda: sync.pull(dry_run=dry_run))
+            result = await loop.run_in_executor(
+                None, lambda: sync.pull(dry_run=dry_run)
+            )
         else:  # bidirectional
-            result = await loop.run_in_executor(None, lambda: sync.sync(dry_run=dry_run))
+            result = await loop.run_in_executor(
+                None, lambda: sync.sync(dry_run=dry_run)
+            )
 
         return [
             TextContent(
                 type="text",
-                text=json.dumps(result if isinstance(result, dict) else {"status": "complete", "result": str(result)}, indent=2),
+                text=json.dumps(
+                    (
+                        result
+                        if isinstance(result, dict)
+                        else {"status": "complete", "result": str(result)}
+                    ),
+                    indent=2,
+                ),
             )
         ]
     except Exception as e:
@@ -618,7 +631,9 @@ async def _handle_provider_status(args: dict) -> list[TextContent]:
                         "providers": {
                             "anthropic": {
                                 "available": bool(os.environ.get("ANTHROPIC_API_KEY")),
-                                "api_key_set": bool(os.environ.get("ANTHROPIC_API_KEY")),
+                                "api_key_set": bool(
+                                    os.environ.get("ANTHROPIC_API_KEY")
+                                ),
                             }
                         },
                         "default": os.environ.get("ASP_LLM_PROVIDER", "anthropic"),
@@ -638,7 +653,11 @@ async def _handle_provider_status(args: dict) -> list[TextContent]:
                 provider = registry.get(name)
                 info = {
                     "available": True,
-                    "models": provider.available_models if hasattr(provider, "available_models") else [],
+                    "models": (
+                        provider.available_models
+                        if hasattr(provider, "available_models")
+                        else []
+                    ),
                 }
 
                 if check_connection:
@@ -664,7 +683,9 @@ async def _handle_provider_status(args: dict) -> list[TextContent]:
                     {
                         "providers": providers_info,
                         "default": registry.get_default_provider_name(),
-                        "total_available": sum(1 for p in providers_info.values() if p.get("available")),
+                        "total_available": sum(
+                            1 for p in providers_info.values() if p.get("available")
+                        ),
                     },
                     indent=2,
                 ),
@@ -724,10 +745,13 @@ async def _handle_session_context(args: dict) -> list[TextContent]:
             try:
                 content = summary_file.read_text()
                 # Extract just the first 2000 chars to avoid context explosion
-                context["sessions"].append({
-                    "file": summary_file.name,
-                    "content": content[:2000] + ("..." if len(content) > 2000 else ""),
-                })
+                context["sessions"].append(
+                    {
+                        "file": summary_file.name,
+                        "content": content[:2000]
+                        + ("..." if len(content) > 2000 else ""),
+                    }
+                )
             except Exception as e:
                 logger.warning(f"Failed to read {summary_file}: {e}")
 

@@ -16,7 +16,7 @@ import pytest
 # Skip if mcp not installed
 pytest.importorskip("mcp")
 
-from asp.mcp.server import (
+from asp.mcp.server import (  # noqa: E402
     _handle_provider_status,
     _handle_session_context,
     list_tools,
@@ -174,10 +174,12 @@ class TestSessionContextHandler:
     @pytest.mark.asyncio
     async def test_session_context_minimal(self, temp_project):
         """Minimal depth should load only 1 session."""
-        result = await _handle_session_context({
-            "depth": "minimal",
-            "project_path": str(temp_project),
-        })
+        result = await _handle_session_context(
+            {
+                "depth": "minimal",
+                "project_path": str(temp_project),
+            }
+        )
 
         data = json.loads(result[0].text)
         assert data["depth"] == "minimal"
@@ -187,10 +189,12 @@ class TestSessionContextHandler:
     @pytest.mark.asyncio
     async def test_session_context_standard(self, temp_project):
         """Standard depth should load 3 sessions."""
-        result = await _handle_session_context({
-            "depth": "standard",
-            "project_path": str(temp_project),
-        })
+        result = await _handle_session_context(
+            {
+                "depth": "standard",
+                "project_path": str(temp_project),
+            }
+        )
 
         data = json.loads(result[0].text)
         assert data["depth"] == "standard"
@@ -201,10 +205,12 @@ class TestSessionContextHandler:
     @pytest.mark.asyncio
     async def test_session_context_full(self, temp_project):
         """Full depth should load knowledge base."""
-        result = await _handle_session_context({
-            "depth": "full",
-            "project_path": str(temp_project),
-        })
+        result = await _handle_session_context(
+            {
+                "depth": "full",
+                "project_path": str(temp_project),
+            }
+        )
 
         data = json.loads(result[0].text)
         assert data["depth"] == "full"
@@ -214,10 +220,12 @@ class TestSessionContextHandler:
     @pytest.mark.asyncio
     async def test_session_context_parses_adrs(self, temp_project):
         """Should parse ADR status correctly."""
-        result = await _handle_session_context({
-            "depth": "standard",
-            "project_path": str(temp_project),
-        })
+        result = await _handle_session_context(
+            {
+                "depth": "standard",
+                "project_path": str(temp_project),
+            }
+        )
 
         data = json.loads(result[0].text)
         assert len(data["adrs"]) == 2
@@ -228,10 +236,12 @@ class TestSessionContextHandler:
     async def test_session_context_handles_missing_dirs(self):
         """Should handle missing directories gracefully."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            result = await _handle_session_context({
-                "depth": "standard",
-                "project_path": tmpdir,
-            })
+            result = await _handle_session_context(
+                {
+                    "depth": "standard",
+                    "project_path": tmpdir,
+                }
+            )
 
             data = json.loads(result[0].text)
             assert data["sessions"] == []
@@ -241,9 +251,11 @@ class TestSessionContextHandler:
     @pytest.mark.asyncio
     async def test_session_context_includes_timestamp(self, temp_project):
         """Should include ISO timestamp."""
-        result = await _handle_session_context({
-            "project_path": str(temp_project),
-        })
+        result = await _handle_session_context(
+            {
+                "project_path": str(temp_project),
+            }
+        )
 
         data = json.loads(result[0].text)
         assert "timestamp" in data
@@ -259,9 +271,9 @@ class TestRepairIssueHandler:
         """Should return CLI suggestion since orchestrator requires complex setup."""
         from asp.mcp.server import _handle_repair_issue
 
-        result = await _handle_repair_issue({
-            "issue_url": "https://github.com/test/repo/issues/1"
-        })
+        result = await _handle_repair_issue(
+            {"issue_url": "https://github.com/test/repo/issues/1"}
+        )
 
         data = json.loads(result[0].text)
         assert data["status"] == "not_yet_implemented"
@@ -273,10 +285,9 @@ class TestRepairIssueHandler:
         """Should include dry-run flag in CLI suggestion when specified."""
         from asp.mcp.server import _handle_repair_issue
 
-        result = await _handle_repair_issue({
-            "issue_url": "https://github.com/test/repo/issues/1",
-            "dry_run": True
-        })
+        result = await _handle_repair_issue(
+            {"issue_url": "https://github.com/test/repo/issues/1", "dry_run": True}
+        )
 
         data = json.loads(result[0].text)
         assert "--dry-run" in data["cli_command"]
@@ -292,9 +303,7 @@ class TestBeadsSyncHandler:
 
         # Simulate import error by removing the module from sys.modules
         with patch.dict("sys.modules", {"asp.beads.github_sync": None}):
-            result = await _handle_beads_sync({
-                "direction": "push"
-            })
+            result = await _handle_beads_sync({"direction": "push"})
 
         data = json.loads(result[0].text)
         assert data["error"] is True
@@ -328,7 +337,9 @@ class TestSlashCommands:
         """All command files should have ## Instructions section."""
         for cmd_file in commands_dir.glob("*.md"):
             content = cmd_file.read_text()
-            assert "## Instructions" in content, f"{cmd_file.name} missing ## Instructions"
+            assert (
+                "## Instructions" in content
+            ), f"{cmd_file.name} missing ## Instructions"
 
     def test_commands_have_titles(self, commands_dir):
         """All command files should start with a title."""

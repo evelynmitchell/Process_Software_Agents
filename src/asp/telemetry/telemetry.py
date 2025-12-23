@@ -28,7 +28,7 @@ import sqlite3
 import time
 from collections.abc import Callable
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -233,7 +233,7 @@ def insert_agent_cost(
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                datetime.now(timezone.utc).isoformat(),
+                datetime.now(UTC).isoformat(),
                 task_id,
                 subtask_id,
                 project_id,
@@ -317,7 +317,7 @@ def insert_defect(
             """,
             (
                 defect_id,
-                datetime.now(timezone.utc).isoformat(),
+                datetime.now(UTC).isoformat(),
                 task_id,
                 project_id,
                 user_id,

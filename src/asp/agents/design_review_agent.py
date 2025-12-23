@@ -373,17 +373,17 @@ class DesignReviewAgent(BaseAgent):
                         raise AgentExecutionError(
                             f"Failed to parse review JSON from markdown fence: {e}\n"
                             f"JSON content preview: {json_preview}..."
-                        )
+                        ) from e
                 else:
                     # Try to parse the whole string as JSON
                     try:
                         content = json_module.loads(content)
                         logger.debug("Successfully parsed string content as JSON")
-                    except json_module.JSONDecodeError:
+                    except json_module.JSONDecodeError as e:
                         raise AgentExecutionError(
                             f"LLM returned non-JSON response: {content[:500]}...\n"
                             f"Expected JSON matching DesignReview schema"
-                        )
+                        ) from e
 
             return content
         except (json_module.JSONDecodeError, KeyError) as e:
@@ -570,16 +570,16 @@ class DesignReviewAgent(BaseAgent):
                         raise AgentExecutionError(
                             f"Failed to parse review JSON from markdown fence: {e}\n"
                             f"JSON content preview: {json_preview}..."
-                        )
+                        ) from e
                 else:
                     try:
                         content = json_module.loads(content)
                         logger.debug("Successfully parsed string content as JSON")
-                    except json_module.JSONDecodeError:
+                    except json_module.JSONDecodeError as e:
                         raise AgentExecutionError(
                             f"LLM returned non-JSON response: {content[:500]}...\n"
                             f"Expected JSON matching DesignReview schema"
-                        )
+                        ) from e
 
             return content
         except (json_module.JSONDecodeError, KeyError) as e:

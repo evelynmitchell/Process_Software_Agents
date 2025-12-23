@@ -16,11 +16,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from asp.providers import (
-    LLMResponse,
-    ProviderConfig,
-    ProviderRegistry,
-)
+from asp.providers import LLMResponse, ProviderConfig, ProviderRegistry
 from asp.providers.errors import (
     AuthenticationError,
     ConnectionError,

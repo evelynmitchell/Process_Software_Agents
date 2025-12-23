@@ -14,7 +14,7 @@ import os
 import sqlite3
 import tempfile
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -147,7 +147,7 @@ class TestDatabaseConnection:
             cursor.execute(
                 "INSERT INTO agent_cost_vector (timestamp, task_id, agent_role, metric_type, metric_value, metric_unit) VALUES (?, ?, ?, ?, ?, ?)",
                 (
-                    datetime.now(timezone.utc).isoformat(),
+                    datetime.now(UTC).isoformat(),
                     "TEST-001",
                     "TestAgent",
                     "Latency",
@@ -171,7 +171,7 @@ class TestDatabaseConnection:
                 cursor.execute(
                     "INSERT INTO agent_cost_vector (timestamp, task_id, agent_role, metric_type, metric_value, metric_unit) VALUES (?, ?, ?, ?, ?, ?)",
                     (
-                        datetime.now(timezone.utc).isoformat(),
+                        datetime.now(UTC).isoformat(),
                         "TEST-002",
                         "TestAgent",
                         "Latency",

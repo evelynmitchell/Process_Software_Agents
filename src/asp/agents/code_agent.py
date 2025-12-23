@@ -310,17 +310,17 @@ class CodeAgent(BaseAgent):
                     raise AgentExecutionError(
                         f"Failed to parse JSON from markdown fence: {e}\n"
                         f"JSON content preview: {json_preview}..."
-                    )
+                    ) from e
             else:
                 # Try to parse the whole string as JSON
                 try:
                     content = json.loads(content)
                     logger.debug("Successfully parsed string content as JSON")
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as e:
                     raise AgentExecutionError(
                         f"LLM returned non-JSON response: {content[:500]}...\n"
                         f"Expected JSON matching GeneratedCode schema"
-                    )
+                    ) from e
 
         if not isinstance(content, dict):
             raise AgentExecutionError(
@@ -539,17 +539,17 @@ class CodeAgent(BaseAgent):
                     raise AgentExecutionError(
                         f"Failed to parse manifest JSON from markdown fence: {e}\n"
                         f"JSON content preview: {json_preview}..."
-                    )
+                    ) from e
             else:
                 # Try to parse the whole string as JSON
                 try:
                     content = json.loads(content)
                     logger.debug("Successfully parsed string content as JSON")
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as e:
                     raise AgentExecutionError(
                         f"LLM returned non-JSON response: {content[:500]}...\n"
                         f"Expected JSON matching FileManifest schema"
-                    )
+                    ) from e
 
         if not isinstance(content, dict):
             raise AgentExecutionError(

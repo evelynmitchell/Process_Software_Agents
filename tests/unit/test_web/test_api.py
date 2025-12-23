@@ -7,7 +7,7 @@ Tests data access functions that connect to telemetry database.
 import json
 import sqlite3
 import subprocess
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -68,7 +68,7 @@ def populated_db(db_with_schema):
     db_path = tmp_path / "telemetry.db"
 
     conn = sqlite3.connect(str(db_path))
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Insert agent cost vector data
     test_data = [

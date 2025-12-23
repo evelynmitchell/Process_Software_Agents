@@ -628,8 +628,12 @@ def cmd_providers(args):
 
     logger.info("")
     logger.info("Usage:")
-    logger.info("  python -m asp.cli run --provider openrouter --model openai/gpt-4o ...")
-    logger.info("  python -m asp.cli run --provider groq --model llama-3.3-70b-versatile ...")
+    logger.info(
+        "  python -m asp.cli run --provider openrouter --model openai/gpt-4o ..."
+    )
+    logger.info(
+        "  python -m asp.cli run --provider groq --model llama-3.3-70b-versatile ..."
+    )
     logger.info("")
     logger.info("Environment variables:")
     logger.info("  ASP_LLM_PROVIDER=openrouter  # Set default provider")

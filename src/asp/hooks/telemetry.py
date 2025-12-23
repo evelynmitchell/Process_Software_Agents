@@ -39,7 +39,7 @@ Date: December 2025
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -267,7 +267,7 @@ def handle_pre_tool_use(input_data: dict) -> None:
 
     # Build event
     event = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "event": "tool_start",
         "tool": tool_name,
         "tool_use_id": tool_use_id,
@@ -315,7 +315,7 @@ def handle_post_tool_use(input_data: dict) -> None:
 
     # Build event
     event = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "event": "tool_end",
         "tool": tool_name,
         "tool_use_id": tool_use_id,

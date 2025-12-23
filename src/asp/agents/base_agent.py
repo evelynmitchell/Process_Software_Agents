@@ -137,7 +137,7 @@ class BaseAgent(ABC):
                 f"Missing required prompt variable: {e}\n"
                 f"Template requires: {template}\n"
                 f"Provided: {kwargs.keys()}"
-            )
+            ) from e
 
     def call_llm(
         self,
