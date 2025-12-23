@@ -46,7 +46,9 @@ class TestGetLogDir:
 
     def test_log_dir_expands_user(self):
         """Test that ~ is expanded in log directory path."""
-        with mock.patch.dict(os.environ, {"ASP_TELEMETRY_LOG_DIR": "~/custom-telemetry"}):
+        with mock.patch.dict(
+            os.environ, {"ASP_TELEMETRY_LOG_DIR": "~/custom-telemetry"}
+        ):
             log_dir = get_log_dir()
             assert str(log_dir).startswith(str(Path.home()))
             assert "custom-telemetry" in str(log_dir)
@@ -467,9 +469,7 @@ class TestProviderDispatch:
                     "ASP_TELEMETRY_PROVIDER": "logfire",
                 },
             ):
-                with mock.patch(
-                    "asp.hooks.telemetry.send_to_logfire"
-                ) as mock_logfire:
+                with mock.patch("asp.hooks.telemetry.send_to_logfire") as mock_logfire:
                     input_data = {
                         "tool_name": "Read",
                         "tool_use_id": "tu_123",
@@ -512,9 +512,7 @@ class TestProviderDispatch:
                     "ASP_TELEMETRY_PROVIDER": "logfire",
                 },
             ):
-                with mock.patch(
-                    "asp.hooks.telemetry.send_to_logfire"
-                ) as mock_logfire:
+                with mock.patch("asp.hooks.telemetry.send_to_logfire") as mock_logfire:
                     input_data = {
                         "tool_name": "Read",
                         "tool_use_id": "tu_123",
@@ -533,6 +531,7 @@ class TestMain:
         with mock.patch.dict(os.environ, {"ASP_TELEMETRY_ENABLED": "false"}):
             with pytest.raises(SystemExit) as exc_info:
                 from asp.hooks.telemetry import main
+
                 main()
             assert exc_info.value.code == 0
 
@@ -540,13 +539,16 @@ class TestMain:
         """Test main exits 0 when no arguments provided."""
         with mock.patch.dict(os.environ, {"ASP_TELEMETRY_ENABLED": "true"}):
             import sys
+
             original_argv = sys.argv
             sys.argv = ["telemetry.py"]  # No phase argument
             try:
                 with pytest.raises(SystemExit) as exc_info:
-                    from asp.hooks import telemetry
                     # Force reimport to pick up new argv
                     import importlib
+
+                    from asp.hooks import telemetry
+
                     importlib.reload(telemetry)
                     telemetry.main()
                 assert exc_info.value.code == 0
@@ -555,8 +557,8 @@ class TestMain:
 
     def test_main_handles_pre_phase(self):
         """Test main handles pre phase correctly."""
-        import sys
         import io
+        import sys
 
         with tempfile.TemporaryDirectory() as tmpdir:
             with mock.patch.dict(
@@ -570,17 +572,21 @@ class TestMain:
                 original_argv = sys.argv
                 original_stdin = sys.stdin
                 sys.argv = ["telemetry.py", "pre"]
-                test_input = json.dumps({
-                    "tool_name": "Read",
-                    "tool_use_id": "tu_test",
-                    "session_id": "sess_test",
-                    "tool_input": {"file_path": "/test.txt"},
-                })
+                test_input = json.dumps(
+                    {
+                        "tool_name": "Read",
+                        "tool_use_id": "tu_test",
+                        "session_id": "sess_test",
+                        "tool_input": {"file_path": "/test.txt"},
+                    }
+                )
                 sys.stdin = io.StringIO(test_input)
                 try:
                     with pytest.raises(SystemExit) as exc_info:
-                        from asp.hooks import telemetry
                         import importlib
+
+                        from asp.hooks import telemetry
+
                         importlib.reload(telemetry)
                         telemetry.main()
                     assert exc_info.value.code == 0
@@ -594,8 +600,8 @@ class TestMain:
 
     def test_main_handles_post_phase(self):
         """Test main handles post phase correctly."""
-        import sys
         import io
+        import sys
 
         with tempfile.TemporaryDirectory() as tmpdir:
             with mock.patch.dict(
@@ -609,17 +615,21 @@ class TestMain:
                 original_argv = sys.argv
                 original_stdin = sys.stdin
                 sys.argv = ["telemetry.py", "post"]
-                test_input = json.dumps({
-                    "tool_name": "Read",
-                    "tool_use_id": "tu_test",
-                    "session_id": "sess_test",
-                    "tool_response": {"content": "file contents"},
-                })
+                test_input = json.dumps(
+                    {
+                        "tool_name": "Read",
+                        "tool_use_id": "tu_test",
+                        "session_id": "sess_test",
+                        "tool_response": {"content": "file contents"},
+                    }
+                )
                 sys.stdin = io.StringIO(test_input)
                 try:
                     with pytest.raises(SystemExit) as exc_info:
-                        from asp.hooks import telemetry
                         import importlib
+
+                        from asp.hooks import telemetry
+
                         importlib.reload(telemetry)
                         telemetry.main()
                     assert exc_info.value.code == 0
@@ -629,8 +639,8 @@ class TestMain:
 
     def test_main_handles_invalid_json(self):
         """Test main exits 0 with invalid JSON input."""
-        import sys
         import io
+        import sys
 
         with mock.patch.dict(os.environ, {"ASP_TELEMETRY_ENABLED": "true"}):
             original_argv = sys.argv
@@ -639,8 +649,10 @@ class TestMain:
             sys.stdin = io.StringIO("not valid json")
             try:
                 with pytest.raises(SystemExit) as exc_info:
-                    from asp.hooks import telemetry
                     import importlib
+
+                    from asp.hooks import telemetry
+
                     importlib.reload(telemetry)
                     telemetry.main()
                 assert exc_info.value.code == 0

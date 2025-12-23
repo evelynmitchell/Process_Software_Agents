@@ -7,8 +7,8 @@ Tests the approval decision collection from user input.
 import subprocess
 from unittest import mock
 
-from asp.approval.base import ApprovalResponse, ReviewDecision
 from asp.approval.approval_collector import ApprovalCollector
+from asp.approval.base import ApprovalResponse, ReviewDecision
 
 
 class TestApprovalCollectorInit:
@@ -124,9 +124,7 @@ class TestPromptJustification:
         """Test justification strips whitespace."""
         collector = ApprovalCollector()
 
-        with mock.patch.object(
-            collector.console, "input", return_value="  Trimmed  "
-        ):
+        with mock.patch.object(collector.console, "input", return_value="  Trimmed  "):
             with mock.patch.object(collector.console, "print"):
                 result = collector._prompt_justification(ReviewDecision.APPROVED)
 

@@ -103,7 +103,11 @@ class TestConfigureLogfire:
         # Remove logfire from modules to simulate ImportError
         with mock.patch.dict(sys.modules, {"logfire": None}):
             # This will cause ImportError when trying to import
-            original_import = __builtins__.__import__ if hasattr(__builtins__, '__import__') else __import__
+            original_import = (
+                __builtins__.__import__
+                if hasattr(__builtins__, "__import__")
+                else __import__
+            )
 
             def mock_import(name, *args, **kwargs):
                 if name == "logfire":
@@ -111,12 +115,10 @@ class TestConfigureLogfire:
                 return original_import(name, *args, **kwargs)
 
             with mock.patch("builtins.__import__", side_effect=mock_import):
-                from asp.telemetry.config import configure_logfire
                 import importlib
-                import asp.telemetry.config
 
-                importlib.reload(asp.telemetry.config)
-                result = asp.telemetry.config.configure_logfire()
+                importlib.reload(config_module)
+                result = config_module.configure_logfire()
 
                 assert result is False
 
@@ -484,4 +486,3 @@ class TestIsLangfuseAvailable:
             result = is_langfuse_available()
 
             assert result is True
-
