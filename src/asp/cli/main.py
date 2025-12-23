@@ -120,7 +120,7 @@ def cmd_run(args):
     import asyncio
 
     from asp.orchestrators import TSPOrchestrator
-    from asp.providers import ProviderConfig, ProviderRegistry
+    from asp.providers import ProviderRegistry
 
     logger.info("=" * 60)
     logger.info("ASP CLI - Task Execution")
@@ -134,7 +134,6 @@ def cmd_run(args):
     provider_name = args.provider or os.getenv("ASP_LLM_PROVIDER", "anthropic")
     model_name = args.model or os.getenv("ASP_DEFAULT_MODEL")
 
-    provider_config = ProviderConfig(default_model=model_name) if model_name else None
     logger.info(f"Provider: {provider_name}")
     if model_name:
         logger.info(f"Model: {model_name}")
@@ -548,15 +547,14 @@ def cmd_status(args):
     logger.info("")
     logger.info("Environment:")
     env_vars = [
-        ("ANTHROPIC_API_KEY", "anthropic"),
-        ("OPENROUTER_API_KEY", "openrouter"),
-        ("GROQ_API_KEY", "groq"),
-        ("LANGFUSE_PUBLIC_KEY", None),
-        ("LANGFUSE_SECRET_KEY", None),
-        ("LANGFUSE_HOST", None),
+        "ANTHROPIC_API_KEY",
+        "OPENROUTER_API_KEY",
+        "GROQ_API_KEY",
+        "LANGFUSE_PUBLIC_KEY",
+        "LANGFUSE_SECRET_KEY",
+        "LANGFUSE_HOST",
     ]
-    for item in env_vars:
-        var = item[0] if isinstance(item, tuple) else item
+    for var in env_vars:
         value = os.getenv(var)
         if value:
             # Mask sensitive values
@@ -568,12 +566,31 @@ def cmd_status(args):
 
 def cmd_providers(args):
     """List available LLM providers and models."""
-    from asp.providers import ProviderConfig, ProviderRegistry
+    from asp.providers import ProviderRegistry
 
     logger.info("Available LLM Providers (ADR 010)")
     logger.info("=" * 60)
 
     providers = ProviderRegistry.list_providers()
+
+    # Provider metadata mapping for extensibility
+    provider_info = {
+        "anthropic": {
+            "module": "asp.providers.anthropic_provider",
+            "class": "AnthropicProvider",
+            "env_var": "ANTHROPIC_API_KEY",
+        },
+        "openrouter": {
+            "module": "asp.providers.openrouter_provider",
+            "class": "OpenRouterProvider",
+            "env_var": "OPENROUTER_API_KEY",
+        },
+        "groq": {
+            "module": "asp.providers.groq_provider",
+            "class": "GroqProvider",
+            "env_var": "GROQ_API_KEY",
+        },
+    }
 
     for provider_name in providers:
         logger.info("")
@@ -581,25 +598,16 @@ def cmd_providers(args):
         logger.info("-" * 40)
 
         try:
-            # Try to get provider info without API key
-            if provider_name == "anthropic":
-                from asp.providers.anthropic_provider import AnthropicProvider
+            # Get provider info from mapping
+            info = provider_info.get(provider_name, {})
+            if info:
+                import importlib
 
-                models = AnthropicProvider.MODELS
-                default = AnthropicProvider.DEFAULT_MODEL
-                env_var = "ANTHROPIC_API_KEY"
-            elif provider_name == "openrouter":
-                from asp.providers.openrouter_provider import OpenRouterProvider
-
-                models = OpenRouterProvider.MODELS
-                default = OpenRouterProvider.DEFAULT_MODEL
-                env_var = "OPENROUTER_API_KEY"
-            elif provider_name == "groq":
-                from asp.providers.groq_provider import GroqProvider
-
-                models = GroqProvider.MODELS
-                default = GroqProvider.DEFAULT_MODEL
-                env_var = "GROQ_API_KEY"
+                module = importlib.import_module(info["module"])
+                provider_class = getattr(module, info["class"])
+                models = provider_class.MODELS
+                default = provider_class.DEFAULT_MODEL
+                env_var = info["env_var"]
             else:
                 models = []
                 default = None
