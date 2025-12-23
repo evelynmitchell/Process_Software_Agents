@@ -328,6 +328,10 @@ class LLMCallEvent(WideEvent):
 Update `@track_agent_cost` to use wide events:
 
 ```python
+import functools
+from typing import Callable
+
+
 def track_agent_execution(
     agent_type: str,
     task_id_param: str = "task_id",
@@ -394,7 +398,6 @@ Control costs while preserving debuggability:
 # src/asp/telemetry/sampling.py
 
 from dataclasses import dataclass
-from typing import Callable
 import random
 
 
