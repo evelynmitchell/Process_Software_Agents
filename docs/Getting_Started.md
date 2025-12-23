@@ -781,13 +781,43 @@ uv run python -m asp.cli run --task-id TASK-001 --description "Add feature" --as
 
 See [Developer Guide](Developer_Guide.md#async-execution) for programmatic async usage.
 
-### 6. Explore API
+### 6. Use Alternative LLM Providers (ADR 010)
+
+ASP supports multiple LLM providers beyond Anthropic:
+
+```bash
+# List available providers and models
+uv run python -m asp.cli providers
+
+# Use OpenRouter (100+ models including OpenAI, Google, Meta)
+uv run python -m asp.cli run --task-id TASK-001 --description "Add feature" \
+  --provider openrouter --model openai/gpt-4o
+
+# Use Groq (ultra-fast Llama inference)
+uv run python -m asp.cli run --task-id TASK-001 --description "Add feature" \
+  --provider groq --model llama-3.3-70b-versatile
+```
+
+**Available providers:**
+| Provider | API Key Env Var | Models |
+|----------|----------------|--------|
+| `anthropic` | `ANTHROPIC_API_KEY` | Claude Opus/Sonnet/Haiku |
+| `openrouter` | `OPENROUTER_API_KEY` | 100+ models (OpenAI, Google, Meta, etc.) |
+| `groq` | `GROQ_API_KEY` | Llama, Mixtral, Gemma |
+
+**Set default provider via environment:**
+```bash
+export ASP_LLM_PROVIDER=openrouter
+export ASP_DEFAULT_MODEL=openai/gpt-4o
+```
+
+### 7. Explore API
 
 Work with ASP programmatically using the Python API:
 
 → **[API Reference](API_Reference.md)**
 
-### 7. Run Example Projects
+### 8. Run Example Projects
 
 Try more complex examples to see ASP's full capabilities:
 
