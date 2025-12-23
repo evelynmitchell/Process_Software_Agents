@@ -9,12 +9,12 @@ Tests the TestAgent functionality including:
 - Edge cases for defect handling and status validation
 
 Author: ASP Development Team
-Date: December 2025
+Date: December 23, 2025
 """
 
 import json
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -26,7 +26,7 @@ from asp.models.design import (
     DesignReviewChecklistItem,
     DesignSpecification,
 )
-from asp.models.test import TestDefect, TestInput, TestReport
+from asp.models.test import TestInput, TestReport
 
 
 # =============================================================================

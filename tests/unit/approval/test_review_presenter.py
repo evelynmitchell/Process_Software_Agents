@@ -10,10 +10,9 @@ Tests the ReviewPresenter rich terminal UI functionality including:
 - Approval results
 
 Author: ASP Development Team
-Date: December 2025
+Date: December 23, 2025
 """
 
-from io import StringIO
 from unittest.mock import MagicMock, patch
 
 import pytest

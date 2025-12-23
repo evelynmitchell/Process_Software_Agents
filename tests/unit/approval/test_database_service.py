@@ -9,7 +9,7 @@ Tests the database-based HITL approval service including:
 - Error handling and edge cases
 
 Author: ASP Development Team
-Date: December 2025
+Date: December 23, 2025
 """
 
 import sqlite3
@@ -17,7 +17,7 @@ import tempfile
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
