@@ -1,7 +1,7 @@
 {
   "task_id": "TEST-DESIGN-REVIEW-001",
-  "review_id": "REVIEW-TESTDESIGNREVIEW001-20251216-234923",
-  "timestamp": "2025-12-16T23:49:23.397356",
+  "review_id": "REVIEW-TESTDESIGNREVIEW001-20251223-122433",
+  "timestamp": "2025-12-23T12:24:33.404237",
   "overall_assessment": "FAIL",
   "automated_checks": {
     "semantic_coverage": true,
@@ -106,5 +106,5 @@
   "low_issue_count": 1,
   "reviewer_agent": "DesignReviewAgent",
   "agent_version": "1.0.0",
-  "review_duration_ms": 0.509
+  "review_duration_ms": 0.7829999999999999
 }
