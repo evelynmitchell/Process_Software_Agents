@@ -79,6 +79,9 @@ echo $ANTHROPIC_API_KEY    # Should show sk-ant-...
 # Install dependencies (if not already done)
 uv sync --all-extras
 
+# Install pre-commit hooks
+uv run pre-commit install
+
 # Initialize database
 uv run python scripts/init_database.py --with-sample-data
 
@@ -109,7 +112,10 @@ cd Process_Software_Agents
 # 2. Install dependencies
 uv sync --all-extras
 
-# 3. Configure environment (copy and uncomment variables)
+# 3. Install pre-commit hooks
+uv run pre-commit install
+
+# 4. Configure environment (copy and uncomment variables)
 cp .env.example .env
 # Edit .env with your API keys:
 #   LANGFUSE_PUBLIC_KEY=pk-lf-your-key
@@ -117,10 +123,10 @@ cp .env.example .env
 #   LANGFUSE_HOST=https://cloud.langfuse.com
 #   ANTHROPIC_API_KEY=sk-ant-your-key
 
-# 4. Initialize database
+# 5. Initialize database
 uv run python scripts/init_database.py --with-sample-data
 
-# 5. Run tests
+# 6. Run tests
 uv run pytest
 ```
 
