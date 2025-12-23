@@ -4,10 +4,7 @@ Tests for asp.orchestrators.improvement_loop module.
 Tests the self-improvement loop orchestrator.
 """
 
-from pathlib import Path
 from unittest import mock
-
-import pytest
 
 
 class TestImprovementLoopOrchestratorInit:

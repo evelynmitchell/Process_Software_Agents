@@ -7,8 +7,6 @@ Tests the approval decision collection from user input.
 import subprocess
 from unittest import mock
 
-import pytest
-
 from asp.approval.base import ApprovalResponse, ReviewDecision
 from asp.approval.approval_collector import ApprovalCollector
 

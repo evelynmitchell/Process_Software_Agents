@@ -71,7 +71,7 @@ class TestIsTelemetryEnabled:
         with mock.patch.dict(os.environ, {"ASP_TELEMETRY_ENABLED": "false"}):
             assert is_telemetry_enabled() is False
 
-    def test_case_insensitive(self):
+    def test_enabled_check_is_case_insensitive(self):
         """Test that enabled check is case insensitive."""
         with mock.patch.dict(os.environ, {"ASP_TELEMETRY_ENABLED": "TRUE"}):
             assert is_telemetry_enabled() is True
@@ -109,7 +109,7 @@ class TestGetTelemetryProvider:
         with mock.patch.dict(os.environ, {"ASP_TELEMETRY_PROVIDER": "invalid"}):
             assert get_telemetry_provider() == "langfuse"
 
-    def test_case_insensitive(self):
+    def test_provider_selection_is_case_insensitive(self):
         """Test provider selection is case insensitive."""
         with mock.patch.dict(os.environ, {"ASP_TELEMETRY_PROVIDER": "LOGFIRE"}):
             assert get_telemetry_provider() == "logfire"

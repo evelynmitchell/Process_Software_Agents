@@ -8,8 +8,6 @@ import os
 import sys
 from unittest import mock
 
-import pytest
-
 
 class TestGetTelemetryProvider:
     """Tests for get_telemetry_provider function."""
@@ -172,7 +170,6 @@ class TestConfigurePydanticPlugin:
 
             assert result is True
             mock_logfire.configure.assert_called_once()
-
 
 
 class TestConfigureAnthropicInstrumentation:
@@ -471,7 +468,6 @@ class TestIsLogfireAvailable:
             result = is_logfire_available()
 
             assert result is True
-
 
 
 class TestIsLangfuseAvailable:
