@@ -1,8 +1,8 @@
 # ADR 010: Multi-LLM Provider Support
 
-**Status:** In Progress (Phase 1-2 Complete)
+**Status:** In Progress (Phases 1-3, 5, 13 Complete)
 **Date:** 2025-12-17
-**Updated:** 2025-12-19
+**Updated:** 2025-12-22
 **Session:** 20251217.8
 **Deciders:** User, Claude
 
@@ -737,9 +737,9 @@ python -m asp.cli run --task-id TASK-001 --description "..." --provider ollama -
 |-------|-------------|--------|
 | Phase 1 | Provider abstraction layer (`LLMProvider`, `LLMResponse`) | **Complete** |
 | Phase 2 | Refactor `AnthropicProvider` from existing `LLMClient` | **Complete** |
-| Phase 3 | Add `OpenRouterProvider` (OpenAI-compatible) | Pending |
+| Phase 3 | Add `OpenRouterProvider` (OpenAI-compatible) | **Complete** |
 | Phase 4 | Add `GeminiProvider` | Pending |
-| Phase 5 | Add `GroqProvider` (OpenAI-compatible, ultra-fast) | Pending |
+| Phase 5 | Add `GroqProvider` (OpenAI-compatible, ultra-fast) | **Complete** |
 | Phase 6 | Add `TogetherProvider` (OpenAI-compatible, scale) | Pending |
 | Phase 7 | Add `FireworksProvider` (OpenAI-compatible, speed) | Pending |
 | Phase 8 | Add `DeepInfraProvider` (OpenAI-compatible, cost) | Pending |
@@ -747,7 +747,7 @@ python -m asp.cli run --task-id TASK-001 --description "..." --provider ollama -
 | Phase 10 | Add `VLLMProvider` (local, OpenAI-compatible) | Pending |
 | Phase 11 | Add `CloudflareProvider` (REST API) | Pending |
 | Phase 12 | Add `ClaudeCLIProvider` (subprocess) | Pending |
-| Phase 13 | CLI integration (`--provider`, `--model` flags) | Pending |
+| Phase 13 | CLI integration (`--provider`, `--model` flags) | **Complete** |
 | Phase 14 | Documentation updates | Pending |
 
 **Note:** Phases 3, 5-10 share OpenAI-compatible implementation - can be done quickly with a base class.

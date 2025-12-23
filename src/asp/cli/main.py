@@ -120,6 +120,7 @@ def cmd_run(args):
     import asyncio
 
     from asp.orchestrators import TSPOrchestrator
+    from asp.providers import ProviderConfig, ProviderRegistry
 
     logger.info("=" * 60)
     logger.info("ASP CLI - Task Execution")
@@ -129,6 +130,22 @@ def cmd_run(args):
     logger.info(f"Task ID: {task_requirements.task_id}")
     logger.info(f"Description: {task_requirements.description}")
 
+    # Configure LLM provider (ADR 010 Phase 13)
+    provider_name = args.provider or os.getenv("ASP_LLM_PROVIDER", "anthropic")
+    model_name = args.model or os.getenv("ASP_DEFAULT_MODEL")
+
+    provider_config = ProviderConfig(default_model=model_name) if model_name else None
+    logger.info(f"Provider: {provider_name}")
+    if model_name:
+        logger.info(f"Model: {model_name}")
+
+    # Verify provider is available
+    if not ProviderRegistry.is_registered(provider_name):
+        available = ProviderRegistry.list_providers()
+        logger.error(f"Unknown provider: {provider_name}")
+        logger.error(f"Available providers: {', '.join(available)}")
+        sys.exit(1)
+
     # Check for async mode (ADR 008 Phase 5)
     use_async = getattr(args, "use_async", False)
     if use_async:
@@ -136,6 +153,11 @@ def cmd_run(args):
     else:
         logger.info("Mode: SYNC (using execute)")
     logger.info("-" * 60)
+
+    # Set environment variables for provider config (picked up by agents)
+    os.environ["ASP_LLM_PROVIDER"] = provider_name
+    if model_name:
+        os.environ["ASP_DEFAULT_MODEL"] = model_name
 
     db_path = Path(args.db_path) if args.db_path else Path("data/asp_telemetry.db")
     approval_service, hitl_approver = _configure_hitl(args, db_path)
@@ -487,6 +509,8 @@ def cmd_repair_issue(args):
 
 def cmd_status(args):
     """Check agent/database status."""
+    from asp.providers import ProviderRegistry
+
     logger.info("ASP Platform Status")
     logger.info("-" * 40)
 
@@ -509,16 +533,30 @@ def cmd_status(args):
         logger.warning(f"Database: {db_path} (not found)")
         logger.info("  Run 'asp.cli init-db' to initialize")
 
+    # Check LLM providers (ADR 010)
+    logger.info("")
+    logger.info("LLM Providers:")
+    default_provider = os.getenv("ASP_LLM_PROVIDER", "anthropic")
+    providers = ProviderRegistry.list_providers()
+    logger.info(f"  Available: {', '.join(providers)}")
+    logger.info(f"  Default: {default_provider}")
+    default_model = os.getenv("ASP_DEFAULT_MODEL")
+    if default_model:
+        logger.info(f"  Default model: {default_model}")
+
     # Check environment
     logger.info("")
     logger.info("Environment:")
     env_vars = [
-        "ANTHROPIC_API_KEY",
-        "LANGFUSE_PUBLIC_KEY",
-        "LANGFUSE_SECRET_KEY",
-        "LANGFUSE_HOST",
+        ("ANTHROPIC_API_KEY", "anthropic"),
+        ("OPENROUTER_API_KEY", "openrouter"),
+        ("GROQ_API_KEY", "groq"),
+        ("LANGFUSE_PUBLIC_KEY", None),
+        ("LANGFUSE_SECRET_KEY", None),
+        ("LANGFUSE_HOST", None),
     ]
-    for var in env_vars:
+    for item in env_vars:
+        var = item[0] if isinstance(item, tuple) else item
         value = os.getenv(var)
         if value:
             # Mask sensitive values
@@ -526,6 +564,68 @@ def cmd_status(args):
             logger.info(f"  {var}: {masked}")
         else:
             logger.info(f"  {var}: (not set)")
+
+
+def cmd_providers(args):
+    """List available LLM providers and models."""
+    from asp.providers import ProviderConfig, ProviderRegistry
+
+    logger.info("Available LLM Providers (ADR 010)")
+    logger.info("=" * 60)
+
+    providers = ProviderRegistry.list_providers()
+
+    for provider_name in providers:
+        logger.info("")
+        logger.info(f"Provider: {provider_name}")
+        logger.info("-" * 40)
+
+        try:
+            # Try to get provider info without API key
+            if provider_name == "anthropic":
+                from asp.providers.anthropic_provider import AnthropicProvider
+
+                models = AnthropicProvider.MODELS
+                default = AnthropicProvider.DEFAULT_MODEL
+                env_var = "ANTHROPIC_API_KEY"
+            elif provider_name == "openrouter":
+                from asp.providers.openrouter_provider import OpenRouterProvider
+
+                models = OpenRouterProvider.MODELS
+                default = OpenRouterProvider.DEFAULT_MODEL
+                env_var = "OPENROUTER_API_KEY"
+            elif provider_name == "groq":
+                from asp.providers.groq_provider import GroqProvider
+
+                models = GroqProvider.MODELS
+                default = GroqProvider.DEFAULT_MODEL
+                env_var = "GROQ_API_KEY"
+            else:
+                models = []
+                default = None
+                env_var = None
+
+            logger.info(f"  Default model: {default}")
+            logger.info(f"  API key env var: {env_var}")
+            api_key_set = bool(os.getenv(env_var)) if env_var else False
+            logger.info(f"  API key configured: {'Yes' if api_key_set else 'No'}")
+            logger.info(f"  Available models ({len(models)}):")
+            for model in models[:10]:  # Show first 10
+                logger.info(f"    - {model}")
+            if len(models) > 10:
+                logger.info(f"    ... and {len(models) - 10} more")
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.warning(f"  Error getting provider info: {e}")
+
+    logger.info("")
+    logger.info("Usage:")
+    logger.info("  python -m asp.cli run --provider openrouter --model openai/gpt-4o ...")
+    logger.info("  python -m asp.cli run --provider groq --model llama-3.3-70b-versatile ...")
+    logger.info("")
+    logger.info("Environment variables:")
+    logger.info("  ASP_LLM_PROVIDER=openrouter  # Set default provider")
+    logger.info("  ASP_DEFAULT_MODEL=openai/gpt-4o  # Set default model")
 
 
 def cmd_init_db(args):
@@ -600,6 +700,10 @@ Examples:
   # Run a task through the pipeline
   python -m asp.cli run --task-id TASK-001 --description "Add user auth"
 
+  # Run with specific LLM provider and model (ADR 010)
+  python -m asp.cli run --task-id TASK-001 --description "Add auth" --provider openrouter --model openai/gpt-4o
+  python -m asp.cli run --task-id TASK-001 --description "Add auth" --provider groq --model llama-3.3-70b-versatile
+
   # Run with async execution (ADR 008 - non-blocking I/O)
   python -m asp.cli run --task-id TASK-001 --description "Add user auth" --async
 
@@ -623,6 +727,9 @@ Examples:
 
   # Check status
   python -m asp.cli status
+
+  # List available LLM providers and models (ADR 010)
+  python -m asp.cli providers
 
   # Initialize database
   python -m asp.cli init-db --with-sample-data
@@ -695,6 +802,17 @@ Examples:
         dest="use_async",
         action="store_true",
         help="Use async execution (ADR 008 - non-blocking I/O)",
+    )
+    run_parser.add_argument(
+        "--provider",
+        choices=["anthropic", "openrouter", "groq"],
+        default=None,
+        help="LLM provider to use (default: anthropic, or ASP_LLM_PROVIDER env var)",
+    )
+    run_parser.add_argument(
+        "--model",
+        default=None,
+        help="Specific model to use (provider-dependent, e.g., claude-sonnet-4-5, openai/gpt-4o)",
     )
     run_parser.set_defaults(func=cmd_run)
 
@@ -845,6 +963,12 @@ Examples:
         help="Path to SQLite database",
     )
     status_parser.set_defaults(func=cmd_status)
+
+    # Providers command (ADR 010)
+    providers_parser = subparsers.add_parser(
+        "providers", help="List available LLM providers and models"
+    )
+    providers_parser.set_defaults(func=cmd_providers)
 
     # Beads commands (ADR 009)
     from asp.cli.beads_commands import add_beads_subparser
