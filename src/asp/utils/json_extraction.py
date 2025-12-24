@@ -65,8 +65,7 @@ def extract_json_from_response(
             except json.JSONDecodeError as e:
                 content_preview = content[:500] if content else "(empty)"
                 raise JSONExtractionError(
-                    f"LLM returned non-JSON response: {content_preview}...\n"
-                    f"Error: {e}"
+                    f"LLM returned non-JSON response: {content_preview}...\nError: {e}"
                 ) from e
     else:
         raise JSONExtractionError(f"Unexpected content type: {type(content).__name__}")

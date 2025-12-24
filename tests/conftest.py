@@ -68,7 +68,9 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "unit: mark test as a unit test")
     config.addinivalue_line("markers", "integration: mark test as an integration test")
     config.addinivalue_line("markers", "e2e: mark test as end-to-end test")
-    config.addinivalue_line("markers", "provider: mark test as LLM provider test (requires API keys)")
+    config.addinivalue_line(
+        "markers", "provider: mark test as LLM provider test (requires API keys)"
+    )
     config.addinivalue_line("markers", "performance: mark test as a performance test")
     config.addinivalue_line(
         "markers", "error_handling: mark test as error handling test"

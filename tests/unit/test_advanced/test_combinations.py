@@ -85,13 +85,13 @@ class TestSemanticUnitCombinations:
 
         # AllPairs should generate far fewer than full combinatorial
         full_combinatorial = 4 * 4 * 4 * 4 * 4
-        assert (
-            combination_count < full_combinatorial
-        ), f"Expected reduction from {full_combinatorial}, got {combination_count}"
+        assert combination_count < full_combinatorial, (
+            f"Expected reduction from {full_combinatorial}, got {combination_count}"
+        )
         # But should still have meaningful coverage
-        assert (
-            combination_count >= 15
-        ), f"Expected at least 15 combinations, got {combination_count}"
+        assert combination_count >= 15, (
+            f"Expected at least 15 combinations, got {combination_count}"
+        )
 
     def test_boundary_value_combinations(self):
         """Test combinations at boundary values of each factor."""

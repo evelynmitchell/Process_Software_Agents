@@ -78,14 +78,14 @@ class MockApprovalService(ApprovalService):
         )
 
         # Print approval simulation
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("MOCK APPROVAL SERVICE: Simulating HITL Review")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print(f"Task ID: {request.task_id}")
         print(f"Gate Type: {request.gate_type}")
         print(f"Quality Issues: {critical_count}C / {high_count}H")
         print(f"Decision: {self.decision.value.upper()}")
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
 
         return ApprovalResponse(
             decision=self.decision,
@@ -328,9 +328,9 @@ class TestTSPWithApprovalService:
             print("  ✓ Rejection properly halts pipeline")
 
             # Validate ApprovalService was called
-            assert (
-                len(approval_service.approval_requests) > 0
-            ), "ApprovalService should have been called before failure"
+            assert len(approval_service.approval_requests) > 0, (
+                "ApprovalService should have been called before failure"
+            )
             print(
                 f"  ✓ ApprovalService was called {len(approval_service.approval_requests)} time(s)"
             )
@@ -395,9 +395,9 @@ class TestTSPWithApprovalService:
 
         if len(approval_service.approval_requests) > 0:
             print("  ✓ ApprovalService was used")
-            assert (
-                len(callable_called) == 0
-            ), "Legacy callable should NOT be called when ApprovalService exists"
+            assert len(callable_called) == 0, (
+                "Legacy callable should NOT be called when ApprovalService exists"
+            )
             print("  ✓ Legacy callable was NOT called (correct priority)")
         else:
             print("  ℹ️  No quality gate failures, priority not tested")

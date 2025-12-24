@@ -193,7 +193,7 @@ class TestDocImportsValidation:
                             )
                     except ImportError:
                         all_errors.append(
-                            f"{doc_file.name}:~{line_num}: " f"Cannot import '{module}'"
+                            f"{doc_file.name}:~{line_num}: Cannot import '{module}'"
                         )
 
         assert not all_errors, "Import errors found:\n" + "\n".join(all_errors)

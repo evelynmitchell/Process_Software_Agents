@@ -132,43 +132,43 @@ def validate_design_specification(
             "PATCH",
         ], f"Invalid method: {api.method}"
         assert len(api.description) >= 10, f"API description too short: {api.endpoint}"
-        assert (
-            api.response_schema is not None
-        ), f"Missing response schema: {api.endpoint}"
+        assert api.response_schema is not None, (
+            f"Missing response schema: {api.endpoint}"
+        )
 
     # Data schemas
     assert len(design.data_schemas) >= 0, "Data schemas must be list (can be empty)"
     for schema in design.data_schemas:
         assert len(schema.table_name) > 0, "Table name is empty"
-        assert (
-            len(schema.description) >= 10
-        ), f"Schema description too short: {schema.table_name}"
+        assert len(schema.description) >= 10, (
+            f"Schema description too short: {schema.table_name}"
+        )
         assert len(schema.columns) > 0, f"No columns defined: {schema.table_name}"
         for col in schema.columns:
-            assert (
-                "name" in col and len(col["name"]) > 0
-            ), f"Column missing name: {schema.table_name}"
-            assert (
-                "type" in col or "data_type" in col
-            ), f"Column missing type: {col.get('name')}"
+            assert "name" in col and len(col["name"]) > 0, (
+                f"Column missing name: {schema.table_name}"
+            )
+            assert "type" in col or "data_type" in col, (
+                f"Column missing type: {col.get('name')}"
+            )
 
     # Component logic
-    assert len(design.component_logic) >= len(
-        project_plan.semantic_units
-    ), "Must have at least one component per semantic unit"
+    assert len(design.component_logic) >= len(project_plan.semantic_units), (
+        "Must have at least one component per semantic unit"
+    )
 
     semantic_unit_ids = {unit.unit_id for unit in project_plan.semantic_units}
     for component in design.component_logic:
         assert len(component.component_name) > 0, "Component name is empty"
-        assert (
-            len(component.responsibility) >= 20
-        ), f"Component responsibility too short: {component.component_name}"
-        assert (
-            component.semantic_unit_id in semantic_unit_ids
-        ), f"Invalid semantic_unit_id: {component.semantic_unit_id}"
-        assert (
-            len(component.interfaces) > 0
-        ), f"No interfaces defined: {component.component_name}"
+        assert len(component.responsibility) >= 20, (
+            f"Component responsibility too short: {component.component_name}"
+        )
+        assert component.semantic_unit_id in semantic_unit_ids, (
+            f"Invalid semantic_unit_id: {component.semantic_unit_id}"
+        )
+        assert len(component.interfaces) > 0, (
+            f"No interfaces defined: {component.component_name}"
+        )
 
     # Design review checklist
     assert len(design.design_review_checklist) >= 5, "Must have at least 5 review items"
@@ -186,27 +186,27 @@ def validate_design_specification(
     valid_severities = ["critical", "high", "medium", "low"]
 
     for item in design.design_review_checklist:
-        assert (
-            item.category.lower() in valid_categories
-        ), f"Invalid category: {item.category}"
-        assert (
-            item.severity.lower() in valid_severities
-        ), f"Invalid severity: {item.severity}"
-        assert (
-            len(item.description) >= 10
-        ), f"Review item description too short: {item.description}"
-        assert (
-            len(item.validation_criteria) >= 10
-        ), f"Validation criteria too short: {item.description}"
+        assert item.category.lower() in valid_categories, (
+            f"Invalid category: {item.category}"
+        )
+        assert item.severity.lower() in valid_severities, (
+            f"Invalid severity: {item.severity}"
+        )
+        assert len(item.description) >= 10, (
+            f"Review item description too short: {item.description}"
+        )
+        assert len(item.validation_criteria) >= 10, (
+            f"Validation criteria too short: {item.description}"
+        )
 
 
 def print_test_summary(
     title: str, design: DesignSpecification, metrics: dict[str, Any]
 ):
     """Print formatted test summary."""
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(f"{title}")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     print(f"Task ID: {design.task_id}")
     print("\nMetrics:")
     for key, value in metrics.items():
@@ -225,7 +225,7 @@ def print_test_summary(
     for i, component in enumerate(design.component_logic, 1):
         print(f"  {i}. {component.component_name} [{component.semantic_unit_id}]")
     print(f"\nDesign Review Checklist: {len(design.design_review_checklist)} items")
-    print(f"{'='*80}\n")
+    print(f"{'=' * 80}\n")
 
 
 @pytest.mark.e2e
@@ -333,9 +333,9 @@ class TestDesignAgentMarkdownBasic:
         # Validate semantic unit coverage
         semantic_unit_ids = {unit.unit_id for unit in project_plan.semantic_units}
         design_unit_ids = {comp.semantic_unit_id for comp in design.component_logic}
-        assert (
-            semantic_unit_ids == design_unit_ids
-        ), "All semantic units must have components"
+        assert semantic_unit_ids == design_unit_ids, (
+            "All semantic units must have components"
+        )
 
         # Check for security items
         has_security = any(
@@ -510,7 +510,7 @@ class TestDesignAgentMarkdownComparison:
         print(f"  JSON:     {time_json:.2f}s")
         print(f"  Markdown: {time_md:.2f}s")
         print(
-            f"  Delta:    {abs(time_json - time_md):.2f}s ({'+' if time_md > time_json else '-'}{abs(1 - time_md/time_json)*100:.1f}%)"
+            f"  Delta:    {abs(time_json - time_md):.2f}s ({'+' if time_md > time_json else '-'}{abs(1 - time_md / time_json) * 100:.1f}%)"
         )
 
         print("\nAPI Contracts:")
@@ -588,7 +588,7 @@ class TestDesignAgentMarkdownComparison:
         print(f"  JSON:     {time_json:.2f}s")
         print(f"  Markdown: {time_md:.2f}s")
         print(
-            f"  Delta:    {abs(time_json - time_md):.2f}s ({'+' if time_md > time_json else '-'}{abs(1 - time_md/time_json)*100:.1f}%)"
+            f"  Delta:    {abs(time_json - time_md):.2f}s ({'+' if time_md > time_json else '-'}{abs(1 - time_md / time_json) * 100:.1f}%)"
         )
 
         print("\nAPI Contracts:")
@@ -637,12 +637,12 @@ class TestDesignAgentMarkdownParsing:
         assert "component_logic" in design_dict
         assert "design_review_checklist" in design_dict
 
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("Markdown Parsing Validation")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print("Successfully parsed and validated markdown output")
         print(f"Design dict keys: {list(design_dict.keys())}")
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
 
 
 if __name__ == "__main__":

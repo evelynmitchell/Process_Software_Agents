@@ -20,7 +20,6 @@ from rich.console import Console
 
 from asp.approval.review_presenter import ReviewPresenter
 
-
 # =============================================================================
 # Initialization Tests
 # =============================================================================

@@ -736,6 +736,6 @@ class TestPRBodyTemplate:
         ]
 
         for placeholder in placeholders:
-            assert (
-                placeholder in PR_BODY_TEMPLATE
-            ), f"Missing placeholder: {placeholder}"
+            assert placeholder in PR_BODY_TEMPLATE, (
+                f"Missing placeholder: {placeholder}"
+            )

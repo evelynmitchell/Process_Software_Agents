@@ -230,7 +230,10 @@ def mock_data_layer(monkeypatch):
     monkeypatch.setattr(
         manager_module,
         "generate_sparkline_svg",
-        lambda values, width=60, height=20, color="#000": '<svg width="60" height="20"><path d="M0,10 L60,10"/></svg>',
+        lambda values,
+        width=60,
+        height=20,
+        color="#000": '<svg width="60" height="20"><path d="M0,10 L60,10"/></svg>',
     )
 
     return mock_tasks

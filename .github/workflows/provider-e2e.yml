@@ -39,7 +39,7 @@ jobs:
         persist-credentials: false
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v4
+      uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       with:
         version: "latest"
 
@@ -65,8 +65,8 @@ jobs:
         [[ -n "$GROQ_API_KEY" ]] && echo "  - Groq: YES" || echo "  - Groq: NO (skipped)"
         echo ""
 
-        # Run provider e2e tests with verbose output
-        pytest tests/e2e/test_providers_e2e.py -v -s --tb=short -m "provider"
+        # Run provider e2e tests with verbose output (no coverage - subset of tests)
+        pytest tests/e2e/test_providers_e2e.py -v -s --tb=short -m "provider" --no-cov
 
     - name: Summary
       if: always()

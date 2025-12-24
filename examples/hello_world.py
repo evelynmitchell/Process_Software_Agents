@@ -63,7 +63,7 @@ def main():
 
     print("📊 Performance Summary:")
     print(
-        f"   - Total Latency: {result.total_latency_ms:,} ms ({result.total_latency_ms/1000:.1f}s)"
+        f"   - Total Latency: {result.total_latency_ms:,} ms ({result.total_latency_ms / 1000:.1f}s)"
     )
     print(f"   - Total Tokens: {result.total_tokens:,}")
     print(f"   - Total Cost: ${result.total_cost_usd:.4f}")
