@@ -8,7 +8,7 @@ exclude: ^(artifacts/|contrib/)
 repos:
   # Ruff - Fast Python linter and formatter (replaces Black, isort, Pylint)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.1
+    rev: v0.8.6
     hooks:
       # Ruff formatter (replaces Black + isort)
       - id: ruff-format
