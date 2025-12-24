@@ -159,9 +159,9 @@ class TestDesignAgentE2E:
             assert len(item.validation_criteria) >= 10
 
         # Log results
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("E2E Test: Simple API Design")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print(f"Task ID: {design.task_id}")
         print(f"\nArchitecture: {design.architecture_overview[:100]}...")
         print("\nTechnology Stack:")
@@ -302,9 +302,9 @@ class TestDesignAgentE2E:
         ), "Authentication system should have security review items"
 
         # Log results
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("E2E Test: JWT Authentication System")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print(f"API Contracts: {len(design.api_contracts)}")
         for api in design.api_contracts:
             print(f"  - {api.method} {api.endpoint}: {api.description[:50]}...")
@@ -330,9 +330,9 @@ class TestDesignAgentE2E:
         """
 
         # Step 1: Run Planning Agent
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("E2E Test: Planning->Design Workflow")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print("Step 1: Running Planning Agent...")
 
         planning_agent = PlanningAgent(llm_client=llm_client)
@@ -377,9 +377,9 @@ class TestDesignAgentE2E:
         ), "Design must cover all planning semantic units"
 
         # Log results
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("Workflow Summary")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print("Planning Output:")
         print(f"  - Semantic Units: {len(project_plan.semantic_units)}")
         print(f"  - Total Complexity: {project_plan.total_est_complexity}")
@@ -495,9 +495,9 @@ class TestDesignAgentE2E:
         ), "Data pipeline should have performance review items"
 
         # Log results
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("E2E Test: ETL Data Pipeline Design")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print(f"Components: {len(design.component_logic)}")
         for component in design.component_logic:
             print(f"  - {component.component_name}")
@@ -534,9 +534,9 @@ class TestDesignAgentE2E:
         # Validate basic execution
         assert isinstance(design, DesignSpecification)
 
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("E2E Test: Telemetry Integration")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print(f"Telemetry captured for task: {design_input.task_id}")
         print(f"Database: {db_path}")
         print("Check Langfuse dashboard for trace data")

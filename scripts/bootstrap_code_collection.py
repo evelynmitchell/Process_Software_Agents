@@ -182,9 +182,9 @@ def run_bootstrap_code_collection():
             )
             continue
 
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print(f"TASK {i}/{len(successful_planning)}: {task_id}")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print(f"Description: {planning_result['description']}")
         print(f"Planning Complexity: {planning_result['actual_total_complexity']}")
         print(f"Units: {planning_result['num_units']}")
@@ -394,9 +394,9 @@ def run_bootstrap_code_collection():
     successful_pipeline = sum(
         1 for r in all_results if r.get("pipeline_success", False)
     )
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("BOOTSTRAP COLLECTION COMPLETE")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     print(f"Results saved to: {output_file}")
     print(f"Successful (full pipeline): {successful_pipeline}/{len(all_results)}")
     print(f"Failed: {len(all_results) - successful_pipeline}/{len(all_results)}")
@@ -490,7 +490,7 @@ def main():
 
             print("\nPipeline (Planning→Design→Review→Code):")
             print(f"  Avg Total Time: {avg_total_time:.2f}s")
-            print(f"  Total Time: {total_time:.2f}s ({total_time/60:.1f} minutes)")
+            print(f"  Total Time: {total_time:.2f}s ({total_time / 60:.1f} minutes)")
 
             # Review assessment breakdown
             assessment_counts = {}

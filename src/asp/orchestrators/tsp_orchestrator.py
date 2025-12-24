@@ -809,7 +809,7 @@ class TSPOrchestrator:  # pylint: disable=too-many-instance-attributes
         for issue in design_review.issues_found:
             defects.append(
                 DefectLogEntry(
-                    defect_id=f"D-{len(defects)+1:03d}",
+                    defect_id=f"D-{len(defects) + 1:03d}",
                     task_id=design_review.task_id,
                     defect_type="1_Planning_Failure",  # Design issues are planning failures
                     description=issue.description,
@@ -824,7 +824,7 @@ class TSPOrchestrator:  # pylint: disable=too-many-instance-attributes
         for issue in code_review.issues_found:
             defects.append(
                 DefectLogEntry(
-                    defect_id=f"D-{len(defects)+1:03d}",
+                    defect_id=f"D-{len(defects) + 1:03d}",
                     task_id=code_review.task_id,
                     defect_type="6_Conventional_Code_Bug",  # Code issues are conventional bugs
                     description=issue.description,
@@ -839,7 +839,7 @@ class TSPOrchestrator:  # pylint: disable=too-many-instance-attributes
         for defect in test_report.defects_found:
             defects.append(
                 DefectLogEntry(
-                    defect_id=f"D-{len(defects)+1:03d}",
+                    defect_id=f"D-{len(defects) + 1:03d}",
                     task_id=test_report.task_id,
                     defect_type=defect.defect_type,
                     description=defect.description,

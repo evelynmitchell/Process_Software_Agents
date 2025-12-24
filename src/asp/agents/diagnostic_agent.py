@@ -330,8 +330,7 @@ class DiagnosticAgent(BaseAgent):
             return report
         except Exception as e:
             raise AgentExecutionError(
-                f"Failed to validate DiagnosticReport: {e}\n"
-                f"Response content: {content}"
+                f"Failed to validate DiagnosticReport: {e}\nResponse content: {content}"
             ) from e
 
     def _format_source_files(self, source_context: dict[str, str]) -> str:
@@ -400,8 +399,7 @@ class DiagnosticAgent(BaseAgent):
                 ) from e
 
         raise AgentExecutionError(
-            f"Unexpected content type: {type(content)}\n"
-            f"Expected dict or JSON string"
+            f"Unexpected content type: {type(content)}\nExpected dict or JSON string"
         )
 
     def _validate_diagnostic_report(self, report: DiagnosticReport) -> None:
@@ -573,6 +571,5 @@ class DiagnosticAgent(BaseAgent):
             return report
         except Exception as e:
             raise AgentExecutionError(
-                f"Failed to validate DiagnosticReport: {e}\n"
-                f"Response content: {content}"
+                f"Failed to validate DiagnosticReport: {e}\nResponse content: {content}"
             ) from e

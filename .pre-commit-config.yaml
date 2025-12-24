@@ -6,52 +6,16 @@
 exclude: ^(artifacts/|contrib/)
 
 repos:
-  # Black - Python code formatter
-  - repo: https://github.com/psf/black
-    rev: 24.10.0
-    hooks:
-      - id: black
-        language_version: python3.12
-        args: ['--config=pyproject.toml']
-
-  # isort - Python import sorter
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        args: ['--settings-path=pyproject.toml']
-
-  # Ruff - Fast Python linter
+  # Ruff - Fast Python linter and formatter (replaces Black, isort, Pylint)
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.1
     hooks:
+      # Ruff formatter (replaces Black + isort)
+      - id: ruff-format
+        args: ['--config=pyproject.toml']
+      # Ruff linter (replaces Pylint, Flake8)
       - id: ruff
         args: ['--fix', '--config=pyproject.toml']
-
-  # Pylint - Python static code analyzer
-  # Note: Runs in isolated env, so we disable import-error (E0401) and
-  # import-outside-toplevel (C0415) since those need the full project deps
-  - repo: https://github.com/pylint-dev/pylint
-    rev: v3.3.2
-    hooks:
-      - id: pylint
-        exclude: ^(examples/|scripts/)  # Examples/scripts have known style issues
-        args:
-          - '--rcfile=.pylintrc'
-          - '--disable=C0103,C0114,C0115,C0116,C0201,C0301,C0302,C0411,C0413,C0415,C1803,E0110,E0401,E0602,E0611,E0633,E1101,E1120,R0402,R0801,R0902,R0911,R0912,R0913,R0914,R0915,R0917,R1705,R1723,W0105,W0107,W0201,W0212,W0237,W0246,W0401,W0404,W0406,W0603,W0611,W0612,W0613,W0614,W0621,W0622,W0707,W0718,W1203,W1510,W1514,W2301'
-          - '--max-line-length=88'
-        additional_dependencies:
-          - fastapi
-          - uvicorn
-          - sqlalchemy
-          - pydantic
-          - httpx
-          - structlog
-          - rich
-          - anthropic
-          - tenacity
-          - python-fasthtml
-          - pytest
 
   # Zizmor - GitHub Actions security linter
   - repo: https://github.com/zizmorcore/zizmor-pre-commit

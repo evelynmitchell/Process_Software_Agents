@@ -66,9 +66,11 @@ DEFAULT_ASYNC_CONFIG = AsyncConfig()
 # =============================================================================
 
 
-async def gather_with_concurrency[
-    T
-](limit: int, *tasks: Awaitable[T], return_exceptions: bool = False,) -> list[T]:
+async def gather_with_concurrency[T](
+    limit: int,
+    *tasks: Awaitable[T],
+    return_exceptions: bool = False,
+) -> list[T]:
     """
     Run tasks with concurrency limit.
 
@@ -144,8 +146,7 @@ async def run_agents_parallel(
         return []
 
     logger.info(
-        f"Running {len(agents)} agents in parallel "
-        f"(max_concurrent={max_concurrent})"
+        f"Running {len(agents)} agents in parallel (max_concurrent={max_concurrent})"
     )
 
     tasks = [
@@ -172,9 +173,7 @@ async def run_agents_parallel(
     return results
 
 
-async def run_with_retry[
-    T
-](
+async def run_with_retry[T](
     coro_factory: Callable[[], Awaitable[T]],
     max_retries: int = 3,
     base_delay: float = 1.0,
@@ -220,9 +219,11 @@ async def run_with_retry[
     raise last_exception
 
 
-async def run_with_timeout[
-    T
-](coro: Awaitable[T], timeout: float, error_message: str = "Operation timed out",) -> T:
+async def run_with_timeout[T](
+    coro: Awaitable[T],
+    timeout: float,
+    error_message: str = "Operation timed out",
+) -> T:
     """
     Run coroutine with timeout.
 
@@ -290,9 +291,10 @@ class ParallelExecutionResult:
         return [i for i, e in enumerate(self.exceptions) if e is not None]
 
 
-async def gather_with_results[
-    T
-](*tasks: Awaitable[T], max_concurrent: int = 0,) -> ParallelExecutionResult:
+async def gather_with_results[T](
+    *tasks: Awaitable[T],
+    max_concurrent: int = 0,
+) -> ParallelExecutionResult:
     """
     Run tasks and return detailed results including failures.
 

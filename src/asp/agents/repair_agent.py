@@ -253,7 +253,7 @@ class RepairAgent(BaseAgent):
             return output
         except Exception as e:
             raise AgentExecutionError(
-                f"Failed to validate RepairOutput: {e}\n" f"Response content: {content}"
+                f"Failed to validate RepairOutput: {e}\nResponse content: {content}"
             ) from e
 
     def _format_previous_attempts(self, attempts: list[RepairAttempt]) -> str:
@@ -361,8 +361,7 @@ class RepairAgent(BaseAgent):
                 ) from e
 
         raise AgentExecutionError(
-            f"Unexpected content type: {type(content)}\n"
-            f"Expected dict or JSON string"
+            f"Unexpected content type: {type(content)}\nExpected dict or JSON string"
         )
 
     def _validate_repair_output(self, output: RepairOutput) -> None:
@@ -389,11 +388,11 @@ class RepairAgent(BaseAgent):
         # Validate each change
         for i, change in enumerate(output.changes):
             if not change.search_text:
-                raise AgentExecutionError(f"Change {i+1} has empty search_text")
+                raise AgentExecutionError(f"Change {i + 1} has empty search_text")
 
             if change.search_text == change.replace_text:
                 raise AgentExecutionError(
-                    f"Change {i+1} has identical search and replace text"
+                    f"Change {i + 1} has identical search and replace text"
                 )
 
         # Warn on low confidence
@@ -524,5 +523,5 @@ class RepairAgent(BaseAgent):
             return output
         except Exception as e:
             raise AgentExecutionError(
-                f"Failed to validate RepairOutput: {e}\n" f"Response content: {content}"
+                f"Failed to validate RepairOutput: {e}\nResponse content: {content}"
             ) from e

@@ -78,14 +78,14 @@ class MockApprovalService(ApprovalService):
         )
 
         # Print approval simulation
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("MOCK APPROVAL SERVICE: Simulating HITL Review")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print(f"Task ID: {request.task_id}")
         print(f"Gate Type: {request.gate_type}")
         print(f"Quality Issues: {critical_count}C / {high_count}H")
         print(f"Decision: {self.decision.value.upper()}")
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
 
         return ApprovalResponse(
             decision=self.decision,

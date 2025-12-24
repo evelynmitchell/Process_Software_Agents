@@ -674,7 +674,7 @@ class DesignReviewOrchestrator(BaseAgent):
 
             checklist_review.append(
                 {
-                    "checklist_item_id": f"CHECK-{i+1:03d}",
+                    "checklist_item_id": f"CHECK-{i + 1:03d}",
                     "category": item.category,
                     "description": item.description,
                     "status": status,

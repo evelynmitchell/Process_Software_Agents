@@ -130,7 +130,7 @@ def main():
             timestamp = datetime.fromisoformat(row["timestamp"])
             print(
                 f"{row['task_id']:<20} {timestamp.strftime('%Y-%m-%d %H:%M:%S'):<25} "
-                f"{row['total_latency_ms']/1000:>12.1f} ${row['total_cost_usd']:>9.4f}"
+                f"{row['total_latency_ms'] / 1000:>12.1f} ${row['total_cost_usd']:>9.4f}"
             )
         print()
     else:

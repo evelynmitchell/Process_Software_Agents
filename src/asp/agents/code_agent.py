@@ -1073,7 +1073,7 @@ class CodeAgent(BaseAgent):
             return manifest
         except Exception as e:
             raise AgentExecutionError(
-                f"Failed to validate FileManifest: {e}\n" f"Response content: {content}"
+                f"Failed to validate FileManifest: {e}\nResponse content: {content}"
             ) from e
 
     async def _generate_file_content_async(

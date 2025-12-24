@@ -42,13 +42,9 @@ jobs:
       run: |
         uv pip install --system -e ".[dev]"
 
-    - name: Check code formatting with Black
+    - name: Check code formatting with Ruff
       run: |
-        black --check --diff src/asp/web/ tests/e2e/web/
-
-    - name: Check import sorting with isort
-      run: |
-        isort --check-only --diff src/asp/web/ tests/e2e/web/
+        ruff format --check --diff src/asp/web/ tests/e2e/web/
 
     - name: Lint with Ruff
       run: |
