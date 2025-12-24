@@ -213,9 +213,9 @@ class TestCodeAgentE2E:
         for file in generated_code.files:
             # Basic file validations
             assert len(file.file_path) > 0
-            assert (
-                len(file.content) > 0
-            ), f"File {file.file_path} should have non-empty content"
+            assert len(file.content) > 0, (
+                f"File {file.file_path} should have non-empty content"
+            )
             assert file.file_type in [
                 "source",
                 "test",
@@ -243,9 +243,9 @@ class TestCodeAgentE2E:
         # Validate semantic units and components
         assert len(generated_code.semantic_units_implemented) > 0
         for su_id in generated_code.semantic_units_implemented:
-            assert su_id.startswith(
-                "SU-"
-            ), f"Semantic unit ID should start with 'SU-': {su_id}"
+            assert su_id.startswith("SU-"), (
+                f"Semantic unit ID should start with 'SU-': {su_id}"
+            )
 
         assert len(generated_code.components_implemented) > 0
 
@@ -285,12 +285,12 @@ class TestCodeAgentE2E:
         print(f" Test files generated: {len(test_files)}")
 
         for test_file in test_files:
-            assert (
-                "test" in test_file.file_path.lower()
-            ), f"Test file path should contain 'test': {test_file.file_path}"
-            assert (
-                len(test_file.content) > 50
-            ), "Test files should have substantial content"
+            assert "test" in test_file.file_path.lower(), (
+                f"Test file path should contain 'test': {test_file.file_path}"
+            )
+            assert len(test_file.content) > 50, (
+                "Test files should have substantial content"
+            )
 
             # Check for common test frameworks
             content_lower = test_file.content.lower()
@@ -302,9 +302,9 @@ class TestCodeAgentE2E:
                     "class test" in content_lower,
                 ]
             )
-            assert (
-                has_test_framework
-            ), f"Test file should use a test framework: {test_file.file_path}"
+            assert has_test_framework, (
+                f"Test file should use a test framework: {test_file.file_path}"
+            )
 
         print(" All test files valid!")
 
@@ -344,9 +344,9 @@ class TestCodeAgentE2E:
             or "model" in path.lower()
             for path in file_paths
         )
-        assert (
-            has_structured_paths
-        ), "Should organize files in a structured directory layout"
+        assert has_structured_paths, (
+            "Should organize files in a structured directory layout"
+        )
 
         print(" Code generation with context successful!")
         print(f"   File paths: {', '.join(file_paths[:5])}...")

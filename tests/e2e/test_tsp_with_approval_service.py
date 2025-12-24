@@ -328,9 +328,9 @@ class TestTSPWithApprovalService:
             print("  ✓ Rejection properly halts pipeline")
 
             # Validate ApprovalService was called
-            assert (
-                len(approval_service.approval_requests) > 0
-            ), "ApprovalService should have been called before failure"
+            assert len(approval_service.approval_requests) > 0, (
+                "ApprovalService should have been called before failure"
+            )
             print(
                 f"  ✓ ApprovalService was called {len(approval_service.approval_requests)} time(s)"
             )
@@ -395,9 +395,9 @@ class TestTSPWithApprovalService:
 
         if len(approval_service.approval_requests) > 0:
             print("  ✓ ApprovalService was used")
-            assert (
-                len(callable_called) == 0
-            ), "Legacy callable should NOT be called when ApprovalService exists"
+            assert len(callable_called) == 0, (
+                "Legacy callable should NOT be called when ApprovalService exists"
+            )
             print("  ✓ Legacy callable was NOT called (correct priority)")
         else:
             print("  ℹ️  No quality gate failures, priority not tested")

@@ -84,7 +84,6 @@ jobs:
     - name: Install dependencies with uv
       run: |
         uv pip install --system -e ".[dev]"
-        uv pip install --system ruff
 
     - name: Check code formatting with Ruff
       run: |
