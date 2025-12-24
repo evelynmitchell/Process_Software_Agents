@@ -18,7 +18,7 @@ Run with:
 
 GitHub Actions Setup:
     Add secrets: ANTHROPIC_API_KEY, OPENROUTER_API_KEY, GROQ_API_KEY
-    See: .github/workflows/provider-e2e-tests.yml
+    See: .github/workflows/provider-e2e.yml
 
 Author: ASP Development Team
 Date: December 2025
@@ -31,7 +31,6 @@ import pytest
 from asp.providers import ProviderConfig, ProviderRegistry
 from asp.providers.errors import AuthenticationError, ProviderError
 
-
 # =============================================================================
 # Skip Conditions
 # =============================================================================
@@ -42,23 +41,23 @@ HAS_GROQ_KEY = bool(os.getenv("GROQ_API_KEY"))
 
 skip_without_anthropic = pytest.mark.skipif(
     not HAS_ANTHROPIC_KEY,
-    reason="ANTHROPIC_API_KEY not set - skipping Anthropic e2e tests"
+    reason="ANTHROPIC_API_KEY not set - skipping Anthropic e2e tests",
 )
 
 skip_without_openrouter = pytest.mark.skipif(
     not HAS_OPENROUTER_KEY,
-    reason="OPENROUTER_API_KEY not set - skipping OpenRouter e2e tests"
+    reason="OPENROUTER_API_KEY not set - skipping OpenRouter e2e tests",
 )
 
 skip_without_groq = pytest.mark.skipif(
-    not HAS_GROQ_KEY,
-    reason="GROQ_API_KEY not set - skipping Groq e2e tests"
+    not HAS_GROQ_KEY, reason="GROQ_API_KEY not set - skipping Groq e2e tests"
 )
 
 
 # =============================================================================
 # Test Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def minimal_prompt() -> str:
@@ -75,6 +74,7 @@ def json_prompt() -> str:
 # =============================================================================
 # Anthropic Provider E2E Tests
 # =============================================================================
+
 
 @pytest.mark.e2e
 @pytest.mark.provider
@@ -204,6 +204,7 @@ class TestAnthropicProviderE2E:
 # OpenRouter Provider E2E Tests
 # =============================================================================
 
+
 @pytest.mark.e2e
 @pytest.mark.provider
 class TestOpenRouterProviderE2E:
@@ -286,7 +287,7 @@ class TestOpenRouterProviderE2E:
         config = ProviderConfig(api_key="invalid-key-12345")
         provider = OpenRouterProvider(config)
 
-        with pytest.raises((AuthenticationError, ProviderError, Exception)):
+        with pytest.raises((AuthenticationError, ProviderError)):
             provider.call(
                 prompt="test",
                 model="anthropic/claude-3.5-haiku",
@@ -297,6 +298,7 @@ class TestOpenRouterProviderE2E:
 # =============================================================================
 # Groq Provider E2E Tests
 # =============================================================================
+
 
 @pytest.mark.e2e
 @pytest.mark.provider
@@ -391,7 +393,7 @@ class TestGroqProviderE2E:
         config = ProviderConfig(api_key="invalid-key-12345")
         provider = GroqProvider(config)
 
-        with pytest.raises((AuthenticationError, ProviderError, Exception)):
+        with pytest.raises((AuthenticationError, ProviderError)):
             provider.call(
                 prompt="test",
                 model="llama-3.1-8b-instant",
@@ -402,6 +404,7 @@ class TestGroqProviderE2E:
 # =============================================================================
 # Provider Registry E2E Tests
 # =============================================================================
+
 
 @pytest.mark.e2e
 @pytest.mark.provider
@@ -447,6 +450,7 @@ class TestProviderRegistryE2E:
 # Cross-Provider Comparison Tests (requires multiple keys)
 # =============================================================================
 
+
 @pytest.mark.e2e
 @pytest.mark.provider
 class TestCrossProviderE2E:
@@ -454,7 +458,7 @@ class TestCrossProviderE2E:
 
     @pytest.mark.skipif(
         not (HAS_ANTHROPIC_KEY and HAS_GROQ_KEY),
-        reason="Requires both ANTHROPIC_API_KEY and GROQ_API_KEY"
+        reason="Requires both ANTHROPIC_API_KEY and GROQ_API_KEY",
     )
     def test_same_prompt_different_providers(self, minimal_prompt):
         """Test that different providers return similar responses."""
