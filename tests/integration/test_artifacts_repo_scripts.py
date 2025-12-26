@@ -74,9 +74,9 @@ class TestInitScript:
         )
 
         # Check directories
-        assert (
-            test_repo_path / "artifacts"
-        ).exists(), "artifacts directory not created"
+        assert (test_repo_path / "artifacts").exists(), (
+            "artifacts directory not created"
+        )
         assert (test_repo_path / "data").exists(), "data directory not created"
         assert (test_repo_path / "logs").exists(), "logs directory not created"
         assert (test_repo_path / "temp").exists(), "temp directory not created"
@@ -153,9 +153,9 @@ class TestInitScript:
         )
 
         assert result.returncode == 0, "Git branch command failed"
-        assert (
-            "test-main" in result.stdout
-        ), "test-main branch not created or not checked out"
+        assert "test-main" in result.stdout, (
+            "test-main branch not created or not checked out"
+        )
 
 
 class TestCleanupScript:
@@ -202,9 +202,9 @@ class TestCleanupScript:
             [str(cleanup_script)], cwd=str(project_root), capture_output=True, text=True
         )
 
-        assert (
-            result.returncode == 0
-        ), "Cleanup should succeed even if repo doesn't exist"
+        assert result.returncode == 0, (
+            "Cleanup should succeed even if repo doesn't exist"
+        )
         assert (
             "No test artifacts repository found" in result.stdout
             or "Nothing to clean up" in result.stdout
@@ -234,9 +234,9 @@ class TestRepositoryIsolation:
 
         # test_artifacts_repo/ directory should not appear in git status
         # (checking for the directory specifically, not the string in filenames)
-        assert (
-            "test_artifacts_repo/" not in result.stdout
-        ), "test_artifacts_repo/ directory should be ignored by main repository"
+        assert "test_artifacts_repo/" not in result.stdout, (
+            "test_artifacts_repo/ directory should be ignored by main repository"
+        )
 
     def test_gitignore_includes_test_repo(self, project_root):
         """Test that .gitignore includes test_artifacts_repo."""
@@ -244,9 +244,9 @@ class TestRepositoryIsolation:
         assert gitignore.exists(), ".gitignore not found"
 
         content = gitignore.read_text()
-        assert (
-            "test_artifacts_repo" in content
-        ), "test_artifacts_repo should be in .gitignore"
+        assert "test_artifacts_repo" in content, (
+            "test_artifacts_repo should be in .gitignore"
+        )
 
     def test_test_repo_has_separate_git(
         self, project_root, test_repo_path, cleanup_test_repo
@@ -264,12 +264,12 @@ class TestRepositoryIsolation:
 
         assert test_git.exists(), "Test repo should have .git directory"
         assert main_git.exists(), "Main repo should have .git directory"
-        assert (
-            test_git != main_git
-        ), "Test repo and main repo should have different .git directories"
-        assert str(test_git).startswith(
-            str(test_repo_path)
-        ), "Test repo .git should be inside test_artifacts_repo"
+        assert test_git != main_git, (
+            "Test repo and main repo should have different .git directories"
+        )
+        assert str(test_git).startswith(str(test_repo_path)), (
+            "Test repo .git should be inside test_artifacts_repo"
+        )
 
 
 class TestGitOperations:
@@ -336,9 +336,9 @@ class TestGitOperations:
         )
 
         assert result.returncode == 0, "Git remote command failed"
-        assert (
-            result.stdout.strip() == ""
-        ), "Test repository should have no remotes configured"
+        assert result.stdout.strip() == "", (
+            "Test repository should have no remotes configured"
+        )
 
 
 class TestDocumentation:
@@ -355,10 +355,10 @@ class TestDocumentation:
         content = doc_path.read_text()
 
         assert "Test Artifacts Repository" in content, "Documentation should have title"
-        assert (
-            "init_test_artifacts_repo.sh" in content
-        ), "Documentation should mention init script"
-        assert (
-            "cleanup_test_artifacts_repo.sh" in content
-        ), "Documentation should mention cleanup script"
+        assert "init_test_artifacts_repo.sh" in content, (
+            "Documentation should mention init script"
+        )
+        assert "cleanup_test_artifacts_repo.sh" in content, (
+            "Documentation should mention cleanup script"
+        )
         assert "Quick Start" in content, "Documentation should have Quick Start section"

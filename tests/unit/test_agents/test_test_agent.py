@@ -28,7 +28,6 @@ from asp.models.design import (
 )
 from asp.models.test import TestInput, TestReport
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -415,9 +414,7 @@ class TestTestAgentExecuteErrorPaths:
         return TestAgent(llm_client=mock_client)
 
     @patch.object(TestAgent, "load_prompt")
-    def test_execute_prompt_not_found(
-        self, mock_load_prompt, agent, mock_test_input
-    ):
+    def test_execute_prompt_not_found(self, mock_load_prompt, agent, mock_test_input):
         """Test error when prompt template is not found."""
         mock_load_prompt.side_effect = FileNotFoundError("Prompt not found")
 
@@ -447,9 +444,7 @@ class TestTestAgentExecuteErrorPaths:
     ):
         """Test error when LLM returns invalid JSON in markdown fence."""
         mock_load_prompt.return_value = "test prompt"
-        mock_call_llm.return_value = {
-            "content": "```json\n{invalid json here}\n```"
-        }
+        mock_call_llm.return_value = {"content": "```json\n{invalid json here}\n```"}
 
         with pytest.raises(AgentExecutionError) as exc_info:
             agent.execute(mock_test_input)
@@ -627,7 +622,12 @@ class TestTestAgentAutoCorrection:
                 "test_status": "FAIL",  # Wrong - should be BUILD_FAILED
                 "build_successful": False,
                 "build_errors": ["SyntaxError"],
-                "test_summary": {"total_tests": 0, "passed": 0, "failed": 0, "skipped": 0},
+                "test_summary": {
+                    "total_tests": 0,
+                    "passed": 0,
+                    "failed": 0,
+                    "skipped": 0,
+                },
                 "defects_found": [],
                 "test_timestamp": "2025-12-23T12:00:00Z",
             }
@@ -884,7 +884,12 @@ class TestTestAgentAsyncExecution:
                 "test_status": "FAIL",  # Wrong - should be BUILD_FAILED
                 "build_successful": False,
                 "build_errors": ["Error"],
-                "test_summary": {"total_tests": 0, "passed": 0, "failed": 0, "skipped": 0},
+                "test_summary": {
+                    "total_tests": 0,
+                    "passed": 0,
+                    "failed": 0,
+                    "skipped": 0,
+                },
                 "defects_found": [],
                 "test_timestamp": "2025-12-23T12:00:00Z",
             }
@@ -961,7 +966,12 @@ class TestTestAgentEdgeCases:
                 "test_status": "FAIL",
                 "build_successful": True,
                 "build_errors": [],
-                "test_summary": {"total_tests": 4, "passed": 0, "failed": 4, "skipped": 0},
+                "test_summary": {
+                    "total_tests": 4,
+                    "passed": 0,
+                    "failed": 4,
+                    "skipped": 0,
+                },
                 "defects_found": [
                     {
                         "defect_id": "TEST-DEFECT-001",
@@ -1059,7 +1069,12 @@ class TestTestAgentEdgeCases:
                 "test_status": "PASS",
                 "build_successful": True,
                 "build_errors": [],
-                "test_summary": {"total_tests": 1, "passed": 1, "failed": 0, "skipped": 0},
+                "test_summary": {
+                    "total_tests": 1,
+                    "passed": 1,
+                    "failed": 0,
+                    "skipped": 0,
+                },
                 "coverage_percentage": None,
                 "defects_found": [],
                 "test_timestamp": "2025-12-23T12:00:00Z",
@@ -1095,7 +1110,12 @@ class TestTestAgentEdgeCases:
                 "test_status": "PASS",
                 "build_successful": True,
                 "build_errors": [],
-                "test_summary": {"total_tests": 10, "passed": 8, "failed": 0, "skipped": 2},
+                "test_summary": {
+                    "total_tests": 10,
+                    "passed": 8,
+                    "failed": 0,
+                    "skipped": 2,
+                },
                 "defects_found": [],
                 "test_timestamp": "2025-12-23T12:00:00Z",
             }

@@ -149,19 +149,19 @@ class TestDesignAgentE2E:
         ]
         valid_severities = ["critical", "high", "medium", "low"]
         for item in design.design_review_checklist:
-            assert (
-                item.category.lower() in valid_categories
-            ), f"Invalid category: {item.category}"
-            assert (
-                item.severity.lower() in valid_severities
-            ), f"Invalid severity: {item.severity}"
+            assert item.category.lower() in valid_categories, (
+                f"Invalid category: {item.category}"
+            )
+            assert item.severity.lower() in valid_severities, (
+                f"Invalid severity: {item.severity}"
+            )
             assert len(item.description) >= 10
             assert len(item.validation_criteria) >= 10
 
         # Log results
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("E2E Test: Simple API Design")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print(f"Task ID: {design.task_id}")
         print(f"\nArchitecture: {design.architecture_overview[:100]}...")
         print("\nTechnology Stack:")
@@ -288,23 +288,23 @@ class TestDesignAgentE2E:
         # Validate semantic unit coverage
         semantic_unit_ids = {unit.unit_id for unit in project_plan.semantic_units}
         design_unit_ids = {comp.semantic_unit_id for comp in design.component_logic}
-        assert (
-            semantic_unit_ids == design_unit_ids
-        ), "All semantic units must have components"
+        assert semantic_unit_ids == design_unit_ids, (
+            "All semantic units must have components"
+        )
 
         # Check for security-related design review items
         has_security_checks = any(
             item.category.lower() == "security"
             for item in design.design_review_checklist
         )
-        assert (
-            has_security_checks
-        ), "Authentication system should have security review items"
+        assert has_security_checks, (
+            "Authentication system should have security review items"
+        )
 
         # Log results
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("E2E Test: JWT Authentication System")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print(f"API Contracts: {len(design.api_contracts)}")
         for api in design.api_contracts:
             print(f"  - {api.method} {api.endpoint}: {api.description[:50]}...")
@@ -330,9 +330,9 @@ class TestDesignAgentE2E:
         """
 
         # Step 1: Run Planning Agent
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("E2E Test: Planning->Design Workflow")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print("Step 1: Running Planning Agent...")
 
         planning_agent = PlanningAgent(llm_client=llm_client)
@@ -372,14 +372,14 @@ class TestDesignAgentE2E:
         # Validate semantic unit coverage
         planning_units = {unit.unit_id for unit in project_plan.semantic_units}
         design_units = {comp.semantic_unit_id for comp in design.component_logic}
-        assert (
-            planning_units == design_units
-        ), "Design must cover all planning semantic units"
+        assert planning_units == design_units, (
+            "Design must cover all planning semantic units"
+        )
 
         # Log results
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("Workflow Summary")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print("Planning Output:")
         print(f"  - Semantic Units: {len(project_plan.semantic_units)}")
         print(f"  - Total Complexity: {project_plan.total_est_complexity}")
@@ -490,14 +490,14 @@ class TestDesignAgentE2E:
             item.category.lower() == "performance"
             for item in design.design_review_checklist
         )
-        assert (
-            has_performance_checks
-        ), "Data pipeline should have performance review items"
+        assert has_performance_checks, (
+            "Data pipeline should have performance review items"
+        )
 
         # Log results
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("E2E Test: ETL Data Pipeline Design")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print(f"Components: {len(design.component_logic)}")
         for component in design.component_logic:
             print(f"  - {component.component_name}")
@@ -534,9 +534,9 @@ class TestDesignAgentE2E:
         # Validate basic execution
         assert isinstance(design, DesignSpecification)
 
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("E2E Test: Telemetry Integration")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print(f"Telemetry captured for task: {design_input.task_id}")
         print(f"Database: {db_path}")
         print("Check Langfuse dashboard for trace data")

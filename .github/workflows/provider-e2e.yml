@@ -1,0 +1,84 @@
+name: Provider E2E Tests
+
+# This workflow runs e2e tests for LLM providers.
+# It uses actual API calls, so it's triggered:
+# - Manually via workflow_dispatch (for on-demand testing)
+# - On pushes to main that modify provider code
+# - Weekly schedule (to catch API changes)
+
+on:
+  workflow_dispatch:
+    inputs:
+      providers:
+        description: 'Providers to test (comma-separated: anthropic,openrouter,groq or "all")'
+        required: false
+        default: 'all'
+
+  push:
+    branches: [main]
+    paths:
+      - 'src/asp/providers/**'
+      - 'tests/e2e/test_providers_e2e.py'
+      - '.github/workflows/provider-e2e.yml'
+
+  schedule:
+    # Run weekly on Sundays at 2am UTC
+    - cron: '0 2 * * 0'
+
+permissions:
+  contents: read
+
+jobs:
+  provider-e2e:
+    name: Provider E2E Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
+      with:
+        version: "latest"
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install dependencies
+      run: |
+        uv pip install --system -e ".[dev]"
+
+    - name: Run Provider E2E Tests
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      run: |
+        echo "=== Provider E2E Test Run ==="
+        echo "Available providers:"
+        [[ -n "$ANTHROPIC_API_KEY" ]] && echo "  - Anthropic: YES" || echo "  - Anthropic: NO (skipped)"
+        [[ -n "$OPENROUTER_API_KEY" ]] && echo "  - OpenRouter: YES" || echo "  - OpenRouter: NO (skipped)"
+        [[ -n "$GROQ_API_KEY" ]] && echo "  - Groq: YES" || echo "  - Groq: NO (skipped)"
+        echo ""
+
+        # Run provider e2e tests with verbose output (no coverage - subset of tests)
+        pytest tests/e2e/test_providers_e2e.py -v -s --tb=short -m "provider" --no-cov
+
+    - name: Summary
+      if: always()
+      run: |
+        echo "## Provider E2E Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Provider | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+        [[ -n "$ANTHROPIC_API_KEY" ]] && echo "| Anthropic | Tested |" >> $GITHUB_STEP_SUMMARY || echo "| Anthropic | Skipped (no key) |" >> $GITHUB_STEP_SUMMARY
+        [[ -n "$OPENROUTER_API_KEY" ]] && echo "| OpenRouter | Tested |" >> $GITHUB_STEP_SUMMARY || echo "| OpenRouter | Skipped (no key) |" >> $GITHUB_STEP_SUMMARY
+        [[ -n "$GROQ_API_KEY" ]] && echo "| Groq | Tested |" >> $GITHUB_STEP_SUMMARY || echo "| Groq | Skipped (no key) |" >> $GITHUB_STEP_SUMMARY
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}

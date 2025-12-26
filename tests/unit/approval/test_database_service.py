@@ -28,7 +28,6 @@ from asp.approval.database_service import (
     _json_serializer,
 )
 
-
 # =============================================================================
 # JSON Serializer Tests
 # =============================================================================
@@ -46,7 +45,7 @@ class TestJsonSerializer:
     def test_serialize_unsupported_type_raises(self):
         """Test that unsupported types raise TypeError."""
         with pytest.raises(TypeError) as exc_info:
-            _json_serializer(set([1, 2, 3]))
+            _json_serializer({1, 2, 3})
         assert "set" in str(exc_info.value)
 
 

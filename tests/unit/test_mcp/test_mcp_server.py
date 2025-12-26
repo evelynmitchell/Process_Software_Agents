@@ -337,9 +337,9 @@ class TestSlashCommands:
         """All command files should have ## Instructions section."""
         for cmd_file in commands_dir.glob("*.md"):
             content = cmd_file.read_text()
-            assert (
-                "## Instructions" in content
-            ), f"{cmd_file.name} missing ## Instructions"
+            assert "## Instructions" in content, (
+                f"{cmd_file.name} missing ## Instructions"
+            )
 
     def test_commands_have_titles(self, commands_dir):
         """All command files should start with a title."""

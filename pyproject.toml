@@ -182,7 +182,18 @@ exclude = [
     "dist",
     "__pycache__",
     "contrib",
+    "artifacts",
 ]
+
+[tool.ruff.format]
+# Use double quotes for strings (like Black)
+quote-style = "double"
+# Indent with spaces (like Black)
+indent-style = "space"
+# Respect magic trailing commas (like Black)
+skip-magic-trailing-comma = false
+# Auto-detect line ending
+line-ending = "auto"
 
 [tool.ruff.lint]
 select = [
