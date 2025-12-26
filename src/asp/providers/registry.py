@@ -201,6 +201,14 @@ class ProviderRegistry:
         except ImportError:
             logger.debug("GroqProvider not available (missing openai SDK)")
 
+        # Register Claude CLI provider (subprocess-based, subscription billing)
+        try:
+            from asp.providers.claude_cli_provider import ClaudeCLIProvider
+
+            cls.register("claude_cli", ClaudeCLIProvider)
+        except ImportError:
+            logger.debug("ClaudeCLIProvider not available")
+
         # Future providers will be registered here as they are implemented:
         # - gemini (uses google-generativeai SDK)
         # - together (OpenAI-compatible)
@@ -209,7 +217,6 @@ class ProviderRegistry:
         # - cloudflare (REST API)
         # - ollama (OpenAI-compatible, local)
         # - vllm (OpenAI-compatible, local)
-        # - claude_cli (subprocess)
 
 
 # Alias for convenience

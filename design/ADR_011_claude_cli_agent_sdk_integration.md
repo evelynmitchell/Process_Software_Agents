@@ -1028,30 +1028,75 @@ llm:
 
 ## Alternatives Considered
 
-### Alternative 1: Direct CLI Subprocess
+### Alternative 1: Direct CLI Subprocess ✓ RECOMMENDED
 
 Invoke `claude` CLI as subprocess:
 
 ```python
-import subprocess
+import asyncio
 import json
 
-async def call_claude_cli(prompt: str) -> str:
+async def call_claude_cli(prompt: str) -> dict:
     proc = await asyncio.create_subprocess_exec(
-        "claude", "-p", prompt, "--output-format", "json",
+        "claude", "-p", prompt,
+        "--output-format", "json",
+        "--max-turns", "1",
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
     stdout, stderr = await proc.communicate()
-    result = json.loads(stdout)
-    return result["messages"][-1]["content"]
+    return json.loads(stdout)
 ```
 
-**Rejected because:**
-- Limited control over execution
-- Difficult to stream responses
-- No access to intermediate steps
-- Subprocess overhead per call
+**JSON Output (verified 2025-12-26):**
+
+```json
+{
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 11868,
+  "duration_api_ms": 5898,
+  "num_turns": 1,
+  "result": "Hello! I'm Claude Code...",
+  "session_id": "a8b44c5f-4e31-44b7-8deb-81f52271a95a",
+  "total_cost_usd": 0.03275995,
+  "usage": {
+    "input_tokens": 3,
+    "cache_creation_input_tokens": 6877,
+    "cache_read_input_tokens": 12834,
+    "output_tokens": 96
+  },
+  "modelUsage": {
+    "claude-sonnet-4-5-20250929": {
+      "inputTokens": 3,
+      "outputTokens": 96,
+      "cacheReadInputTokens": 12834,
+      "cacheCreationInputTokens": 6877,
+      "costUSD": 0.031087950000000003
+    }
+  }
+}
+```
+
+**Benefits:**
+- ✅ Full token visibility (`usage`, `modelUsage`)
+- ✅ Cost tracking (`total_cost_usd`)
+- ✅ Subscription billing support (Pro/Max)
+- ✅ No npm/Node.js in Python environment (binary is self-contained)
+- ✅ Session resumption via `session_id`
+- ✅ Simple implementation (~100 lines)
+- ✅ Clean provider abstraction (fits ADR 010 pattern)
+
+**Limitations:**
+- Subprocess overhead per call (~100ms)
+- No streaming (use `stream-json` format if needed)
+- No intermediate tool observation (single result)
+
+**When to use:**
+- LLM-only calls (planning, review, analysis)
+- When subscription billing is desired
+- Simpler alternative to containerization
 
 ### Alternative 2: Keep API-Only
 
@@ -1117,8 +1162,50 @@ Use third-party abstraction libraries:
 
 ---
 
-**Status:** Draft
+## Revised Recommendation (2025-12-26)
+
+After investigation, the **subprocess CLI approach** is recommended as the initial implementation:
+
+### Why Subprocess Over Containerization
+
+| Aspect | Subprocess CLI | Containerized SDK |
+|--------|----------------|-------------------|
+| Complexity | ~100 lines | ~500+ lines + Docker |
+| Dependencies | None (binary exists) | Docker, container management |
+| Token visibility | ✅ Full (verified) | ✅ Full |
+| Cost tracking | ✅ Built-in | Requires implementation |
+| Subscription billing | ✅ Works | Uncertain (headless auth) |
+| Time to implement | 1 session | 4-5 sessions |
+
+### Phased Approach
+
+**Phase 1: Subprocess Provider (This Session)**
+- Implement `ClaudeCLIProvider` using subprocess
+- Full token/cost visibility
+- Subscription billing support
+- Register in provider system
+
+**Phase 2: Session Management (Future)**
+- Use `session_id` for conversation continuity
+- Implement `--continue` flag support
+- Context compaction via CLI
+
+**Phase 3: Tool Delegation (Future, If Needed)**
+- Allow Claude CLI to execute tools
+- Hybrid mode: ASP plans, Claude executes
+- Requires careful permission management
+
+**Phase 4: Containerization (Deferred)**
+- Only if subprocess limitations become blocking
+- Or if deep SDK integration is needed
+
+---
+
+**Status:** In Progress
+**Decision:** Implement subprocess CLI provider first
 **Next Steps:**
-1. Review and discuss options
-2. Decide on phased approach
-3. Begin Phase 1 implementation if approved
+1. ✅ Verify JSON output includes tokens (done 2025-12-26)
+2. Implement `ClaudeCLIProvider`
+3. Add unit tests
+4. Register in provider system
+5. Document usage

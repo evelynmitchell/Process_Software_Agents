@@ -12,6 +12,8 @@ Author: ASP Development Team
 Date: December 2025
 """
 
+import asyncio
+import builtins
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -621,6 +623,277 @@ class TestOpenAICompatibleProvider:
         assert response.usage["output_tokens"] == 50
 
 
+class TestClaudeCLIProvider:
+    """Tests for ClaudeCLIProvider."""
+
+    def test_init_without_claude_binary(self):
+        """Test initialization fails without claude binary."""
+        with patch("shutil.which", return_value=None):
+            with pytest.raises(ConnectionError) as exc_info:
+                from asp.providers.claude_cli_provider import ClaudeCLIProvider
+
+                ClaudeCLIProvider()
+
+            assert "Claude CLI not found" in str(exc_info.value)
+
+    def test_init_with_claude_binary(self):
+        """Test initialization succeeds with claude binary."""
+        with patch("shutil.which", return_value="/usr/bin/claude"):
+            from asp.providers.claude_cli_provider import ClaudeCLIProvider
+
+            provider = ClaudeCLIProvider()
+
+            assert provider.name == "claude_cli"
+            assert provider._claude_path == "/usr/bin/claude"
+
+    def test_available_models(self):
+        """Test listing available models."""
+        with patch("shutil.which", return_value="/usr/bin/claude"):
+            from asp.providers.claude_cli_provider import ClaudeCLIProvider
+
+            provider = ClaudeCLIProvider()
+
+            models = provider.available_models
+
+            assert isinstance(models, list)
+            assert "claude-haiku-4-5" in models
+            assert "claude-sonnet-4-5" in models
+            assert "claude-opus-4-5" in models
+
+    def test_estimate_cost(self):
+        """Test cost estimation."""
+        with patch("shutil.which", return_value="/usr/bin/claude"):
+            from asp.providers.claude_cli_provider import ClaudeCLIProvider
+
+            provider = ClaudeCLIProvider()
+
+            # Sonnet pricing: $3 input, $15 output per million tokens
+            cost = provider.estimate_cost(
+                model="claude-sonnet-4-5",
+                input_tokens=1_000_000,
+                output_tokens=1_000_000,
+            )
+
+            assert cost == 3.0 + 15.0  # $18 total
+
+    def test_estimate_cost_haiku(self):
+        """Test cost estimation for Haiku model."""
+        with patch("shutil.which", return_value="/usr/bin/claude"):
+            from asp.providers.claude_cli_provider import ClaudeCLIProvider
+
+            provider = ClaudeCLIProvider()
+
+            # Haiku pricing: $0.25 input, $1.25 output per million tokens
+            cost = provider.estimate_cost(
+                model="claude-haiku-4-5",
+                input_tokens=1_000_000,
+                output_tokens=1_000_000,
+            )
+
+            assert cost == 0.25 + 1.25  # $1.50 total
+
+    def test_default_model(self):
+        """Test default model configuration."""
+        with patch("shutil.which", return_value="/usr/bin/claude"):
+            from asp.providers.claude_cli_provider import ClaudeCLIProvider
+
+            # Default
+            provider = ClaudeCLIProvider()
+            assert provider.default_model == "claude-sonnet-4-5"
+
+            # Custom default
+            config = ProviderConfig(default_model="claude-haiku-4-5")
+            provider = ClaudeCLIProvider(config)
+            assert provider.default_model == "claude-haiku-4-5"
+
+    def test_try_parse_json_valid(self):
+        """Test JSON parsing with valid JSON."""
+        with patch("shutil.which", return_value="/usr/bin/claude"):
+            from asp.providers.claude_cli_provider import ClaudeCLIProvider
+
+            provider = ClaudeCLIProvider()
+
+            result = provider._try_parse_json('{"key": "value"}')
+
+            assert result == {"key": "value"}
+
+    def test_try_parse_json_markdown_block(self):
+        """Test JSON parsing with markdown code block."""
+        with patch("shutil.which", return_value="/usr/bin/claude"):
+            from asp.providers.claude_cli_provider import ClaudeCLIProvider
+
+            provider = ClaudeCLIProvider()
+
+            result = provider._try_parse_json('```json\n{"key": "value"}\n```')
+
+            assert result == {"key": "value"}
+
+    def test_try_parse_json_invalid(self):
+        """Test JSON parsing with non-JSON text."""
+        with patch("shutil.which", return_value="/usr/bin/claude"):
+            from asp.providers.claude_cli_provider import ClaudeCLIProvider
+
+            provider = ClaudeCLIProvider()
+
+            result = provider._try_parse_json("Just plain text")
+
+            assert result == "Just plain text"
+
+    def test_process_response(self):
+        """Test processing CLI JSON response."""
+        with patch("shutil.which", return_value="/usr/bin/claude"):
+            from asp.providers.claude_cli_provider import ClaudeCLIProvider
+
+            provider = ClaudeCLIProvider()
+
+            # Sample CLI output (mimics real output)
+            cli_output = {
+                "type": "result",
+                "subtype": "success",
+                "is_error": False,
+                "duration_ms": 5000,
+                "duration_api_ms": 3000,
+                "num_turns": 1,
+                "result": "Hello! How can I help?",
+                "session_id": "test-session-123",
+                "total_cost_usd": 0.001,
+                "usage": {
+                    "input_tokens": 10,
+                    "output_tokens": 20,
+                    "cache_creation_input_tokens": 100,
+                    "cache_read_input_tokens": 50,
+                },
+                "modelUsage": {
+                    "claude-sonnet-4-5-20250929": {
+                        "inputTokens": 10,
+                        "outputTokens": 20,
+                        "costUSD": 0.001,
+                    }
+                },
+            }
+
+            response = provider._process_response(cli_output, "claude-sonnet-4-5")
+
+            assert response.content == "Hello! How can I help?"
+            assert response.raw_content == "Hello! How can I help?"
+            assert response.usage["input_tokens"] == 10
+            assert response.usage["output_tokens"] == 20
+            assert response.usage["cache_creation_input_tokens"] == 100
+            assert response.cost == 0.001
+            assert response.provider == "claude_cli"
+            assert response.metadata["session_id"] == "test-session-123"
+            assert response.metadata["duration_ms"] == 5000
+
+    def test_process_response_with_error(self):
+        """Test processing CLI response with error."""
+        with patch("shutil.which", return_value="/usr/bin/claude"):
+            from asp.providers.claude_cli_provider import ClaudeCLIProvider
+
+            provider = ClaudeCLIProvider()
+
+            cli_output = {
+                "type": "result",
+                "is_error": True,
+                "result": "Rate limit exceeded",
+            }
+
+            with pytest.raises(ProviderError) as exc_info:
+                provider._process_response(cli_output, "claude-sonnet-4-5")
+
+            assert "Rate limit exceeded" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_call_async_mocked(self):
+        """Test async call with mocked subprocess."""
+        with patch("shutil.which", return_value="/usr/bin/claude"):
+            from asp.providers.claude_cli_provider import ClaudeCLIProvider
+
+            provider = ClaudeCLIProvider()
+
+            # Mock subprocess output
+            mock_stdout = b'{"type":"result","subtype":"success","is_error":false,"result":"Hello!","total_cost_usd":0.001,"usage":{"input_tokens":10,"output_tokens":5},"session_id":"test-123"}'
+
+            mock_proc = AsyncMock()
+            mock_proc.returncode = 0
+            mock_proc.communicate = AsyncMock(return_value=(mock_stdout, b""))
+
+            with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+                response = await provider.call_async(
+                    prompt="Say hello",
+                    model="claude-sonnet-4-5",
+                )
+
+            assert response.content == "Hello!"
+            assert response.provider == "claude_cli"
+            assert response.usage["input_tokens"] == 10
+            assert response.usage["output_tokens"] == 5
+            assert response.cost == 0.001
+            assert response.metadata["session_id"] == "test-123"
+
+    @pytest.mark.asyncio
+    async def test_call_async_timeout(self):
+        """Test async call handles timeout."""
+        with patch("shutil.which", return_value="/usr/bin/claude"):
+            from asp.providers.claude_cli_provider import ClaudeCLIProvider
+            from asp.providers.errors import TimeoutError
+
+            config = ProviderConfig(timeout=1.0)
+            provider = ClaudeCLIProvider(config)
+
+            mock_proc = AsyncMock()
+            mock_proc.communicate = AsyncMock(
+                side_effect=builtins.TimeoutError("Timed out")
+            )
+            mock_proc.kill = MagicMock()
+            mock_proc.wait = AsyncMock()
+
+            with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+                with patch("asyncio.wait_for", side_effect=asyncio.TimeoutError):
+                    with pytest.raises(TimeoutError) as exc_info:
+                        await provider.call_async(prompt="Test")
+
+            assert "timed out" in str(exc_info.value).lower()
+
+    @pytest.mark.asyncio
+    async def test_call_async_cli_error(self):
+        """Test async call handles CLI errors."""
+        with patch("shutil.which", return_value="/usr/bin/claude"):
+            from asp.providers.claude_cli_provider import ClaudeCLIProvider
+
+            provider = ClaudeCLIProvider()
+
+            mock_proc = AsyncMock()
+            mock_proc.returncode = 1
+            mock_proc.communicate = AsyncMock(
+                return_value=(b"", b"Error: Something went wrong")
+            )
+
+            with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+                with pytest.raises(ProviderError) as exc_info:
+                    await provider.call_async(prompt="Test")
+
+            assert "failed" in str(exc_info.value).lower()
+
+    def test_config_extra_options(self):
+        """Test configuration with extra options."""
+        with patch("shutil.which", return_value="/usr/bin/claude"):
+            from asp.providers.claude_cli_provider import ClaudeCLIProvider
+
+            config = ProviderConfig(
+                timeout=60.0,
+                extra={
+                    "max_turns": 5,
+                    "session_id": "existing-session",
+                    "allowed_tools": ["Read", "Glob"],
+                },
+            )
+            provider = ClaudeCLIProvider(config)
+
+            assert provider._timeout == 60.0
+            assert provider.config.extra["max_turns"] == 5
+            assert provider.config.extra["session_id"] == "existing-session"
+
+
 class TestProviderRegistryWithNewProviders:
     """Tests for ProviderRegistry with new providers."""
 
@@ -644,3 +917,7 @@ class TestProviderRegistryWithNewProviders:
     def test_is_registered_groq(self):
         """Test Groq is registered."""
         assert ProviderRegistry.is_registered("groq")
+
+    def test_is_registered_claude_cli(self):
+        """Test Claude CLI is registered."""
+        assert ProviderRegistry.is_registered("claude_cli")

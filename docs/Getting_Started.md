@@ -796,14 +796,37 @@ uv run python -m asp.cli run --task-id TASK-001 --description "Add feature" \
 # Use Groq (ultra-fast Llama inference)
 uv run python -m asp.cli run --task-id TASK-001 --description "Add feature" \
   --provider groq --model llama-3.3-70b-versatile
+
+# Use Claude CLI (subscription billing with Pro/Max plans)
+uv run python -m asp.cli run --task-id TASK-001 --description "Add feature" \
+  --provider claude_cli
 ```
 
 **Available providers:**
-| Provider | API Key Env Var | Models |
-|----------|----------------|--------|
-| `anthropic` | `ANTHROPIC_API_KEY` | Claude Opus/Sonnet/Haiku |
-| `openrouter` | `OPENROUTER_API_KEY` | 100+ models (OpenAI, Google, Meta, etc.) |
-| `groq` | `GROQ_API_KEY` | Llama, Mixtral, Gemma |
+| Provider | API Key Env Var | Models | Notes |
+|----------|----------------|--------|-------|
+| `anthropic` | `ANTHROPIC_API_KEY` | Claude Opus/Sonnet/Haiku | Default, pay-per-token |
+| `openrouter` | `OPENROUTER_API_KEY` | 100+ models (OpenAI, Google, Meta, etc.) | Multi-provider gateway |
+| `groq` | `GROQ_API_KEY` | Llama, Mixtral, Gemma | Ultra-fast LPU inference |
+| `claude_cli` | None (uses Claude CLI) | Claude Opus/Sonnet/Haiku | Subscription billing (Pro/Max) |
+
+**Claude CLI Provider (ADR 011):**
+
+Use your Claude Pro/Max subscription instead of API billing:
+
+```bash
+# Requires Claude CLI installed (https://claude.ai/download)
+export ASP_LLM_PROVIDER=claude_cli
+
+# Full token visibility and cost tracking included
+uv run python -m asp.cli run --task-id TASK-001 --description "Add feature"
+```
+
+Benefits:
+- Use Pro/Max subscription (no API costs)
+- Full token visibility (input, output, cache tokens)
+- Cost tracking from CLI output
+- Session resumption support
 
 **Set default provider via environment:**
 ```bash
